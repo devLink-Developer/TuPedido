@@ -4,7 +4,7 @@ import { useCart } from "../../features/cart/cart-store";
 import { BottomNav } from "./BottomNav";
 
 const titles: Record<string, string> = {
-  "/": "Inicio",
+  "/": "Pedir ahora",
   "/cart": "Carrito",
   "/checkout": "Checkout",
   "/login": "Acceso",
@@ -56,9 +56,9 @@ export function MobileShell() {
   const isStoreRoute = location.pathname.startsWith("/stores/") || location.pathname.startsWith("/restaurants/");
   const title = isStoreRoute ? "Tienda" : titles[location.pathname] ?? "TuPedido";
   const desktopHighlights = [
-    "Despensas, farmacias, kioscos y restaurantes en una sola vitrina.",
-    "Horarios, delivery y pagos claros antes de comprar.",
-    "Una experiencia que ayuda a que cada comercio venda mejor."
+    "Abiertos primero, cerrados despues por proxima apertura.",
+    "Filtros rapidos por rubro, delivery o retiro.",
+    "Entra directo a la tienda y arma tu pedido."
   ];
 
   return (
@@ -72,12 +72,12 @@ export function MobileShell() {
               TuPedido
             </Link>
             <div className="relative space-y-5">
-              <p className="text-sm uppercase tracking-[0.28em] text-[#ffcfb7]/70">Comercios adheridos</p>
+              <p className="text-sm uppercase tracking-[0.28em] text-[#ffcfb7]/70">Pedir ahora</p>
               <h1 className="font-display text-4xl font-bold leading-tight text-white">
-                Una vidriera digital hecha para que el barrio compre mejor.
+                Pide en comercios activos del barrio.
               </h1>
               <p className="max-w-sm text-sm leading-7 text-white/68">
-                Descubre negocios cercanos con propuesta visual, filtros claros y catalogos que ayudan a convertir.
+                Busca por rubro, compara tiempos y entra directo a la tienda.
               </p>
             </div>
             <div className="space-y-3">
@@ -91,8 +91,8 @@ export function MobileShell() {
           <div className="relative space-y-5 rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-float">
             <div className="absolute right-5 top-5 h-16 w-16 rounded-full bg-brand-500/20 blur-2xl" />
             <p className="text-xs uppercase tracking-[0.26em] text-white/50">Sesion</p>
-            <p className="text-2xl font-display font-bold">{isAuthenticated ? user?.full_name : "Explora sin friccion"}</p>
-            <p className="text-sm leading-6 text-white/60">{isAuthenticated ? user?.role : "Entra para seguir pedidos, guardar direcciones o sumar tu comercio."}</p>
+            <p className="text-2xl font-display font-bold">{isAuthenticated ? user?.full_name : "Accede a tu cuenta"}</p>
+            <p className="text-sm leading-6 text-white/60">{isAuthenticated ? user?.role : "Ingresa para seguir pedidos, guardar direcciones y cerrar mas rapido tu compra."}</p>
             {isAuthenticated ? (
               <button
                 type="button"
@@ -144,7 +144,7 @@ export function MobileShell() {
                       TP
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Delivery local</p>
+                      <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Comercios activos</p>
                       <h2 className="truncate font-display text-lg font-bold tracking-tight">{title}</h2>
                     </div>
                   </Link>
@@ -192,7 +192,7 @@ export function MobileShell() {
 
               <div className="hidden items-center justify-between gap-4 md:flex">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Marketplace local</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Comercios activos</p>
                   <h2 className="font-display text-xl font-bold tracking-tight">{title}</h2>
                 </div>
                 <div className="hidden items-center gap-2 lg:flex">

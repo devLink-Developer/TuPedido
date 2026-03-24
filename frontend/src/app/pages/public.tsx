@@ -512,6 +512,7 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -572,14 +573,23 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
         </label>
         <label className="block space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Contraseña</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            minLength={6}
-            className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 outline-none focus:border-brand-500"
-          />
+          <div className="flex items-center gap-2 rounded-2xl border border-black/10 bg-zinc-50 px-4 py-1.5">
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              minLength={6}
+              className="min-w-0 flex-1 bg-transparent py-3 outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600"
+            >
+              {showPassword ? "Ocultar" : "Mostrar"}
+            </button>
+          </div>
         </label>
         {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
         <button
