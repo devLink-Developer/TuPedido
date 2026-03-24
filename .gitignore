@@ -7,3 +7,6 @@ postgres_data/
 .venv/
 .pytest_cache/
 *.log
+*.db
+*.tsbuildinfo
+.vscode/
