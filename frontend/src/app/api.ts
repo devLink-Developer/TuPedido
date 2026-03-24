@@ -48,7 +48,32 @@ import type {
   PushSubscriptionPayload
 } from "./types";
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8016/api/v1";
+function resolveApiBaseUrl(): string {
+  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (configuredBaseUrl) {
+    try {
+      const parsed = new URL(configuredBaseUrl);
+      if (!["localhost", "127.0.0.1"].includes(parsed.hostname)) {
+        return configuredBaseUrl;
+      }
+    } catch {
+      return configuredBaseUrl;
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname && !["localhost", "127.0.0.1"].includes(hostname)) {
+      const protocol = import.meta.env.VITE_API_PROTOCOL?.trim() || window.location.protocol;
+      const port = import.meta.env.VITE_API_PORT?.trim() || "8016";
+      return `${protocol}//${hostname}:${port}/api/v1`;
+    }
+  }
+
+  return configuredBaseUrl || "http://localhost:8016/api/v1";
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 type RequestOptions = RequestInit & {
   token?: string | null;
