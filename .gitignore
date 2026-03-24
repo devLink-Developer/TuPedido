@@ -1,0 +1,9 @@
+node_modules/
+__pycache__/
+*.pyc
+.env
+frontend/dist/
+postgres_data/
+.venv/
+.pytest_cache/
+*.log

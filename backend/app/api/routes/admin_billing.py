@@ -1,0 +1,222 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
+
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from app.api.deps import require_admin
+from app.api.presenters import (
+    serialize_admin_settlement_store,
+    serialize_platform_settings,
+    serialize_settlement_payment,
+    serialize_transfer_notice,
+)
+from app.db.session import get_db
+from app.models.platform import MerchantSettlementPayment, MerchantTransferNotice
+from app.models.store import Store
+from app.models.user import User
+from app.schemas.settlement import (
+    AdminSettlementPaymentCreate,
+    AdminSettlementStoreRead,
+    MerchantSettlementPaymentRead,
+    MerchantTransferNoticeRead,
+    MerchantTransferNoticeReviewUpdate,
+    PlatformSettingsRead,
+    PlatformSettingsUpdate,
+)
+from app.services.platform import get_or_create_platform_settings
+from app.services.settlements import (
+    approve_notice_to_payment,
+    apply_payment_to_oldest_charges,
+    get_outstanding_balance,
+    get_store_charges,
+    get_store_notices,
+    get_store_payments,
+    reject_notice,
+)
+
+router = APIRouter()
+
+NOTICE_OPTIONS = (
+    selectinload(MerchantTransferNotice.store),
+    selectinload(MerchantTransferNotice.settlement_payment).selectinload(MerchantSettlementPayment.allocations),
+)
+
+PAYMENT_OPTIONS = (
+    selectinload(MerchantSettlementPayment.store),
+    selectinload(MerchantSettlementPayment.notice),
+    selectinload(MerchantSettlementPayment.allocations),
+)
+
+
+@router.get("/platform-settings", response_model=PlatformSettingsRead)
+def get_platform_settings(
+    _: User = Depends(require_admin), db: Session = Depends(get_db)
+) -> PlatformSettingsRead:
+    return serialize_platform_settings(get_or_create_platform_settings(db))
+
+
+@router.put("/platform-settings", response_model=PlatformSettingsRead)
+def update_platform_settings(
+    payload: PlatformSettingsUpdate,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> PlatformSettingsRead:
+    if payload.service_fee_amount < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Service fee amount cannot be negative",
+        )
+    settings = get_or_create_platform_settings(db)
+    settings.service_fee_amount = payload.service_fee_amount
+    db.commit()
+    db.refresh(settings)
+    return serialize_platform_settings(settings)
+
+
+@router.get("/settlements/stores", response_model=list[AdminSettlementStoreRead])
+def list_settlement_stores(
+    _: User = Depends(require_admin), db: Session = Depends(get_db)
+) -> list[AdminSettlementStoreRead]:
+    stores = db.scalars(
+        select(Store)
+        .options(selectinload(Store.owner))
+        .order_by(Store.name.asc())
+    ).all()
+    results: list[AdminSettlementStoreRead] = []
+    for store in stores:
+        charges = get_store_charges(db, store.id)
+        notices = get_store_notices(db, store.id)
+        payments = get_store_payments(db, store.id)
+        if not charges and not notices and not payments:
+            continue
+        results.append(
+            serialize_admin_settlement_store(
+                store=store,
+                charges=charges,
+                notices=notices,
+                payments=payments,
+            )
+        )
+    return results
+
+
+@router.get("/settlements/notices", response_model=list[MerchantTransferNoticeRead])
+def list_settlement_notices(
+    _: User = Depends(require_admin), db: Session = Depends(get_db)
+) -> list[MerchantTransferNoticeRead]:
+    notices = db.scalars(
+        select(MerchantTransferNotice)
+        .options(*NOTICE_OPTIONS)
+        .order_by(MerchantTransferNotice.created_at.desc(), MerchantTransferNotice.id.desc())
+    ).all()
+    return [serialize_transfer_notice(notice) for notice in notices]
+
+
+@router.put("/settlements/notices/{notice_id}", response_model=MerchantTransferNoticeRead)
+def review_settlement_notice(
+    notice_id: int,
+    payload: MerchantTransferNoticeReviewUpdate,
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MerchantTransferNoticeRead:
+    notice = db.scalar(
+        select(MerchantTransferNotice)
+        .options(*NOTICE_OPTIONS)
+        .where(MerchantTransferNotice.id == notice_id)
+    )
+    if notice is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transfer notice not found")
+    if notice.status != "pending_review":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Transfer notice is already reviewed")
+
+    try:
+        if payload.status == "pending":
+            notice.review_notes = payload.review_notes
+        elif payload.status == "approved":
+            outstanding_balance = get_outstanding_balance(db, notice.store_id)
+            if float(notice.amount) > outstanding_balance:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Transfer amount exceeds outstanding store balance",
+                )
+            approve_notice_to_payment(
+                db,
+                notice,
+                created_by_user_id=user.id,
+                review_notes=payload.review_notes,
+            )
+        else:
+            reject_notice(
+                notice,
+                reviewed_by_user_id=user.id,
+                review_notes=payload.review_notes,
+            )
+        db.commit()
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    db.refresh(notice)
+    return serialize_transfer_notice(notice)
+
+
+@router.get("/settlements/payments", response_model=list[MerchantSettlementPaymentRead])
+def list_settlement_payments(
+    _: User = Depends(require_admin), db: Session = Depends(get_db)
+) -> list[MerchantSettlementPaymentRead]:
+    payments = db.scalars(
+        select(MerchantSettlementPayment)
+        .options(*PAYMENT_OPTIONS)
+        .order_by(MerchantSettlementPayment.paid_at.desc(), MerchantSettlementPayment.id.desc())
+    ).all()
+    return [serialize_settlement_payment(payment) for payment in payments]
+
+
+@router.post("/settlements/payments", response_model=MerchantSettlementPaymentRead, status_code=status.HTTP_201_CREATED)
+def create_settlement_payment(
+    payload: AdminSettlementPaymentCreate,
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MerchantSettlementPaymentRead:
+    if payload.amount <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be greater than zero")
+    store = db.scalar(select(Store).where(Store.id == payload.store_id))
+    if store is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Store not found")
+    outstanding_balance = get_outstanding_balance(db, payload.store_id)
+    if payload.amount > outstanding_balance:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Payment amount exceeds outstanding store balance",
+        )
+    payment = MerchantSettlementPayment(
+        store_id=payload.store_id,
+        source="admin_manual",
+        amount=payload.amount,
+        paid_at=payload.paid_at or datetime.now(UTC),
+        reference=payload.reference,
+        notes=payload.notes,
+        created_by_user_id=user.id,
+    )
+    db.add(payment)
+    db.flush()
+    remaining = apply_payment_to_oldest_charges(db, payment)
+    if remaining > 0:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Payment amount exceeds outstanding store balance",
+        )
+    db.commit()
+    payment = db.scalar(
+        select(MerchantSettlementPayment)
+        .options(*PAYMENT_OPTIONS)
+        .where(MerchantSettlementPayment.id == payment.id)
+    )
+    if payment is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Payment was not persisted")
+    return serialize_settlement_payment(payment)

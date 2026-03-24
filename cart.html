@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="#ff8c00" name="theme-color"/>
+<link href="manifest.webmanifest" rel="manifest"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff8c00",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#1A1A1A",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full max-w-md mx-auto flex-col bg-background-light dark:bg-background-dark overflow-x-hidden border-x border-primary/10">
+<!-- Top Navigation -->
+<div class="flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10 border-b border-primary/5">
+<div class="text-slate-900 dark:text-slate-100 flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-primary/10 cursor-pointer" onclick="window.location.href='restaurants_menu.html'">
+<span class="material-symbols-outlined">arrow_back</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight flex-1 text-center">Mi Carrito</h2>
+<div class="flex w-10 items-center justify-end">
+<button class="flex size-10 cursor-pointer items-center justify-center rounded-full hover:bg-primary/10 text-slate-900 dark:text-slate-100 transition-colors" id="clear-cart-button" type="button">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-6 p-4">
+<div class="hidden rounded-xl px-4 py-3 text-sm font-medium" id="cart-feedback"></div>
+<!-- Products Section -->
+<section>
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight mb-4">Resumen del pedido</h3>
+<div class="space-y-4" id="order-items-list">
+</div>
+</section>
+<!-- Delivery Location Section -->
+<section id="delivery-section">
+<div class="flex justify-between items-center mb-3">
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight">Ubicación de entrega</h3>
+<button class="text-primary text-sm font-semibold" onclick="window.location.href='address_management.html'" type="button">Cambiar</button>
+</div>
+<div class="relative overflow-hidden rounded-xl border border-primary/10 h-32 w-full mb-2">
+<img class="w-full h-full object-cover" data-alt="Mapa de la ciudad con un pin de ubicación" data-location="Ciudad de México" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsV5HFwVtCw26mqJxdM0e4Ff8tq3V6OmcvidX4GLXrZwH5DM3Fi9m3ifdYv6UICHpRTNBDhbu8Is_0Ey28tlOnM34PVyGlz0uSHrvdUWyeraUA_Np4Oe1FX6jv1DqZ0i-x8rq-7uWp368ZAbaagGp3qWJCob4DJ77EQWyn3Y9FPyajFrd_gl0-2hdsEVBkfKY0-9juio6l8pNh0cKSbgBElHB_n-LdeRr8n0S_w9x2SD12EvClnQIdDZNuaTOG5f4mN1sU_EX0Uw"/>
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<span class="material-symbols-outlined text-primary text-4xl" style="font-variation-settings: 'FILL' 1">location_on</span>
+</div>
+</div>
+<div class="flex items-start gap-3 p-1">
+<span class="material-symbols-outlined text-primary mt-0.5">map</span>
+<div id="selected-address">
+<p class="text-sm font-bold text-slate-900 dark:text-slate-100" id="address-main">Av. Reforma 123</p>
+<p class="text-xs text-slate-500 dark:text-slate-400" id="address-details">Torre A, Departamento 402</p>
+</div>
+</div>
+</section>
+<!-- Payment Method Section -->
+<section id="payment-section">
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight mb-3">Método de pago</h3>
+<div class="grid grid-cols-2 gap-3" id="payment-methods-grid">
+<button class="payment-option flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-primary bg-primary/10 transition-colors" data-method="card" id="method-card">
+<span class="material-symbols-outlined text-primary">credit_card</span>
+<span class="text-sm font-bold">Tarjeta</span>
+</button>
+<button class="payment-option flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-primary/10 bg-white dark:bg-primary/5 transition-colors" data-method="cash" id="method-cash">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400">payments</span>
+<span class="text-sm font-bold">Efectivo</span>
+</button>
+</div>
+</section>
+<!-- Cost Summary -->
+<section class="bg-white dark:bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3">
+<div class="flex justify-between text-sm">
+<span class="text-slate-500 dark:text-slate-400">Subtotal</span>
+<span class="text-slate-900 dark:text-slate-100 font-medium">$<span id="summary-subtotal">20.50</span></span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-slate-500 dark:text-slate-400">Costo de Envío</span>
+<span class="text-slate-900 dark:text-slate-100 font-medium">$<span id="summary-delivery">2.00</span></span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-slate-500 dark:text-slate-400">Tarifa de Servicio</span>
+<span class="text-slate-900 dark:text-slate-100 font-medium">$<span id="summary-service">1.50</span></span>
+</div>
+<div class="pt-3 border-t border-primary/10 flex justify-between items-center">
+<span class="text-base font-bold text-slate-900 dark:text-slate-100">Total</span>
+<span class="text-2xl font-bold text-primary">$<span id="summary-total">24.00</span></span>
+</div>
+</section>
+<!-- Final Checkout Button -->
+<div class="sticky bottom-4 pt-2">
+<button class="w-full bg-primary hover:bg-primary/90 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-transform active:scale-95" id="btn-confirm-order" type="button">
+                    Confirmar Pedido
+                    <span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<div class="h-6"></div>
+</div>
+</div>
+<script>
+        const session = JSON.parse(localStorage.getItem('tupedido.session') || 'null');
+        const cartFeedback = document.getElementById('cart-feedback');
+        const confirmButton = document.getElementById('btn-confirm-order');
+
+        function showCartFeedback(message, tone = 'info') {
+            cartFeedback.className = 'rounded-xl px-4 py-3 text-sm font-medium';
+            if (tone === 'error') {
+                cartFeedback.classList.add('bg-red-100', 'text-red-700', 'dark:bg-red-500/10', 'dark:text-red-300');
+            } else if (tone === 'success') {
+                cartFeedback.classList.add('bg-emerald-100', 'text-emerald-700', 'dark:bg-emerald-500/10', 'dark:text-emerald-300');
+            } else {
+                cartFeedback.classList.add('bg-slate-200', 'text-slate-700', 'dark:bg-primary/10', 'dark:text-primary');
+            }
+            cartFeedback.textContent = message;
+            cartFeedback.classList.remove('hidden');
+        }
+
+        function clearCartFeedback() {
+            cartFeedback.classList.add('hidden');
+        }
+
+        function requireSession() {
+            if (!session) {
+                localStorage.setItem('tupedido.flash', JSON.stringify({ message: 'Inicia sesión para usar tu carrito persistente.', tone: 'info' }));
+                window.location.href = 'login.html';
+                return false;
+            }
+
+            return true;
+        }
+
+        function renderCart(cart) {
+            const list = document.getElementById('order-items-list');
+            if (!cart.items.length) {
+                list.innerHTML = '<div class="rounded-xl bg-white dark:bg-primary/5 p-4 text-sm text-slate-500">Tu carrito está vacío.</div>';
+                confirmButton.disabled = true;
+                confirmButton.classList.add('opacity-60');
+            } else {
+                confirmButton.disabled = false;
+                confirmButton.classList.remove('opacity-60');
+                list.innerHTML = cart.items.map((item) => `
+                    <div class="cart-item flex items-center gap-4 bg-white dark:bg-primary/5 p-3 rounded-xl border border-primary/5" data-item-id="${item.id}">
+                        <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-16 bg-slate-200 dark:bg-slate-700"></div>
+                        <div class="flex flex-col flex-1">
+                            <p class="item-name text-slate-900 dark:text-slate-100 text-base font-semibold leading-tight line-clamp-1">${item.product_name}</p>
+                            <p class="text-primary text-sm font-bold mt-1">$<span class="item-price">${Number(item.unit_price).toFixed(2)}</span></p>
+                        </div>
+                        <div class="flex items-center gap-3 bg-background-light dark:bg-background-dark p-1 rounded-full border border-primary/20">
+                            <button class="flex h-7 w-7 items-center justify-center rounded-full bg-white dark:bg-primary/20 text-slate-900 dark:text-white border border-primary/10" type="button" onclick="updateCartItem(${item.id}, ${item.quantity - 1})">-</button>
+                            <span class="item-quantity text-sm font-bold w-4 text-center">${item.quantity}</span>
+                            <button class="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white" type="button" onclick="updateCartItem(${item.id}, ${item.quantity + 1})">+</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('summary-subtotal').textContent = Number(cart.subtotal).toFixed(2);
+            document.getElementById('summary-delivery').textContent = Number(cart.delivery_fee).toFixed(2);
+            document.getElementById('summary-service').textContent = Number(cart.service_fee).toFixed(2);
+            document.getElementById('summary-total').textContent = Number(cart.total).toFixed(2);
+        }
+
+        async function loadDefaultAddress() {
+            if (!requireSession()) {
+                return;
+            }
+
+            const response = await fetch('http://localhost:8016/api/v1/addresses', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+            });
+            if (!response.ok) {
+                showCartFeedback('No se pudo cargar la dirección de entrega.', 'error');
+                return;
+            }
+
+            const addresses = await response.json();
+            const selected = addresses.find((address) => address.is_default) || addresses[0];
+            if (!selected) {
+                document.getElementById('address-main').textContent = 'Sin dirección seleccionada';
+                document.getElementById('address-details').textContent = 'Agrega una dirección para continuar con el pedido.';
+                showCartFeedback('Agrega una dirección antes de ir al checkout.', 'info');
+                return;
+            }
+
+            document.getElementById('address-main').textContent = selected.label;
+            document.getElementById('address-details').textContent = `${selected.street}${selected.details ? `, ${selected.details}` : ''}`;
+        }
+
+        async function loadCart() {
+            if (!requireSession()) {
+                return;
+            }
+
+            clearCartFeedback();
+            document.getElementById('order-items-list').innerHTML = '<div class="rounded-xl bg-white dark:bg-primary/5 p-4 text-sm text-slate-500">Cargando carrito...</div>';
+            const response = await fetch('http://localhost:8016/api/v1/cart', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+            });
+            if (!response.ok) {
+                document.getElementById('order-items-list').innerHTML = '<div class="rounded-xl bg-red-100 dark:bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300">No se pudo cargar el carrito.</div>';
+                showCartFeedback('No se pudo cargar el carrito persistido.', 'error');
+                return;
+            }
+
+            const cart = await response.json();
+            renderCart(cart);
+            await loadDefaultAddress();
+        }
+
+        async function updateCartItem(itemId, quantity) {
+            if (!requireSession()) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:8016/api/v1/cart/items/${itemId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({ quantity })
+                });
+                if (!response.ok) {
+                    throw new Error('No se pudo actualizar la cantidad');
+                }
+
+                const cart = await response.json();
+                renderCart(cart);
+                showCartFeedback('Carrito actualizado.', 'success');
+            } catch (error) {
+                showCartFeedback(error.message || 'No se pudo actualizar el carrito.', 'error');
+            }
+        }
+
+        window.updateCartItem = updateCartItem;
+
+        document.getElementById('clear-cart-button').addEventListener('click', async () => {
+            if (!requireSession()) {
+                return;
+            }
+
+            clearCartFeedback();
+
+            const response = await fetch('http://localhost:8016/api/v1/cart', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+            });
+            if (!response.ok) {
+                showCartFeedback('No se pudo cargar el carrito para vaciarlo.', 'error');
+                return;
+            }
+            const cart = await response.json();
+            if (!cart.items.length) {
+                showCartFeedback('El carrito ya está vacío.', 'info');
+                return;
+            }
+            for (const item of cart.items) {
+                await fetch(`http://localhost:8016/api/v1/cart/items/${item.id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                });
+            }
+            showCartFeedback('Se eliminaron todos los productos del carrito.', 'success');
+            loadCart();
+        });
+
+        document.getElementById('btn-confirm-order').addEventListener('click', async () => {
+            if (!requireSession()) {
+                return;
+            }
+            if (confirmButton.disabled) {
+                showCartFeedback('Agrega al menos un producto antes de continuar.', 'info');
+                return;
+            }
+            window.location.href = 'checkout.html';
+        });
+
+        // Simple UI Interaction for Payment Selection
+        document.querySelectorAll('.payment-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.payment-option').forEach(b => {
+                    b.classList.remove('border-primary', 'bg-primary/10');
+                    b.classList.add('border-primary/10', 'bg-white', 'dark:bg-primary/5');
+                    b.querySelector('span:first-child').classList.remove('text-primary');
+                    b.querySelector('span:first-child').classList.add('text-slate-500', 'dark:text-slate-400');
+                });
+                btn.classList.add('border-primary', 'bg-primary/10');
+                btn.classList.remove('border-primary/10', 'bg-white', 'dark:bg-primary/5');
+                btn.querySelector('span:first-child').classList.add('text-primary');
+                btn.querySelector('span:first-child').classList.remove('text-slate-500', 'dark:text-slate-400');
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', loadCart);
+    </script>
+<script src="pwa.js"></script>
+</body></html>

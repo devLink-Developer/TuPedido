@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="#ff8c00" name="theme-color"/>
+<link href="manifest.webmanifest" rel="manifest"/>
+<title>Pedidos Admin</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#ff8c00",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#1A1A1A",
+                    },
+                    fontFamily: { display: ["Inter"] },
+                    borderRadius: { DEFAULT: "0.5rem", lg: "1rem", xl: "1.5rem", full: "9999px" },
+                },
+            },
+        };
+    </script>
+<style>
+    body { min-height: max(884px, 100dvh); }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex min-h-screen w-full max-w-4xl mx-auto flex-col overflow-x-hidden">
+<header class="flex items-center justify-between bg-background-light dark:bg-background-dark p-4 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
+<div class="flex items-center gap-2">
+<button class="text-slate-900 dark:text-slate-100 flex size-10 shrink-0 items-center justify-center hover:bg-primary/10 rounded-full transition-colors" id="back_button" type="button">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div>
+<h1 class="text-lg font-bold">Gestión de Pedidos</h1>
+<p class="text-xs text-slate-500 dark:text-slate-400">Actualiza estados y refleja tracking del cliente</p>
+</div>
+</div>
+<button class="rounded-xl bg-primary text-white px-4 py-2 text-sm font-bold" id="logout_button" type="button">Salir</button>
+</header>
+
+<main class="max-w-5xl mx-auto w-full p-4 md:p-8 space-y-6">
+<div class="hidden rounded-xl px-4 py-3 text-sm font-medium" id="admin-orders-feedback"></div>
+<div class="hidden rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-medium text-primary" id="admin-orders-live-indicator"></div>
+<section class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+<div>
+<p class="text-primary text-xs font-bold uppercase tracking-[0.28em]">Panel Admin</p>
+<h2 class="mt-2 text-3xl font-bold tracking-tight">Pedidos activos</h2>
+<p class="text-slate-500 dark:text-slate-400 mt-2 text-sm">Cambia el estado y el tracking del cliente se actualiza al instante cuando recarga su detalle.</p>
+</div>
+<div class="flex gap-3">
+<a class="rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-3 text-sm font-semibold" href="restaurant_management.html">Volver al panel</a>
+<button class="rounded-xl bg-primary text-white px-4 py-3 text-sm font-bold shadow-lg shadow-primary/20" id="refresh-orders" type="button">Refrescar</button>
+</div>
+</section>
+<section class="grid gap-3 md:grid-cols-[1fr_220px]">
+<label class="block">
+<span class="sr-only">Buscar pedidos</span>
+<input class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm" id="orders-search" placeholder="Buscar por pedido, cliente o dirección" type="search"/>
+</label>
+<label class="block">
+<span class="sr-only">Filtrar por estado</span>
+<select class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm" id="orders-status-filter">
+<option value="all">Todos los estados</option>
+<option value="created">Pedido recibido</option>
+<option value="preparing">En preparación</option>
+<option value="on_the_way">En camino</option>
+<option value="delivered">Entregado</option>
+<option value="issue_reported">Con incidencia</option>
+<option value="cancelled">Cancelado</option>
+</select>
+</label>
+</section>
+<section class="grid gap-3 md:grid-cols-2 xl:grid-cols-5" id="orders-dashboard-cards">
+<div class="rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-4">
+<p class="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Total</p>
+<p class="mt-2 text-3xl font-bold" id="summary-total-orders">0</p>
+</div>
+<div class="rounded-2xl bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/20 px-4 py-4">
+<p class="text-xs uppercase tracking-[0.2em] text-sky-600 dark:text-sky-300">Recibidos</p>
+<p class="mt-2 text-3xl font-bold text-sky-700 dark:text-sky-200" id="summary-created-orders">0</p>
+</div>
+<div class="rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 px-4 py-4">
+<p class="text-xs uppercase tracking-[0.2em] text-amber-600 dark:text-amber-300">Preparando</p>
+<p class="mt-2 text-3xl font-bold text-amber-700 dark:text-amber-200" id="summary-preparing-orders">0</p>
+</div>
+<div class="rounded-2xl bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 px-4 py-4">
+<p class="text-xs uppercase tracking-[0.2em] text-violet-600 dark:text-violet-300">En camino</p>
+<p class="mt-2 text-3xl font-bold text-violet-700 dark:text-violet-200" id="summary-ontheway-orders">0</p>
+</div>
+<div class="rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-4 py-4">
+<p class="text-xs uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-300">Entregados</p>
+<p class="mt-2 text-3xl font-bold text-emerald-700 dark:text-emerald-200" id="summary-delivered-orders">0</p>
+</div>
+<div class="rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 px-4 py-4">
+<p class="text-xs uppercase tracking-[0.2em] text-rose-600 dark:text-rose-300">Incidencias</p>
+<p class="mt-2 text-3xl font-bold text-rose-700 dark:text-rose-200" id="summary-issue-orders">0</p>
+</div>
+<div class="rounded-2xl bg-slate-100 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 px-4 py-4">
+<p class="text-xs uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300">Cancelados</p>
+<p class="mt-2 text-3xl font-bold text-slate-700 dark:text-slate-200" id="summary-cancelled-orders">0</p>
+</div>
+</section>
+<section class="grid gap-3 md:grid-cols-[1fr_220px_auto]">
+<div class="rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-3 text-sm">
+<span class="text-slate-500 dark:text-slate-400">Resultados:</span>
+<span class="font-bold ml-2" id="orders-visible-count">0</span>
+</div>
+<label class="block">
+<span class="sr-only">Ordenar pedidos</span>
+<select class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm" id="orders-sort-order">
+<option value="newest">Más recientes primero</option>
+<option value="oldest">Más antiguos primero</option>
+<option value="highest_total">Total más alto</option>
+<option value="lowest_total">Total más bajo</option>
+</select>
+</label>
+<button class="rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-white/60 dark:hover:bg-white/5 transition-colors" id="clear-filters" type="button">Limpiar filtros</button>
+</section>
+<section class="grid gap-3 md:grid-cols-[auto_220px_1fr] md:items-center">
+<label class="inline-flex items-center gap-3 rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-4 py-3 text-sm font-medium">
+<input class="rounded border-slate-300 text-primary focus:ring-primary" id="orders-auto-refresh-enabled" type="checkbox"/>
+<span>Auto refresh</span>
+</label>
+<label class="block">
+<span class="sr-only">Intervalo de auto refresh</span>
+<select class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm" id="orders-auto-refresh-interval">
+<option value="15000">Cada 15 segundos</option>
+<option value="30000">Cada 30 segundos</option>
+<option value="60000">Cada 60 segundos</option>
+</select>
+</label>
+<p class="text-sm text-slate-500 dark:text-slate-400">Cuando está activo, el panel refresca pedidos y métricas sin perder búsqueda, filtros ni orden.</p>
+</section>
+<section class="grid gap-4" id="admin-orders-list">
+<div class="rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5">Cargando pedidos...</div>
+</section>
+</main>
+</div>
+
+<script>
+    const session = JSON.parse(localStorage.getItem('tupedido.session') || 'null');
+    if (!session || session.user?.role !== 'admin') {
+        localStorage.setItem('tupedido.flash', JSON.stringify({ message: 'Inicia sesión como administrador para gestionar pedidos.', tone: 'info' }));
+        window.location.href = 'login.html';
+    }
+
+    const feedback = document.getElementById('admin-orders-feedback');
+    const liveIndicator = document.getElementById('admin-orders-live-indicator');
+    const ordersList = document.getElementById('admin-orders-list');
+    const searchInput = document.getElementById('orders-search');
+    const statusFilter = document.getElementById('orders-status-filter');
+    const sortOrder = document.getElementById('orders-sort-order');
+    const autoRefreshEnabled = document.getElementById('orders-auto-refresh-enabled');
+    const autoRefreshInterval = document.getElementById('orders-auto-refresh-interval');
+    const visibleCount = document.getElementById('orders-visible-count');
+    const statusChoices = ['created', 'preparing', 'on_the_way', 'delivered', 'issue_reported', 'cancelled'];
+    const filterStorageKey = 'tupedido.adminOrders.filters';
+    const refreshStorageKey = 'tupedido.adminOrders.autoRefresh';
+    let allOrders = [];
+    let autoRefreshTimer = null;
+    let latestKnownOrderId = 0;
+
+    function showFeedback(message, tone = 'info') {
+        feedback.className = 'rounded-xl px-4 py-3 text-sm font-medium';
+        if (tone === 'error') {
+            feedback.classList.add('bg-red-100', 'text-red-700', 'dark:bg-red-500/10', 'dark:text-red-300');
+        } else if (tone === 'success') {
+            feedback.classList.add('bg-emerald-100', 'text-emerald-700', 'dark:bg-emerald-500/10', 'dark:text-emerald-300');
+        } else {
+            feedback.classList.add('bg-primary/10', 'text-primary');
+        }
+        feedback.textContent = message;
+        feedback.classList.remove('hidden');
+    }
+
+    function consumeFlash() {
+        const rawFlash = localStorage.getItem('tupedido.flash');
+        if (!rawFlash) {
+            return;
+        }
+        localStorage.removeItem('tupedido.flash');
+        try {
+            const flash = JSON.parse(rawFlash);
+            showFeedback(flash.message, flash.tone || 'info');
+        } catch {
+            showFeedback(rawFlash, 'info');
+        }
+    }
+
+    function prettyStatus(status) {
+        return {
+            created: 'Pedido recibido',
+            preparing: 'En preparación',
+            on_the_way: 'En camino',
+            delivered: 'Entregado',
+            issue_reported: 'Con incidencia',
+            cancelled: 'Cancelado'
+        }[status] || status;
+    }
+
+    function statusBadgeClass(status) {
+        return {
+            created: 'bg-sky-100 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300',
+            preparing: 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
+            on_the_way: 'bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300',
+            delivered: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+            issue_reported: 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
+            cancelled: 'bg-slate-200 text-slate-700 dark:bg-slate-600/40 dark:text-slate-200'
+        }[status] || 'bg-primary/10 text-primary';
+    }
+
+    function getNextStatuses(status) {
+        return {
+            created: ['preparing', 'cancelled', 'issue_reported'],
+            preparing: ['on_the_way', 'issue_reported', 'cancelled'],
+            on_the_way: ['delivered', 'issue_reported'],
+            delivered: [],
+            issue_reported: ['preparing', 'on_the_way', 'cancelled'],
+            cancelled: []
+        }[status] || [];
+    }
+
+    function showLiveIndicator(message) {
+        liveIndicator.textContent = message;
+        liveIndicator.classList.remove('hidden');
+        document.getElementById('summary-total-orders').parentElement.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'dark:ring-offset-background-dark');
+        setTimeout(() => {
+            liveIndicator.classList.add('hidden');
+            document.getElementById('summary-total-orders').parentElement.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'dark:ring-offset-background-dark');
+        }, 3500);
+    }
+
+    function getFilteredOrders() {
+        const query = searchInput.value.trim().toLowerCase();
+        const selectedStatus = statusFilter.value;
+        const filtered = allOrders.filter((order) => {
+            const matchesStatus = selectedStatus === 'all' || order.status === selectedStatus;
+            const haystack = [
+                String(order.order_id),
+                order.customer_name,
+                order.address_label,
+                ...order.items.map((item) => item.product_name)
+            ].join(' ').toLowerCase();
+            const matchesQuery = !query || haystack.includes(query);
+            return matchesStatus && matchesQuery;
+        });
+
+        return filtered.sort((left, right) => {
+            if (sortOrder.value === 'oldest') {
+                return new Date(left.created_at) - new Date(right.created_at);
+            }
+            if (sortOrder.value === 'highest_total') {
+                return Number(right.total) - Number(left.total);
+            }
+            if (sortOrder.value === 'lowest_total') {
+                return Number(left.total) - Number(right.total);
+            }
+            return new Date(right.created_at) - new Date(left.created_at);
+        });
+    }
+
+    function persistFilters() {
+        localStorage.setItem(filterStorageKey, JSON.stringify({
+            query: searchInput.value,
+            status: statusFilter.value,
+            sort: sortOrder.value,
+        }));
+    }
+
+    function restoreFilters() {
+        const raw = localStorage.getItem(filterStorageKey);
+        if (!raw) {
+            return;
+        }
+
+        try {
+            const filters = JSON.parse(raw);
+            searchInput.value = filters.query || '';
+            statusFilter.value = filters.status || 'all';
+            sortOrder.value = filters.sort || 'newest';
+        } catch {
+            localStorage.removeItem(filterStorageKey);
+        }
+    }
+
+    function clearFilters() {
+        searchInput.value = '';
+        statusFilter.value = 'all';
+        sortOrder.value = 'newest';
+        localStorage.removeItem(filterStorageKey);
+        renderOrders(getFilteredOrders());
+    }
+
+    function persistAutoRefreshSettings() {
+        localStorage.setItem(refreshStorageKey, JSON.stringify({
+            enabled: autoRefreshEnabled.checked,
+            interval: autoRefreshInterval.value,
+        }));
+    }
+
+    function restoreAutoRefreshSettings() {
+        const raw = localStorage.getItem(refreshStorageKey);
+        if (!raw) {
+            autoRefreshEnabled.checked = false;
+            autoRefreshInterval.value = '30000';
+            return;
+        }
+
+        try {
+            const settings = JSON.parse(raw);
+            autoRefreshEnabled.checked = Boolean(settings.enabled);
+            autoRefreshInterval.value = settings.interval || '30000';
+        } catch {
+            localStorage.removeItem(refreshStorageKey);
+            autoRefreshEnabled.checked = false;
+            autoRefreshInterval.value = '30000';
+        }
+    }
+
+    function stopAutoRefresh() {
+        if (autoRefreshTimer) {
+            clearInterval(autoRefreshTimer);
+            autoRefreshTimer = null;
+        }
+    }
+
+    function syncAutoRefresh() {
+        stopAutoRefresh();
+        if (!autoRefreshEnabled.checked) {
+            return;
+        }
+
+        autoRefreshTimer = setInterval(() => {
+            loadOrders(true);
+        }, Number(autoRefreshInterval.value));
+    }
+
+    function renderSummaryCards() {
+        const summary = {
+            total: allOrders.length,
+            created: allOrders.filter((order) => order.status === 'created').length,
+            preparing: allOrders.filter((order) => order.status === 'preparing').length,
+            on_the_way: allOrders.filter((order) => order.status === 'on_the_way').length,
+            delivered: allOrders.filter((order) => order.status === 'delivered').length,
+            issue_reported: allOrders.filter((order) => order.status === 'issue_reported').length,
+            cancelled: allOrders.filter((order) => order.status === 'cancelled').length,
+        };
+
+        document.getElementById('summary-total-orders').textContent = String(summary.total);
+        document.getElementById('summary-created-orders').textContent = String(summary.created);
+        document.getElementById('summary-preparing-orders').textContent = String(summary.preparing);
+        document.getElementById('summary-ontheway-orders').textContent = String(summary.on_the_way);
+        document.getElementById('summary-delivered-orders').textContent = String(summary.delivered);
+        document.getElementById('summary-issue-orders').textContent = String(summary.issue_reported);
+        document.getElementById('summary-cancelled-orders').textContent = String(summary.cancelled);
+    }
+
+    function groupOrdersByStatus(orders) {
+        return statusChoices
+            .map((status) => ({
+                status,
+                orders: orders.filter((order) => order.status === status),
+            }))
+            .filter((group) => group.orders.length > 0);
+    }
+
+    function renderOrders(orders) {
+        visibleCount.textContent = String(orders.length);
+        if (!orders.length) {
+            const hasFilters = Boolean(searchInput.value.trim()) || statusFilter.value !== 'all';
+            ordersList.innerHTML = hasFilters
+                ? '<div class="rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 text-sm text-slate-500">No hay pedidos que coincidan con los filtros actuales. Ajusta la búsqueda o limpia los filtros.</div>'
+                : '<div class="rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 text-sm text-slate-500">Todavía no hay pedidos registrados.</div>';
+            return;
+        }
+
+        const groups = groupOrdersByStatus(orders);
+        ordersList.innerHTML = groups.map((group) => `
+            <section class="space-y-4">
+                <div class="flex items-center justify-between gap-4 px-1">
+                    <div class="flex items-center gap-3">
+                        <span class="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${statusBadgeClass(group.status)}">${prettyStatus(group.status)}</span>
+                        <span class="text-sm text-slate-500 dark:text-slate-400">${group.orders.length} pedido(s)</span>
+                    </div>
+                </div>
+                ${group.orders.map((order) => `
+                    <article class="rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-sm p-5 space-y-4">
+                        <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                            <div>
+                                <p class="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-primary/70">Pedido #${order.order_id}</p>
+                                <h3 class="text-xl font-bold mt-1">${order.customer_name}</h3>
+                                <p class="text-sm text-slate-500 dark:text-slate-400">${order.address_label} • ${new Date(order.created_at).toLocaleString('es-ES')}</p>
+                                <p class="text-sm text-slate-500 dark:text-slate-400">Pago: ${order.payment_method === 'cash' ? 'Efectivo' : 'Tarjeta'}</p>
+                                <p class="mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${statusBadgeClass(order.status)}">${prettyStatus(order.status)}</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary">$${Number(order.total).toFixed(2)}</span>
+                                <a class="rounded-xl border border-primary/20 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors" href="order_detail.html?order_id=${order.order_id}">Ver cliente</a>
+                            </div>
+                        </div>
+                        <div class="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                            <div class="flex flex-wrap gap-2">
+                                ${order.items.map((item) => `<span class="rounded-full bg-background-light dark:bg-background-dark px-3 py-2 text-xs font-medium">${item.product_name} x${item.quantity}</span>`).join('')}
+                            </div>
+                            <div class="flex flex-col gap-3 md:items-end">
+                                <div class="flex flex-wrap gap-2">
+                                    ${getNextStatuses(order.status).map((status) => `
+                                        <button class="rounded-xl border border-primary/20 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/10 transition-colors" type="button" onclick="quickAdvanceOrderStatus(${order.order_id}, '${status}')">
+                                            ${prettyStatus(status)}
+                                        </button>
+                                    `).join('') || '<span class="text-xs text-slate-500 dark:text-slate-400">Sin avance rápido disponible</span>'}
+                                </div>
+                                <div class="flex gap-2 items-center">
+                                <label class="text-sm font-medium text-slate-500 dark:text-slate-400" for="status-${order.order_id}">Estado</label>
+                                <select class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm" id="status-${order.order_id}">
+                                    ${statusChoices.map((status) => `<option value="${status}" ${order.status === status ? 'selected' : ''}>${prettyStatus(status)}</option>`).join('')}
+                                </select>
+                                <button class="rounded-xl bg-primary text-white px-4 py-2 text-sm font-bold" type="button" onclick="updateOrderStatus(${order.order_id})">Guardar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                `).join('')}
+            </section>
+        `).join('');
+    }
+
+    async function loadOrders(isSilent = false) {
+        if (!isSilent) {
+            ordersList.innerHTML = '<div class="rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 text-sm text-slate-500">Cargando pedidos...</div>';
+        }
+        try {
+            const response = await fetch('http://localhost:8016/api/v1/orders/admin', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+            });
+            const orders = await response.json();
+            if (!response.ok) {
+                throw new Error(orders.detail || 'No se pudieron cargar los pedidos');
+            }
+            const previousKnownOrderId = latestKnownOrderId;
+            latestKnownOrderId = orders.length ? Math.max(...orders.map((order) => Number(order.order_id))) : 0;
+            if (isSilent && previousKnownOrderId && latestKnownOrderId > previousKnownOrderId) {
+                const newOrdersCount = orders.filter((order) => Number(order.order_id) > previousKnownOrderId).length;
+                showLiveIndicator(`${newOrdersCount} pedido(s) nuevo(s) detectado(s).`);
+            }
+            allOrders = orders;
+            renderSummaryCards();
+            renderOrders(getFilteredOrders());
+        } catch (error) {
+            ordersList.innerHTML = `<div class="rounded-xl bg-red-100 text-red-700 p-4 text-sm">${error.message || 'No se pudieron cargar los pedidos'}</div>`;
+        }
+    }
+
+    async function quickAdvanceOrderStatus(orderId, nextStatus) {
+        const select = document.getElementById(`status-${orderId}`);
+        if (select) {
+            select.value = nextStatus;
+        }
+        await updateOrderStatus(orderId, nextStatus);
+    }
+
+    async function updateOrderStatus(orderId, explicitStatus = null) {
+        const select = document.getElementById(`status-${orderId}`);
+        const nextStatus = explicitStatus || select.value;
+        try {
+            const response = await fetch(`http://localhost:8016/api/v1/orders/admin/${orderId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ status: nextStatus })
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.detail || 'No se pudo actualizar el pedido');
+            }
+            showFeedback(`Pedido #${orderId} actualizado a ${prettyStatus(result.status)}.`, 'success');
+            loadOrders();
+        } catch (error) {
+            showFeedback(error.message || 'No se pudo actualizar el pedido.', 'error');
+        }
+    }
+
+    window.updateOrderStatus = updateOrderStatus;
+    window.quickAdvanceOrderStatus = quickAdvanceOrderStatus;
+
+    document.getElementById('back_button').addEventListener('click', () => {
+        window.location.href = 'restaurant_management.html';
+    });
+
+    document.getElementById('logout_button').addEventListener('click', () => {
+        localStorage.removeItem('tupedido.session');
+        localStorage.setItem('tupedido.flash', JSON.stringify({ message: 'Sesión cerrada correctamente.', tone: 'success' }));
+        window.location.href = 'login.html';
+    });
+
+    document.getElementById('refresh-orders').addEventListener('click', loadOrders);
+    document.getElementById('clear-filters').addEventListener('click', clearFilters);
+    searchInput.addEventListener('input', () => {
+        persistFilters();
+        renderOrders(getFilteredOrders());
+    });
+    statusFilter.addEventListener('change', () => {
+        persistFilters();
+        renderOrders(getFilteredOrders());
+    });
+    sortOrder.addEventListener('change', () => {
+        persistFilters();
+        renderOrders(getFilteredOrders());
+    });
+    autoRefreshEnabled.addEventListener('change', () => {
+        persistAutoRefreshSettings();
+        syncAutoRefresh();
+    });
+    autoRefreshInterval.addEventListener('change', () => {
+        persistAutoRefreshSettings();
+        syncAutoRefresh();
+    });
+
+    consumeFlash();
+    restoreFilters();
+    restoreAutoRefreshSettings();
+    syncAutoRefresh();
+    loadOrders();
+</script>
+<script src="pwa.js"></script>
+</body></html>

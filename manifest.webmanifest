@@ -1,0 +1,17 @@
+{
+  "name": "TuPedido",
+  "short_name": "TuPedido",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#f8f7f5",
+  "theme_color": "#ff8c00",
+  "description": "Pedidos de comida con seguimiento y panel administrativo.",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

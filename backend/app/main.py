@@ -1,0 +1,61 @@
+import asyncio
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.exc import OperationalError
+
+import app.models  # noqa: F401
+from app.api.routes import router as api_router
+from app.core.config import settings
+from app.db.migrations import run_schema_migrations
+from app.db.seed import seed_initial_data
+from app.services.delivery_jobs import run_delivery_maintenance_loop
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    maintenance_task = None
+    for attempt in range(10):
+        try:
+            run_schema_migrations()
+            break
+        except OperationalError:
+            if attempt == 9:
+                raise
+            await asyncio.sleep(2)
+
+    if settings.app_env == "development" and settings.seed_demo_data:
+        seed_initial_data()
+    if settings.delivery_embedded_worker:
+        maintenance_task = asyncio.create_task(run_delivery_maintenance_loop())
+    yield
+    if maintenance_task is not None:
+        maintenance_task.cancel()
+        try:
+            await maintenance_task
+        except asyncio.CancelledError:
+            pass
+
+app = FastAPI(
+    title="TuPedido API",
+    version="0.1.0",
+    openapi_url=f"{settings.api_prefix}/openapi.json",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health", tags=["health"])
+def healthcheck() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+app.include_router(api_router, prefix=settings.api_prefix)

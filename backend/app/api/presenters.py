@@ -1,0 +1,515 @@
+from __future__ import annotations
+
+from app.core.utils import is_store_open, mask_secret
+from app.schemas.cart import CartItemRead, CartRead
+from app.schemas.catalog import (
+    CategoryRead,
+    MerchantApplicationRead,
+    ProductCategoryRead,
+    ProductRead,
+    StoreDeliverySettingsRead,
+    StoreDetailRead,
+    StoreHourRead,
+    StorePaymentSettingsRead,
+    StoreSummaryRead,
+)
+from app.schemas.delivery import (
+    DeliveryApplicationRead,
+    DeliveryProfileRead,
+    DeliveryZoneRead,
+    NotificationRead,
+)
+from app.schemas.order import OrderItemRead, OrderRead, OrderTrackingRead
+from app.schemas.settlement import (
+    AdminSettlementStoreRead,
+    MerchantServiceFeeChargeRead,
+    MerchantSettlementOverviewRead,
+    MerchantSettlementPaymentRead,
+    MerchantTransferNoticeRead,
+    PlatformSettingsRead,
+    SettlementAllocationRead,
+)
+from app.services.mercadopago import is_store_mercadopago_ready, mercadopago_connection_status
+from app.services.settlements import (
+    charge_outstanding_amount,
+    charge_paid_amount,
+    charge_status,
+    payment_applied_amount,
+)
+
+
+def serialize_category(category: object) -> CategoryRead:
+    return CategoryRead(
+        id=category.id,
+        name=category.name,
+        slug=category.slug,
+        description=category.description,
+    )
+
+
+def serialize_store_delivery_settings(store: object) -> StoreDeliverySettingsRead:
+    settings = getattr(store, "delivery_settings", None)
+    return StoreDeliverySettingsRead(
+        delivery_enabled=bool(settings.delivery_enabled) if settings else False,
+        pickup_enabled=bool(settings.pickup_enabled) if settings else False,
+        delivery_fee=float(settings.delivery_fee) if settings else 0,
+        min_order=float(settings.min_order) if settings else 0,
+    )
+
+
+def serialize_store_payment_settings(store: object) -> StorePaymentSettingsRead:
+    settings = getattr(store, "payment_settings", None)
+    credentials = getattr(store, "mercadopago_credentials", None)
+    public_key = credentials.public_key if credentials else None
+    connection_status = mercadopago_connection_status(store)
+    return StorePaymentSettingsRead(
+        cash_enabled=bool(settings.cash_enabled) if settings else False,
+        mercadopago_enabled=bool(settings.mercadopago_enabled) if settings else False,
+        mercadopago_configured=is_store_mercadopago_ready(store),
+        mercadopago_public_key_masked=mask_secret(public_key) if public_key else None,
+        mercadopago_connection_status=connection_status,
+        mercadopago_reconnect_required=connection_status == "reconnect_required",
+        mercadopago_oauth_connected_at=credentials.oauth_connected_at if credentials else None,
+        mercadopago_collector_id=credentials.collector_id if credentials else None,
+    )
+
+
+def _category_names(store: object) -> tuple[str | None, list[str]]:
+    links = list(getattr(store, "category_links", []) or [])
+    links = sorted(links, key=lambda link: (not link.is_primary, link.category.name.lower()))
+    categories = [link.category.name for link in links]
+    primary = next((link.category.name for link in links if link.is_primary), None)
+    return primary or (categories[0] if categories else None), categories
+
+
+def serialize_product_category(product_category: object) -> ProductCategoryRead:
+    return ProductCategoryRead(
+        id=product_category.id,
+        name=product_category.name,
+        slug=product_category.slug,
+        sort_order=product_category.sort_order,
+    )
+
+
+def serialize_product(product: object) -> ProductRead:
+    return ProductRead(
+        id=product.id,
+        store_id=product.store_id,
+        product_category_id=product.product_category_id,
+        product_category_name=product.product_category.name if product.product_category else None,
+        name=product.name,
+        description=product.description,
+        price=float(product.price),
+        compare_at_price=float(product.compare_at_price) if product.compare_at_price is not None else None,
+        image_url=product.image_url,
+        is_available=product.is_available,
+        sort_order=product.sort_order,
+    )
+
+
+def serialize_store_summary(store: object) -> StoreSummaryRead:
+    primary_category, categories = _category_names(store)
+    category_ids = [link.category_id for link in getattr(store, "category_links", []) or []]
+    return StoreSummaryRead(
+        id=store.id,
+        slug=store.slug,
+        name=store.name,
+        description=store.description,
+        address=store.address,
+        phone=store.phone,
+        latitude=float(store.latitude) if getattr(store, "latitude", None) is not None else None,
+        longitude=float(store.longitude) if getattr(store, "longitude", None) is not None else None,
+        logo_url=store.logo_url,
+        cover_image_url=store.cover_image_url,
+        status=store.status,
+        accepting_orders=store.accepting_orders,
+        is_open=is_store_open(store),
+        opening_note=store.opening_note,
+        min_delivery_minutes=store.min_delivery_minutes,
+        max_delivery_minutes=store.max_delivery_minutes,
+        rating=float(store.rating),
+        rating_count=store.rating_count,
+        category_ids=category_ids,
+        primary_category=primary_category,
+        categories=categories,
+        delivery_settings=serialize_store_delivery_settings(store),
+        payment_settings=serialize_store_payment_settings(store),
+    )
+
+
+def serialize_store_detail(store: object) -> StoreDetailRead:
+    summary = serialize_store_summary(store)
+    return StoreDetailRead(
+        **summary.model_dump(),
+        product_categories=[serialize_product_category(item) for item in store.product_categories],
+        products=[serialize_product(item) for item in store.products],
+        hours=[
+            StoreHourRead(
+                day_of_week=hour.day_of_week,
+                opens_at=hour.opens_at,
+                closes_at=hour.closes_at,
+                is_closed=hour.is_closed,
+            )
+            for hour in store.hours
+        ],
+    )
+
+
+def serialize_application(application: object) -> MerchantApplicationRead:
+    return MerchantApplicationRead(
+        id=application.id,
+        business_name=application.business_name,
+        description=application.description,
+        address=application.address,
+        phone=application.phone,
+        logo_url=application.logo_url,
+        cover_image_url=application.cover_image_url,
+        requested_category_ids=list(application.requested_category_ids or []),
+        requested_category_names=[
+            category.name
+            for category in getattr(application, "requested_categories", []) or []
+        ],
+        status=application.status,
+        review_notes=application.review_notes,
+        created_at=application.created_at,
+        updated_at=application.updated_at,
+        linked_store_slug=application.store.slug if application.store else None,
+    )
+
+
+def serialize_cart(cart: object) -> CartRead:
+    return CartRead(
+        id=cart.id,
+        store_id=cart.store_id,
+        store_name=cart.store.name if cart.store else None,
+        store_slug=cart.store.slug if cart.store else None,
+        delivery_mode=cart.delivery_mode,
+        subtotal=float(cart.subtotal),
+        delivery_fee=float(cart.delivery_fee),
+        service_fee=float(cart.service_fee),
+        total=float(cart.total),
+        items=[
+            CartItemRead(
+                id=item.id,
+                product_id=item.product_id,
+                product_name=item.product_name_snapshot,
+                unit_price=float(item.unit_price_snapshot),
+                quantity=item.quantity,
+                note=item.note,
+            )
+            for item in cart.items
+        ],
+    )
+
+
+def serialize_order(order: object) -> OrderRead:
+    return OrderRead(
+        id=order.id,
+        store_id=order.store_id,
+        store_name=order.store_name_snapshot,
+        store_slug=order.store_slug_snapshot,
+        customer_name=order.customer_name_snapshot,
+        delivery_mode=order.delivery_mode,
+        payment_method=order.payment_method,
+        payment_status=order.payment_status,
+        payment_reference=order.payment_reference,
+        status=order.status,
+        address_label=order.address_label_snapshot,
+        address_full=order.address_full_snapshot,
+        store_latitude=float(order.store.latitude) if getattr(order, "store", None) and order.store.latitude is not None else None,
+        store_longitude=float(order.store.longitude) if getattr(order, "store", None) and order.store.longitude is not None else None,
+        address_latitude=float(order.address.latitude) if getattr(order, "address", None) and order.address.latitude is not None else None,
+        address_longitude=float(order.address.longitude) if getattr(order, "address", None) and order.address.longitude is not None else None,
+        subtotal=float(order.subtotal),
+        delivery_fee=float(order.delivery_fee),
+        service_fee=float(order.service_fee),
+        delivery_fee_customer=float(getattr(order, "delivery_fee_customer", 0) or 0),
+        rider_fee=float(getattr(order, "rider_fee", 0) or 0),
+        total=float(order.total),
+        delivery_status=getattr(order, "delivery_status", "unassigned"),
+        delivery_provider=getattr(order, "delivery_provider", "store"),
+        delivery_zone_id=getattr(order, "delivery_zone_id", None),
+        assigned_rider_id=getattr(order, "assigned_rider_id", None),
+        assigned_rider_name=getattr(order, "assigned_rider_name_snapshot", None),
+        assigned_rider_phone_masked=getattr(order, "assigned_rider_phone_masked", None),
+        assigned_rider_vehicle_type=getattr(order, "assigned_rider_vehicle_type", None),
+        tracking_last_latitude=float(order.tracking_last_latitude)
+        if getattr(order, "tracking_last_latitude", None) is not None
+        else None,
+        tracking_last_longitude=float(order.tracking_last_longitude)
+        if getattr(order, "tracking_last_longitude", None) is not None
+        else None,
+        tracking_last_at=getattr(order, "tracking_last_at", None),
+        tracking_stale=bool(getattr(order, "tracking_stale", False)),
+        eta_minutes=getattr(order, "eta_minutes", None),
+        otp_required=bool(getattr(order, "otp_required", False)),
+        created_at=order.created_at,
+        items=[
+            OrderItemRead(
+                id=item.id,
+                product_id=item.product_id,
+                product_name=item.product_name_snapshot,
+                quantity=item.quantity,
+                unit_price=float(item.unit_price_snapshot),
+                note=item.note,
+            )
+            for item in order.items
+        ],
+    )
+
+
+def serialize_tracking(order: object) -> OrderTrackingRead:
+    delivery_status = getattr(order, "delivery_status", "unassigned")
+    return OrderTrackingRead(
+        order_id=order.id,
+        status=order.status,
+        delivery_status=delivery_status,
+        delivery_provider=getattr(order, "delivery_provider", "store"),
+        tracking_enabled=delivery_status in {"assigned", "heading_to_store", "picked_up", "near_customer", "delivered"},
+        assigned_rider_id=getattr(order, "assigned_rider_id", None),
+        assigned_rider_name=getattr(order, "assigned_rider_name_snapshot", None),
+        assigned_rider_phone_masked=getattr(order, "assigned_rider_phone_masked", None),
+        assigned_rider_vehicle_type=getattr(order, "assigned_rider_vehicle_type", None),
+        store_latitude=float(order.store.latitude) if getattr(order, "store", None) and order.store.latitude is not None else None,
+        store_longitude=float(order.store.longitude) if getattr(order, "store", None) and order.store.longitude is not None else None,
+        address_latitude=float(order.address.latitude) if getattr(order, "address", None) and order.address.latitude is not None else None,
+        address_longitude=float(order.address.longitude) if getattr(order, "address", None) and order.address.longitude is not None else None,
+        tracking_last_latitude=float(order.tracking_last_latitude)
+        if getattr(order, "tracking_last_latitude", None) is not None
+        else None,
+        tracking_last_longitude=float(order.tracking_last_longitude)
+        if getattr(order, "tracking_last_longitude", None) is not None
+        else None,
+        tracking_last_at=getattr(order, "tracking_last_at", None),
+        tracking_stale=bool(getattr(order, "tracking_stale", False)),
+        eta_minutes=getattr(order, "eta_minutes", None),
+        otp_required=bool(getattr(order, "otp_required", False)),
+        otp_code=getattr(order, "otp_code", None),
+    )
+
+
+def serialize_delivery_application(application: object) -> DeliveryApplicationRead:
+    return DeliveryApplicationRead(
+        id=application.id,
+        user_id=application.user_id,
+        user_name=application.user.full_name,
+        user_email=application.user.email,
+        phone=application.phone,
+        vehicle_type=application.vehicle_type,
+        photo_url=application.photo_url,
+        dni_number=application.dni_number,
+        emergency_contact_name=application.emergency_contact_name,
+        emergency_contact_phone=application.emergency_contact_phone,
+        license_number=application.license_number,
+        vehicle_plate=application.vehicle_plate,
+        insurance_policy=application.insurance_policy,
+        notes=application.notes,
+        status=application.status,
+        review_notes=application.review_notes,
+        reviewed_at=application.reviewed_at,
+        created_at=application.created_at,
+        updated_at=application.updated_at,
+    )
+
+
+def serialize_delivery_profile(profile: object) -> DeliveryProfileRead:
+    return DeliveryProfileRead(
+        user_id=profile.user_id,
+        full_name=profile.user.full_name,
+        email=profile.user.email,
+        phone=profile.phone,
+        vehicle_type=profile.vehicle_type,
+        availability=profile.availability,
+        is_active=profile.is_active,
+        current_zone_id=profile.current_zone_id,
+        current_latitude=float(profile.current_latitude) if profile.current_latitude is not None else None,
+        current_longitude=float(profile.current_longitude) if profile.current_longitude is not None else None,
+        last_location_at=profile.last_location_at,
+        completed_deliveries=profile.completed_deliveries,
+        rating=float(profile.rating),
+        push_enabled=profile.push_enabled,
+    )
+
+
+def serialize_delivery_zone(zone: object) -> DeliveryZoneRead:
+    return DeliveryZoneRead(
+        id=zone.id,
+        name=zone.name,
+        description=zone.description,
+        center_latitude=float(zone.center_latitude),
+        center_longitude=float(zone.center_longitude),
+        radius_km=float(zone.radius_km),
+        is_active=zone.is_active,
+        rates=[
+            {
+                "vehicle_type": rate.vehicle_type,
+                "delivery_fee_customer": float(rate.delivery_fee_customer),
+                "rider_fee": float(rate.rider_fee),
+            }
+            for rate in zone.rates
+        ],
+    )
+
+
+def serialize_notification(notification: object) -> NotificationRead:
+    return NotificationRead(
+        id=notification.id,
+        order_id=notification.order_id,
+        channel=notification.channel,
+        event_type=notification.event_type,
+        title=notification.title,
+        body=notification.body,
+        payload_json=notification.payload_json,
+        is_read=notification.is_read,
+        push_status=notification.push_status,
+        created_at=notification.created_at,
+    )
+
+
+def serialize_platform_settings(settings: object) -> PlatformSettingsRead:
+    return PlatformSettingsRead(
+        service_fee_amount=float(settings.service_fee_amount),
+        updated_at=getattr(settings, "updated_at", None),
+        updated_by=None,
+    )
+
+
+def serialize_settlement_payment(payment: object) -> MerchantSettlementPaymentRead:
+    return MerchantSettlementPaymentRead(
+        id=payment.id,
+        store_id=payment.store_id,
+        store_name=payment.store.name if getattr(payment, "store", None) else None,
+        store_slug=payment.store.slug if getattr(payment, "store", None) else None,
+        notice_id=payment.notice_id,
+        source=payment.source,
+        method=payment.source,
+        amount=float(payment.amount),
+        applied_amount=payment_applied_amount(payment),
+        paid_at=payment.paid_at,
+        reference=payment.reference,
+        notes=payment.notes,
+        created_at=payment.created_at,
+        allocations=[
+            SettlementAllocationRead(
+                charge_id=allocation.charge_id,
+                order_id=allocation.charge.order_id,
+                amount=float(allocation.amount),
+            )
+            for allocation in payment.allocations
+        ],
+    )
+
+
+def serialize_settlement_charge(charge: object) -> MerchantServiceFeeChargeRead:
+    order = charge.order
+    settled_at = max(
+        (
+            getattr(allocation.payment, "paid_at", None)
+            for allocation in charge.allocations
+            if getattr(allocation, "payment", None) is not None
+        ),
+        default=None,
+    )
+    return MerchantServiceFeeChargeRead(
+        id=charge.id,
+        store_id=charge.store_id,
+        order_id=charge.order_id,
+        order_status=order.status,
+        payment_method=order.payment_method,
+        delivery_mode=order.delivery_mode,
+        customer_name=order.customer_name_snapshot,
+        order_total=float(order.total),
+        amount=float(charge.amount),
+        service_fee=float(charge.amount),
+        allocated_amount=charge_paid_amount(charge),
+        outstanding_amount=charge_outstanding_amount(charge),
+        status=charge_status(charge),
+        created_at=charge.created_at,
+        order_created_at=order.created_at,
+        settled_at=settled_at,
+    )
+
+
+def serialize_transfer_notice(notice: object) -> MerchantTransferNoticeRead:
+    return MerchantTransferNoticeRead(
+        id=notice.id,
+        store_id=notice.store_id,
+        store_name=notice.store.name if getattr(notice, "store", None) else None,
+        store_slug=notice.store.slug if getattr(notice, "store", None) else None,
+        amount=float(notice.amount),
+        transfer_date=notice.transfer_date,
+        bank=notice.bank,
+        reference=notice.reference,
+        notes=notice.notes,
+        status=notice.status,
+        review_notes=notice.review_notes,
+        reviewed_notes=notice.review_notes,
+        created_at=notice.created_at,
+        reviewed_at=notice.reviewed_at,
+        settlement_payment_id=notice.settlement_payment.id if notice.settlement_payment else None,
+    )
+
+
+def serialize_settlement_overview(
+    *,
+    store: object,
+    service_fee_amount: float,
+    charges: list[object],
+    notices: list[object],
+    payments: list[object],
+) -> MerchantSettlementOverviewRead:
+    last_charge_at = max((charge.created_at for charge in charges), default=None)
+    last_payment_at = max((payment.paid_at for payment in payments), default=None)
+    paid_total = sum(float(payment.amount) for payment in payments)
+    open_charges_count = sum(1 for charge in charges if charge_outstanding_amount(charge) > 0)
+    return MerchantSettlementOverviewRead(
+        store_id=store.id,
+        store_name=store.name,
+        store_slug=store.slug,
+        service_fee_amount=service_fee_amount,
+        pending_balance=sum(charge_outstanding_amount(charge) for charge in charges),
+        open_charges_count=open_charges_count,
+        pending_charges_count=open_charges_count,
+        pending_notices_count=sum(1 for notice in notices if notice.status == "pending_review"),
+        charged_total=sum(float(charge.amount) for charge in charges),
+        paid_total=paid_total,
+        paid_balance=paid_total,
+        last_charge_at=last_charge_at,
+        last_payment_at=last_payment_at,
+        payments=[serialize_settlement_payment(payment) for payment in payments],
+    )
+
+
+def serialize_admin_settlement_store(
+    *,
+    store: object,
+    charges: list[object],
+    notices: list[object],
+    payments: list[object],
+) -> AdminSettlementStoreRead:
+    last_charge_at = max((charge.created_at for charge in charges), default=None)
+    last_payment_at = max((payment.paid_at for payment in payments), default=None)
+    last_notice_at = max((notice.created_at for notice in notices), default=None)
+    last_activity_at = max(
+        (value for value in (last_charge_at, last_payment_at, last_notice_at) if value is not None),
+        default=None,
+    )
+    open_charges_count = sum(1 for charge in charges if charge_outstanding_amount(charge) > 0)
+    return AdminSettlementStoreRead(
+        id=store.id,
+        store_id=store.id,
+        store_name=store.name,
+        store_slug=store.slug,
+        owner_name=getattr(getattr(store, "owner", None), "full_name", None)
+        or getattr(getattr(store, "owner", None), "email", None)
+        or "Sin owner",
+        pending_balance=sum(charge_outstanding_amount(charge) for charge in charges),
+        open_charges_count=open_charges_count,
+        pending_charges_count=open_charges_count,
+        pending_notices_count=sum(1 for notice in notices if notice.status == "pending_review"),
+        charged_total=sum(float(charge.amount) for charge in charges),
+        paid_total=sum(float(payment.amount) for payment in payments),
+        last_charge_at=last_charge_at,
+        last_activity_at=last_activity_at,
+        status=getattr(store, "status", None),
+    )

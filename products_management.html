@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="#ff8c00" name="theme-color"/>
+<link href="manifest.webmanifest" rel="manifest"/>
+<title>Admin - Add New Restaurant</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff8c00",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#1A1A1A",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<header class="flex items-center bg-background-light dark:bg-background-dark p-4 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
+<button class="text-slate-900 dark:text-slate-100 flex size-10 shrink-0 items-center justify-center hover:bg-primary/10 rounded-full transition-colors" id="back_button" type="button">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight ml-2">Restaurant Management</h2>
+</header>
+<main class="max-w-2xl mx-auto w-full p-4 md:p-8">
+<div class="hidden mb-6 rounded-xl px-4 py-3 text-sm font-medium" id="product-management-feedback"></div>
+<div class="mb-8">
+<h1 class="text-slate-900 dark:text-slate-100 text-3xl font-bold leading-tight tracking-tight">Add New Restaurant</h1>
+<p class="text-slate-500 dark:text-slate-400 mt-2">Enter the details below to list a new establishment on the platform.</p>
+</div>
+<!-- Form Container -->
+<form class="space-y-6" id="restaurant_form">
+<!-- Logo Upload Section -->
+<div class="flex flex-col gap-4">
+<p class="text-slate-900 dark:text-slate-100 text-base font-semibold">Restaurant Logo</p>
+<div class="flex items-center gap-6">
+<div class="relative flex size-32 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 overflow-hidden group hover:border-primary transition-colors cursor-pointer" id="logo_placeholder">
+<img class="hidden absolute inset-0 w-full h-full object-cover opacity-50" data-alt="Modern restaurant interior placeholder image" id="logo_preview" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpkaXngCl1SCGTI1N7hglmIJtU7YLOwXnf_HbZZ19mcl4gEwBCwTXPfX7bXyyO1wXPLAdxUKBLfdQyFWDpaK5z-j8xf7xUxBWkXNUtUFzmrQRdugfhM9V2e7GDY_EAM7r3a5UM-ufxpqn09eAOJ2Wc6N_9GYkaHcHtAB-9FmFZ0FwZOHKQEyOJhvHQUxIj33Y_fvWZZAwO5fVORr4sE2hN25lUWIVzaolBb_seFfmWeP7azGfxDLnxAwmlxuRxj-m3iQIIXpyaOg"/>
+<div class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 group-hover:text-primary">
+<span class="material-symbols-outlined text-4xl">add_a_photo</span>
+<span class="text-xs font-medium uppercase tracking-wider">Upload</span>
+</div>
+</div>
+<div class="flex-1">
+<p class="text-sm text-slate-500 dark:text-slate-400 mb-2 leading-relaxed">Recommended size: 512x512px. JPG, PNG or WebP max 2MB.</p>
+<input accept="image/*" class="hidden" id="restaurant_logo_input" type="file"/>
+<button class="text-sm font-semibold text-primary hover:text-primary/80" onclick="document.getElementById('restaurant_logo_input').click()" type="button">Choose File</button>
+</div>
+</div>
+</div>
+<!-- Basic Info Section -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+<div class="flex flex-col gap-2">
+<label class="text-slate-900 dark:text-slate-100 text-base font-semibold" for="restaurant_name">Restaurant Name</label>
+<input class="form-input w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:border-primary focus:ring-1 focus:ring-primary h-12 px-4 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all" id="restaurant_name" name="restaurant_name" placeholder="e.g. The Golden Fork" required="" type="text"/>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-slate-900 dark:text-slate-100 text-base font-semibold" for="category_id">Cuisine Category</label>
+<select class="form-select w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:border-primary focus:ring-1 focus:ring-primary h-12 px-4 transition-all appearance-none cursor-pointer" id="category_id" name="category_id" required="">
+<option disabled="" selected="" value="">Select category</option>
+<option value="1">Italian</option>
+<option value="2">Japanese</option>
+<option value="3">Mexican</option>
+<option value="4">French</option>
+<option value="5">Fine Dining</option>
+</select>
+</div>
+</div>
+<!-- Address Section -->
+<div class="flex flex-col gap-2">
+<label class="text-slate-900 dark:text-slate-100 text-base font-semibold" for="restaurant_address">Full Address</label>
+<textarea class="form-textarea w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:border-primary focus:ring-1 focus:ring-primary min-h-[120px] p-4 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all resize-none" id="restaurant_address" name="restaurant_address" placeholder="Street address, City, Zip code" required=""></textarea>
+</div>
+<!-- Additional Settings Placeholder -->
+<div class="p-4 bg-primary/10 rounded-xl border border-primary/20 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-0.5">info</span>
+<p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                        After saving, you can manage the menu, operating hours, and staff access from the restaurant dashboard.
+                    </p>
+</div>
+<!-- Form Actions -->
+<div class="flex items-center gap-4 pt-8">
+<button class="flex-1 md:flex-none md:min-w-[120px] py-3 px-6 rounded-xl font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-all" id="cancel_button" type="button">
+                        Cancel
+                    </button>
+<button class="flex-1 md:flex-none md:min-w-[200px] py-3 px-6 rounded-xl bg-primary text-white font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2" id="save_restaurant_button" type="submit">
+<span class="material-symbols-outlined">save</span>
+                        Save Restaurant
+                    </button>
+</div>
+</form>
+</main>
+<!-- Spacer -->
+<div class="h-10"></div>
+</div>
+<script>
+    const session = JSON.parse(localStorage.getItem('tupedido.session') || 'null');
+    if (!session || session.user?.role !== 'admin') {
+        window.location.href = 'login.html';
+    }
+
+    const backButton = document.getElementById('back_button');
+    const cancelButton = document.getElementById('cancel_button');
+    const form = document.getElementById('restaurant_form');
+    const logoInput = document.getElementById('restaurant_logo_input');
+    const logoPreview = document.getElementById('logo_preview');
+    const logoPlaceholder = document.getElementById('logo_placeholder');
+    const feedback = document.getElementById('product-management-feedback');
+
+    let uploadedLogoUrl = '';
+
+    function showFeedback(message, tone = 'info') {
+        feedback.className = 'mb-6 rounded-xl px-4 py-3 text-sm font-medium';
+        if (tone === 'error') {
+            feedback.classList.add('bg-red-100', 'text-red-700', 'dark:bg-red-500/10', 'dark:text-red-300');
+        } else if (tone === 'success') {
+            feedback.classList.add('bg-emerald-100', 'text-emerald-700', 'dark:bg-emerald-500/10', 'dark:text-emerald-300');
+        } else {
+            feedback.classList.add('bg-slate-200', 'text-slate-700', 'dark:bg-primary/10', 'dark:text-primary');
+        }
+        feedback.textContent = message;
+        feedback.classList.remove('hidden');
+    }
+
+    backButton.addEventListener('click', () => {
+        window.location.href = 'restaurant_management.html';
+    });
+
+    cancelButton.addEventListener('click', () => {
+        window.location.href = 'restaurant_management.html';
+    });
+
+    logoInput.addEventListener('change', () => {
+        const file = logoInput.files?.[0];
+        if (!file) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            uploadedLogoUrl = String(reader.result || '');
+            logoPreview.src = uploadedLogoUrl;
+            logoPreview.classList.remove('hidden');
+            logoPreview.classList.add('block');
+            logoPlaceholder.querySelector('div').classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+    });
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const payload = {
+            name: document.getElementById('restaurant_name').value,
+            category_id: Number(document.getElementById('category_id').value),
+            address: document.getElementById('restaurant_address').value,
+            logo_url: uploadedLogoUrl || logoPreview.src
+        };
+
+        try {
+            const response = await fetch('http://localhost:8016/api/v1/restaurants', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.detail || 'No se pudo crear el restaurante');
+            }
+
+            localStorage.setItem('tupedido.flash', JSON.stringify({ message: `Restaurante creado: ${result.name}`, tone: 'success' }));
+            showFeedback(`Restaurante creado: ${result.name}`, 'success');
+            setTimeout(() => {
+                window.location.href = 'restaurant_management.html';
+            }, 900);
+        } catch (error) {
+            showFeedback(error.message || 'No se pudo crear el restaurante', 'error');
+        }
+    });
+</script>
+<script src="pwa.js"></script>
+</body></html>

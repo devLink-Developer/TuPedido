@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="#ff8c00" name="theme-color"/>
+<link href="manifest.webmanifest" rel="manifest"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff8c00",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#1A1A1A",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<title>Checkout - TuPedido</title>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<!-- Main Container -->
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark overflow-x-hidden max-w-md mx-auto border-x border-slate-200 dark:border-primary/10">
+<!-- Top App Bar -->
+<div class="flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10 border-b border-slate-200 dark:border-primary/10">
+<div class="text-slate-900 dark:text-slate-100 flex size-12 shrink-0 items-center cursor-pointer" onclick="window.location.href='cart.html'">
+<span class="material-symbols-outlined">arrow_back</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight flex-1 text-center">Checkout</h2>
+<div class="size-12 shrink-0"></div> <!-- Spacer for symmetry -->
+</div>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto pb-32">
+<div class="px-4 pt-4">
+<div class="hidden rounded-xl px-4 py-3 text-sm font-medium" id="checkout-feedback"></div>
+</div>
+<!-- Delivery Address Section -->
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight px-4 pb-2 pt-6">Delivery Address</h3>
+<div class="flex items-center gap-4 bg-background-light dark:bg-background-dark px-4 min-h-[72px] py-2 justify-between">
+<div class="flex items-center gap-4">
+<div class="text-primary flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-12">
+<span class="material-symbols-outlined">location_on</span>
+</div>
+<div class="flex flex-col justify-center">
+<p class="text-slate-900 dark:text-slate-100 text-base font-medium leading-normal line-clamp-1" id="checkout-address-label">Home</p>
+<p class="text-slate-500 dark:text-primary/70 text-sm font-normal leading-normal line-clamp-2" id="checkout-address-details">123 Orange Street, Citrus Valley, CA 90210</p>
+</div>
+</div>
+<div class="shrink-0">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-8 px-4 bg-primary/10 text-primary text-sm font-medium leading-normal w-fit hover:bg-primary/20 transition-colors" onclick="window.location.href='address_management.html'" type="button">
+<span>Change</span>
+</button>
+</div>
+</div>
+<!-- Delivery Time Section -->
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight px-4 pb-2 pt-6">Delivery Estimate</h3>
+<div class="flex items-center gap-4 bg-background-light dark:bg-background-dark px-4 min-h-14 justify-between">
+<div class="flex items-center gap-4">
+<div class="text-primary flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-10">
+<span class="material-symbols-outlined">schedule</span>
+</div>
+<p class="text-slate-900 dark:text-slate-100 text-base font-normal leading-normal flex-1 truncate">Arrives in 25-35 mins</p>
+</div>
+<div class="shrink-0">
+<span class="px-3 py-1 bg-primary text-white text-xs font-bold rounded-full uppercase tracking-wider">Express</span>
+</div>
+</div>
+<!-- Order Summary Section -->
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight px-4 pb-2 pt-6">Order Summary</h3>
+<div class="px-4 space-y-4" id="checkout-items-list">
+</div>
+<!-- Payment Method Section -->
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight px-4 pb-2 pt-6">Payment Method</h3>
+<div class="px-4">
+<div class="flex items-center gap-4 bg-slate-50 dark:bg-primary/5 p-4 rounded-xl border-2 border-primary" data-method="card">
+<div class="text-primary shrink-0">
+<span class="material-symbols-outlined">credit_card</span>
+</div>
+<div class="flex-1">
+<p class="text-slate-900 dark:text-slate-100 text-sm font-bold">•••• •••• •••• 4242</p>
+<p class="text-slate-500 dark:text-primary/60 text-xs uppercase">Visa Platinum</p>
+</div>
+<div class="text-primary">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+</div>
+<div class="mt-3 flex items-center gap-4 bg-slate-50 dark:bg-primary/5 p-4 rounded-xl border border-transparent opacity-60" data-method="cash">
+<div class="text-slate-400 dark:text-primary/40 shrink-0">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<div class="flex-1">
+<p class="text-slate-900 dark:text-slate-100 text-sm font-bold">Cash on Delivery</p>
+<p class="text-slate-500 dark:text-primary/60 text-xs uppercase">Pay at your door</p>
+</div>
+</div>
+</div>
+<!-- Cost Breakdown Section -->
+<div class="px-4 pt-8 space-y-2">
+<div class="flex justify-between text-sm">
+<span class="text-slate-500 dark:text-primary/60">Subtotal</span>
+<span class="text-slate-900 dark:text-slate-100">$<span id="checkout-subtotal">17.49</span></span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-slate-500 dark:text-primary/60">Delivery Fee</span>
+<span class="text-slate-900 dark:text-slate-100">$<span id="checkout-delivery">2.99</span></span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-slate-500 dark:text-primary/60">Service Fee</span>
+<span class="text-slate-900 dark:text-slate-100">$<span id="checkout-service">1.50</span></span>
+</div>
+<div class="flex justify-between text-lg font-bold pt-4 border-t border-slate-200 dark:border-primary/10">
+<span class="text-slate-900 dark:text-slate-100">Total</span>
+<span class="text-primary">$<span id="checkout-total">21.98</span></span>
+</div>
+</div>
+</div>
+<!-- Floating Action Button Area -->
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-background-light dark:bg-background-dark p-4 border-t border-slate-200 dark:border-primary/10">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]" id="place-order-button" type="button">
+<span>Confirmar pedido</span>
+<span class="material-symbols-outlined text-xl">shopping_bag</span>
+</button>
+</div>
+</div>
+<!-- 
+    // API INTEGRATION EXAMPLES (Conceptual)
+    
+    // 1. Sending Order Data to Python (Flask/FastAPI)
+    /*
+    async function submitOrder() {
+        const orderData = {
+            user_id: 12345,
+            items: [
+                { id: "burger_01", quantity: 1, price: 12.99 },
+                { id: "fries_01", quantity: 1, price: 4.50 }
+            ],
+            address_id: "home_addr_99",
+            payment_method: "card_visa_4242",
+            totals: {
+                subtotal: 17.49,
+                delivery: 2.99,
+                service: 1.50,
+                total: 21.98
+            }
+        };
+
+        try {
+            const response = await fetch('https://api.foodapp.com/v1/orders/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+                },
+                body: JSON.stringify(orderData)
+            });
+            const result = await response.json();
+            if (result.success) {
+                window.location.href = `/order-tracking/${result.order_id}`;
+            }
+        } catch (error) {
+            console.error('Error placing order:', error);
+        }
+    }
+    */
+
+    // 2. Fetching Delivery Estimate Update
+    /*
+    async function updateDeliveryTime(lat, lng) {
+        const response = await fetch(`/api/delivery/estimate?lat=${lat}&lng=${lng}`);
+        const data = await response.json();
+        document.getElementById('eta-display').innerText = `Arrives in ${data.min}-${data.max} mins`;
+    }
+    */
+    -->
+<script>
+    const session = JSON.parse(localStorage.getItem('tupedido.session') || 'null');
+    const checkoutFeedback = document.getElementById('checkout-feedback');
+    const placeOrderButton = document.getElementById('place-order-button');
+    let selectedPaymentMethod = 'card';
+
+    function showCheckoutFeedback(message, tone = 'info') {
+        checkoutFeedback.className = 'rounded-xl px-4 py-3 text-sm font-medium';
+        if (tone === 'error') {
+            checkoutFeedback.classList.add('bg-red-100', 'text-red-700', 'dark:bg-red-500/10', 'dark:text-red-300');
+        } else if (tone === 'success') {
+            checkoutFeedback.classList.add('bg-emerald-100', 'text-emerald-700', 'dark:bg-emerald-500/10', 'dark:text-emerald-300');
+        } else {
+            checkoutFeedback.classList.add('bg-slate-200', 'text-slate-700', 'dark:bg-primary/10', 'dark:text-primary');
+        }
+        checkoutFeedback.textContent = message;
+        checkoutFeedback.classList.remove('hidden');
+    }
+
+    function setCheckoutLoadingState(isLoading) {
+        placeOrderButton.disabled = isLoading;
+        placeOrderButton.classList.toggle('opacity-60', isLoading);
+        placeOrderButton.querySelector('span').textContent = isLoading ? 'Procesando...' : 'Confirmar pedido';
+    }
+
+    function renderCheckoutItems(cart) {
+        const itemsContainer = document.getElementById('checkout-items-list');
+        if (!cart.items.length) {
+            itemsContainer.innerHTML = '<div class="rounded-xl bg-slate-50 dark:bg-primary/5 p-4 text-sm text-slate-500">Tu carrito está vacío. Regresa al menú para agregar productos.</div>';
+            placeOrderButton.disabled = true;
+            placeOrderButton.classList.add('opacity-60');
+            return;
+        }
+
+        placeOrderButton.disabled = false;
+        placeOrderButton.classList.remove('opacity-60');
+        itemsContainer.innerHTML = cart.items.map((item) => `
+            <div class="flex items-center gap-4 bg-slate-50 dark:bg-primary/5 p-3 rounded-lg">
+                <div class="size-16 rounded-lg bg-slate-200 dark:bg-slate-700 shrink-0"></div>
+                <div class="flex-1">
+                    <div class="flex justify-between gap-3">
+                        <p class="text-slate-900 dark:text-slate-100 font-medium">${item.product_name}</p>
+                        <p class="text-slate-900 dark:text-slate-100 font-semibold">$${Number(item.unit_price).toFixed(2)}</p>
+                    </div>
+                    <p class="text-slate-500 dark:text-primary/60 text-xs">Producto persistido en PostgreSQL</p>
+                    <p class="text-primary text-sm font-medium">Qty: ${item.quantity}</p>
+                </div>
+            </div>
+        `).join('');
+
+        document.getElementById('checkout-subtotal').textContent = Number(cart.subtotal).toFixed(2);
+        document.getElementById('checkout-delivery').textContent = Number(cart.delivery_fee).toFixed(2);
+        document.getElementById('checkout-service').textContent = Number(cart.service_fee).toFixed(2);
+        document.getElementById('checkout-total').textContent = Number(cart.total).toFixed(2);
+    }
+
+    async function loadCheckoutState() {
+        if (!session) {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        showCheckoutFeedback('Cargando resumen persistido del pedido...');
+
+        const [cartResponse, addressResponse] = await Promise.all([
+            fetch('http://localhost:8016/api/v1/cart', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+            }),
+            fetch('http://localhost:8016/api/v1/addresses', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+            })
+        ]);
+
+        if (cartResponse.ok) {
+            const cart = await cartResponse.json();
+            renderCheckoutItems(cart);
+        } else {
+            showCheckoutFeedback('No se pudo cargar el carrito para checkout.', 'error');
+        }
+
+        if (addressResponse.ok) {
+            const addresses = await addressResponse.json();
+            const selected = addresses.find((address) => address.is_default) || addresses[0];
+            if (selected) {
+                document.getElementById('checkout-address-label').textContent = selected.label;
+                document.getElementById('checkout-address-details').textContent = `${selected.street}${selected.details ? `, ${selected.details}` : ''}`;
+            } else {
+                document.getElementById('checkout-address-label').textContent = 'Sin dirección seleccionada';
+                document.getElementById('checkout-address-details').textContent = 'Agrega una dirección para completar el pedido.';
+                placeOrderButton.disabled = true;
+                placeOrderButton.classList.add('opacity-60');
+                showCheckoutFeedback('Necesitas una dirección por defecto antes de confirmar.', 'error');
+            }
+        } else {
+            showCheckoutFeedback('No se pudieron cargar las direcciones guardadas.', 'error');
+        }
+
+        if (!placeOrderButton.disabled) {
+            showCheckoutFeedback(`Listo para confirmar con pago ${selectedPaymentMethod === 'card' ? 'tarjeta' : 'efectivo'}.`, 'success');
+        }
+    }
+
+    document.getElementById('place-order-button').addEventListener('click', async () => {
+        if (!session) {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        if (placeOrderButton.disabled) {
+            return;
+        }
+
+        setCheckoutLoadingState(true);
+
+        const response = await fetch('http://localhost:8016/api/v1/cart/checkout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ payment_method: selectedPaymentMethod })
+        });
+        const result = await response.json();
+        setCheckoutLoadingState(false);
+        if (!response.ok) {
+            showCheckoutFeedback(result.detail || 'No se pudo completar el checkout', 'error');
+            return;
+        }
+
+        showCheckoutFeedback(`Pedido confirmado. ID ${result.order_id}.`, 'success');
+        localStorage.setItem('tupedido.flash', JSON.stringify({ message: `Pedido #${result.order_id} confirmado correctamente.`, tone: 'success' }));
+        setTimeout(() => {
+        window.location.href = 'orders.html';
+        }, 900);
+    });
+
+    document.querySelectorAll('[data-method]').forEach((button) => {
+        button.addEventListener('click', () => {
+            selectedPaymentMethod = button.dataset.method;
+            document.querySelectorAll('[data-method]').forEach((candidate) => {
+                candidate.classList.remove('border-primary', 'bg-primary/10');
+                candidate.classList.add('border-transparent', 'opacity-60');
+            });
+            button.classList.add('border-primary', 'bg-primary/10');
+            button.classList.remove('border-transparent', 'opacity-60');
+            showCheckoutFeedback(`Método de pago seleccionado: ${selectedPaymentMethod === 'card' ? 'tarjeta' : 'efectivo'}.`, 'info');
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', loadCheckoutState);
+</script>
+<script src="pwa.js"></script>
+</body></html>
