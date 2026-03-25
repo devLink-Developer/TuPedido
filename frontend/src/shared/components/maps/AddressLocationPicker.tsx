@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Button } from "../../ui/Button";
+import { resolveMapStyle } from "../../utils/mapStyle";
 
 const DEFAULT_CENTER = {
   latitude: -34.6037,
@@ -40,7 +41,7 @@ export function AddressLocationPicker({
     const initialLatitude = latitude ?? DEFAULT_CENTER.latitude;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: import.meta.env.VITE_MAP_STYLE_URL ?? "https://demotiles.maplibre.org/style.json",
+      style: resolveMapStyle(),
       center: [initialLongitude, initialLatitude],
       zoom: latitude !== null && longitude !== null ? 15 : 12,
       interactive: true,

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import maplibregl, { LngLatBounds } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { resolveMapStyle } from "../../utils/mapStyle";
 
 type MarkerPoint = {
   id: string;
@@ -28,7 +29,7 @@ export function LiveMap({
     if (!mapRef.current) {
       mapRef.current = new maplibregl.Map({
         container: containerRef.current,
-        style: import.meta.env.VITE_MAP_STYLE_URL ?? "https://demotiles.maplibre.org/style.json",
+        style: resolveMapStyle(),
         center: [points[0].longitude, points[0].latitude],
         zoom: 13,
         interactive
