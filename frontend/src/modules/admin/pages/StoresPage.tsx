@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "../../../shared/ui/Button";
-import { EmptyState, ImageAssetField, LoadingCard, PageHeader } from "../../../shared/components";
+import { EmptyState, ImageAssetField, LoadingCard, PageHeader, RubroChip } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   createAdminStore,
@@ -11,7 +11,6 @@ import {
   updateAdminStoreStatus
 } from "../../../shared/services/api";
 import type { Category, MerchantApplication, StoreSummary } from "../../../shared/types";
-import { hexToRgba, resolveCategoryPalette } from "../../../shared/utils/categoryTheme";
 import { statusLabels } from "../../../shared/utils/labels";
 
 type StoreFormState = {
@@ -332,11 +331,14 @@ export function StoresPage() {
                 <div className="flex flex-wrap gap-2">
                   {selectableCategories.map((category) => {
                     const selected = selectedCategoryIds.has(category.id);
-                    const palette = resolveCategoryPalette(category);
                     return (
-                      <button
+                      <RubroChip
                         key={category.id}
-                        type="button"
+                        label={category.name}
+                        color={category.color}
+                        colorLight={category.color_light}
+                        icon={category.icon}
+                        selected={selected}
                         onClick={() =>
                           setForm((current) => ({
                             ...current,
@@ -345,15 +347,7 @@ export function StoresPage() {
                               : [...current.category_ids, category.id]
                           }))
                         }
-                        className="rounded-full border px-4 py-2 text-sm font-semibold transition"
-                        style={{
-                          backgroundColor: selected ? palette.color : palette.colorLight,
-                          borderColor: hexToRgba(palette.color, selected ? 0.22 : 0.14),
-                          color: selected ? "#FFF8F0" : palette.color
-                        }}
-                      >
-                        {category.name}
-                      </button>
+                      />
                     );
                   })}
                 </div>

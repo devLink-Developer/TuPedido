@@ -4,9 +4,8 @@ import { useAuthSession } from "../../../shared/hooks";
 import { createMerchantApplication, fetchMerchantApplications, registerMerchantApplication } from "../../../shared/services/api";
 import { useAuthStore, useCategoryStore } from "../../../shared/stores";
 import type { MerchantApplication, MerchantApplicationCreate, MerchantApplicationRegister } from "../../../shared/types";
-import { EmptyState, LoadingCard, PageHeader, StatusPill } from "../../../shared/components";
+import { EmptyState, LoadingCard, PageHeader, RubroChip, StatusPill } from "../../../shared/components";
 import { Button } from "../../../shared/ui/Button";
-import { hexToRgba, resolveCategoryPalette } from "../../../shared/utils/categoryTheme";
 import { roleToHomePath } from "../../../shared/utils/routing";
 
 type MerchantRegistrationState = MerchantApplicationRegister;
@@ -198,11 +197,14 @@ export function MerchantRegistrationForm() {
             <div className="flex flex-wrap gap-2">
               {categories.map((category) => {
                 const selected = selectedCategoryIds.has(category.id);
-                const palette = resolveCategoryPalette(category);
                 return (
-                  <button
+                  <RubroChip
                     key={category.id}
-                    type="button"
+                    label={category.name}
+                    color={category.color}
+                    colorLight={category.color_light}
+                    icon={category.icon}
+                    selected={selected}
                     onClick={() =>
                       setForm((current) => ({
                         ...current,
@@ -211,15 +213,7 @@ export function MerchantRegistrationForm() {
                           : [...current.requested_category_ids, category.id]
                       }))
                     }
-                    className="rounded-full border px-4 py-2 text-sm font-semibold transition"
-                    style={{
-                      backgroundColor: selected ? palette.color : palette.colorLight,
-                      borderColor: hexToRgba(palette.color, selected ? 0.2 : 0.14),
-                      color: selected ? "#FFF8F0" : palette.color
-                    }}
-                  >
-                    {category.name}
-                  </button>
+                  />
                 );
               })}
             </div>

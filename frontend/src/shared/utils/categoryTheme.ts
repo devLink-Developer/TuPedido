@@ -2,6 +2,7 @@ import type { Category } from "../types";
 
 export const DEFAULT_CATEGORY_COLOR = "#9E9E9E";
 const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
+const HEX_COLOR_WITH_ALPHA_RE = /^#[0-9a-f]{6}([0-9a-f]{2})?$/i;
 
 type CategoryPaletteSource =
   | Pick<Category, "color" | "color_light">
@@ -19,16 +20,12 @@ export function isHexColor(value: string | null | undefined) {
 export function normalizeHexColor(value: string | null | undefined, fallback = DEFAULT_CATEGORY_COLOR) {
   const candidate = (value ?? "").trim();
   if (!candidate) return fallback;
-  return HEX_COLOR_RE.test(candidate) ? candidate.toUpperCase() : fallback;
+  return HEX_COLOR_WITH_ALPHA_RE.test(candidate) ? candidate.toUpperCase() : fallback;
 }
 
-export function buildLightColor(color: string, ratio = 0.88) {
+export function buildLightColor(color: string, alpha = "1A") {
   const normalized = normalizeHexColor(color);
-  const red = Number.parseInt(normalized.slice(1, 3), 16);
-  const green = Number.parseInt(normalized.slice(3, 5), 16);
-  const blue = Number.parseInt(normalized.slice(5, 7), 16);
-  const mix = (channel: number) => Math.round(channel + (255 - channel) * ratio);
-  return `#${[mix(red), mix(green), mix(blue)].map((value) => value.toString(16).padStart(2, "0")).join("").toUpperCase()}`;
+  return `${normalized.slice(0, 7)}${alpha}`.toUpperCase();
 }
 
 export function resolveCategoryPalette(category: CategoryPaletteSource) {

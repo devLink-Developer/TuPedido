@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { RubroChip } from "../../../shared/components";
 import { useCategoryStore } from "../../../shared/stores";
 import type { StoreSummary } from "../../../shared/types";
-import { hexToRgba, resolveCategoryPalette } from "../../../shared/utils/categoryTheme";
 import { formatCurrency } from "../../../shared/utils/format";
 
 function hasMercadoPago(paymentSettings: StoreSummary["payment_settings"]) {
@@ -17,7 +17,6 @@ export function StoreList({ stores }: { stores: StoreSummary[] }) {
     <div className="grid gap-4 lg:grid-cols-2">
       {stores.map((store) => {
         const primaryCategory = store.primary_category_id ? categoriesById.get(store.primary_category_id) : undefined;
-        const palette = resolveCategoryPalette(primaryCategory);
 
         return (
           <Link
@@ -55,16 +54,14 @@ export function StoreList({ stores }: { stores: StoreSummary[] }) {
                   {store.is_open ? "Abierto" : "Cerrado"}
                 </span>
                 {store.primary_category ? (
-                  <span
-                    className="rounded-full border px-3 py-1"
-                    style={{
-                      backgroundColor: palette.colorLight,
-                      borderColor: hexToRgba(palette.color, 0.14),
-                      color: palette.color
-                    }}
-                  >
-                    {store.primary_category}
-                  </span>
+                  <RubroChip
+                    as="span"
+                    label={store.primary_category}
+                    color={primaryCategory?.color}
+                    colorLight={primaryCategory?.color_light}
+                    icon={primaryCategory?.icon}
+                    size="sm"
+                  />
                 ) : null}
               </div>
 

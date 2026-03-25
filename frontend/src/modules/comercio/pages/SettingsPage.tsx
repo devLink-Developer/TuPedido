@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { EmptyState, ImageAssetField, LoadingCard, PageHeader, StatusPill } from "../../../shared/components";
+import { EmptyState, ImageAssetField, LoadingCard, PageHeader, RubroChip, StatusPill } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   createMerchantProductCategory,
@@ -18,7 +18,6 @@ import {
 import { useCategoryStore } from "../../../shared/stores";
 import type { MerchantStore, ProductCategory } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
-import { hexToRgba, resolveCategoryPalette } from "../../../shared/utils/categoryTheme";
 
 const storeStatusMessages: Record<string, string> = {
   pending_review:
@@ -546,25 +545,20 @@ export function SettingsPage() {
           <div className="flex flex-wrap gap-2">
             {categories.map((category) => {
               const selected = selectedCategoryIds.includes(category.id);
-              const palette = resolveCategoryPalette(category);
               return (
-                <button
+                <RubroChip
                   key={category.id}
-                  type="button"
+                  label={category.name}
+                  color={category.color}
+                  colorLight={category.color_light}
+                  icon={category.icon}
+                  selected={selected}
                   onClick={() =>
                     setSelectedCategoryIds((current) =>
                       current.includes(category.id) ? current.filter((id) => id !== category.id) : [...current, category.id]
                     )
                   }
-                  className="rounded-full border px-4 py-2 text-sm font-semibold transition"
-                  style={{
-                    backgroundColor: selected ? palette.color : palette.colorLight,
-                    borderColor: hexToRgba(palette.color, selected ? 0.22 : 0.14),
-                    color: selected ? "#FFF8F0" : palette.color
-                  }}
-                >
-                  {category.name}
-                </button>
+                />
               );
             })}
           </div>

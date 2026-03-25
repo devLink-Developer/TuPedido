@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
+import { EmptyState, LoadingCard, PageHeader, RubroChip } from "../../../shared/components";
 import { fetchStores } from "../../../shared/services/api";
 import { useCategoryStore, useClienteStore } from "../../../shared/stores";
 import type { StoreSummary } from "../../../shared/types";
-import { hexToRgba, resolveCategoryPalette } from "../../../shared/utils/categoryTheme";
 import { StoreList } from "../components/StoreList";
 
 export function CatalogPage() {
@@ -124,24 +123,19 @@ export function CatalogPage() {
         </button>
         {categories.map((category) => {
           const selected = categorySlug === category.slug;
-          const palette = resolveCategoryPalette(category);
           return (
-            <button
+            <RubroChip
               key={category.id}
-              type="button"
+              label={category.name}
+              color={category.color}
+              colorLight={category.color_light}
+              icon={category.icon}
+              selected={selected}
               onClick={() => {
                 setCategorySlug(category.slug);
                 updateQuery({ categorySlug: category.slug });
               }}
-              className="rounded-full border px-4 py-2 text-sm font-semibold shadow-sm transition"
-              style={{
-                backgroundColor: selected ? palette.color : palette.colorLight,
-                borderColor: hexToRgba(palette.color, selected ? 0.22 : 0.14),
-                color: selected ? "#FFF8F0" : palette.color
-              }}
-            >
-              {category.name}
-            </button>
+            />
           );
         })}
       </div>

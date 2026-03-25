@@ -15,8 +15,9 @@ import {
   statusLabels,
   roleHome
 } from "./common";
+import { RubroChip } from "../../shared/components";
 
-function StoreBadges({ store }: { store: StoreSummary }) {
+function StoreBadges({ store, category }: { store: StoreSummary; category?: Category }) {
   return (
     <div className="flex flex-wrap gap-2 text-xs font-semibold">
       <span className={`rounded-full px-3 py-1 ${store.is_open ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
@@ -25,7 +26,16 @@ function StoreBadges({ store }: { store: StoreSummary }) {
       <span className="rounded-full bg-zinc-100 px-3 py-1 text-zinc-600">
         {store.accepting_orders ? "Acepta pedidos" : "No acepta pedidos"}
       </span>
-      {store.primary_category ? <span className="rounded-full bg-orange-100 px-3 py-1 text-orange-700">{store.primary_category}</span> : null}
+      {store.primary_category ? (
+        <RubroChip
+          as="span"
+          label={store.primary_category}
+          size="sm"
+          color={category?.color}
+          colorLight={category?.color_light}
+          icon={category?.icon}
+        />
+      ) : null}
     </div>
   );
 }
@@ -106,6 +116,7 @@ export function HomePage() {
     () => stores.filter((store) => store.delivery_settings.delivery_enabled).length,
     [stores]
   );
+  const categoriesById = useMemo(() => new Map(categories.map((category) => [category.id, category])), [categories]);
 
   return (
     <div className="space-y-6">
@@ -190,16 +201,15 @@ export function HomePage() {
           Todos los rubros
         </button>
         {categories.map((category) => (
-          <button
+          <RubroChip
             key={category.id}
-            type="button"
+            label={category.name}
+            color={category.color}
+            colorLight={category.color_light}
+            icon={category.icon}
+            selected={categorySlug === category.slug}
             onClick={() => setCategorySlug(category.slug)}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-              categorySlug === category.slug ? "bg-brand-500 text-white" : "bg-white text-zinc-600 shadow-sm"
-            }`}
-          >
-            {category.name}
-          </button>
+          />
         ))}
       </div>
 
@@ -233,7 +243,10 @@ export function HomePage() {
                   </span>
                 </div>
                 <p className="line-clamp-2 text-sm leading-6 text-zinc-600">{store.description}</p>
-                <StoreBadges store={store} />
+                <StoreBadges
+                  store={store}
+                  category={store.primary_category_id ? categoriesById.get(store.primary_category_id) : undefined}
+                />
                 <div className="flex flex-wrap gap-2 text-xs font-semibold text-zinc-500">
                   <span className="rounded-full bg-zinc-100 px-3 py-1">
                     {store.delivery_settings.delivery_enabled ? `Envio ${formatCurrency(store.delivery_settings.delivery_fee)}` : "Sin envio"}
