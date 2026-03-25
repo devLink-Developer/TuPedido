@@ -13,8 +13,8 @@ export function CartPage() {
   if (!cart || !cart.items.length) {
     return (
       <EmptyState
-        title="Carrito vacío"
-        description="Explora comercios adheridos y arma tu pedido desde una tienda que ya esté lista para vender."
+        title="Carrito vacio"
+        description="Explora comercios adheridos y arma tu pedido desde una tienda que ya este lista para vender."
         action={
           <Link to="/c" className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white">
             Ver comercios
@@ -29,7 +29,7 @@ export function CartPage() {
       <PageHeader
         eyebrow="Carrito"
         title={cart.store_name ?? "Tu carrito"}
-        description="El carrito vive en el backend y se mantiene sincronizado entre sesiones."
+        description="Tu carrito se mantiene sincronizado para que puedas continuar tu compra sin perder cambios."
         action={
           <button className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white" onClick={() => void clear()}>
             Vaciar carrito
@@ -51,7 +51,7 @@ export function CartPage() {
                     cart.delivery_mode === mode ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-600"
                   }`}
                 >
-                  {mode === "delivery" ? "Envío" : "Retiro"}
+                  {mode === "delivery" ? "Envio" : "Retiro"}
                 </button>
               ))}
             </div>
@@ -69,11 +69,19 @@ export function CartPage() {
               </div>
               <div className="mt-4 flex items-center justify-between gap-3">
                 <div className="inline-flex items-center rounded-full bg-zinc-100 p-1">
-                  <button type="button" className="rounded-full px-3 py-2 text-sm font-semibold text-zinc-600" onClick={() => void updateItem(item.id, { quantity: Math.max(1, item.quantity - 1) })}>
+                  <button
+                    type="button"
+                    className="rounded-full px-3 py-2 text-sm font-semibold text-zinc-600"
+                    onClick={() => void updateItem(item.id, { quantity: Math.max(1, item.quantity - 1) })}
+                  >
                     -
                   </button>
                   <span className="min-w-10 px-3 text-center text-sm font-bold">{item.quantity}</span>
-                  <button type="button" className="rounded-full px-3 py-2 text-sm font-semibold text-zinc-600" onClick={() => void updateItem(item.id, { quantity: item.quantity + 1 })}>
+                  <button
+                    type="button"
+                    className="rounded-full px-3 py-2 text-sm font-semibold text-zinc-600"
+                    onClick={() => void updateItem(item.id, { quantity: item.quantity + 1 })}
+                  >
                     +
                   </button>
                 </div>

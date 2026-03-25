@@ -3,10 +3,10 @@ import { IntegrationPendingCard, PageHeader } from "../../../shared/components";
 export function UsersPage() {
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Admin" title="Usuarios" description="Ruta visible, sin inventar una API que todavía no existe." />
+      <PageHeader eyebrow="Admin" title="Usuarios" description="Administra accesos y perfiles del equipo." />
       <IntegrationPendingCard
-        title="Gestión de usuarios pendiente"
-        description="La pantalla /a/usuarios queda reservada hasta que el backend exponga contratos específicos para alta, edición y auditoría de usuarios."
+        title="Gestion avanzada disponible proximamente"
+        description="La gestion detallada de usuarios y permisos estara disponible en una proxima actualizacion."
       />
     </div>
   );

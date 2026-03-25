@@ -113,7 +113,7 @@ export function StoreDetailPage() {
               {store.is_open ? "Abierto" : "Cerrado"}
             </span>
             <span className="rounded-full bg-zinc-100 px-3 py-1 text-zinc-600">
-              {store.delivery_settings.delivery_enabled ? "Envío habilitado" : "Sin envío"}
+              {store.delivery_settings.delivery_enabled ? "Envio habilitado" : "Sin envio"}
             </span>
             <span className="rounded-full bg-zinc-100 px-3 py-1 text-zinc-600">
               {store.delivery_settings.pickup_enabled ? "Retiro habilitado" : "Sin retiro"}
@@ -130,7 +130,7 @@ export function StoreDetailPage() {
 
       {cartStoreId && cartStoreId !== store.id ? (
         <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          Tienes un carrito iniciado en <strong>{cartStoreName}</strong>. El backend puede reemplazarlo si agregas productos de este comercio.
+          Tienes un carrito iniciado en <strong>{cartStoreName}</strong>. Si agregas productos de este comercio, tu carrito actual puede actualizarse.
         </div>
       ) : null}
 
@@ -162,9 +162,12 @@ export function StoreDetailPage() {
         {filteredProducts.map((product) => (
           <article key={product.id} className="rounded-[28px] bg-white p-5 shadow-sm">
             <div className="flex gap-4">
-              <div className="h-24 w-24 shrink-0 rounded-2xl bg-zinc-100" style={product.image_url ? { backgroundImage: `url(${product.image_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined} />
+              <div
+                className="h-24 w-24 shrink-0 rounded-2xl bg-zinc-100"
+                style={product.image_url ? { backgroundImage: `url(${product.image_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+              />
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">{product.product_category_name ?? "Sin categoría"}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">{product.product_category_name ?? "Sin categoria"}</p>
                 <h3 className="mt-1 text-lg font-bold">{product.name}</h3>
                 <p className="mt-1 line-clamp-2 text-sm text-zinc-600">{product.description}</p>
               </div>
@@ -213,7 +216,7 @@ export function StoreDetailPage() {
         ))}
         {!filteredProducts.length ? (
           <div className="md:col-span-2">
-            <EmptyState title="No hay productos en esta categoría" description="Prueba otro filtro o revisa más abajo." />
+            <EmptyState title="No hay productos en esta categoria" description="Prueba otro filtro o revisa mas abajo." />
           </div>
         ) : null}
       </div>

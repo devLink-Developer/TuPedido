@@ -40,7 +40,7 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Comercio" title={store?.name ?? "Panel de comercio"} description="Resumen operativo y financiero del dominio /m." />
+      <PageHeader eyebrow="Comercio" title={store?.name ?? "Panel de comercio"} description="Revisa el estado diario de tu operacion y tus cobros." />
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard label="Saldo pendiente" value={formatCurrency(overview?.pending_balance)} description={`${overview?.pending_charges_count ?? 0} cargos abiertos`} />
         <StatCard label="Pedidos" value={String(orders.length)} description="Pedidos visibles para el comercio" />
@@ -57,7 +57,7 @@ export function DashboardPage() {
           </div>
         </div>
         <div className="rounded-[28px] bg-white p-5 shadow-sm">
-          <h3 className="text-lg font-bold">Últimos pedidos</h3>
+          <h3 className="text-lg font-bold">Ultimos pedidos</h3>
           <div className="mt-4 space-y-3">
             {orders.slice(0, 4).map((order) => (
               <div key={order.id} className="rounded-2xl bg-zinc-50 p-4 text-sm">
@@ -68,7 +68,7 @@ export function DashboardPage() {
                 <p className="mt-1 text-zinc-500">{order.customer_name}</p>
               </div>
             ))}
-            {!orders.length ? <p className="text-sm text-zinc-500">Todavía no hay pedidos.</p> : null}
+            {!orders.length ? <p className="text-sm text-zinc-500">Todavia no hay pedidos.</p> : null}
           </div>
         </div>
       </div>

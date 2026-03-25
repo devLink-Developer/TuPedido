@@ -14,6 +14,7 @@ from app.api.presenters import (
     serialize_delivery_zone,
     serialize_order,
 )
+from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.delivery import (
     DeliveryApplication,
@@ -27,6 +28,7 @@ from app.models.delivery import (
 from app.models.order import StoreOrder
 from app.models.store import Store
 from app.models.user import User
+from app.schemas.admin import AdminRiderCreate
 from app.schemas.delivery import (
     DeliveryApplicationReview,
     DeliveryAssignRequest,
@@ -140,6 +142,78 @@ def review_delivery_application(
 def list_riders(_: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict[str, object]]:
     riders = db.scalars(select(DeliveryProfile).options(*RIDER_OPTIONS).order_by(DeliveryProfile.user_id)).all()
     return [serialize_delivery_profile(rider).model_dump() for rider in riders]
+
+
+@router.post("/delivery/riders", status_code=status.HTTP_201_CREATED)
+def create_rider(
+    payload: AdminRiderCreate,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    existing_user = db.scalar(select(User).where(User.email == payload.email))
+    if existing_user is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+
+    zone = None
+    if payload.current_zone_id is not None:
+        zone = db.scalar(select(DeliveryZone).where(DeliveryZone.id == payload.current_zone_id))
+        if zone is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Delivery zone not found")
+
+    user = User(
+        full_name=payload.full_name,
+        email=payload.email,
+        hashed_password=hash_password(payload.password),
+        role="delivery",
+        is_active=True,
+    )
+    db.add(user)
+    db.flush()
+
+    application = DeliveryApplication(
+        user_id=user.id,
+        phone=payload.phone,
+        vehicle_type=payload.vehicle_type,
+        photo_url=payload.photo_url,
+        dni_number=payload.dni_number,
+        emergency_contact_name=payload.emergency_contact_name,
+        emergency_contact_phone=payload.emergency_contact_phone,
+        license_number=payload.license_number,
+        vehicle_plate=payload.vehicle_plate,
+        insurance_policy=payload.insurance_policy,
+        notes=payload.notes,
+        status="approved",
+        review_notes=payload.review_notes or "Alta directa por admin",
+        reviewed_by_user_id=admin.id,
+        reviewed_at=datetime.now(UTC),
+    )
+    db.add(application)
+    db.flush()
+
+    profile = DeliveryProfile(
+        user_id=user.id,
+        application_id=application.id,
+        phone=payload.phone,
+        vehicle_type=payload.vehicle_type,
+        photo_url=payload.photo_url,
+        dni_number=payload.dni_number,
+        emergency_contact_name=payload.emergency_contact_name,
+        emergency_contact_phone=payload.emergency_contact_phone,
+        license_number=payload.license_number,
+        vehicle_plate=payload.vehicle_plate,
+        insurance_policy=payload.insurance_policy,
+        availability=payload.availability,
+        is_active=payload.is_active,
+        current_zone_id=zone.id if zone else None,
+        approved_by_user_id=admin.id,
+        approved_at=datetime.now(UTC),
+    )
+    db.add(profile)
+
+    db.commit()
+    created_profile = db.scalar(select(DeliveryProfile).options(*RIDER_OPTIONS).where(DeliveryProfile.user_id == user.id))
+    assert created_profile is not None
+    return serialize_delivery_profile(created_profile).model_dump()
 
 
 @router.get("/delivery/zones")

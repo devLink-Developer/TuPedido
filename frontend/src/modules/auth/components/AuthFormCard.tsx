@@ -22,17 +22,10 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
     setError(null);
 
     try {
-      const profile =
-        mode === "login"
-          ? await login(email, password)
-          : await register(fullName, email, password);
+      const profile = mode === "login" ? await login(email, password) : await register(fullName, email, password);
       navigate(redirectTo || roleToHomePath[profile.role], { replace: true });
     } catch (submissionError) {
-      setError(
-        submissionError instanceof Error
-          ? submissionError.message
-          : "No se pudo completar el acceso"
-      );
+      setError(submissionError instanceof Error ? submissionError.message : "No se pudo completar el acceso");
     } finally {
       setSubmitting(false);
     }
@@ -41,17 +34,17 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
       <div className="rounded-[32px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-6 text-white shadow-lift">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">Auth global</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">TuPedido</p>
         <h1 className="mt-3 font-display text-4xl font-bold tracking-tight">
           {mode === "login" ? "Ingresar a TuPedido" : "Crear cuenta cliente"}
         </h1>
         <p className="mt-3 text-sm leading-7 text-white/72">
-          El backend decide el rol y el frontend redirige a /c, /m, /r o /a sin mezclar estados entre dominios.
+          Ingresa una sola vez y te llevamos a la experiencia correspondiente para tu cuenta.
         </p>
         <div className="mt-6 grid gap-3 text-sm text-white/78">
-          <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">/login unificado para todos los roles.</div>
-          <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">/registro reservado a cuenta cliente.</div>
-          <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Las postulaciones públicas viven fuera del login y reanudan al volver.</div>
+          <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Un solo acceso para clientes, comercios, riders y administradores.</div>
+          <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">El registro desde esta pantalla esta disponible para cuentas cliente.</div>
+          <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Si estabas completando una solicitud, podras retomarla al volver.</div>
         </div>
       </div>
 
@@ -62,7 +55,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
               {mode === "login" ? "Acceso" : "Registro"}
             </p>
             <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-ink">
-              {mode === "login" ? "Iniciar sesión" : "Crear cuenta"}
+              {mode === "login" ? "Iniciar sesion" : "Crear cuenta"}
             </h2>
           </div>
           <Link
@@ -98,7 +91,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
           </label>
 
           <label className="block space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Contraseña</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Contrasena</span>
             <div className="flex items-center gap-2 rounded-2xl border border-black/10 bg-zinc-50 px-4 py-1.5">
               <input
                 type={showPassword ? "text" : "password"}

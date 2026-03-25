@@ -57,7 +57,7 @@ export function RiderRegistrationForm() {
       })
       .catch((requestError) => {
         if (!cancelled) {
-          setError(requestError instanceof Error ? requestError.message : "No se pudo preparar la postulación");
+          setError(requestError instanceof Error ? requestError.message : "No se pudo preparar la postulacion");
         }
       })
       .finally(() => {
@@ -104,9 +104,9 @@ export function RiderRegistrationForm() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Postulación rider"
+        eyebrow="Postulacion rider"
         title="Completa tu alta operativa"
-        description="El formulario es público, pero la postulación real se envía solo cuando ya existe sesión."
+        description="Completa tus datos y sigue el estado de tu solicitud desde esta pantalla."
       />
 
       <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
@@ -122,34 +122,88 @@ export function RiderRegistrationForm() {
             void submitCurrentForm(form);
           }}
         >
-          <input value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Teléfono" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" required />
-          <select value={form.vehicle_type} onChange={(event) => setForm((current) => ({ ...current, vehicle_type: event.target.value as RiderDraft["vehicle_type"] }))} className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3">
+          <input
+            value={form.phone}
+            onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+            placeholder="Telefono"
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            required
+          />
+          <select
+            value={form.vehicle_type}
+            onChange={(event) => setForm((current) => ({ ...current, vehicle_type: event.target.value as RiderDraft["vehicle_type"] }))}
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+          >
             <option value="bicycle">Bicicleta</option>
             <option value="motorcycle">Moto</option>
             <option value="car">Auto</option>
           </select>
-          <input value={form.dni_number} onChange={(event) => setForm((current) => ({ ...current, dni_number: event.target.value }))} placeholder="DNI" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" required />
-          <input value={form.photo_url ?? ""} onChange={(event) => setForm((current) => ({ ...current, photo_url: event.target.value }))} placeholder="Foto URL opcional" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-          <input value={form.emergency_contact_name} onChange={(event) => setForm((current) => ({ ...current, emergency_contact_name: event.target.value }))} placeholder="Contacto de emergencia" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" required />
-          <input value={form.emergency_contact_phone} onChange={(event) => setForm((current) => ({ ...current, emergency_contact_phone: event.target.value }))} placeholder="Teléfono emergencia" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" required />
-          <input value={form.license_number ?? ""} onChange={(event) => setForm((current) => ({ ...current, license_number: event.target.value }))} placeholder="Licencia" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-          <input value={form.vehicle_plate ?? ""} onChange={(event) => setForm((current) => ({ ...current, vehicle_plate: event.target.value }))} placeholder="Patente" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-          <input value={form.insurance_policy ?? ""} onChange={(event) => setForm((current) => ({ ...current, insurance_policy: event.target.value }))} placeholder="Seguro" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2" />
-          <textarea value={form.notes ?? ""} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notas adicionales" rows={4} className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2" />
+          <input
+            value={form.dni_number}
+            onChange={(event) => setForm((current) => ({ ...current, dni_number: event.target.value }))}
+            placeholder="DNI"
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            required
+          />
+          <input
+            value={form.photo_url ?? ""}
+            onChange={(event) => setForm((current) => ({ ...current, photo_url: event.target.value }))}
+            placeholder="Foto URL opcional"
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+          />
+          <input
+            value={form.emergency_contact_name}
+            onChange={(event) => setForm((current) => ({ ...current, emergency_contact_name: event.target.value }))}
+            placeholder="Contacto de emergencia"
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            required
+          />
+          <input
+            value={form.emergency_contact_phone}
+            onChange={(event) => setForm((current) => ({ ...current, emergency_contact_phone: event.target.value }))}
+            placeholder="Telefono emergencia"
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            required
+          />
+          <input
+            value={form.license_number ?? ""}
+            onChange={(event) => setForm((current) => ({ ...current, license_number: event.target.value }))}
+            placeholder="Licencia"
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+          />
+          <input
+            value={form.vehicle_plate ?? ""}
+            onChange={(event) => setForm((current) => ({ ...current, vehicle_plate: event.target.value }))}
+            placeholder="Patente"
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+          />
+          <input
+            value={form.insurance_policy ?? ""}
+            onChange={(event) => setForm((current) => ({ ...current, insurance_policy: event.target.value }))}
+            placeholder="Seguro"
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+          />
+          <textarea
+            value={form.notes ?? ""}
+            onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+            placeholder="Notas adicionales"
+            rows={4}
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+          />
           {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 md:col-span-2">{error}</p> : null}
           <Button type="submit" disabled={saving} className="md:col-span-2">
-            {saving ? "Enviando..." : isAuthenticated ? "Enviar postulación" : "Guardar draft y continuar"}
+            {saving ? "Enviando..." : isAuthenticated ? "Enviar postulacion" : "Guardar y continuar"}
           </Button>
         </form>
 
         <div className="space-y-4">
           <div className="rounded-[30px] bg-[linear-gradient(180deg,#0f1f1b_0%,#132c24_100%)] p-6 text-white shadow-lift">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#9be3c1]/70">Flujo</p>
-            <h3 className="mt-3 font-display text-3xl font-bold tracking-tight">Alta pública con validación operativa</h3>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#9be3c1]/70">Postulacion</p>
+            <h3 className="mt-3 font-display text-3xl font-bold tracking-tight">Suma tu perfil y activa tu proceso</h3>
             <div className="mt-4 grid gap-3 text-sm text-white/72">
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Se retoma automáticamente al volver de /login o /registro.</div>
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">La operación en /r queda aislada del flujo público.</div>
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">El admin revisa esta solicitud desde /a/riders.</div>
+              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Si interrumpes el proceso, podras retomarlo al volver.</div>
+              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Tu informacion se usa para validar tu perfil operativo.</div>
+              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">El equipo revisara tu solicitud y te informara el resultado.</div>
             </div>
           </div>
 
@@ -160,16 +214,18 @@ export function RiderRegistrationForm() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <h4 className="text-lg font-bold">{application.user_name}</h4>
-                      <p className="text-sm text-zinc-600">{application.vehicle_type} · {application.phone}</p>
+                      <p className="text-sm text-zinc-600">
+                        {application.vehicle_type} - {application.phone}
+                      </p>
                     </div>
                     <StatusPill value={application.status} />
                   </div>
-                  <p className="mt-3 text-sm text-zinc-600">{application.review_notes ?? "Solicitud enviada, pendiente de revisión."}</p>
+                  <p className="mt-3 text-sm text-zinc-600">{application.review_notes ?? "Solicitud enviada, pendiente de revision."}</p>
                 </article>
               ))}
             </div>
           ) : (
-            <EmptyState title="Sin postulaciones todavía" description="Cuando envíes la solicitud verás aquí el estado operativo." />
+            <EmptyState title="Sin postulaciones todavia" description="Cuando envies la solicitud veras aqui el estado del proceso." />
           )}
         </div>
       </div>

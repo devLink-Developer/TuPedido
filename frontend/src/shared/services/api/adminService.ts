@@ -1,4 +1,6 @@
 import type {
+  AdminMerchantCreate,
+  AdminRiderCreate,
   AdminSettlementStore,
   Category,
   DeliveryApplication,
@@ -56,6 +58,14 @@ export async function reviewMerchantApplication(
 
 export async function fetchAdminStores(token: string): Promise<StoreSummary[]> {
   return apiRequest<StoreSummary[]>("/admin/stores", { token });
+}
+
+export async function createAdminStore(token: string, payload: AdminMerchantCreate): Promise<StoreDetail> {
+  return apiRequest<StoreDetail>("/admin/stores", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload)
+  });
 }
 
 export async function updateAdminStoreStatus(
@@ -140,6 +150,14 @@ export async function reviewAdminDeliveryApplication(
 
 export async function fetchAdminDeliveryRiders(token: string): Promise<DeliveryProfile[]> {
   return apiRequest<DeliveryProfile[]>("/admin/delivery/riders", { token });
+}
+
+export async function createAdminRider(token: string, payload: AdminRiderCreate): Promise<DeliveryProfile> {
+  return apiRequest<DeliveryProfile>("/admin/delivery/riders", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload)
+  });
 }
 
 export async function fetchAdminDeliveryZones(token: string): Promise<DeliveryZone[]> {

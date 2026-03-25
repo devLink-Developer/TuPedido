@@ -177,19 +177,13 @@ export function CheckoutPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="Checkout"
-        title="Confirmar pedido"
-        description="Selecciona direccion, metodo de pago y confirma desde el backend."
-      />
+      <PageHeader eyebrow="Checkout" title="Confirmar pedido" description="Revisa tu direccion, tu metodo de pago y confirma tu pedido." />
 
       <form onSubmit={(event) => void handleSubmit(event)} className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
           <div className="rounded-[28px] bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Entrega</h3>
-            <p className="mt-1 text-sm text-zinc-500">
-              {cart.delivery_mode === "delivery" ? "Envio a domicilio" : "Retiro en local"}
-            </p>
+            <p className="mt-1 text-sm text-zinc-500">{cart.delivery_mode === "delivery" ? "Envio a domicilio" : "Retiro en local"}</p>
 
             {cart.delivery_mode === "delivery" ? (
               <div className="mt-4 space-y-3">
@@ -264,14 +258,10 @@ export function CheckoutPage() {
                   </div>
                 ) : null}
 
-                {!addresses.length && !showAddressForm ? (
-                  <p className="text-sm text-zinc-500">Aun no tienes direcciones guardadas.</p>
-                ) : null}
+                {!addresses.length && !showAddressForm ? <p className="text-sm text-zinc-500">Aun no tienes direcciones guardadas.</p> : null}
               </div>
             ) : (
-              <p className="mt-4 rounded-[24px] bg-zinc-50 px-4 py-4 text-sm text-zinc-600">
-                El pedido se retirara en {store?.name ?? cart.store_name}.
-              </p>
+              <p className="mt-4 rounded-[24px] bg-zinc-50 px-4 py-4 text-sm text-zinc-600">El pedido se retirara en {store?.name ?? cart.store_name}.</p>
             )}
           </div>
 
@@ -305,7 +295,7 @@ export function CheckoutPage() {
         </div>
 
         <aside className="space-y-4">
-          <CheckoutSummary pricing={cart.pricing} title="Montos confirmados por backend" />
+          <CheckoutSummary pricing={cart.pricing} title="Resumen del pedido" />
           <Button type="submit" className="w-full" disabled={submitting}>
             {submitting ? "Confirmando..." : "Confirmar pedido"}
           </Button>

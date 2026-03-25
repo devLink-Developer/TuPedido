@@ -12,12 +12,12 @@ export function HeroAddressSearch() {
       <div className="relative grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-5">
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ffd2bd]/80">Directorio y operación</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ffd2bd]/80">TuPedido</p>
             <h1 className="max-w-3xl font-display text-4xl font-bold leading-[1.02] md:text-5xl">
-              Una sola PWA para comprar, vender, repartir y administrar.
+              Todo lo que necesitas para pedir, vender y repartir en un solo lugar.
             </h1>
             <p className="max-w-2xl text-sm leading-7 text-white/72 md:text-base">
-              TuPedido separa cada flujo por rol y deja los precios, descuentos y reglas de negocio del lado del backend.
+              Descubre comercios cercanos, organiza tu compra y sigue cada pedido con una experiencia simple y clara.
             </p>
           </div>
           <form
@@ -31,18 +31,18 @@ export function HeroAddressSearch() {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar comercio, rubro o dirección"
+              placeholder="Buscar comercio, rubro o direccion"
               className="w-full rounded-[24px] border border-white/10 bg-white/10 px-4 py-3 text-white outline-none backdrop-blur placeholder:text-white/45"
             />
-            <Button type="submit">Explorar /c</Button>
+            <Button type="submit">Explorar comercios</Button>
           </form>
         </div>
         <div className="rounded-[32px] border border-white/10 bg-white/10 p-5 backdrop-blur-md">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#ffd2bd]/80">Promesa técnica</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#ffd2bd]/80">Por que elegir TuPedido</p>
           <div className="mt-4 grid gap-3 text-sm text-white/74">
-            <div className="rounded-[22px] bg-white/10 px-4 py-4">Frontend modular por rol sin layouts compartidos.</div>
-            <div className="rounded-[22px] bg-white/10 px-4 py-4">Lazy loading por dominio y rutas limpias.</div>
-            <div className="rounded-[22px] bg-white/10 px-4 py-4">Checkout render-only: el backend decide totales y descuentos.</div>
+            <div className="rounded-[22px] bg-white/10 px-4 py-4">Comercios, farmacias y locales cerca de tu direccion.</div>
+            <div className="rounded-[22px] bg-white/10 px-4 py-4">Pedidos faciles de seguir desde la compra hasta la entrega.</div>
+            <div className="rounded-[22px] bg-white/10 px-4 py-4">Montos claros y confirmados antes de finalizar tu pedido.</div>
           </div>
         </div>
       </div>

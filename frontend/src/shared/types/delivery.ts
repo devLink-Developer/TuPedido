@@ -38,6 +38,26 @@ export type DeliveryApplicationCreate = {
   notes?: string | null;
 };
 
+export type AdminRiderCreate = {
+  full_name: string;
+  email: string;
+  password: string;
+  phone: string;
+  vehicle_type: DeliveryVehicleType;
+  dni_number: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  photo_url?: string | null;
+  license_number?: string | null;
+  vehicle_plate?: string | null;
+  insurance_policy?: string | null;
+  notes?: string | null;
+  review_notes?: string | null;
+  current_zone_id?: number | null;
+  availability?: DeliveryAvailability;
+  is_active?: boolean;
+};
+
 export type DeliveryProfile = {
   user_id: number;
   full_name: string;

@@ -30,8 +30,8 @@ export function EmptyState({
 }
 
 export function IntegrationPendingCard({
-  title = "Integración pendiente",
-  description = "Esta vista depende de un contrato backend todavía no disponible."
+  title = "Proximamente",
+  description = "Esta seccion estara disponible en una proxima actualizacion."
 }: {
   title?: string;
   description?: string;

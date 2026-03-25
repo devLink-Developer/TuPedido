@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuthSession } from "../../shared/hooks";
 
 const navItems = [
   { to: "/a", label: "Dashboard" },
@@ -11,28 +12,49 @@ const navItems = [
 ];
 
 export function AdminLayout({ children }: PropsWithChildren) {
+  const navigate = useNavigate();
+  const { user, logout } = useAuthSession();
+
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f2f4f8_0%,#fbfcff_100%)] text-ink">
       <div className="mx-auto flex min-h-screen max-w-[1640px] flex-col lg:flex-row">
-        <aside className="w-full border-b border-black/5 bg-[#111827] px-6 py-6 text-white lg:w-[320px] lg:border-b-0 lg:border-r lg:border-white/10">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-200/70">Admin</p>
-          <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Control central</h1>
-          <div className="mt-6 grid gap-2">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === "/a"}
-                className={({ isActive }) =>
-                  [
-                    "rounded-[22px] px-4 py-3 text-sm font-semibold transition",
-                    isActive ? "bg-white text-ink shadow-float" : "border border-white/10 bg-white/5 text-white/80"
-                  ].join(" ")
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
+        <aside className="flex w-full flex-col border-b border-black/5 bg-[#111827] px-6 py-6 text-white lg:w-[320px] lg:border-b-0 lg:border-r lg:border-white/10">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-200/70">Admin</p>
+            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Control central</h1>
+            <div className="mt-6 grid gap-2">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === "/a"}
+                  className={({ isActive }) =>
+                    [
+                      "rounded-[22px] px-4 py-3 text-sm font-semibold transition",
+                      isActive ? "bg-white text-ink shadow-float" : "border border-white/10 bg-white/5 text-white/80"
+                    ].join(" ")
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-6 border-t border-white/10 pt-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-200/60">Sesion</p>
+            <p className="mt-3 text-sm font-semibold text-white">{user?.full_name ?? "Admin"}</p>
+            <p className="mt-1 text-sm text-white/60">{user?.email ?? ""}</p>
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                navigate("/login", { replace: true });
+              }}
+              className="mt-4 w-full rounded-[22px] border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-ink"
+            >
+              Cerrar sesion
+            </button>
           </div>
         </aside>
         <main className="flex-1 px-4 py-6 md:px-8">{children}</main>

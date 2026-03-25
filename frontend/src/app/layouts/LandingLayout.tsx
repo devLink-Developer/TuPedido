@@ -11,7 +11,7 @@ export function LandingLayout({ children }: PropsWithChildren) {
               TP
             </span>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">PWA</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">App</p>
               <p className="font-display text-lg font-bold tracking-tight">TuPedido</p>
             </div>
           </Link>

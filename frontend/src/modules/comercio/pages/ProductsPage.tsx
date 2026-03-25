@@ -79,7 +79,7 @@ export function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Comercio" title="Productos" description="Alta, edición y catálogo operativo del dominio /m/productos." />
+      <PageHeader eyebrow="Comercio" title="Productos" description="Administra tu catalogo, disponibilidad y precios." />
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
         <ProductForm key={editingProduct?.id ?? "new"} categories={categories} initialProduct={editingProduct} onSubmit={handleSubmit} loading={saving} />
         <ProductList products={products} onEdit={setEditingProduct} onDelete={handleDelete} />

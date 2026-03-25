@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { PricingSummaryCard } from "./PricingSummaryCard";
 
 describe("PricingSummaryCard", () => {
-  it("renders the fixed backend pricing rows without recalculating", () => {
+  it("renders the fixed pricing rows without recalculating", () => {
     render(
       <PricingSummaryCard
         pricing={{
@@ -26,7 +26,7 @@ describe("PricingSummaryCard", () => {
     expect(screen.getByText("Total")).toBeInTheDocument();
   });
 
-  it("shows the integration pending state when pricing is incomplete", () => {
+  it("shows the pending state when pricing is incomplete", () => {
     render(
       <PricingSummaryCard
         pricing={{
@@ -41,7 +41,7 @@ describe("PricingSummaryCard", () => {
       />
     );
 
-    expect(screen.getByText(/backend todav/i)).toBeInTheDocument();
-    expect(screen.getAllByText("Pendiente backend").length).toBeGreaterThan(0);
+    expect(screen.getByText(/se estan actualizando/i)).toBeInTheDocument();
+    expect(screen.getAllByText("Pendiente de confirmacion").length).toBeGreaterThan(0);
   });
 });

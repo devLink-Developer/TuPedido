@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.deps import require_admin
 from app.api.presenters import serialize_application, serialize_category, serialize_order, serialize_store_detail, serialize_store_summary
+from app.core.security import hash_password
 from app.core.utils import slugify
 from app.db.session import get_db
 from app.models.order import StoreOrder
@@ -22,7 +23,7 @@ from app.models.store import (
     StorePaymentSettings,
 )
 from app.models.user import MerchantApplication, User
-from app.schemas.admin import StoreStatusUpdate
+from app.schemas.admin import AdminMerchantCreate, StoreStatusUpdate
 from app.schemas.catalog import CategoryCreate
 from app.schemas.merchant import MerchantApplicationReviewUpdate
 
@@ -75,6 +76,15 @@ def attach_requested_categories(db: Session, application: MerchantApplication) -
     return application
 
 
+def get_categories_or_400(db: Session, category_ids: list[int]) -> list[Category]:
+    unique_category_ids = list(dict.fromkeys(category_ids))
+    categories = db.scalars(select(Category).where(Category.id.in_(unique_category_ids))).all() if unique_category_ids else []
+    if len(categories) != len(unique_category_ids):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown categories")
+    categories_by_id = {category.id: category for category in categories}
+    return [categories_by_id[category_id] for category_id in unique_category_ids]
+
+
 @router.get("/categories")
 def list_categories(_: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict[str, object]]:
     categories = db.scalars(select(Category).order_by(Category.sort_order, Category.name)).all()
@@ -96,6 +106,97 @@ def create_category(
     db.commit()
     db.refresh(category)
     return serialize_category(category).model_dump()
+
+
+@router.post("/stores", status_code=status.HTTP_201_CREATED)
+def create_store(
+    payload: AdminMerchantCreate,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    existing_user = db.scalar(select(User).where(User.email == payload.email))
+    if existing_user is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+    if payload.max_delivery_minutes < payload.min_delivery_minutes:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="max_delivery_minutes must be >= min_delivery_minutes")
+
+    categories = get_categories_or_400(db, payload.category_ids)
+
+    user = User(
+        full_name=payload.full_name,
+        email=payload.email,
+        hashed_password=hash_password(payload.password),
+        role="merchant",
+        is_active=True,
+    )
+    db.add(user)
+    db.flush()
+
+    application = MerchantApplication(
+        user_id=user.id,
+        business_name=payload.business_name,
+        description=payload.description,
+        address=payload.address,
+        phone=payload.phone,
+        logo_url=payload.logo_url,
+        cover_image_url=payload.cover_image_url,
+        requested_category_ids=[category.id for category in categories],
+        status="approved",
+        review_notes=payload.review_notes or "Alta directa por admin",
+    )
+    db.add(application)
+    db.flush()
+
+    store = Store(
+        owner_user_id=user.id,
+        application_id=application.id,
+        slug=build_unique_store_slug(db, payload.business_name),
+        name=payload.business_name,
+        description=payload.description,
+        address=payload.address,
+        phone=payload.phone,
+        logo_url=payload.logo_url,
+        cover_image_url=payload.cover_image_url,
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        status="approved",
+        accepting_orders=payload.accepting_orders,
+        opening_note=payload.opening_note,
+        min_delivery_minutes=payload.min_delivery_minutes,
+        max_delivery_minutes=payload.max_delivery_minutes,
+    )
+    db.add(store)
+    db.flush()
+
+    db.add(
+        StoreDeliverySettings(
+            store_id=store.id,
+            delivery_enabled=payload.delivery_enabled,
+            pickup_enabled=payload.pickup_enabled,
+            delivery_fee=payload.delivery_fee,
+            min_order=payload.min_order,
+        )
+    )
+    db.add(
+        StorePaymentSettings(
+            store_id=store.id,
+            cash_enabled=payload.cash_enabled,
+            mercadopago_enabled=payload.mercadopago_enabled,
+        )
+    )
+    for hour in default_hours():
+        hour.store_id = store.id
+        db.add(hour)
+
+    store.category_links = [
+        StoreCategoryLink(store_id=store.id, category_id=category.id, is_primary=index == 0)
+        for index, category in enumerate(categories)
+    ]
+
+    db.commit()
+    created_store = db.scalar(select(Store).options(*STORE_OPTIONS).where(Store.id == store.id))
+    assert created_store is not None
+    return serialize_store_detail(created_store).model_dump()
 
 
 @router.get("/stores/applications")
@@ -160,9 +261,7 @@ def review_application(
             store.cover_image_url = application.cover_image_url
             store.status = "approved"
 
-        categories = db.scalars(select(Category).where(Category.id.in_(application.requested_category_ids))).all()
-        if len(categories) != len(application.requested_category_ids):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Application references unknown categories")
+        categories = get_categories_or_400(db, application.requested_category_ids)
         store.category_links = [
             StoreCategoryLink(store_id=store.id, category_id=category.id, is_primary=index == 0)
             for index, category in enumerate(categories)

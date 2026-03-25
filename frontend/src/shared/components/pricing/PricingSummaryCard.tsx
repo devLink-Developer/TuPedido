@@ -4,7 +4,7 @@ import { isPricingComplete } from "../../utils/pricing";
 
 function ValueCell({ value }: { value: number | null }) {
   if (value === null) {
-    return <span className="text-amber-700">Pendiente backend</span>;
+    return <span className="text-amber-700">Pendiente de confirmacion</span>;
   }
 
   return <span>{formatCurrency(value)}</span>;
@@ -22,7 +22,7 @@ export function PricingSummaryCard({
       <h3 className="text-lg font-bold">{title}</h3>
       {!isPricingComplete(pricing) ? (
         <p className="mt-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          El backend todavía no entrega el desglose completo de descuentos. La UI no los recalcula.
+          Algunos importes se estan actualizando. El total final se confirmara antes de finalizar el pedido.
         </p>
       ) : null}
       <div className="mt-4 space-y-3 text-sm text-zinc-600">
@@ -39,7 +39,7 @@ export function PricingSummaryCard({
           <ValueCell value={pricing?.financialDiscountTotal ?? null} />
         </div>
         <div className="flex items-center justify-between">
-          <span>Envío</span>
+          <span>Envio</span>
           <ValueCell value={pricing?.deliveryFee ?? null} />
         </div>
         <div className="flex items-center justify-between">

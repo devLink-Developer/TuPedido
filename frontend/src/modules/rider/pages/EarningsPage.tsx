@@ -18,16 +18,16 @@ export function EarningsPage() {
         setSettlement(value);
         setError(null);
       })
-      .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "No se pudo cargar la liquidación"))
+      .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "No se pudo cargar la liquidacion"))
       .finally(() => setLoading(false));
   }, [token]);
 
   if (loading) return <LoadingCard />;
-  if (error || !settlement) return <EmptyState title="Ganancias no disponibles" description={error ?? "Sin liquidación"} />;
+  if (error || !settlement) return <EmptyState title="Ganancias no disponibles" description={error ?? "Sin liquidacion"} />;
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Rider" title="Ganancias" description="Resumen económico del módulo /r/ganancias." />
+      <PageHeader eyebrow="Rider" title="Ganancias" description="Consulta tus ingresos, cobros y liquidaciones." />
       <EarningsSummary settlement={settlement} />
     </div>
   );

@@ -11,6 +11,6 @@ describe("lazy module routes", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText(/Una sola PWA/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Todo lo que necesitas para pedir, vender y repartir/i)).toBeInTheDocument();
   });
 });

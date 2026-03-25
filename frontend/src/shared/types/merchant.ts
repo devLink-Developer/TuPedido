@@ -38,6 +38,32 @@ export type MerchantApplicationCreate = {
   requested_category_ids: number[];
 };
 
+export type AdminMerchantCreate = {
+  full_name: string;
+  email: string;
+  password: string;
+  business_name: string;
+  description: string;
+  address: string;
+  phone: string;
+  logo_url?: string | null;
+  cover_image_url?: string | null;
+  category_ids: number[];
+  review_notes?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  accepting_orders?: boolean;
+  opening_note?: string | null;
+  min_delivery_minutes?: number;
+  max_delivery_minutes?: number;
+  delivery_enabled?: boolean;
+  pickup_enabled?: boolean;
+  delivery_fee?: number;
+  min_order?: number;
+  cash_enabled?: boolean;
+  mercadopago_enabled?: boolean;
+};
+
 export type StoreUpdate = {
   name: string;
   description: string;
