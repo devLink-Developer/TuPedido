@@ -116,6 +116,8 @@ export type StorePaymentSettingsUpdate = {
 export type PlatformSettings = {
   service_fee_amount: number;
   catalog_banner_image_url?: string | null;
+  catalog_banner_width?: number;
+  catalog_banner_height?: number;
   updated_at?: string | null;
   updated_by?: string | null;
 };
@@ -123,6 +125,8 @@ export type PlatformSettings = {
 export type PlatformSettingsUpdate = {
   service_fee_amount: number;
   catalog_banner_image_url?: string | null;
+  catalog_banner_width?: number;
+  catalog_banner_height?: number;
 };
 
 export type MercadoPagoConnectResponse = {

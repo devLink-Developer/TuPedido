@@ -28,6 +28,7 @@ from app.schemas.settlement import (
     PlatformSettingsUpdate,
 )
 from app.services.platform import get_or_create_platform_settings
+from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
 from app.services.settlements import (
     approve_notice_to_payment,
     apply_payment_to_oldest_charges,
@@ -74,6 +75,10 @@ def update_platform_settings(
     settings.service_fee_amount = payload.service_fee_amount
     if "catalog_banner_image_url" in payload.model_fields_set:
         settings.catalog_banner_image_url = (payload.catalog_banner_image_url or "").strip() or None
+    if "catalog_banner_width" in payload.model_fields_set:
+        settings.catalog_banner_width = payload.catalog_banner_width or DEFAULT_CATALOG_BANNER_WIDTH
+    if "catalog_banner_height" in payload.model_fields_set:
+        settings.catalog_banner_height = payload.catalog_banner_height or DEFAULT_CATALOG_BANNER_HEIGHT
     db.commit()
     db.refresh(settings)
     return serialize_platform_settings(settings)

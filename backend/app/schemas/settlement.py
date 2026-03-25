@@ -3,12 +3,16 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
 
 
 class PlatformSettingsRead(BaseModel):
     service_fee_amount: float
     catalog_banner_image_url: str | None = None
+    catalog_banner_width: int = DEFAULT_CATALOG_BANNER_WIDTH
+    catalog_banner_height: int = DEFAULT_CATALOG_BANNER_HEIGHT
     updated_at: datetime | None = None
     updated_by: str | None = None
 
@@ -16,6 +20,8 @@ class PlatformSettingsRead(BaseModel):
 class PlatformSettingsUpdate(BaseModel):
     service_fee_amount: float
     catalog_banner_image_url: str | None = None
+    catalog_banner_width: int | None = Field(default=None, ge=1)
+    catalog_banner_height: int | None = Field(default=None, ge=1)
 
 
 class SettlementAllocationRead(BaseModel):

@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from "react";
+import { useId, useRef, useState, type CSSProperties } from "react";
 import { uploadImageAsset } from "../../services/api";
 import { Button } from "../../ui/Button";
 
@@ -10,6 +10,7 @@ export function ImageAssetField({
   placeholder = "https://...",
   description,
   previewClassName = "h-40 w-full object-cover",
+  previewWrapperStyle,
   emptyLabel = "Sin imagen cargada"
 }: {
   label: string;
@@ -19,6 +20,7 @@ export function ImageAssetField({
   placeholder?: string;
   description?: string;
   previewClassName?: string;
+  previewWrapperStyle?: CSSProperties;
   emptyLabel?: string;
 }) {
   const inputId = useId();
@@ -71,11 +73,13 @@ export function ImageAssetField({
 
       {description ? <p className="text-sm text-zinc-500">{description}</p> : null}
 
-      <div className="overflow-hidden rounded-[24px] border border-black/5 bg-zinc-50">
+      <div className="w-full overflow-hidden rounded-[24px] border border-black/5 bg-zinc-50" style={previewWrapperStyle}>
         {value ? (
           <img src={value} alt={label} className={previewClassName} />
         ) : (
-          <div className="flex h-40 items-center justify-center px-4 text-sm text-zinc-400">{emptyLabel}</div>
+          <div className={`flex items-center justify-center px-4 text-sm text-zinc-400 ${previewWrapperStyle ? "h-full min-h-[10rem]" : "h-40"}`}>
+            {emptyLabel}
+          </div>
         )}
       </div>
 

@@ -33,6 +33,7 @@ from app.schemas.settlement import (
 )
 from app.services.category_colors import resolve_category_palette
 from app.services.mercadopago import is_store_mercadopago_ready, mercadopago_connection_status
+from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
 from app.services.product_pricing import serialize_product_pricing
 from app.services.settlements import (
     charge_outstanding_amount,
@@ -444,6 +445,8 @@ def serialize_platform_settings(settings: object) -> PlatformSettingsRead:
     return PlatformSettingsRead(
         service_fee_amount=float(settings.service_fee_amount),
         catalog_banner_image_url=getattr(settings, "catalog_banner_image_url", None),
+        catalog_banner_width=getattr(settings, "catalog_banner_width", DEFAULT_CATALOG_BANNER_WIDTH),
+        catalog_banner_height=getattr(settings, "catalog_banner_height", DEFAULT_CATALOG_BANNER_HEIGHT),
         updated_at=getattr(settings, "updated_at", None),
         updated_by=None,
     )
@@ -452,6 +455,8 @@ def serialize_platform_settings(settings: object) -> PlatformSettingsRead:
 def serialize_catalog_banner(settings: object) -> CatalogBannerRead:
     return CatalogBannerRead(
         catalog_banner_image_url=getattr(settings, "catalog_banner_image_url", None),
+        catalog_banner_width=getattr(settings, "catalog_banner_width", DEFAULT_CATALOG_BANNER_WIDTH),
+        catalog_banner_height=getattr(settings, "catalog_banner_height", DEFAULT_CATALOG_BANNER_HEIGHT),
     )
 
 

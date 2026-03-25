@@ -12,6 +12,8 @@ export type Category = {
 
 export type CatalogBanner = {
   catalog_banner_image_url: string | null;
+  catalog_banner_width: number;
+  catalog_banner_height: number;
 };
 
 export type CategoryWrite = {

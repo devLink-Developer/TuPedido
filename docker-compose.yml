@@ -17,6 +17,7 @@ services:
   backend:
     build:
       context: ./backend
+    command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8016 --reload"]
     env_file:
       - .env
     environment:
@@ -55,7 +56,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 24
+      start_period: 90s
 
 volumes:
   postgres_data:

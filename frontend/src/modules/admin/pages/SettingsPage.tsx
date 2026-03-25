@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { EmptyState, ImageAssetField, LoadingCard, PageHeader } from "../../../shared/components";
+import { CatalogBanner, EmptyState, ImageAssetField, LoadingCard, PageHeader } from "../../../shared/components";
+import { CATALOG_BANNER_RECOMMENDATION, formatCatalogBannerRatio, resolveCatalogBannerDimensions } from "../../../shared/config/catalogBanner";
 import { useAuthSession } from "../../../shared/hooks";
 import { useCategoryStore } from "../../../shared/stores";
 import {
@@ -38,10 +39,6 @@ const emptyCategoryForm: CategoryFormState = {
 };
 
 const suggestedColors = ["#FF7043", "#29B6F6", "#66BB6A", "#AB47BC", "#EF5350", "#FFCA28", "#8D6E63", "#26A69A"];
-const catalogBannerRecommendation = {
-  width: 1600,
-  height: 520
-};
 
 function toNumber(value: string, fallback = 0) {
   const parsed = Number(value);
@@ -88,6 +85,8 @@ export function SettingsPage() {
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [serviceFee, setServiceFee] = useState("0");
   const [catalogBannerImageUrl, setCatalogBannerImageUrl] = useState("");
+  const [catalogBannerWidth, setCatalogBannerWidth] = useState(String(CATALOG_BANNER_RECOMMENDATION.width));
+  const [catalogBannerHeight, setCatalogBannerHeight] = useState(String(CATALOG_BANNER_RECOMMENDATION.height));
   const [paymentForm, setPaymentForm] = useState({ store_id: "", amount: "", reference: "", notes: "" });
   const [loading, setLoading] = useState(true);
   const [categorySaving, setCategorySaving] = useState(false);
@@ -104,6 +103,14 @@ export function SettingsPage() {
     () => resolveCategoryPalette({ color: categoryForm.color, color_light: categoryForm.color_light || null }),
     [categoryForm.color, categoryForm.color_light]
   );
+  const previewBannerDimensions = useMemo(
+    () => resolveCatalogBannerDimensions(Number(catalogBannerWidth), Number(catalogBannerHeight)),
+    [catalogBannerHeight, catalogBannerWidth]
+  );
+  const previewBannerRatio = useMemo(
+    () => formatCatalogBannerRatio(previewBannerDimensions.width, previewBannerDimensions.height),
+    [previewBannerDimensions.height, previewBannerDimensions.width]
+  );
 
   async function load() {
     if (!token) return;
@@ -119,6 +126,8 @@ export function SettingsPage() {
       setPlatformSettings(settingsResult);
       setServiceFee(settingsResult.service_fee_amount.toFixed(2));
       setCatalogBannerImageUrl(settingsResult.catalog_banner_image_url ?? "");
+      setCatalogBannerWidth(String(settingsResult.catalog_banner_width ?? CATALOG_BANNER_RECOMMENDATION.width));
+      setCatalogBannerHeight(String(settingsResult.catalog_banner_height ?? CATALOG_BANNER_RECOMMENDATION.height));
       setSettlementStores(storesResult);
       setPaymentForm((current) => ({ ...current, store_id: current.store_id || String(storesResult[0]?.id ?? "") }));
       setError(null);
@@ -230,12 +239,24 @@ export function SettingsPage() {
   async function handleCatalogBannerSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!token || !platformSettings) return;
+    const nextWidth = Number(catalogBannerWidth);
+    const nextHeight = Number(catalogBannerHeight);
+    if (!Number.isInteger(nextWidth) || nextWidth <= 0) {
+      setBannerError("El ancho del banner debe ser un numero entero positivo.");
+      return;
+    }
+    if (!Number.isInteger(nextHeight) || nextHeight <= 0) {
+      setBannerError("El alto del banner debe ser un numero entero positivo.");
+      return;
+    }
     setBannerSaving(true);
     setBannerError(null);
     try {
       await updatePlatformSettings(token, {
         service_fee_amount: platformSettings.service_fee_amount,
-        catalog_banner_image_url: catalogBannerImageUrl.trim() || null
+        catalog_banner_image_url: catalogBannerImageUrl.trim() || null,
+        catalog_banner_width: nextWidth,
+        catalog_banner_height: nextHeight,
       });
       await load();
     } catch (requestError) {
@@ -555,28 +576,54 @@ export function SettingsPage() {
         <form onSubmit={(event) => void handleCatalogBannerSave(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
           <h3 className="text-lg font-bold text-ink">Banner del catalogo cliente</h3>
           <p className="mt-2 text-sm text-zinc-600">
-            Visible en la cabecera de <code>/c</code>. Tamano recomendado: {catalogBannerRecommendation.width} x{" "}
-            {catalogBannerRecommendation.height} px, relacion 40:13, con el contenido importante centrado para evitar recortes.
+            Reemplaza por completo el texto de la cabecera en <code>/c</code>. Puedes definir imagen, tamano base y relacion visual
+            desde esta pantalla.
           </p>
           <div className="mt-4 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-            <ImageAssetField
-              label="Imagen del banner"
-              value={catalogBannerImageUrl}
-              onChange={setCatalogBannerImageUrl}
-              folder="platform-banners"
-              placeholder="https://..."
-              description="Carga un archivo desde tu dispositivo o pega una URL. Si dejas el campo vacio, el catalogo vuelve al degradado por defecto."
-              previewClassName="aspect-[40/13] w-full object-cover"
-              emptyLabel="Sin banner configurado"
-            />
+            <div className="space-y-4">
+              <ImageAssetField
+                label="Imagen del banner"
+                value={catalogBannerImageUrl}
+                onChange={setCatalogBannerImageUrl}
+                folder="platform-banners"
+                placeholder="https://..."
+                description="Carga un archivo desde tu dispositivo o pega una URL. Si dejas el campo vacio, el catalogo usa el banner por defecto de la app."
+                previewClassName="h-full w-full object-cover"
+                previewWrapperStyle={{ aspectRatio: `${previewBannerDimensions.width} / ${previewBannerDimensions.height}` }}
+                emptyLabel="Sin banner configurado"
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="space-y-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Ancho base</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={catalogBannerWidth}
+                    onChange={(event) => setCatalogBannerWidth(event.target.value)}
+                    className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                  />
+                </label>
+                <label className="space-y-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Alto base</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={catalogBannerHeight}
+                    onChange={(event) => setCatalogBannerHeight(event.target.value)}
+                    className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                  />
+                </label>
+              </div>
+              <p className="text-sm text-zinc-500">
+                Recomendado: {CATALOG_BANNER_RECOMMENDATION.width} x {CATALOG_BANNER_RECOMMENDATION.height} px. Relacion actual:{" "}
+                {previewBannerRatio}.
+              </p>
+            </div>
             <div className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Preview</p>
-              <PageHeader
-                eyebrow="Cliente"
-                title="Comercios adheridos listos para convertir pedidos"
-                description="Busca por rubro, filtra por entrega y entra directo a la tienda que mejor resuelva tu compra."
-                backgroundImageUrl={catalogBannerImageUrl || undefined}
-              />
+              <CatalogBanner imageUrl={catalogBannerImageUrl} width={previewBannerDimensions.width} height={previewBannerDimensions.height} />
             </div>
           </div>
           {bannerError ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{bannerError}</p> : null}

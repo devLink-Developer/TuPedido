@@ -5,6 +5,7 @@ from datetime import datetime, time
 from pydantic import BaseModel, Field, field_validator
 
 from app.services.category_colors import normalize_hex_color
+from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
 
 
 class CategoryCreate(BaseModel):
@@ -51,6 +52,8 @@ class CategoryRead(BaseModel):
 
 class CatalogBannerRead(BaseModel):
     catalog_banner_image_url: str | None = None
+    catalog_banner_width: int = DEFAULT_CATALOG_BANNER_WIDTH
+    catalog_banner_height: int = DEFAULT_CATALOG_BANNER_HEIGHT
 
 
 class StoreHourRead(BaseModel):

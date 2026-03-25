@@ -7,6 +7,8 @@ from app.models.platform import PlatformSettings
 
 
 DEFAULT_SERVICE_FEE_AMOUNT = 350.0
+DEFAULT_CATALOG_BANNER_WIDTH = 1600
+DEFAULT_CATALOG_BANNER_HEIGHT = 520
 PLATFORM_SETTINGS_SINGLETON_ID = 1
 
 
@@ -17,6 +19,8 @@ def get_or_create_platform_settings(db: Session) -> PlatformSettings:
             id=PLATFORM_SETTINGS_SINGLETON_ID,
             service_fee_amount=DEFAULT_SERVICE_FEE_AMOUNT,
             catalog_banner_image_url=None,
+            catalog_banner_width=DEFAULT_CATALOG_BANNER_WIDTH,
+            catalog_banner_height=DEFAULT_CATALOG_BANNER_HEIGHT,
         )
         db.add(settings)
         db.flush()

@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { DEFAULT_CATALOG_BANNER_URL, resolveCatalogBannerDimensions } from "../../config/catalogBanner";
 import { statusLabels } from "../../utils/labels";
 
 export function LoadingCard({ label = "Cargando..." }: { label?: string }) {
@@ -87,6 +88,44 @@ export function PageHeader({
         </div>
         {action ? <div className="relative">{action}</div> : null}
       </div>
+    </div>
+  );
+}
+
+export function CatalogBanner({
+  imageUrl,
+  width,
+  height,
+  alt = "Banner del catalogo",
+  fallbackImageUrl = DEFAULT_CATALOG_BANNER_URL,
+}: {
+  imageUrl?: string | null;
+  width?: number | null;
+  height?: number | null;
+  alt?: string;
+  fallbackImageUrl?: string;
+}) {
+  const resolvedDimensions = resolveCatalogBannerDimensions(width, height);
+  const preferredImageUrl = imageUrl?.trim() || fallbackImageUrl;
+  const [currentImageUrl, setCurrentImageUrl] = useState(preferredImageUrl);
+
+  useEffect(() => {
+    setCurrentImageUrl(preferredImageUrl);
+  }, [preferredImageUrl]);
+
+  return (
+    <div className="mx-auto w-full overflow-hidden rounded-[34px] border border-black/5 bg-white shadow-lift" style={{ maxWidth: `${resolvedDimensions.width}px` }}>
+      <img
+        src={currentImageUrl}
+        alt={alt}
+        className="block w-full object-cover"
+        style={{ aspectRatio: `${resolvedDimensions.width} / ${resolvedDimensions.height}` }}
+        onError={() => {
+          if (currentImageUrl !== fallbackImageUrl) {
+            setCurrentImageUrl(fallbackImageUrl);
+          }
+        }}
+      />
     </div>
   );
 }

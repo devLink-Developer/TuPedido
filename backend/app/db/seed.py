@@ -22,6 +22,7 @@ from app.models.store import (
     StorePaymentSettings,
 )
 from app.models.user import Address, MerchantApplication, User
+from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +108,19 @@ def seed_initial_data() -> None:
     try:
         platform_settings = db.scalar(select(PlatformSettings).where(PlatformSettings.id == 1))
         if platform_settings is None:
-            db.add(PlatformSettings(id=1, service_fee_amount=350, catalog_banner_image_url=None))
+            db.add(
+                PlatformSettings(
+                    id=1,
+                    service_fee_amount=350,
+                    catalog_banner_image_url=None,
+                    catalog_banner_width=DEFAULT_CATALOG_BANNER_WIDTH,
+                    catalog_banner_height=DEFAULT_CATALOG_BANNER_HEIGHT,
+                )
+            )
         else:
             platform_settings.catalog_banner_image_url = platform_settings.catalog_banner_image_url or None
+            platform_settings.catalog_banner_width = platform_settings.catalog_banner_width or DEFAULT_CATALOG_BANNER_WIDTH
+            platform_settings.catalog_banner_height = platform_settings.catalog_banner_height or DEFAULT_CATALOG_BANNER_HEIGHT
 
         base_categories = [
             {
