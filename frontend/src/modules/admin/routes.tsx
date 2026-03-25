@@ -1,0 +1,40 @@
+import { Outlet } from "react-router-dom";
+import { AdminLayout } from "../../app/layouts/AdminLayout";
+import { DashboardPage } from "./pages/DashboardPage";
+import { OrdersPage } from "./pages/OrdersPage";
+import { RidersPage } from "./pages/RidersPage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { StoresPage } from "./pages/StoresPage";
+import { UsersPage } from "./pages/UsersPage";
+
+export function AdminModuleLayoutRoute() {
+  return (
+    <AdminLayout>
+      <Outlet />
+    </AdminLayout>
+  );
+}
+
+export function AdminDashboardRoute() {
+  return <DashboardPage />;
+}
+
+export function AdminUsersRoute() {
+  return <UsersPage />;
+}
+
+export function AdminStoresRoute() {
+  return <StoresPage />;
+}
+
+export function AdminRidersRoute() {
+  return <RidersPage />;
+}
+
+export function AdminOrdersRoute() {
+  return <OrdersPage />;
+}
+
+export function AdminSettingsRoute() {
+  return <SettingsPage />;
+}
