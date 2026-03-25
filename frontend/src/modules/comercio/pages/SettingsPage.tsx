@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { EmptyState, LoadingCard, PageHeader, StatusPill } from "../../../shared/components";
+import { EmptyState, ImageAssetField, LoadingCard, PageHeader, StatusPill } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   fetchCategories,
@@ -170,46 +170,27 @@ export function SettingsPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Imagenes</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Logo y portada</h2>
             <p className="mt-2 text-sm text-zinc-600">
-              Tu comercio ya recibe una imagen inicial por rubro. Si quieres personalizarla, carga aqui tus URLs.
+              Tu comercio ya recibe una imagen inicial por rubro. Si quieres personalizarla, puedes subir archivos desde tu dispositivo o pegar una URL.
             </p>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <input
-              value={store.logo_url ?? ""}
-              onChange={(event) =>
-                setStore((current) => (current ? { ...current, logo_url: event.target.value || null } : current))
-              }
-              placeholder="URL del logo"
-              className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-            />
-            <input
-              value={store.cover_image_url ?? ""}
-              onChange={(event) =>
-                setStore((current) =>
-                  current ? { ...current, cover_image_url: event.target.value || null } : current
-                )
-              }
-              placeholder="URL de la portada"
-              className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-            />
-          </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="overflow-hidden rounded-[24px] border border-black/5 bg-zinc-50">
-              <div className="h-40 w-full bg-zinc-100">
-                {store.cover_image_url ? (
-                  <img src={store.cover_image_url} alt="Vista previa de portada" className="h-full w-full object-cover" />
-                ) : null}
-              </div>
-              <div className="px-4 py-3 text-sm text-zinc-600">Portada visible en la ficha del comercio.</div>
-            </div>
-            <div className="overflow-hidden rounded-[24px] border border-black/5 bg-zinc-50">
-              <div className="flex h-40 items-center justify-center bg-zinc-100 p-5">
-                {store.logo_url ? (
-                  <img src={store.logo_url} alt="Vista previa de logo" className="h-24 w-24 rounded-[24px] object-cover" />
-                ) : null}
-              </div>
-              <div className="px-4 py-3 text-sm text-zinc-600">Logo usado en listados y encabezados.</div>
-            </div>
+            <ImageAssetField
+              label="Portada"
+              value={store.cover_image_url ?? ""}
+              onChange={(value) =>
+                setStore((current) => (current ? { ...current, cover_image_url: value || null } : current))
+              }
+              folder="stores"
+              description="Visible en la ficha del comercio."
+            />
+            <ImageAssetField
+              label="Logo"
+              value={store.logo_url ?? ""}
+              onChange={(value) => setStore((current) => (current ? { ...current, logo_url: value || null } : current))}
+              folder="stores"
+              description="Visible en listados y encabezados."
+              previewClassName="h-40 w-full object-contain bg-white p-5"
+            />
           </div>
         </section>
 

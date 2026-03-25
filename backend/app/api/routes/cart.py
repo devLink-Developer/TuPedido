@@ -10,7 +10,9 @@ from app.models.order import ShoppingCartItem
 from app.models.user import User
 from app.schemas.cart import CartItemCreate, CartItemUpdate, CartRead, CartUpdate
 from app.services.cart_ops import (
+    build_product_pricing_snapshot,
     compute_cart_totals,
+    ensure_product_can_be_added,
     ensure_delivery_mode_supported,
     ensure_store_can_accept_orders,
     get_or_create_cart,
@@ -74,18 +76,26 @@ def add_cart_item(payload: CartItemCreate, user: User = Depends(get_current_user
         )
     )
     if item is None:
+        ensure_product_can_be_added(product, payload.quantity)
+        pricing_snapshot = build_product_pricing_snapshot(product)
         item = ShoppingCartItem(
             product_id=payload.product_id,
             product_name_snapshot=product.name,
+            base_unit_price_snapshot=pricing_snapshot["base_unit_price"],
             quantity=payload.quantity,
-            unit_price_snapshot=product.price,
+            unit_price_snapshot=pricing_snapshot["unit_price"],
+            commercial_discount_amount_snapshot=pricing_snapshot["commercial_discount_amount"],
             note=payload.note,
         )
         cart.items.append(item)
     else:
+        ensure_product_can_be_added(product, payload.quantity, existing_quantity=item.quantity)
+        pricing_snapshot = build_product_pricing_snapshot(product)
         item.quantity += payload.quantity
         item.product_name_snapshot = product.name
-        item.unit_price_snapshot = product.price
+        item.base_unit_price_snapshot = pricing_snapshot["base_unit_price"]
+        item.unit_price_snapshot = pricing_snapshot["unit_price"]
+        item.commercial_discount_amount_snapshot = pricing_snapshot["commercial_discount_amount"]
         item.note = payload.note
     db.flush()
     cart = reload_cart(db, cart.id)
@@ -104,7 +114,18 @@ def update_cart_item(item_id: int, payload: CartItemUpdate, user: User = Depends
     if payload.quantity <= 0:
         db.delete(item)
     else:
+        product = load_product(db, item.product_id)
+        if product is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+        if not product.is_available:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Product is not available")
+        ensure_product_can_be_added(product, payload.quantity)
+        pricing_snapshot = build_product_pricing_snapshot(product)
         item.quantity = payload.quantity
+        item.product_name_snapshot = product.name
+        item.base_unit_price_snapshot = pricing_snapshot["base_unit_price"]
+        item.unit_price_snapshot = pricing_snapshot["unit_price"]
+        item.commercial_discount_amount_snapshot = pricing_snapshot["commercial_discount_amount"]
         item.note = payload.note
     db.flush()
     cart = reload_cart(db, cart.id)
@@ -138,6 +159,8 @@ def clear_cart(user: User = Depends(get_current_user), db: Session = Depends(get
     cart.store = None
     cart.delivery_mode = "delivery"
     cart.subtotal = 0
+    cart.commercial_discount_total = 0
+    cart.financial_discount_total = 0
     cart.delivery_fee = 0
     cart.service_fee = 0
     cart.total = 0

@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from app.schemas.pricing import PricingSummaryRead
+
 
 class CheckoutRequest(BaseModel):
     store_id: int
@@ -23,8 +25,10 @@ class OrderItemRead(BaseModel):
     id: int
     product_id: int | None = None
     product_name: str
+    base_unit_price: float
     quantity: int
     unit_price: float
+    commercial_discount_amount: float
     note: str | None = None
 
 
@@ -46,6 +50,8 @@ class OrderRead(BaseModel):
     address_latitude: float | None = None
     address_longitude: float | None = None
     subtotal: float
+    commercial_discount_total: float
+    financial_discount_total: float
     delivery_fee: float
     service_fee: float
     delivery_fee_customer: float
@@ -66,6 +72,7 @@ class OrderRead(BaseModel):
     otp_required: bool = False
     created_at: datetime
     items: list[OrderItemRead]
+    pricing: PricingSummaryRead
 
 
 class OrderTrackingRead(BaseModel):

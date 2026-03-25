@@ -2,9 +2,13 @@ import type { PricingSummary } from "../../types";
 import { formatCurrency } from "../../utils/format";
 import { isPricingComplete } from "../../utils/pricing";
 
-function ValueCell({ value }: { value: number | null }) {
+function ValueCell({ value, discount = false }: { value: number | null; discount?: boolean }) {
   if (value === null) {
     return <span className="text-amber-700">Pendiente de confirmacion</span>;
+  }
+
+  if (discount) {
+    return <span>{value > 0 ? `-${formatCurrency(value)}` : formatCurrency(value)}</span>;
   }
 
   return <span>{formatCurrency(value)}</span>;
@@ -32,11 +36,11 @@ export function PricingSummaryCard({
         </div>
         <div className="flex items-center justify-between">
           <span>Descuento comercial</span>
-          <ValueCell value={pricing?.commercialDiscountTotal ?? null} />
+          <ValueCell value={pricing?.commercialDiscountTotal ?? null} discount />
         </div>
         <div className="flex items-center justify-between">
           <span>Descuento financiero</span>
-          <ValueCell value={pricing?.financialDiscountTotal ?? null} />
+          <ValueCell value={pricing?.financialDiscountTotal ?? null} discount />
         </div>
         <div className="flex items-center justify-between">
           <span>Envio</span>

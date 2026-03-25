@@ -14,6 +14,7 @@ import {
   LazyClienteCheckoutRoute,
   LazyClienteModuleLayoutRoute,
   LazyClienteOrderRoute,
+  LazyClienteProfileRoute,
   LazyClienteStoreDetailRoute,
   LazyComercioDashboardRoute,
   LazyComercioModuleLayoutRoute,
@@ -68,7 +69,8 @@ export const router = createBrowserRouter([
             children: [
               { path: "carrito", element: <LazyClienteCartRoute /> },
               { path: "checkout", element: <LazyClienteCheckoutRoute /> },
-              { path: "pedido/:id", element: <LazyClienteOrderRoute /> }
+              { path: "pedido/:id", element: <LazyClienteOrderRoute /> },
+              { path: "perfil", element: <LazyClienteProfileRoute /> }
             ]
           }
         ]

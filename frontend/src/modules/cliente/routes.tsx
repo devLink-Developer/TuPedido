@@ -5,6 +5,7 @@ import { CartPage } from "./pages/CartPage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { CheckoutPage } from "./pages/CheckoutPage";
 import { OrderPage } from "./pages/OrderPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { StoreDetailPage } from "./pages/StoreDetailPage";
 
 export function ClienteModuleLayoutRoute() {
@@ -34,4 +35,8 @@ export function ClienteCheckoutRoute() {
 
 export function ClienteOrderRoute() {
   return <OrderPage />;
+}
+
+export function ClienteProfileRoute() {
+  return <ProfilePage />;
 }

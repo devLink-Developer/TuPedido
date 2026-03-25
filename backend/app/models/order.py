@@ -20,6 +20,8 @@ class ShoppingCart(Base):
     )
     delivery_mode: Mapped[str] = mapped_column(String(40), default="delivery")
     subtotal: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
+    commercial_discount_total: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
+    financial_discount_total: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     delivery_fee: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     service_fee: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     total: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
@@ -45,7 +47,9 @@ class ShoppingCartItem(Base):
         ForeignKey("store_products.id", ondelete="CASCADE"), index=True
     )
     product_name_snapshot: Mapped[str] = mapped_column(String(180))
+    base_unit_price_snapshot: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     unit_price_snapshot: Mapped[float] = mapped_column(Numeric(10, 2))
+    commercial_discount_amount_snapshot: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     quantity: Mapped[int] = mapped_column(Integer)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -73,6 +77,8 @@ class StoreOrder(Base):
     address_label_snapshot: Mapped[str | None] = mapped_column(String(80), nullable=True)
     address_full_snapshot: Mapped[str | None] = mapped_column(Text, nullable=True)
     subtotal: Mapped[float] = mapped_column(Numeric(10, 2))
+    commercial_discount_total: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
+    financial_discount_total: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     delivery_fee: Mapped[float] = mapped_column(Numeric(10, 2))
     service_fee: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     delivery_fee_customer: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
@@ -142,7 +148,9 @@ class StoreOrderItem(Base):
         ForeignKey("store_products.id", ondelete="SET NULL"), nullable=True, index=True
     )
     product_name_snapshot: Mapped[str] = mapped_column(String(180))
+    base_unit_price_snapshot: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     unit_price_snapshot: Mapped[float] = mapped_column(Numeric(10, 2))
+    commercial_discount_amount_snapshot: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     quantity: Mapped[int] = mapped_column(Integer)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
 

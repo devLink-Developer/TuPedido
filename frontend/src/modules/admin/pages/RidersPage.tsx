@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "../../../shared/ui/Button";
-import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
+import { EmptyState, ImageAssetField, LoadingCard, PageHeader } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   assignAdminDeliveryOrder,
@@ -202,12 +202,16 @@ export function RidersPage() {
           className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
           required
         />
-        <input
-          value={form.photo_url}
-          onChange={(event) => setForm((current) => ({ ...current, photo_url: event.target.value }))}
-          placeholder="Foto URL"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-        />
+        <div className="lg:col-span-2">
+          <ImageAssetField
+            label="Foto del rider"
+            value={form.photo_url}
+            onChange={(value) => setForm((current) => ({ ...current, photo_url: value }))}
+            folder="riders"
+            description="Carga una foto desde el dispositivo o pega una URL."
+            previewClassName="h-56 w-full object-contain bg-white p-4"
+          />
+        </div>
         <input
           value={form.emergency_contact_name}
           onChange={(event) => setForm((current) => ({ ...current, emergency_contact_name: event.target.value }))}

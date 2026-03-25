@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import time
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 class MerchantApplicationCreate(BaseModel):
@@ -98,10 +98,28 @@ class ProductCategoryUpdate(BaseModel):
 
 class ProductWrite(BaseModel):
     product_category_id: int | None = None
+    sku: str = Field(min_length=2, max_length=80)
     name: str
+    brand: str | None = None
+    barcode: str | None = None
+    unit_label: str | None = None
     description: str
-    price: float
+    price: float = Field(ge=0)
     compare_at_price: float | None = None
+    commercial_discount_type: Literal["percentage", "fixed"] | None = None
+    commercial_discount_value: float | None = Field(default=None, ge=0)
     image_url: str | None = None
+    stock_quantity: int | None = Field(default=None, ge=0)
+    max_per_order: int | None = Field(default=None, ge=1)
     is_available: bool = True
     sort_order: int = 0
+
+    @model_validator(mode="after")
+    def validate_discount(self) -> "ProductWrite":
+        if self.commercial_discount_type is None and self.commercial_discount_value not in (None, 0):
+            raise ValueError("commercial_discount_type is required when commercial_discount_value is set")
+        if self.commercial_discount_type is not None and self.commercial_discount_value in (None, 0):
+            raise ValueError("commercial_discount_value must be greater than zero when commercial_discount_type is set")
+        if self.compare_at_price is not None and self.compare_at_price < 0:
+            raise ValueError("compare_at_price cannot be negative")
+        return self

@@ -1,8 +1,10 @@
 import asyncio
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import OperationalError
 
 import app.models  # noqa: F401
@@ -44,6 +46,12 @@ app = FastAPI(
     openapi_url=f"{settings.api_prefix}/openapi.json",
     lifespan=lifespan,
 )
+
+media_root = Path(settings.media_root)
+if not media_root.is_absolute():
+    media_root = Path(__file__).resolve().parents[1] / media_root
+media_root.mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(media_root)), name="media")
 
 app.add_middleware(
     CORSMiddleware,

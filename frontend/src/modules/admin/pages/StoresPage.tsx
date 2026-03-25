@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "../../../shared/ui/Button";
-import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
+import { EmptyState, ImageAssetField, LoadingCard, PageHeader } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   createAdminStore,
@@ -180,18 +180,23 @@ export function StoresPage() {
           className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
           required
         />
-        <input
-          value={form.logo_url}
-          onChange={(event) => setForm((current) => ({ ...current, logo_url: event.target.value }))}
-          placeholder="Logo URL"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-        />
-        <input
-          value={form.cover_image_url}
-          onChange={(event) => setForm((current) => ({ ...current, cover_image_url: event.target.value }))}
-          placeholder="Portada URL"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-        />
+        <div className="lg:col-span-2 grid gap-4 md:grid-cols-2">
+          <ImageAssetField
+            label="Logo"
+            value={form.logo_url}
+            onChange={(value) => setForm((current) => ({ ...current, logo_url: value }))}
+            folder="stores"
+            description="Puedes pegar una URL o subirla desde el dispositivo."
+            previewClassName="h-40 w-full object-contain bg-white p-5"
+          />
+          <ImageAssetField
+            label="Portada"
+            value={form.cover_image_url}
+            onChange={(value) => setForm((current) => ({ ...current, cover_image_url: value }))}
+            folder="stores"
+            description="Imagen principal del comercio."
+          />
+        </div>
         <textarea
           value={form.description}
           onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}

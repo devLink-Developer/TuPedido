@@ -57,6 +57,16 @@ function parseNullableNumber(value: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function buildSkuCandidate(name: string) {
+  const normalized = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toUpperCase();
+  return normalized ? `SKU-${normalized.slice(0, 40)}` : "SKU-GENERICO";
+}
+
 function makeEmptyHours(): StoreHourWrite[] {
   return Array.from({ length: 7 }, (_, day_of_week) => ({ day_of_week, opens_at: "09:00:00", closes_at: "18:00:00", is_closed: false }));
 }
@@ -84,7 +94,24 @@ export function MerchantDashboardPage() {
   const [connectUrl, setConnectUrl] = useState<string | null>(null);
   const [connectStatus, setConnectStatus] = useState<string | null>(null);
   const [noticeForm, setNoticeForm] = useState({ amount: 0, transfer_date: "", bank: "", reference: "", notes: "" });
-  const [productForm, setProductForm] = useState({ name: "", description: "", price: 0, compare_at_price: "", image_url: "", product_category_id: "", is_available: true, sort_order: 0 });
+  const [productForm, setProductForm] = useState({
+    sku: "",
+    name: "",
+    brand: "",
+    barcode: "",
+    unit_label: "",
+    description: "",
+    price: 0,
+    compare_at_price: "",
+    commercial_discount_type: "" as "" | "percentage" | "fixed",
+    commercial_discount_value: "",
+    image_url: "",
+    product_category_id: "",
+    stock_quantity: "",
+    max_per_order: "",
+    is_available: true,
+    sort_order: 0
+  });
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
 
   async function load() {
@@ -231,12 +258,20 @@ export function MerchantDashboardPage() {
     setError(null);
     try {
       const payload = {
+        sku: productForm.sku || buildSkuCandidate(productForm.name),
         name: productForm.name,
+        brand: productForm.brand || null,
+        barcode: productForm.barcode || null,
+        unit_label: productForm.unit_label || null,
         description: productForm.description,
         price: productForm.price,
         compare_at_price: productForm.compare_at_price ? Number(productForm.compare_at_price) : null,
+        commercial_discount_type: productForm.commercial_discount_type || null,
+        commercial_discount_value: productForm.commercial_discount_value ? Number(productForm.commercial_discount_value) : null,
         image_url: productForm.image_url || null,
         product_category_id: productForm.product_category_id ? Number(productForm.product_category_id) : null,
+        stock_quantity: productForm.stock_quantity ? Number(productForm.stock_quantity) : null,
+        max_per_order: productForm.max_per_order ? Number(productForm.max_per_order) : null,
         is_available: productForm.is_available,
         sort_order: productForm.sort_order
       };
@@ -246,7 +281,24 @@ export function MerchantDashboardPage() {
         await createMerchantProduct(token, payload);
       }
       setEditingProductId(null);
-      setProductForm({ name: "", description: "", price: 0, compare_at_price: "", image_url: "", product_category_id: "", is_available: true, sort_order: 0 });
+      setProductForm({
+        sku: "",
+        name: "",
+        brand: "",
+        barcode: "",
+        unit_label: "",
+        description: "",
+        price: 0,
+        compare_at_price: "",
+        commercial_discount_type: "",
+        commercial_discount_value: "",
+        image_url: "",
+        product_category_id: "",
+        stock_quantity: "",
+        max_per_order: "",
+        is_available: true,
+        sort_order: 0
+      });
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo guardar el producto");
@@ -532,7 +584,7 @@ export function MerchantDashboardPage() {
                   <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{product.is_available ? "Activo" : "Pausado"}</span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => { setEditingProductId(product.id); setProductForm({ name: product.name, description: product.description, price: product.price, compare_at_price: product.compare_at_price?.toString() ?? "", image_url: product.image_url ?? "", product_category_id: product.product_category_id?.toString() ?? "", is_available: product.is_available, sort_order: product.sort_order }); }} className="rounded-full bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-700">
+                  <button type="button" onClick={() => { setEditingProductId(product.id); setProductForm({ sku: buildSkuCandidate(product.name), name: product.name, brand: "", barcode: "", unit_label: "", description: product.description, price: product.price, compare_at_price: product.compare_at_price?.toString() ?? "", commercial_discount_type: "", commercial_discount_value: "", image_url: product.image_url ?? "", product_category_id: product.product_category_id?.toString() ?? "", stock_quantity: "", max_per_order: "", is_available: product.is_available, sort_order: product.sort_order }); }} className="rounded-full bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-700">
                     Editar
                   </button>
                   <button type="button" onClick={async () => { if (!token) return; await deleteMerchantProduct(token, product.id); await load(); }} className="rounded-full bg-rose-500 px-3 py-2 text-xs font-semibold text-white">

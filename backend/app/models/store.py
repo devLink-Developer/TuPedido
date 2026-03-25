@@ -191,11 +191,19 @@ class Product(Base):
     product_category_id: Mapped[int | None] = mapped_column(
         ForeignKey("product_categories.id", ondelete="SET NULL"), index=True, nullable=True
     )
+    sku: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(180))
+    brand: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    barcode: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    unit_label: Mapped[str | None] = mapped_column(String(60), nullable=True)
     description: Mapped[str] = mapped_column(Text)
     price: Mapped[float] = mapped_column(Numeric(10, 2))
     compare_at_price: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    commercial_discount_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    commercial_discount_value: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    stock_quantity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_per_order: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_available: Mapped[bool] = mapped_column(Boolean, default=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 

@@ -30,6 +30,7 @@ from app.schemas.settlement import (
     SettlementAllocationRead,
 )
 from app.services.mercadopago import is_store_mercadopago_ready, mercadopago_connection_status
+from app.services.product_pricing import serialize_product_pricing
 from app.services.settlements import (
     charge_outstanding_amount,
     charge_paid_amount,
@@ -92,16 +93,37 @@ def serialize_product_category(product_category: object) -> ProductCategoryRead:
 
 
 def serialize_product(product: object) -> ProductRead:
+    pricing = serialize_product_pricing(
+        price=float(product.price),
+        commercial_discount_type=getattr(product, "commercial_discount_type", None),
+        commercial_discount_value=float(product.commercial_discount_value)
+        if getattr(product, "commercial_discount_value", None) is not None
+        else None,
+    )
     return ProductRead(
         id=product.id,
         store_id=product.store_id,
         product_category_id=product.product_category_id,
         product_category_name=product.product_category.name if product.product_category else None,
+        sku=product.sku or f"PRD-{product.id}",
         name=product.name,
+        brand=getattr(product, "brand", None),
+        barcode=getattr(product, "barcode", None),
+        unit_label=getattr(product, "unit_label", None),
         description=product.description,
         price=float(product.price),
         compare_at_price=float(product.compare_at_price) if product.compare_at_price is not None else None,
+        final_price=float(pricing["final_price"]),
+        commercial_discount_type=pricing["commercial_discount_type"],
+        commercial_discount_value=float(pricing["commercial_discount_value"])
+        if pricing["commercial_discount_value"] is not None
+        else None,
+        commercial_discount_amount=float(pricing["commercial_discount_amount"]),
+        commercial_discount_percentage=float(pricing["commercial_discount_percentage"]),
+        has_commercial_discount=bool(pricing["has_commercial_discount"]),
         image_url=product.image_url,
+        stock_quantity=getattr(product, "stock_quantity", None),
+        max_per_order=getattr(product, "max_per_order", None),
         is_available=product.is_available,
         sort_order=product.sort_order,
     )
@@ -185,15 +207,27 @@ def serialize_cart(cart: object) -> CartRead:
         store_slug=cart.store.slug if cart.store else None,
         delivery_mode=cart.delivery_mode,
         subtotal=float(cart.subtotal),
+        commercial_discount_total=float(getattr(cart, "commercial_discount_total", 0) or 0),
+        financial_discount_total=float(getattr(cart, "financial_discount_total", 0) or 0),
         delivery_fee=float(cart.delivery_fee),
         service_fee=float(cart.service_fee),
         total=float(cart.total),
+        pricing={
+            "subtotal": float(cart.subtotal),
+            "commercial_discount_total": float(getattr(cart, "commercial_discount_total", 0) or 0),
+            "financial_discount_total": float(getattr(cart, "financial_discount_total", 0) or 0),
+            "delivery_fee": float(cart.delivery_fee),
+            "service_fee": float(cart.service_fee),
+            "total": float(cart.total),
+        },
         items=[
             CartItemRead(
                 id=item.id,
                 product_id=item.product_id,
                 product_name=item.product_name_snapshot,
+                base_unit_price=float(getattr(item, "base_unit_price_snapshot", item.unit_price_snapshot)),
                 unit_price=float(item.unit_price_snapshot),
+                commercial_discount_amount=float(getattr(item, "commercial_discount_amount_snapshot", 0) or 0),
                 quantity=item.quantity,
                 note=item.note,
             )
@@ -221,6 +255,8 @@ def serialize_order(order: object) -> OrderRead:
         address_latitude=float(order.address.latitude) if getattr(order, "address", None) and order.address.latitude is not None else None,
         address_longitude=float(order.address.longitude) if getattr(order, "address", None) and order.address.longitude is not None else None,
         subtotal=float(order.subtotal),
+        commercial_discount_total=float(getattr(order, "commercial_discount_total", 0) or 0),
+        financial_discount_total=float(getattr(order, "financial_discount_total", 0) or 0),
         delivery_fee=float(order.delivery_fee),
         service_fee=float(order.service_fee),
         delivery_fee_customer=float(getattr(order, "delivery_fee_customer", 0) or 0),
@@ -249,12 +285,22 @@ def serialize_order(order: object) -> OrderRead:
                 id=item.id,
                 product_id=item.product_id,
                 product_name=item.product_name_snapshot,
+                base_unit_price=float(getattr(item, "base_unit_price_snapshot", item.unit_price_snapshot)),
                 quantity=item.quantity,
                 unit_price=float(item.unit_price_snapshot),
+                commercial_discount_amount=float(getattr(item, "commercial_discount_amount_snapshot", 0) or 0),
                 note=item.note,
             )
             for item in order.items
         ],
+        pricing={
+            "subtotal": float(order.subtotal),
+            "commercial_discount_total": float(getattr(order, "commercial_discount_total", 0) or 0),
+            "financial_discount_total": float(getattr(order, "financial_discount_total", 0) or 0),
+            "delivery_fee": float(getattr(order, "delivery_fee_customer", order.delivery_fee) or 0),
+            "service_fee": float(order.service_fee),
+            "total": float(order.total),
+        },
     )
 
 

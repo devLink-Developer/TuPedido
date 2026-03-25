@@ -218,11 +218,19 @@ export type ProductCategoryUpdate = ProductCategoryCreate;
 
 export type ProductWrite = {
   product_category_id: number | null;
+  sku: string;
   name: string;
+  brand: string | null;
+  barcode: string | null;
+  unit_label: string | null;
   description: string;
   price: number;
   compare_at_price: number | null;
+  commercial_discount_type: "percentage" | "fixed" | null;
+  commercial_discount_value: number | null;
   image_url: string | null;
+  stock_quantity: number | null;
+  max_per_order: number | null;
   is_available: boolean;
   sort_order: number;
 };

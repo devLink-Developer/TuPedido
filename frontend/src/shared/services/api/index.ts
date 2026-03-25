@@ -7,4 +7,5 @@ export * from "./catalogService";
 export * from "./client";
 export * from "./deliveryService";
 export * from "./merchantService";
+export * from "./mediaService";
 export * from "./orderService";

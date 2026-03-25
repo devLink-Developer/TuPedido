@@ -11,6 +11,7 @@ from app.models.order import ShoppingCart, ShoppingCartItem
 from app.models.store import Product, Store, StoreCategoryLink
 from app.services.delivery import as_float, haversine_km, select_zone_rate
 from app.services.platform import get_service_fee_amount
+from app.services.product_pricing import compute_discount_amount, compute_final_price
 from app.services.mercadopago import is_store_mercadopago_ready
 
 STORE_OPTIONS = (
@@ -74,19 +75,65 @@ def reload_cart(db: Session, cart_id: int) -> ShoppingCart:
 
 
 def compute_cart_totals(cart: ShoppingCart) -> None:
-    subtotal = sum(float(item.unit_price_snapshot) * item.quantity for item in cart.items)
+    subtotal = sum(float(getattr(item, "base_unit_price_snapshot", item.unit_price_snapshot)) * item.quantity for item in cart.items)
+    commercial_discount_total = sum(
+        float(getattr(item, "commercial_discount_amount_snapshot", 0) or 0) * item.quantity for item in cart.items
+    )
+    final_items_total = sum(float(item.unit_price_snapshot) * item.quantity for item in cart.items)
     cart.subtotal = subtotal
+    cart.commercial_discount_total = commercial_discount_total
+    cart.financial_discount_total = 0
     delivery_fee = 0.0
     service_fee = 0.0
-    if cart.store and subtotal > 0 and cart.delivery_mode == "delivery":
+    if cart.store and final_items_total > 0 and cart.delivery_mode == "delivery":
         settings = cart.store.delivery_settings
         if settings and settings.delivery_enabled:
             delivery_fee = estimate_store_delivery_fee(object_session(cart), cart.store) or float(settings.delivery_fee)
-    if subtotal > 0:
+    if final_items_total > 0:
         service_fee = get_service_fee_amount(object_session(cart))
     cart.delivery_fee = delivery_fee
     cart.service_fee = service_fee
-    cart.total = subtotal + delivery_fee + service_fee
+    cart.total = final_items_total + delivery_fee + service_fee
+
+
+def build_product_pricing_snapshot(product: Product) -> dict[str, float]:
+    base_unit_price = float(product.price)
+    commercial_discount_amount = compute_discount_amount(
+        price=base_unit_price,
+        commercial_discount_type=getattr(product, "commercial_discount_type", None),
+        commercial_discount_value=float(product.commercial_discount_value)
+        if getattr(product, "commercial_discount_value", None) is not None
+        else None,
+    )
+    unit_price = compute_final_price(
+        price=base_unit_price,
+        commercial_discount_type=getattr(product, "commercial_discount_type", None),
+        commercial_discount_value=float(product.commercial_discount_value)
+        if getattr(product, "commercial_discount_value", None) is not None
+        else None,
+    )
+    return {
+        "base_unit_price": base_unit_price,
+        "unit_price": unit_price,
+        "commercial_discount_amount": commercial_discount_amount,
+    }
+
+
+def ensure_product_can_be_added(product: Product, quantity: int, *, existing_quantity: int = 0) -> None:
+    if quantity <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Quantity must be greater than zero")
+    max_per_order = getattr(product, "max_per_order", None)
+    if max_per_order is not None and quantity + existing_quantity > max_per_order:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Maximum allowed quantity for this product is {max_per_order}",
+        )
+    stock_quantity = getattr(product, "stock_quantity", None)
+    if stock_quantity is not None and quantity + existing_quantity > stock_quantity:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Only {stock_quantity} units are available for this product",
+        )
 
 
 def ensure_store_can_accept_orders(store: Store) -> None:

@@ -54,11 +54,23 @@ class ProductRead(BaseModel):
     store_id: int
     product_category_id: int | None = None
     product_category_name: str | None = None
+    sku: str
     name: str
+    brand: str | None = None
+    barcode: str | None = None
+    unit_label: str | None = None
     description: str
     price: float
     compare_at_price: float | None = None
+    final_price: float
+    commercial_discount_type: str | None = None
+    commercial_discount_value: float | None = None
+    commercial_discount_amount: float
+    commercial_discount_percentage: float
+    has_commercial_discount: bool
     image_url: str | None = None
+    stock_quantity: int | None = None
+    max_per_order: int | None = None
     is_available: bool
     sort_order: int
 

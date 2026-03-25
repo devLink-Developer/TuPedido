@@ -4,7 +4,7 @@ import { useAuthSession } from "../../../shared/hooks";
 import { createDeliveryApplication, fetchDeliveryApplications } from "../../../shared/services/api";
 import { useUiStore } from "../../../shared/stores";
 import type { DeliveryApplication, DeliveryApplicationCreate } from "../../../shared/types";
-import { EmptyState, LoadingCard, PageHeader, StatusPill } from "../../../shared/components";
+import { EmptyState, ImageAssetField, LoadingCard, PageHeader, StatusPill } from "../../../shared/components";
 import { Button } from "../../../shared/ui/Button";
 import { roleToHomePath } from "../../../shared/utils/routing";
 
@@ -145,12 +145,16 @@ export function RiderRegistrationForm() {
             className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
             required
           />
-          <input
-            value={form.photo_url ?? ""}
-            onChange={(event) => setForm((current) => ({ ...current, photo_url: event.target.value }))}
-            placeholder="Foto URL opcional"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-          />
+          <div className="md:col-span-2">
+            <ImageAssetField
+              label="Foto del rider"
+              value={form.photo_url ?? ""}
+              onChange={(value) => setForm((current) => ({ ...current, photo_url: value }))}
+              folder="riders"
+              description="Puedes subir tu foto desde el dispositivo o pegar una URL."
+              previewClassName="h-56 w-full object-contain bg-white p-4"
+            />
+          </div>
           <input
             value={form.emergency_contact_name}
             onChange={(event) => setForm((current) => ({ ...current, emergency_contact_name: event.target.value }))}

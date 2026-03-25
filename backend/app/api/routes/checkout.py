@@ -94,7 +94,9 @@ def checkout(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     delivery_fee_customer = float(delivery_quote["delivery_fee_customer"])
     rider_fee = float(delivery_quote["rider_fee"])
-    total = float(cart.subtotal) + delivery_fee_customer + float(cart.service_fee)
+    commercial_discount_total = float(getattr(cart, "commercial_discount_total", 0) or 0)
+    financial_discount_total = float(getattr(cart, "financial_discount_total", 0) or 0)
+    total = float(cart.subtotal) - commercial_discount_total - financial_discount_total + delivery_fee_customer + float(cart.service_fee)
     otp_code = str(100000 + (uuid.uuid4().int % 900000)) if delivery_quote["otp_required"] else None
 
     order = StoreOrder(
@@ -111,6 +113,8 @@ def checkout(
         address_label_snapshot=address.label if address else None,
         address_full_snapshot=build_address_text(address) if address else None,
         subtotal=cart.subtotal,
+        commercial_discount_total=commercial_discount_total,
+        financial_discount_total=financial_discount_total,
         delivery_fee=delivery_fee_customer,
         service_fee=cart.service_fee,
         delivery_fee_customer=delivery_fee_customer,
@@ -132,7 +136,9 @@ def checkout(
                 order_id=order.id,
                 product_id=item.product_id,
                 product_name_snapshot=item.product_name_snapshot,
+                base_unit_price_snapshot=getattr(item, "base_unit_price_snapshot", item.unit_price_snapshot),
                 unit_price_snapshot=item.unit_price_snapshot,
+                commercial_discount_amount_snapshot=getattr(item, "commercial_discount_amount_snapshot", 0),
                 quantity=item.quantity,
                 note=item.note,
             )
@@ -172,6 +178,8 @@ def checkout(
     cart.store = None
     cart.delivery_mode = "delivery"
     cart.subtotal = 0
+    cart.commercial_discount_total = 0
+    cart.financial_discount_total = 0
     cart.delivery_fee = 0
     cart.service_fee = 0
     cart.total = 0

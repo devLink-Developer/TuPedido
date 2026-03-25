@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from app.schemas.pricing import PricingSummaryRead
+
 
 class CartItemCreate(BaseModel):
     store_id: int
@@ -21,7 +23,9 @@ class CartItemRead(BaseModel):
     id: int
     product_id: int
     product_name: str
+    base_unit_price: float
     unit_price: float
+    commercial_discount_amount: float
     quantity: int
     note: str | None = None
 
@@ -38,4 +42,7 @@ class CartRead(BaseModel):
     delivery_fee: float
     service_fee: float
     total: float
+    commercial_discount_total: float
+    financial_discount_total: float
+    pricing: PricingSummaryRead
     items: list[CartItemRead]

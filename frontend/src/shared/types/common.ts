@@ -21,3 +21,11 @@ export type PushSubscriptionPayload = {
   };
   user_agent?: string | null;
 };
+
+export type ImageUploadResponse = {
+  url: string;
+  path: string;
+  content_type: string;
+  size: number;
+  original_name: string;
+};

@@ -8,7 +8,7 @@ import {
   fetchMerchantProducts,
   updateMerchantProduct
 } from "../../../shared/services/api";
-import type { Product, ProductCategory } from "../../../shared/types";
+import type { Product, ProductCategory, ProductWrite } from "../../../shared/types";
 import { ProductForm } from "../components/ProductForm";
 import { ProductList } from "../components/ProductList";
 
@@ -43,16 +43,7 @@ export function ProductsPage() {
     void load();
   }, [token]);
 
-  async function handleSubmit(payload: {
-    name: string;
-    description: string;
-    price: number;
-    compare_at_price: number | null;
-    image_url: string | null;
-    product_category_id: number | null;
-    is_available: boolean;
-    sort_order: number;
-  }) {
+  async function handleSubmit(payload: ProductWrite) {
     if (!token) return;
     setSaving(true);
     try {
@@ -79,7 +70,7 @@ export function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Comercio" title="Productos" description="Administra tu catalogo, disponibilidad y precios." />
+      <PageHeader eyebrow="Comercio" title="Productos" description="Administra un catalogo real con datos comerciales, stock, imagenes y descuentos." />
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
         <ProductForm key={editingProduct?.id ?? "new"} categories={categories} initialProduct={editingProduct} onSubmit={handleSubmit} loading={saving} />
         <ProductList products={products} onEdit={setEditingProduct} onDelete={handleDelete} />

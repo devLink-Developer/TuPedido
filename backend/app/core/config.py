@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     delivery_offer_timeout_seconds: int = 20
     delivery_tracking_stale_seconds: int = 30
     delivery_embedded_worker: bool = True
+    media_root: str = "media"
+    media_max_upload_mb: int = 5
     web_push_vapid_public_key: str | None = None
     web_push_vapid_private_key: str | None = None
     web_push_vapid_subject: str = "mailto:admin@tupedido.example.com"

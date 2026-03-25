@@ -4,8 +4,10 @@ export type OrderItem = {
   id: number;
   product_id: number | null;
   product_name: string;
+  base_unit_price: number;
   quantity: number;
   unit_price: number;
+  commercial_discount_amount: number;
   note: string | null;
 };
 
@@ -42,6 +44,8 @@ export type Order = {
   address_latitude: number | null;
   address_longitude: number | null;
   subtotal: number;
+  commercial_discount_total: number;
+  financial_discount_total: number;
   delivery_fee: number;
   service_fee: number;
   delivery_fee_customer: number;

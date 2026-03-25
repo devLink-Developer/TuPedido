@@ -238,6 +238,9 @@ def create_product(
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     store = get_merchant_store(db, user.id)
+    existing_sku = db.scalar(select(Product).where(Product.store_id == store.id, Product.sku == payload.sku))
+    if existing_sku is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="SKU already exists in this store")
     if payload.product_category_id is not None:
         category = db.scalar(
             select(ProductCategory).where(
@@ -247,6 +250,10 @@ def create_product(
         )
         if category is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid product category")
+    if payload.commercial_discount_type == "percentage" and (payload.commercial_discount_value or 0) > 100:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Percentage discount cannot exceed 100")
+    if payload.commercial_discount_type == "fixed" and (payload.commercial_discount_value or 0) > payload.price:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Fixed discount cannot exceed product price")
     product = Product(store_id=store.id, **payload.model_dump())
     db.add(product)
     db.commit()
@@ -274,6 +281,15 @@ def update_product(
         )
         if category is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid product category")
+    existing_sku = db.scalar(
+        select(Product).where(Product.store_id == store.id, Product.sku == payload.sku, Product.id != product_id)
+    )
+    if existing_sku is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="SKU already exists in this store")
+    if payload.commercial_discount_type == "percentage" and (payload.commercial_discount_value or 0) > 100:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Percentage discount cannot exceed 100")
+    if payload.commercial_discount_type == "fixed" and (payload.commercial_discount_value or 0) > payload.price:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Fixed discount cannot exceed product price")
     for field, value in payload.model_dump().items():
         setattr(product, field, value)
     db.commit()

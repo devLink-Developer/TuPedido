@@ -14,7 +14,7 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
   --mobile-header-height: 84px;
-  --bottom-nav-height: 88px;
+  --bottom-nav-height: 76px;
   --mobile-cart-cta-height: 76px;
   font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
   background: var(--page-cream);

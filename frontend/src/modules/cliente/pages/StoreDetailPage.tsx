@@ -174,25 +174,57 @@ export function StoreDetailPage() {
             </div>
             <div className="mt-4 flex items-center justify-between gap-3">
               <div>
-                <p className="text-lg font-black text-ink">{formatCurrency(product.price)}</p>
-                {product.compare_at_price ? <p className="text-xs text-zinc-400 line-through">{formatCurrency(product.compare_at_price)}</p> : null}
+                <p className="text-lg font-black text-ink">{formatCurrency(product.final_price)}</p>
+                {product.has_commercial_discount ? (
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <p className="text-xs text-zinc-400 line-through">{formatCurrency(product.price)}</p>
+                    <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                      -{product.commercial_discount_percentage}% comercial
+                    </span>
+                  </div>
+                ) : product.compare_at_price ? (
+                  <p className="text-xs text-zinc-400 line-through">{formatCurrency(product.compare_at_price)}</p>
+                ) : null}
+                <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold text-zinc-500">
+                  {product.brand ? <span className="rounded-full bg-zinc-100 px-2 py-1">{product.brand}</span> : null}
+                  {product.unit_label ? <span className="rounded-full bg-zinc-100 px-2 py-1">{product.unit_label}</span> : null}
+                  {product.stock_quantity !== null ? (
+                    <span className="rounded-full bg-zinc-100 px-2 py-1">Stock {product.stock_quantity}</span>
+                  ) : null}
+                </div>
               </div>
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${product.is_available ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
                 {product.is_available ? "Disponible" : "Agotado"}
               </span>
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-[90px_1fr]">
+            <div className="mt-4 grid gap-3 md:grid-cols-[90px_120px_1fr]">
               <label className="space-y-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Cant.</span>
                 <input
                   type="number"
                   min={1}
+                  max={product.max_per_order ?? product.stock_quantity ?? undefined}
                   value={quantities[product.id] ?? 1}
                   onChange={(event) =>
-                    setQuantities((current) => ({ ...current, [product.id]: Math.max(1, event.currentTarget.valueAsNumber || 1) }))
+                    setQuantities((current) => ({
+                      ...current,
+                      [product.id]: Math.max(
+                        1,
+                        Math.min(
+                          product.max_per_order ?? product.stock_quantity ?? Number.MAX_SAFE_INTEGER,
+                          event.currentTarget.valueAsNumber || 1
+                        )
+                      )
+                    }))
                   }
                   className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 outline-none focus:border-brand-500"
                 />
+              </label>
+              <label className="space-y-2">
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Limite</span>
+                <div className="rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+                  {product.max_per_order ?? product.stock_quantity ?? "Sin limite"}
+                </div>
               </label>
               <label className="space-y-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Nota</span>
