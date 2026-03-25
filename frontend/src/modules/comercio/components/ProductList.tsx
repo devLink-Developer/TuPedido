@@ -26,6 +26,7 @@ export function ProductList({
                   <p className="mt-1 text-sm text-zinc-600">
                     {product.brand ? `${product.brand} · ` : ""}
                     {product.product_category_name ?? "Sin categoria"}
+                    {product.product_subcategory_name ? ` / ${product.product_subcategory_name}` : ""}
                     {product.unit_label ? ` · ${product.unit_label}` : ""}
                   </p>
                 </div>

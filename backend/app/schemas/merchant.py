@@ -96,8 +96,21 @@ class ProductCategoryUpdate(BaseModel):
     sort_order: int = 0
 
 
+class ProductSubcategoryCreate(BaseModel):
+    product_category_id: int
+    name: str
+    sort_order: int = 0
+
+
+class ProductSubcategoryUpdate(BaseModel):
+    product_category_id: int
+    name: str
+    sort_order: int = 0
+
+
 class ProductWrite(BaseModel):
     product_category_id: int | None = None
+    product_subcategory_id: int | None = None
     sku: str = Field(min_length=2, max_length=80)
     name: str
     brand: str | None = None

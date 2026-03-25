@@ -2,12 +2,39 @@ from __future__ import annotations
 
 from datetime import datetime, time
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.services.category_colors import normalize_hex_color
 
 
 class CategoryCreate(BaseModel):
-    name: str
+    name: str = Field(min_length=1)
     description: str | None = None
+    color: str
+    color_light: str | None = None
+    icon: str | None = Field(default=None, max_length=24)
+    is_active: bool = True
+    sort_order: int = 0
+
+    @field_validator("color", "color_light", mode="before")
+    @classmethod
+    def validate_color_fields(cls, value: str | None) -> str | None:
+        return normalize_hex_color(value)
+
+
+class CategoryUpdate(BaseModel):
+    name: str = Field(min_length=1)
+    description: str | None = None
+    color: str
+    color_light: str | None = None
+    icon: str | None = Field(default=None, max_length=24)
+    is_active: bool = True
+    sort_order: int = 0
+
+    @field_validator("color", "color_light", mode="before")
+    @classmethod
+    def validate_color_fields(cls, value: str | None) -> str | None:
+        return normalize_hex_color(value)
 
 
 class CategoryRead(BaseModel):
@@ -15,6 +42,11 @@ class CategoryRead(BaseModel):
     name: str
     slug: str
     description: str | None = None
+    color: str
+    color_light: str
+    icon: str | None = None
+    is_active: bool
+    sort_order: int
 
 
 class StoreHourRead(BaseModel):
@@ -42,11 +74,20 @@ class StorePaymentSettingsRead(BaseModel):
     mercadopago_collector_id: str | None = None
 
 
+class ProductSubcategoryRead(BaseModel):
+    id: int
+    product_category_id: int
+    name: str
+    slug: str
+    sort_order: int
+
+
 class ProductCategoryRead(BaseModel):
     id: int
     name: str
     slug: str
     sort_order: int
+    subcategories: list[ProductSubcategoryRead] = Field(default_factory=list)
 
 
 class ProductRead(BaseModel):
@@ -54,6 +95,8 @@ class ProductRead(BaseModel):
     store_id: int
     product_category_id: int | None = None
     product_category_name: str | None = None
+    product_subcategory_id: int | None = None
+    product_subcategory_name: str | None = None
     sku: str
     name: str
     brand: str | None = None
@@ -95,7 +138,9 @@ class StoreSummaryRead(BaseModel):
     rating: float
     rating_count: int
     category_ids: list[int] = Field(default_factory=list)
+    primary_category_id: int | None = None
     primary_category: str | None = None
+    primary_category_slug: str | None = None
     categories: list[str]
     delivery_settings: StoreDeliverySettingsRead
     payment_settings: StorePaymentSettingsRead

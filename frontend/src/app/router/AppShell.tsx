@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { PwaInstallBanner, ToastViewport } from "../../shared/components";
 import { usePwaInstallPrompt } from "../../shared/hooks";
-import { useAuthStore, useCartStore } from "../../shared/stores";
+import { useAuthStore, useCartStore, useCategoryStore } from "../../shared/stores";
 
 export function AppShell() {
   const hydrate = useAuthStore((state) => state.hydrate);
@@ -11,12 +11,17 @@ export function AppShell() {
   const token = useAuthStore((state) => state.token);
   const refreshCart = useCartStore((state) => state.refreshCart);
   const resetCart = useCartStore((state) => state.reset);
+  const loadCategories = useCategoryStore((state) => state.loadCategories);
 
   usePwaInstallPrompt();
 
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    void loadCategories();
+  }, [loadCategories]);
 
   useEffect(() => {
     if (!hydrated) return;

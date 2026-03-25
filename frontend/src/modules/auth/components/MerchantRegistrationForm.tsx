@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthSession } from "../../../shared/hooks";
-import { createMerchantApplication, fetchCategories, fetchMerchantApplications, registerMerchantApplication } from "../../../shared/services/api";
-import { useAuthStore } from "../../../shared/stores";
-import type { Category, MerchantApplication, MerchantApplicationCreate, MerchantApplicationRegister } from "../../../shared/types";
+import { createMerchantApplication, fetchMerchantApplications, registerMerchantApplication } from "../../../shared/services/api";
+import { useAuthStore, useCategoryStore } from "../../../shared/stores";
+import type { MerchantApplication, MerchantApplicationCreate, MerchantApplicationRegister } from "../../../shared/types";
 import { EmptyState, LoadingCard, PageHeader, StatusPill } from "../../../shared/components";
 import { Button } from "../../../shared/ui/Button";
+import { hexToRgba, resolveCategoryPalette } from "../../../shared/utils/categoryTheme";
 import { roleToHomePath } from "../../../shared/utils/routing";
 
 type MerchantRegistrationState = MerchantApplicationRegister;
@@ -34,8 +35,10 @@ function toApplicationDraft(form: MerchantRegistrationState): MerchantApplicatio
 export function MerchantRegistrationForm() {
   const { token, user, isAuthenticated, refresh } = useAuthSession();
   const setSession = useAuthStore((state) => state.setSession);
+  const categories = useCategoryStore((state) => state.categories);
+  const categoryLoading = useCategoryStore((state) => state.loading);
+  const loadCategories = useCategoryStore((state) => state.loadCategories);
   const navigate = useNavigate();
-  const [categories, setCategories] = useState<Category[]>([]);
   const [applications, setApplications] = useState<MerchantApplication[]>([]);
   const [form, setForm] = useState<MerchantRegistrationState>(emptyForm);
   const [loading, setLoading] = useState(true);
@@ -50,13 +53,9 @@ export function MerchantRegistrationForm() {
 
     let cancelled = false;
     setLoading(true);
-    Promise.all([
-      fetchCategories(),
-      token && user?.role === "customer" ? fetchMerchantApplications(token) : Promise.resolve([])
-    ])
-      .then(([categoriesResult, applicationsResult]) => {
+    Promise.all([loadCategories(), token && user?.role === "customer" ? fetchMerchantApplications(token) : Promise.resolve([])])
+      .then(([, applicationsResult]) => {
         if (cancelled) return;
-        setCategories(categoriesResult);
         setApplications(applicationsResult);
         if (user?.role === "customer") {
           setForm((current) => ({
@@ -78,7 +77,7 @@ export function MerchantRegistrationForm() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, navigate, token, user]);
+  }, [isAuthenticated, loadCategories, navigate, token, user]);
 
   const selectedCategoryIds = useMemo(() => new Set(form.requested_category_ids), [form.requested_category_ids]);
 
@@ -111,7 +110,7 @@ export function MerchantRegistrationForm() {
     }
   }
 
-  if (loading) return <LoadingCard />;
+  if (loading || categoryLoading) return <LoadingCard />;
 
   return (
     <div className="space-y-6">
@@ -197,25 +196,32 @@ export function MerchantRegistrationForm() {
           <div className="space-y-3 md:col-span-2">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">Categorias</p>
             <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() =>
-                    setForm((current) => ({
-                      ...current,
-                      requested_category_ids: selectedCategoryIds.has(category.id)
-                        ? current.requested_category_ids.filter((id) => id !== category.id)
-                        : [...current.requested_category_ids, category.id]
-                    }))
-                  }
-                  className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                    selectedCategoryIds.has(category.id) ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
-                  }`}
-                >
-                  {category.name}
-                </button>
-              ))}
+              {categories.map((category) => {
+                const selected = selectedCategoryIds.has(category.id);
+                const palette = resolveCategoryPalette(category);
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() =>
+                      setForm((current) => ({
+                        ...current,
+                        requested_category_ids: selected
+                          ? current.requested_category_ids.filter((id) => id !== category.id)
+                          : [...current.requested_category_ids, category.id]
+                      }))
+                    }
+                    className="rounded-full border px-4 py-2 text-sm font-semibold transition"
+                    style={{
+                      backgroundColor: selected ? palette.color : palette.colorLight,
+                      borderColor: hexToRgba(palette.color, selected ? 0.2 : 0.14),
+                      color: selected ? "#FFF8F0" : palette.color
+                    }}
+                  >
+                    {category.name}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

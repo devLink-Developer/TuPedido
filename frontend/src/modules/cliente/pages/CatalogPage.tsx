@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
-import { fetchCategories, fetchStores } from "../../../shared/services/api";
-import { useClienteStore } from "../../../shared/stores";
-import type { Category, StoreSummary } from "../../../shared/types";
+import { fetchStores } from "../../../shared/services/api";
+import { useCategoryStore, useClienteStore } from "../../../shared/stores";
+import type { StoreSummary } from "../../../shared/types";
+import { hexToRgba, resolveCategoryPalette } from "../../../shared/utils/categoryTheme";
 import { StoreList } from "../components/StoreList";
 
 export function CatalogPage() {
@@ -14,7 +15,9 @@ export function CatalogPage() {
   const setCategorySlug = useClienteStore((state) => state.setCategorySlug);
   const setSearch = useClienteStore((state) => state.setSearch);
   const setDeliveryMode = useClienteStore((state) => state.setDeliveryMode);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const categories = useCategoryStore((state) => state.categories);
+  const categoryLoading = useCategoryStore((state) => state.loading);
+  const loadCategories = useCategoryStore((state) => state.loadCategories);
   const [stores, setStores] = useState<StoreSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,18 +30,8 @@ export function CatalogPage() {
   }, [searchParams, setCategorySlug, setDeliveryMode, setSearch]);
 
   useEffect(() => {
-    let cancelled = false;
-    fetchCategories()
-      .then((items) => {
-        if (!cancelled) setCategories(items);
-      })
-      .catch(() => {
-        if (!cancelled) setCategories([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void loadCategories();
+  }, [loadCategories]);
 
   useEffect(() => {
     let cancelled = false;
@@ -129,27 +122,34 @@ export function CatalogPage() {
         >
           Todos los rubros
         </button>
-        {categories.map((category) => (
-          <button
-            key={category.id}
-            type="button"
-            onClick={() => {
-              setCategorySlug(category.slug);
-              updateQuery({ categorySlug: category.slug });
-            }}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-              categorySlug === category.slug ? "bg-brand-500 text-white" : "bg-white text-zinc-600 shadow-sm"
-            }`}
-          >
-            {category.name}
-          </button>
-        ))}
+        {categories.map((category) => {
+          const selected = categorySlug === category.slug;
+          const palette = resolveCategoryPalette(category);
+          return (
+            <button
+              key={category.id}
+              type="button"
+              onClick={() => {
+                setCategorySlug(category.slug);
+                updateQuery({ categorySlug: category.slug });
+              }}
+              className="rounded-full border px-4 py-2 text-sm font-semibold shadow-sm transition"
+              style={{
+                backgroundColor: selected ? palette.color : palette.colorLight,
+                borderColor: hexToRgba(palette.color, selected ? 0.22 : 0.14),
+                color: selected ? "#FFF8F0" : palette.color
+              }}
+            >
+              {category.name}
+            </button>
+          );
+        })}
       </div>
 
-      {loading ? <LoadingCard /> : null}
+      {loading || categoryLoading ? <LoadingCard /> : null}
       {error ? <EmptyState title="No se pudo cargar el listado" description={error} /> : null}
 
-      {!loading && !error ? (
+      {!loading && !categoryLoading && !error ? (
         stores.length ? (
           <StoreList stores={stores} />
         ) : (

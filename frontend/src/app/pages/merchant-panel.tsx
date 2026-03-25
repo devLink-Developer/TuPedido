@@ -107,6 +107,7 @@ export function MerchantDashboardPage() {
     commercial_discount_value: "",
     image_url: "",
     product_category_id: "",
+    product_subcategory_id: "",
     stock_quantity: "",
     max_per_order: "",
     is_available: true,
@@ -270,6 +271,7 @@ export function MerchantDashboardPage() {
         commercial_discount_value: productForm.commercial_discount_value ? Number(productForm.commercial_discount_value) : null,
         image_url: productForm.image_url || null,
         product_category_id: productForm.product_category_id ? Number(productForm.product_category_id) : null,
+        product_subcategory_id: null,
         stock_quantity: productForm.stock_quantity ? Number(productForm.stock_quantity) : null,
         max_per_order: productForm.max_per_order ? Number(productForm.max_per_order) : null,
         is_available: productForm.is_available,
@@ -294,6 +296,7 @@ export function MerchantDashboardPage() {
         commercial_discount_value: "",
         image_url: "",
         product_category_id: "",
+        product_subcategory_id: "",
         stock_quantity: "",
         max_per_order: "",
         is_available: true,
@@ -584,7 +587,7 @@ export function MerchantDashboardPage() {
                   <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{product.is_available ? "Activo" : "Pausado"}</span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => { setEditingProductId(product.id); setProductForm({ sku: buildSkuCandidate(product.name), name: product.name, brand: "", barcode: "", unit_label: "", description: product.description, price: product.price, compare_at_price: product.compare_at_price?.toString() ?? "", commercial_discount_type: "", commercial_discount_value: "", image_url: product.image_url ?? "", product_category_id: product.product_category_id?.toString() ?? "", stock_quantity: "", max_per_order: "", is_available: product.is_available, sort_order: product.sort_order }); }} className="rounded-full bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-700">
+                  <button type="button" onClick={() => { setEditingProductId(product.id); setProductForm({ sku: buildSkuCandidate(product.name), name: product.name, brand: "", barcode: "", unit_label: "", description: product.description, price: product.price, compare_at_price: product.compare_at_price?.toString() ?? "", commercial_discount_type: "", commercial_discount_value: "", image_url: product.image_url ?? "", product_category_id: product.product_category_id?.toString() ?? "", product_subcategory_id: "", stock_quantity: "", max_per_order: "", is_available: product.is_available, sort_order: product.sort_order }); }} className="rounded-full bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-700">
                     Editar
                   </button>
                   <button type="button" onClick={async () => { if (!token) return; await deleteMerchantProduct(token, product.id); await load(); }} className="rounded-full bg-rose-500 px-3 py-2 text-xs font-semibold text-white">

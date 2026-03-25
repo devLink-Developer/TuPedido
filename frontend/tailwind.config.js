@@ -4,24 +4,24 @@ export default {
     extend: {
       colors: {
         brand: {
-          50: "#fff7ed",
-          100: "#ffedd5",
-          200: "#fed7aa",
-          300: "#fdba74",
-          400: "#fb923c",
-          500: "#f97316",
-          600: "#ea580c",
-          700: "#c2410c",
-          800: "#9a3412",
-          900: "#7c2d12"
+          50: "#FFF3EE",
+          100: "#FFE0D6",
+          200: "#FFC2AD",
+          300: "#FF9A75",
+          400: "#FF6A33",
+          500: "#FF3D00",
+          600: "#DD2C00",
+          700: "#B32600",
+          800: "#8A1E00",
+          900: "#611500"
         },
-        ink: "#18181b",
-        shell: "#fffaf5",
-        surface: "#fffdf8"
+        ink: "#2B2B2B",
+        shell: "#FFF8F0",
+        surface: "#FFFFFF"
       },
       boxShadow: {
-        float: "0 28px 70px -30px rgba(193, 65, 12, 0.35)",
-        lift: "0 30px 80px -42px rgba(24, 24, 27, 0.35)"
+        float: "0 28px 70px -30px rgba(255, 61, 0, 0.3)",
+        lift: "0 30px 80px -42px rgba(43, 43, 43, 0.28)"
       },
       borderRadius: {
         xl2: "1.5rem"

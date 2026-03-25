@@ -171,7 +171,15 @@ export function AdminDashboardPage() {
     setSaving(true);
     setError(null);
     try {
-      await createAdminCategory(token, { name: categoryName, description: categoryDescription || null });
+      await createAdminCategory(token, {
+        name: categoryName,
+        description: categoryDescription || null,
+        color: "#FF7043",
+        color_light: "#FBE9E7",
+        icon: null,
+        is_active: true,
+        sort_order: categories.length + 1
+      });
       setCategoryName("");
       setCategoryDescription("");
       await load();

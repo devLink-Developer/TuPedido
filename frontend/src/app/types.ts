@@ -29,6 +29,11 @@ export type Category = {
   name: string;
   slug: string;
   description: string | null;
+  color: string;
+  color_light: string;
+  icon: string | null;
+  is_active: boolean;
+  sort_order: number;
 };
 
 export type StoreDeliverySettings = {
@@ -67,7 +72,9 @@ export type StoreSummary = {
   rating: number;
   rating_count: number;
   category_ids?: number[];
+  primary_category_id?: number | null;
   primary_category: string | null;
+  primary_category_slug?: string | null;
   categories: string[];
   delivery_settings: StoreDeliverySettings;
   payment_settings: StorePaymentSettings;

@@ -16,6 +16,7 @@ from app.models.order import StoreOrder
 from app.models.store import (
     Category,
     Product,
+    ProductCategory,
     Store,
     StoreCategoryLink,
     StoreDeliverySettings,
@@ -24,8 +25,9 @@ from app.models.store import (
 )
 from app.models.user import MerchantApplication, User
 from app.schemas.admin import AdminMerchantCreate, StoreStatusUpdate
-from app.schemas.catalog import CategoryCreate
+from app.schemas.catalog import CategoryCreate, CategoryUpdate
 from app.schemas.merchant import MerchantApplicationReviewUpdate
+from app.services.category_colors import resolve_category_palette
 from app.services.store_branding import resolve_store_assets
 
 router = APIRouter()
@@ -36,8 +38,9 @@ STORE_OPTIONS = (
     selectinload(Store.delivery_settings),
     selectinload(Store.payment_settings),
     selectinload(Store.mercadopago_credentials),
-    selectinload(Store.product_categories),
+    selectinload(Store.product_categories).selectinload(ProductCategory.subcategories),
     selectinload(Store.products).selectinload(Product.product_category),
+    selectinload(Store.products).selectinload(Product.product_subcategory),
 )
 
 APPLICATION_OPTIONS = (
@@ -86,6 +89,18 @@ def get_categories_or_400(db: Session, category_ids: list[int]) -> list[Category
     return [categories_by_id[category_id] for category_id in unique_category_ids]
 
 
+def assign_category_payload(category: Category, payload: CategoryCreate | CategoryUpdate) -> None:
+    color, color_light = resolve_category_palette(payload.color, payload.color_light)
+    category.name = payload.name.strip()
+    category.slug = slugify(payload.name.strip())
+    category.description = payload.description
+    category.color = color
+    category.color_light = color_light
+    category.icon = (payload.icon or "").strip() or None
+    category.is_active = payload.is_active
+    category.sort_order = payload.sort_order
+
+
 @router.get("/categories")
 def list_categories(_: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict[str, object]]:
     categories = db.scalars(select(Category).order_by(Category.sort_order, Category.name)).all()
@@ -98,12 +113,52 @@ def create_category(
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
-    slug = slugify(payload.name)
+    slug = slugify(payload.name.strip())
+    if not slug:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category name is required")
     existing = db.scalar(select(Category).where(Category.slug == slug))
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Category already exists")
-    category = Category(name=payload.name, slug=slug, description=payload.description)
+    category = Category(name=payload.name.strip(), slug=slug)
+    assign_category_payload(category, payload)
     db.add(category)
+    db.commit()
+    db.refresh(category)
+    return serialize_category(category).model_dump()
+
+
+@router.put("/categories/{category_id}")
+def update_category(
+    category_id: int,
+    payload: CategoryUpdate,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    category = db.get(Category, category_id)
+    if category is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+    slug = slugify(payload.name.strip())
+    if not slug:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category name is required")
+    existing = db.scalar(select(Category).where(Category.slug == slug, Category.id != category_id))
+    if existing is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Category already exists")
+    assign_category_payload(category, payload)
+    db.commit()
+    db.refresh(category)
+    return serialize_category(category).model_dump()
+
+
+@router.delete("/categories/{category_id}")
+def delete_category(
+    category_id: int,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    category = db.get(Category, category_id)
+    if category is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+    category.is_active = False
     db.commit()
     db.refresh(category)
     return serialize_category(category).model_dump()

@@ -6,19 +6,30 @@
 
 :root {
   color-scheme: light;
-  --page-cream: #f8efe2;
-  --page-sand: #f4dcc4;
-  --page-glow: rgba(214, 110, 53, 0.18);
-  --page-ink: #181312;
-  --surface: rgba(255, 252, 247, 0.9);
+  --color-background-primary: #fff8f0;
+  --color-background-secondary: #ffffff;
+  --color-border-default: #ede0d4;
+  --color-text-primary: #2b2b2b;
+  --color-text-secondary: #6b6b6b;
+  --color-text-disabled: #b0b0b0;
+  --color-primary: #ff3d00;
+  --color-primary-hover: #dd2c00;
+  --color-success: #4caf50;
+  --color-error: #f44336;
+  --color-warning: #ffc107;
+  --page-cream: var(--color-background-primary);
+  --page-sand: #f4e5d6;
+  --page-glow: rgba(255, 61, 0, 0.14);
+  --page-ink: var(--color-text-primary);
+  --surface: rgba(255, 255, 255, 0.92);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
   --mobile-header-height: 84px;
   --bottom-nav-height: 76px;
   --mobile-cart-cta-height: 76px;
   font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  background: var(--page-cream);
-  color: var(--page-ink);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -37,8 +48,8 @@ body {
   padding-bottom: var(--safe-bottom);
   background:
     radial-gradient(circle at top left, var(--page-glow), transparent 26%),
-    radial-gradient(circle at 85% 12%, rgba(113, 63, 18, 0.08), transparent 18%),
-    linear-gradient(180deg, #f9efe4 0%, #fffaf5 38%, #fbf5ee 100%);
+    radial-gradient(circle at 85% 12%, rgba(237, 224, 212, 0.65), transparent 18%),
+    linear-gradient(180deg, #fff2e8 0%, var(--color-background-primary) 38%, #fffaf5 100%);
 }
 
 body::before {
@@ -47,8 +58,8 @@ body::before {
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(24, 19, 18, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(24, 19, 18, 0.045) 1px, transparent 1px);
+    linear-gradient(rgba(43, 43, 43, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(43, 43, 43, 0.035) 1px, transparent 1px);
   background-size: 34px 34px;
   mask-image: radial-gradient(circle at top, black, transparent 78%);
   opacity: 0.35;
@@ -92,8 +103,8 @@ textarea {
 
 .mesh-surface {
   background:
-    radial-gradient(circle at top right, rgba(251, 146, 60, 0.15), transparent 35%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 250, 245, 0.88));
+    radial-gradient(circle at top right, rgba(255, 61, 0, 0.12), transparent 35%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 248, 240, 0.9));
 }
 
 .orb-float {

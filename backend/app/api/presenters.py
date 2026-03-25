@@ -6,6 +6,7 @@ from app.schemas.catalog import (
     CategoryRead,
     MerchantApplicationRead,
     ProductCategoryRead,
+    ProductSubcategoryRead,
     ProductRead,
     StoreDeliverySettingsRead,
     StoreDetailRead,
@@ -29,6 +30,7 @@ from app.schemas.settlement import (
     PlatformSettingsRead,
     SettlementAllocationRead,
 )
+from app.services.category_colors import resolve_category_palette
 from app.services.mercadopago import is_store_mercadopago_ready, mercadopago_connection_status
 from app.services.product_pricing import serialize_product_pricing
 from app.services.settlements import (
@@ -40,11 +42,20 @@ from app.services.settlements import (
 
 
 def serialize_category(category: object) -> CategoryRead:
+    color, color_light = resolve_category_palette(
+        getattr(category, "color", None),
+        getattr(category, "color_light", None),
+    )
     return CategoryRead(
         id=category.id,
         name=category.name,
         slug=category.slug,
         description=category.description,
+        color=color,
+        color_light=color_light,
+        icon=getattr(category, "icon", None),
+        is_active=bool(getattr(category, "is_active", True)),
+        sort_order=int(getattr(category, "sort_order", 0) or 0),
     )
 
 
@@ -75,12 +86,14 @@ def serialize_store_payment_settings(store: object) -> StorePaymentSettingsRead:
     )
 
 
-def _category_names(store: object) -> tuple[str | None, list[str]]:
+def _category_metadata(store: object) -> tuple[int | None, str | None, str | None, list[str]]:
     links = list(getattr(store, "category_links", []) or [])
     links = sorted(links, key=lambda link: (not link.is_primary, link.category.name.lower()))
     categories = [link.category.name for link in links]
-    primary = next((link.category.name for link in links if link.is_primary), None)
-    return primary or (categories[0] if categories else None), categories
+    primary_link = next((link for link in links if link.is_primary), None) or (links[0] if links else None)
+    if primary_link is None:
+        return None, None, None, categories
+    return primary_link.category_id, primary_link.category.name, primary_link.category.slug, categories
 
 
 def serialize_product_category(product_category: object) -> ProductCategoryRead:
@@ -89,6 +102,16 @@ def serialize_product_category(product_category: object) -> ProductCategoryRead:
         name=product_category.name,
         slug=product_category.slug,
         sort_order=product_category.sort_order,
+        subcategories=[
+            ProductSubcategoryRead(
+                id=subcategory.id,
+                product_category_id=subcategory.product_category_id,
+                name=subcategory.name,
+                slug=subcategory.slug,
+                sort_order=subcategory.sort_order,
+            )
+            for subcategory in getattr(product_category, "subcategories", []) or []
+        ],
     )
 
 
@@ -105,6 +128,8 @@ def serialize_product(product: object) -> ProductRead:
         store_id=product.store_id,
         product_category_id=product.product_category_id,
         product_category_name=product.product_category.name if product.product_category else None,
+        product_subcategory_id=getattr(product, "product_subcategory_id", None),
+        product_subcategory_name=product.product_subcategory.name if getattr(product, "product_subcategory", None) else None,
         sku=product.sku or f"PRD-{product.id}",
         name=product.name,
         brand=getattr(product, "brand", None),
@@ -130,7 +155,7 @@ def serialize_product(product: object) -> ProductRead:
 
 
 def serialize_store_summary(store: object) -> StoreSummaryRead:
-    primary_category, categories = _category_names(store)
+    primary_category_id, primary_category, primary_category_slug, categories = _category_metadata(store)
     category_ids = [link.category_id for link in getattr(store, "category_links", []) or []]
     return StoreSummaryRead(
         id=store.id,
@@ -152,7 +177,9 @@ def serialize_store_summary(store: object) -> StoreSummaryRead:
         rating=float(store.rating),
         rating_count=store.rating_count,
         category_ids=category_ids,
+        primary_category_id=primary_category_id,
         primary_category=primary_category,
+        primary_category_slug=primary_category_slug,
         categories=categories,
         delivery_settings=serialize_store_delivery_settings(store),
         payment_settings=serialize_store_payment_settings(store),

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.api.presenters import serialize_category, serialize_store_detail, serialize_store_summary
 from app.core.utils import next_store_opening_at
 from app.db.session import get_db
-from app.models.store import Category, Product, Store, StoreCategoryLink
+from app.models.store import Category, Product, ProductCategory, Store, StoreCategoryLink
 
 router = APIRouter()
 
@@ -18,8 +18,9 @@ STORE_LOAD_OPTIONS = (
     selectinload(Store.delivery_settings),
     selectinload(Store.payment_settings),
     selectinload(Store.mercadopago_credentials),
-    selectinload(Store.product_categories),
+    selectinload(Store.product_categories).selectinload(ProductCategory.subcategories),
     selectinload(Store.products).selectinload(Product.product_category),
+    selectinload(Store.products).selectinload(Product.product_subcategory),
 )
 
 

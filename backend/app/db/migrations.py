@@ -16,6 +16,7 @@ MANAGED_TABLES = {
     "merchant_applications",
     "mercadopago_credentials",
     "product_categories",
+    "product_subcategories",
     "shopping_cart_items",
     "shopping_carts",
     "store_category_links",

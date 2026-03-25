@@ -14,6 +14,7 @@ from app.models.store import (
     Category,
     Product,
     ProductCategory,
+    ProductSubcategory,
     Store,
     StoreCategoryLink,
     StoreDeliverySettings,
@@ -21,10 +22,13 @@ from app.models.store import (
     StorePaymentSettings,
 )
 from app.models.user import User
+from app.schemas.catalog import ProductSubcategoryRead
 from app.schemas.merchant import (
     MercadoPagoCredentialsUpdate,
     ProductCategoryCreate,
     ProductCategoryUpdate,
+    ProductSubcategoryCreate,
+    ProductSubcategoryUpdate,
     ProductWrite,
     StoreCategoriesUpdate,
     StoreDeliverySettingsUpdate,
@@ -44,8 +48,9 @@ STORE_OPTIONS = (
     selectinload(Store.delivery_settings),
     selectinload(Store.payment_settings),
     selectinload(Store.mercadopago_credentials),
-    selectinload(Store.product_categories),
+    selectinload(Store.product_categories).selectinload(ProductCategory.subcategories),
     selectinload(Store.products).selectinload(Product.product_category),
+    selectinload(Store.products).selectinload(Product.product_subcategory),
 )
 
 
@@ -93,7 +98,9 @@ def update_store_categories(
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     store = get_merchant_store(db, user.id)
-    categories = db.scalars(select(Category).where(Category.id.in_(payload.category_ids))).all()
+    categories = db.scalars(
+        select(Category).where(Category.id.in_(payload.category_ids), Category.is_active.is_(True))
+    ).all()
     if len(categories) != len(payload.category_ids):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown category ids")
     store.category_links = [
@@ -192,6 +199,14 @@ def create_product_category(
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     store = get_merchant_store(db, user.id)
+    existing = db.scalar(
+        select(ProductCategory).where(
+            ProductCategory.store_id == store.id,
+            ProductCategory.slug == slugify(payload.name),
+        )
+    )
+    if existing is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Product category already exists")
     category = ProductCategory(
         store_id=store.id,
         name=payload.name,
@@ -217,12 +232,145 @@ def update_product_category(
     )
     if category is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product category not found")
+    existing = db.scalar(
+        select(ProductCategory).where(
+            ProductCategory.store_id == store.id,
+            ProductCategory.slug == slugify(payload.name),
+            ProductCategory.id != category_id,
+        )
+    )
+    if existing is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Product category already exists")
     category.name = payload.name
     category.slug = slugify(payload.name)
     category.sort_order = payload.sort_order
     db.commit()
     db.refresh(category)
     return serialize_product_category(category).model_dump()
+
+
+@router.delete("/product-categories/{category_id}")
+def delete_product_category(
+    category_id: int,
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    store = get_merchant_store(db, user.id)
+    category = db.scalar(
+        select(ProductCategory).where(ProductCategory.id == category_id, ProductCategory.store_id == store.id)
+    )
+    if category is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product category not found")
+    db.delete(category)
+    db.commit()
+    return {"status": "deleted"}
+
+
+@router.post("/product-subcategories", status_code=status.HTTP_201_CREATED)
+def create_product_subcategory(
+    payload: ProductSubcategoryCreate,
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    store = get_merchant_store(db, user.id)
+    category = db.scalar(
+        select(ProductCategory).where(
+            ProductCategory.id == payload.product_category_id,
+            ProductCategory.store_id == store.id,
+        )
+    )
+    if category is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid product category")
+    existing = db.scalar(
+        select(ProductSubcategory).where(
+            ProductSubcategory.product_category_id == category.id,
+            ProductSubcategory.slug == slugify(payload.name),
+        )
+    )
+    if existing is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Product subcategory already exists")
+    subcategory = ProductSubcategory(
+        product_category_id=category.id,
+        name=payload.name,
+        slug=slugify(payload.name),
+        sort_order=payload.sort_order,
+    )
+    db.add(subcategory)
+    db.commit()
+    db.refresh(subcategory)
+    return ProductSubcategoryRead(
+        id=subcategory.id,
+        product_category_id=subcategory.product_category_id,
+        name=subcategory.name,
+        slug=subcategory.slug,
+        sort_order=subcategory.sort_order,
+    ).model_dump()
+
+
+@router.put("/product-subcategories/{subcategory_id}")
+def update_product_subcategory(
+    subcategory_id: int,
+    payload: ProductSubcategoryUpdate,
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    store = get_merchant_store(db, user.id)
+    subcategory = db.scalar(
+        select(ProductSubcategory)
+        .join(ProductSubcategory.product_category)
+        .where(ProductSubcategory.id == subcategory_id, ProductCategory.store_id == store.id)
+    )
+    if subcategory is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product subcategory not found")
+    category = db.scalar(
+        select(ProductCategory).where(
+            ProductCategory.id == payload.product_category_id,
+            ProductCategory.store_id == store.id,
+        )
+    )
+    if category is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid product category")
+    existing = db.scalar(
+        select(ProductSubcategory).where(
+            ProductSubcategory.product_category_id == category.id,
+            ProductSubcategory.slug == slugify(payload.name),
+            ProductSubcategory.id != subcategory_id,
+        )
+    )
+    if existing is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Product subcategory already exists")
+    subcategory.product_category_id = category.id
+    subcategory.name = payload.name
+    subcategory.slug = slugify(payload.name)
+    subcategory.sort_order = payload.sort_order
+    db.commit()
+    db.refresh(subcategory)
+    return ProductSubcategoryRead(
+        id=subcategory.id,
+        product_category_id=subcategory.product_category_id,
+        name=subcategory.name,
+        slug=subcategory.slug,
+        sort_order=subcategory.sort_order,
+    ).model_dump()
+
+
+@router.delete("/product-subcategories/{subcategory_id}")
+def delete_product_subcategory(
+    subcategory_id: int,
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    store = get_merchant_store(db, user.id)
+    subcategory = db.scalar(
+        select(ProductSubcategory)
+        .join(ProductSubcategory.product_category)
+        .where(ProductSubcategory.id == subcategory_id, ProductCategory.store_id == store.id)
+    )
+    if subcategory is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product subcategory not found")
+    db.delete(subcategory)
+    db.commit()
+    return {"status": "deleted"}
 
 
 @router.get("/products")
@@ -250,6 +398,23 @@ def create_product(
         )
         if category is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid product category")
+    if payload.product_subcategory_id is not None:
+        if payload.product_category_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Product category is required when a subcategory is selected",
+            )
+        subcategory = db.scalar(
+            select(ProductSubcategory)
+            .join(ProductSubcategory.product_category)
+            .where(
+                ProductSubcategory.id == payload.product_subcategory_id,
+                ProductSubcategory.product_category_id == payload.product_category_id,
+                ProductCategory.store_id == store.id,
+            )
+        )
+        if subcategory is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid product subcategory")
     if payload.commercial_discount_type == "percentage" and (payload.commercial_discount_value or 0) > 100:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Percentage discount cannot exceed 100")
     if payload.commercial_discount_type == "fixed" and (payload.commercial_discount_value or 0) > payload.price:
@@ -281,6 +446,23 @@ def update_product(
         )
         if category is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid product category")
+    if payload.product_subcategory_id is not None:
+        if payload.product_category_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Product category is required when a subcategory is selected",
+            )
+        subcategory = db.scalar(
+            select(ProductSubcategory)
+            .join(ProductSubcategory.product_category)
+            .where(
+                ProductSubcategory.id == payload.product_subcategory_id,
+                ProductSubcategory.product_category_id == payload.product_category_id,
+                ProductCategory.store_id == store.id,
+            )
+        )
+        if subcategory is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid product subcategory")
     existing_sku = db.scalar(
         select(Product).where(Product.store_id == store.id, Product.sku == payload.sku, Product.id != product_id)
     )

@@ -17,6 +17,7 @@ type ProductFormState = {
   commercial_discount_value: string;
   image_url: string;
   product_category_id: string;
+  product_subcategory_id: string;
   stock_quantity: string;
   max_per_order: string;
   is_available: boolean;
@@ -37,6 +38,7 @@ function emptyProductForm(): ProductFormState {
     commercial_discount_value: "",
     image_url: "",
     product_category_id: "",
+    product_subcategory_id: "",
     stock_quantity: "",
     max_per_order: "",
     is_available: true,
@@ -58,6 +60,7 @@ function productToForm(product: Product): ProductFormState {
     commercial_discount_value: product.commercial_discount_value?.toString() ?? "",
     image_url: product.image_url ?? "",
     product_category_id: product.product_category_id?.toString() ?? "",
+    product_subcategory_id: product.product_subcategory_id?.toString() ?? "",
     stock_quantity: product.stock_quantity?.toString() ?? "",
     max_per_order: product.max_per_order?.toString() ?? "",
     is_available: product.is_available,
@@ -92,6 +95,8 @@ export function ProductForm({
 }) {
   const [form, setForm] = useState<ProductFormState>(initialProduct ? productToForm(initialProduct) : emptyProductForm());
   const [error, setError] = useState<string | null>(null);
+  const selectedCategory = categories.find((category) => category.id === Number(form.product_category_id)) ?? null;
+  const availableSubcategories = selectedCategory?.subcategories ?? [];
 
   const pricePreview = useMemo(() => {
     const basePrice = Number(form.price || 0);
@@ -151,6 +156,7 @@ export function ProductForm({
         commercial_discount_value: toNullableNumber(form.commercial_discount_value),
         image_url: form.image_url.trim() || null,
         product_category_id: Number(form.product_category_id),
+        product_subcategory_id: form.product_subcategory_id ? Number(form.product_subcategory_id) : null,
         stock_quantity: toNullableNumber(form.stock_quantity),
         max_per_order: toNullableNumber(form.max_per_order),
         is_available: form.is_available,
@@ -222,13 +228,38 @@ export function ProductForm({
           />
           <select
             value={form.product_category_id}
-            onChange={(event) => setForm((current) => ({ ...current, product_category_id: event.target.value }))}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                product_category_id: event.target.value,
+                product_subcategory_id: ""
+              }))
+            }
             className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
           >
             <option value="">Selecciona una categoria</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={form.product_subcategory_id}
+            onChange={(event) => setForm((current) => ({ ...current, product_subcategory_id: event.target.value }))}
+            disabled={!selectedCategory || !availableSubcategories.length}
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 disabled:bg-zinc-100"
+          >
+            <option value="">
+              {!selectedCategory
+                ? "Primero elige una categoria"
+                : availableSubcategories.length
+                  ? "Selecciona una subcategoria"
+                  : "Sin subcategorias creadas"}
+            </option>
+            {availableSubcategories.map((subcategory) => (
+              <option key={subcategory.id} value={subcategory.id}>
+                {subcategory.name}
               </option>
             ))}
           </select>

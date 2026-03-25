@@ -2,15 +2,23 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { EmptyState, ImageAssetField, LoadingCard, PageHeader, StatusPill } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
-  fetchCategories,
+  createMerchantProductCategory,
+  createMerchantProductSubcategory,
+  deleteMerchantProductCategory,
+  deleteMerchantProductSubcategory,
+  fetchMerchantProductCategories,
   fetchMerchantStore,
+  updateMerchantProductCategory,
+  updateMerchantProductSubcategory,
   updateMerchantDeliverySettings,
   updateMerchantPaymentSettings,
   updateMerchantStore,
   updateMerchantStoreCategories
 } from "../../../shared/services/api";
-import type { Category, MerchantStore } from "../../../shared/types";
+import { useCategoryStore } from "../../../shared/stores";
+import type { MerchantStore, ProductCategory } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
+import { hexToRgba, resolveCategoryPalette } from "../../../shared/utils/categoryTheme";
 
 const storeStatusMessages: Record<string, string> = {
   pending_review:
@@ -25,14 +33,46 @@ function toNumber(value: string, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+type CategoryFormState = {
+  name: string;
+  sort_order: string;
+};
+
+type SubcategoryDraftState = {
+  name: string;
+  sort_order: string;
+  editingId: number | null;
+};
+
+const emptyCategoryForm: CategoryFormState = {
+  name: "",
+  sort_order: "0"
+};
+
+function emptySubcategoryDraft(): SubcategoryDraftState {
+  return {
+    name: "",
+    sort_order: "0",
+    editingId: null
+  };
+}
+
 export function SettingsPage() {
   const { token } = useAuthSession();
+  const categories = useCategoryStore((state) => state.categories);
+  const categoryLoading = useCategoryStore((state) => state.loading);
+  const loadCategories = useCategoryStore((state) => state.loadCategories);
   const [store, setStore] = useState<MerchantStore | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [productCategories, setProductCategories] = useState<ProductCategory[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [taxonomySaving, setTaxonomySaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [taxonomyError, setTaxonomyError] = useState<string | null>(null);
+  const [categoryForm, setCategoryForm] = useState<CategoryFormState>(emptyCategoryForm);
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [subcategoryDrafts, setSubcategoryDrafts] = useState<Record<number, SubcategoryDraftState>>({});
 
   const isApproved = store?.status === "approved";
   const canToggleOrders = isApproved;
@@ -46,9 +86,13 @@ export function SettingsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [storeResult, categoryResult] = await Promise.all([fetchMerchantStore(token), fetchCategories()]);
+      const [storeResult, , productCategoryResult] = await Promise.all([
+        fetchMerchantStore(token),
+        loadCategories(),
+        fetchMerchantProductCategories(token)
+      ]);
       setStore(storeResult);
-      setCategories(categoryResult);
+      setProductCategories(productCategoryResult);
       setSelectedCategoryIds(storeResult.category_ids ?? []);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudo cargar la configuracion");
@@ -60,6 +104,18 @@ export function SettingsPage() {
   useEffect(() => {
     void load();
   }, [token]);
+
+  function resetCategoryEditor() {
+    setEditingCategoryId(null);
+    setCategoryForm(emptyCategoryForm);
+  }
+
+  function setSubcategoryDraft(categoryId: number, next: Partial<SubcategoryDraftState>) {
+    setSubcategoryDrafts((current) => ({
+      ...current,
+      [categoryId]: { ...(current[categoryId] ?? emptySubcategoryDraft()), ...next }
+    }));
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -103,7 +159,107 @@ export function SettingsPage() {
     }
   }
 
-  if (loading) return <LoadingCard />;
+  async function handleCategorySubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token) return;
+    if (!categoryForm.name.trim()) {
+      setTaxonomyError("Ingresa un nombre para la categoria.");
+      return;
+    }
+
+    setTaxonomySaving(true);
+    setTaxonomyError(null);
+    try {
+      const payload = {
+        name: categoryForm.name.trim(),
+        sort_order: toNumber(categoryForm.sort_order)
+      };
+      if (editingCategoryId) {
+        await updateMerchantProductCategory(token, editingCategoryId, payload);
+      } else {
+        await createMerchantProductCategory(token, payload);
+      }
+      resetCategoryEditor();
+      await load();
+    } catch (requestError) {
+      setTaxonomyError(requestError instanceof Error ? requestError.message : "No se pudo guardar la categoria");
+    } finally {
+      setTaxonomySaving(false);
+    }
+  }
+
+  async function handleDeleteCategory(categoryId: number) {
+    if (!token) return;
+    setTaxonomySaving(true);
+    setTaxonomyError(null);
+    try {
+      await deleteMerchantProductCategory(token, categoryId);
+      if (editingCategoryId === categoryId) {
+        resetCategoryEditor();
+      }
+      setSubcategoryDrafts((current) => {
+        const next = { ...current };
+        delete next[categoryId];
+        return next;
+      });
+      await load();
+    } catch (requestError) {
+      setTaxonomyError(requestError instanceof Error ? requestError.message : "No se pudo eliminar la categoria");
+    } finally {
+      setTaxonomySaving(false);
+    }
+  }
+
+  async function handleSubcategorySubmit(event: FormEvent<HTMLFormElement>, categoryId: number) {
+    event.preventDefault();
+    if (!token) return;
+    const draft = subcategoryDrafts[categoryId] ?? emptySubcategoryDraft();
+    if (!draft.name.trim()) {
+      setTaxonomyError("Ingresa un nombre para la subcategoria.");
+      return;
+    }
+
+    setTaxonomySaving(true);
+    setTaxonomyError(null);
+    try {
+      const payload = {
+        product_category_id: categoryId,
+        name: draft.name.trim(),
+        sort_order: toNumber(draft.sort_order)
+      };
+      if (draft.editingId) {
+        await updateMerchantProductSubcategory(token, draft.editingId, payload);
+      } else {
+        await createMerchantProductSubcategory(token, payload);
+      }
+      setSubcategoryDraft(categoryId, emptySubcategoryDraft());
+      await load();
+    } catch (requestError) {
+      setTaxonomyError(requestError instanceof Error ? requestError.message : "No se pudo guardar la subcategoria");
+    } finally {
+      setTaxonomySaving(false);
+    }
+  }
+
+  async function handleDeleteSubcategory(subcategoryId: number, categoryId: number) {
+    if (!token) return;
+    setTaxonomySaving(true);
+    setTaxonomyError(null);
+    try {
+      await deleteMerchantProductSubcategory(token, subcategoryId);
+      const draft = subcategoryDrafts[categoryId];
+      if (draft?.editingId === subcategoryId) {
+        setSubcategoryDraft(categoryId, emptySubcategoryDraft());
+      }
+      await load();
+    } catch (requestError) {
+      setTaxonomyError(requestError instanceof Error ? requestError.message : "No se pudo eliminar la subcategoria");
+    } finally {
+      setTaxonomySaving(false);
+    }
+  }
+
+  if (loading || categoryLoading) return <LoadingCard />;
   if (!store) {
     return <EmptyState title="Configuracion no disponible" description={error ?? "Faltan datos del comercio"} />;
   }
@@ -388,22 +544,29 @@ export function SettingsPage() {
         <section className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">Rubros</p>
           <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() =>
-                  setSelectedCategoryIds((current) =>
-                    current.includes(category.id) ? current.filter((id) => id !== category.id) : [...current, category.id]
-                  )
-                }
-                className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                  selectedCategoryIds.includes(category.id) ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
-                }`}
-              >
-                {category.name}
-              </button>
-            ))}
+            {categories.map((category) => {
+              const selected = selectedCategoryIds.includes(category.id);
+              const palette = resolveCategoryPalette(category);
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() =>
+                    setSelectedCategoryIds((current) =>
+                      current.includes(category.id) ? current.filter((id) => id !== category.id) : [...current, category.id]
+                    )
+                  }
+                  className="rounded-full border px-4 py-2 text-sm font-semibold transition"
+                  style={{
+                    backgroundColor: selected ? palette.color : palette.colorLight,
+                    borderColor: hexToRgba(palette.color, selected ? 0.22 : 0.14),
+                    color: selected ? "#FFF8F0" : palette.color
+                  }}
+                >
+                  {category.name}
+                </button>
+              );
+            })}
           </div>
         </section>
 
@@ -418,6 +581,170 @@ export function SettingsPage() {
           </Button>
         </div>
       </form>
+
+      <section className="space-y-5 rounded-[28px] bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Catalogo</p>
+            <h2 className="mt-2 text-xl font-bold text-ink">Categorias y subcategorias</h2>
+            <p className="mt-2 text-sm text-zinc-600">
+              Administra la taxonomia del menu. El alta de producto usa estas categorias para ordenar el catalogo.
+            </p>
+          </div>
+          <span className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-600">
+            {productCategories.length} categorias activas
+          </span>
+        </div>
+
+        <form onSubmit={(event) => void handleCategorySubmit(event)} className="grid gap-3 rounded-[24px] border border-black/5 bg-zinc-50 p-4 md:grid-cols-[1fr_160px_auto]">
+          <input
+            value={categoryForm.name}
+            onChange={(event) => setCategoryForm((current) => ({ ...current, name: event.target.value }))}
+            placeholder="Nombre de categoria"
+            className="rounded-2xl border border-black/10 bg-white px-4 py-3"
+          />
+          <input
+            type="number"
+            min={0}
+            value={categoryForm.sort_order}
+            onChange={(event) => setCategoryForm((current) => ({ ...current, sort_order: event.target.value }))}
+            placeholder="Orden"
+            className="rounded-2xl border border-black/10 bg-white px-4 py-3"
+          />
+          <div className="flex gap-2">
+            <Button type="submit" disabled={taxonomySaving} className="w-full md:w-auto">
+              {taxonomySaving ? "Guardando..." : editingCategoryId ? "Actualizar categoria" : "Crear categoria"}
+            </Button>
+            {editingCategoryId ? (
+              <button
+                type="button"
+                onClick={resetCategoryEditor}
+                className="rounded-full bg-white px-4 py-3 text-sm font-semibold text-zinc-700 shadow-sm"
+              >
+                Cancelar
+              </button>
+            ) : null}
+          </div>
+        </form>
+
+        {taxonomyError ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{taxonomyError}</p> : null}
+
+        <div className="space-y-4">
+          {productCategories.map((category) => {
+            const draft = subcategoryDrafts[category.id] ?? emptySubcategoryDraft();
+            return (
+              <article key={category.id} className="rounded-[24px] border border-black/5 bg-zinc-50 p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-lg font-bold text-ink">{category.name}</h3>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
+                        Orden {category.sort_order}
+                      </span>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
+                        {category.subcategories.length} subcategorias
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-zinc-600">Usa subcategorias para ordenar mejor el alta de productos.</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingCategoryId(category.id);
+                        setCategoryForm({ name: category.name, sort_order: String(category.sort_order) });
+                      }}
+                      className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
+                    >
+                      Editar categoria
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteCategory(category.id)}
+                      className="rounded-full bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700"
+                    >
+                      Eliminar categoria
+                    </button>
+                  </div>
+                </div>
+
+                <form
+                  onSubmit={(event) => void handleSubcategorySubmit(event, category.id)}
+                  className="mt-4 grid gap-3 rounded-[22px] border border-black/5 bg-white p-4 md:grid-cols-[1fr_160px_auto]"
+                >
+                  <input
+                    value={draft.name}
+                    onChange={(event) => setSubcategoryDraft(category.id, { name: event.target.value })}
+                    placeholder="Nombre de subcategoria"
+                    className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    value={draft.sort_order}
+                    onChange={(event) => setSubcategoryDraft(category.id, { sort_order: event.target.value })}
+                    placeholder="Orden"
+                    className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                  />
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={taxonomySaving} className="w-full md:w-auto">
+                      {taxonomySaving ? "Guardando..." : draft.editingId ? "Actualizar subcategoria" : "Crear subcategoria"}
+                    </Button>
+                    {draft.editingId ? (
+                      <button
+                        type="button"
+                        onClick={() => setSubcategoryDraft(category.id, emptySubcategoryDraft())}
+                        className="rounded-full bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700"
+                      >
+                        Cancelar
+                      </button>
+                    ) : null}
+                  </div>
+                </form>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {category.subcategories.map((subcategory) => (
+                    <div key={subcategory.id} className="flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm shadow-sm">
+                      <span className="font-semibold text-ink">{subcategory.name}</span>
+                      <span className="text-xs text-zinc-400">#{subcategory.sort_order}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSubcategoryDraft(category.id, {
+                            editingId: subcategory.id,
+                            name: subcategory.name,
+                            sort_order: String(subcategory.sort_order)
+                          })
+                        }
+                        className="text-xs font-semibold text-brand-600"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteSubcategory(subcategory.id, category.id)}
+                        className="text-xs font-semibold text-rose-700"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  ))}
+                  {!category.subcategories.length ? (
+                    <p className="text-sm text-zinc-500">Aun no creaste subcategorias para esta categoria.</p>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })}
+
+          {!productCategories.length ? (
+            <EmptyState
+              title="Sin categorias de producto"
+              description="Crea tu primera categoria para habilitar el alta de productos."
+            />
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }

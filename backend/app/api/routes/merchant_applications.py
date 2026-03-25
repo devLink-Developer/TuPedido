@@ -35,7 +35,9 @@ def get_categories_or_400(db: Session, requested_category_ids: list[int]) -> lis
     unique_category_ids = list(dict.fromkeys(requested_category_ids))
     if not unique_category_ids:
         return []
-    categories = db.scalars(select(Category).where(Category.id.in_(unique_category_ids))).all()
+    categories = db.scalars(
+        select(Category).where(Category.id.in_(unique_category_ids), Category.is_active.is_(True))
+    ).all()
     if len(categories) != len(unique_category_ids):
         found_ids = {category.id for category in categories}
         missing = [category_id for category_id in unique_category_ids if category_id not in found_ids]

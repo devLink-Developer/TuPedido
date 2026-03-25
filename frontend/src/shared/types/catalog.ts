@@ -3,6 +3,21 @@ export type Category = {
   name: string;
   slug: string;
   description: string | null;
+  color: string;
+  color_light: string;
+  icon: string | null;
+  is_active: boolean;
+  sort_order: number;
+};
+
+export type CategoryWrite = {
+  name: string;
+  description?: string | null;
+  color: string;
+  color_light?: string | null;
+  icon?: string | null;
+  is_active: boolean;
+  sort_order: number;
 };
 
 export type StoreDeliverySettings = {
@@ -41,7 +56,9 @@ export type StoreSummary = {
   rating: number;
   rating_count: number;
   category_ids?: number[];
+  primary_category_id?: number | null;
   primary_category: string | null;
+  primary_category_slug?: string | null;
   categories: string[];
   delivery_settings: StoreDeliverySettings;
   payment_settings: StorePaymentSettings;
@@ -59,6 +76,15 @@ export type ProductCategory = {
   name: string;
   slug: string;
   sort_order: number;
+  subcategories: ProductSubcategory[];
+};
+
+export type ProductSubcategory = {
+  id: number;
+  product_category_id: number;
+  name: string;
+  slug: string;
+  sort_order: number;
 };
 
 export type Product = {
@@ -66,6 +92,8 @@ export type Product = {
   store_id: number;
   product_category_id: number | null;
   product_category_name: string | null;
+  product_subcategory_id: number | null;
+  product_subcategory_name: string | null;
   sku: string;
   name: string;
   brand: string | null;

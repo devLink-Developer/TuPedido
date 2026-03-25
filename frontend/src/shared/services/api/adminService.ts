@@ -3,6 +3,7 @@ import type {
   AdminRiderCreate,
   AdminSettlementStore,
   Category,
+  CategoryWrite,
   DeliveryApplication,
   DeliveryProfile,
   DeliverySettlement,
@@ -36,8 +37,23 @@ export async function fetchAdminCategories(token: string): Promise<Category[]> {
   return apiRequest<Category[]>("/admin/categories", { token });
 }
 
-export async function createAdminCategory(token: string, payload: { name: string; description?: string | null }): Promise<Category> {
+export async function createAdminCategory(token: string, payload: CategoryWrite): Promise<Category> {
   return apiRequest<Category>("/admin/categories", { method: "POST", token, body: JSON.stringify(payload) });
+}
+
+export async function updateAdminCategory(token: string, categoryId: number, payload: CategoryWrite): Promise<Category> {
+  return apiRequest<Category>(`/admin/categories/${categoryId}`, {
+    method: "PUT",
+    token,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function deleteAdminCategory(token: string, categoryId: number): Promise<Category> {
+  return apiRequest<Category>(`/admin/categories/${categoryId}`, {
+    method: "DELETE",
+    token
+  });
 }
 
 export async function fetchAdminApplications(token: string): Promise<MerchantApplication[]> {

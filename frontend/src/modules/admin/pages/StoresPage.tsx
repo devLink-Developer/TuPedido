@@ -11,6 +11,7 @@ import {
   updateAdminStoreStatus
 } from "../../../shared/services/api";
 import type { Category, MerchantApplication, StoreSummary } from "../../../shared/types";
+import { hexToRgba, resolveCategoryPalette } from "../../../shared/utils/categoryTheme";
 import { statusLabels } from "../../../shared/utils/labels";
 
 type StoreFormState = {
@@ -79,6 +80,7 @@ export function StoresPage() {
   }, [token]);
 
   const selectedCategoryIds = useMemo(() => new Set(form.category_ids), [form.category_ids]);
+  const selectableCategories = useMemo(() => categories.filter((category) => category.is_active), [categories]);
   const pendingApplications = useMemo(
     () => applications.filter((application) => !resolvedApplicationStatuses.has(application.status)),
     [applications]
@@ -216,25 +218,32 @@ export function StoresPage() {
         <div className="space-y-3 lg:col-span-2">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Categorias</p>
           <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() =>
-                  setForm((current) => ({
-                    ...current,
-                    category_ids: selectedCategoryIds.has(category.id)
-                      ? current.category_ids.filter((value) => value !== category.id)
-                      : [...current.category_ids, category.id]
-                  }))
-                }
-                className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                  selectedCategoryIds.has(category.id) ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
-                }`}
-              >
-                {category.name}
-              </button>
-            ))}
+            {selectableCategories.map((category) => {
+              const selected = selectedCategoryIds.has(category.id);
+              const palette = resolveCategoryPalette(category);
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() =>
+                    setForm((current) => ({
+                      ...current,
+                      category_ids: selectedCategoryIds.has(category.id)
+                        ? current.category_ids.filter((value) => value !== category.id)
+                        : [...current.category_ids, category.id]
+                    }))
+                  }
+                  className="rounded-full border px-4 py-2 text-sm font-semibold transition"
+                  style={{
+                    backgroundColor: selected ? palette.color : palette.colorLight,
+                    borderColor: hexToRgba(palette.color, selected ? 0.22 : 0.14),
+                    color: selected ? "#FFF8F0" : palette.color
+                  }}
+                >
+                  {category.name}
+                </button>
+              );
+            })}
           </div>
         </div>
 

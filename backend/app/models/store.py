@@ -6,6 +6,7 @@ from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, Numeric, S
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.services.category_colors import DEFAULT_CATEGORY_COLOR
 
 
 class Category(Base):
@@ -15,6 +16,9 @@ class Category(Base):
     name: Mapped[str] = mapped_column(String(120), unique=True)
     slug: Mapped[str] = mapped_column(String(120), unique=True, index=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    color: Mapped[str] = mapped_column(String(7), default=DEFAULT_CATEGORY_COLOR)
+    color_light: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    icon: Mapped[str | None] = mapped_column(String(24), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
@@ -180,7 +184,25 @@ class ProductCategory(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
     store: Mapped[Store] = relationship(back_populates="product_categories")
+    subcategories: Mapped[list["ProductSubcategory"]] = relationship(
+        back_populates="product_category", cascade="all, delete-orphan", order_by="ProductSubcategory.sort_order"
+    )
     products: Mapped[list["Product"]] = relationship(back_populates="product_category")
+
+
+class ProductSubcategory(Base):
+    __tablename__ = "product_subcategories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    product_category_id: Mapped[int] = mapped_column(
+        ForeignKey("product_categories.id", ondelete="CASCADE"), index=True
+    )
+    name: Mapped[str] = mapped_column(String(120))
+    slug: Mapped[str] = mapped_column(String(120), index=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+    product_category: Mapped[ProductCategory] = relationship(back_populates="subcategories")
+    products: Mapped[list["Product"]] = relationship(back_populates="product_subcategory")
 
 
 class Product(Base):
@@ -190,6 +212,9 @@ class Product(Base):
     store_id: Mapped[int] = mapped_column(ForeignKey("stores.id", ondelete="CASCADE"), index=True)
     product_category_id: Mapped[int | None] = mapped_column(
         ForeignKey("product_categories.id", ondelete="SET NULL"), index=True, nullable=True
+    )
+    product_subcategory_id: Mapped[int | None] = mapped_column(
+        ForeignKey("product_subcategories.id", ondelete="SET NULL"), index=True, nullable=True
     )
     sku: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(180))
@@ -209,5 +234,6 @@ class Product(Base):
 
     store: Mapped[Store] = relationship(back_populates="products")
     product_category: Mapped["ProductCategory | None"] = relationship(back_populates="products")
+    product_subcategory: Mapped["ProductSubcategory | None"] = relationship(back_populates="products")
     cart_items: Mapped[list["ShoppingCartItem"]] = relationship(back_populates="product")
     order_items: Mapped[list["StoreOrderItem"]] = relationship(back_populates="product")

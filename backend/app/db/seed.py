@@ -14,6 +14,7 @@ from app.models.store import (
     MercadoPagoCredential,
     Product,
     ProductCategory,
+    ProductSubcategory,
     Store,
     StoreCategoryLink,
     StoreDeliverySettings,
@@ -109,21 +110,64 @@ def seed_initial_data() -> None:
             db.add(PlatformSettings(id=1, service_fee_amount=350))
 
         base_categories = [
-            ("Despensa", "Compras rapidas, almacen y productos de consumo diario."),
-            ("Kiosko", "Bebidas, snacks, cigarrillos y compras de ultimo momento."),
-            ("Farmacia", "Salud, cuidado personal y medicamentos de mostrador."),
-            ("Carniceria", "Cortes frescos y preparados para cocinar."),
-            ("Polleria", "Especialistas en pollo fresco y rotiseria."),
-            ("Restaurante", "Comidas preparadas y menus completos."),
+            {
+                "name": "Despensa",
+                "description": "Compras rapidas, almacen y productos de consumo diario.",
+                "color": "#FF7043",
+                "color_light": "#FBE9E7",
+                "icon": "DS",
+            },
+            {
+                "name": "Kiosko",
+                "description": "Bebidas, snacks, cigarrillos y compras de ultimo momento.",
+                "color": "#29B6F6",
+                "color_light": "#E1F5FE",
+                "icon": "KS",
+            },
+            {
+                "name": "Farmacia",
+                "description": "Salud, cuidado personal y medicamentos de mostrador.",
+                "color": "#66BB6A",
+                "color_light": "#E8F5E9",
+                "icon": "FX",
+            },
+            {
+                "name": "Carniceria",
+                "description": "Cortes frescos y preparados para cocinar.",
+                "color": "#EF5350",
+                "color_light": "#FFEBEE",
+                "icon": "CR",
+            },
+            {
+                "name": "Polleria",
+                "description": "Especialistas en pollo fresco y rotiseria.",
+                "color": "#FFCA28",
+                "color_light": "#FFF8E1",
+                "icon": "PL",
+            },
+            {
+                "name": "Restaurante",
+                "description": "Comidas preparadas y menus completos.",
+                "color": "#AB47BC",
+                "color_light": "#F3E5F5",
+                "icon": "RT",
+            },
         ]
         categories_by_name: dict[str, Category] = {}
-        for sort_order, (name, description) in enumerate(base_categories, start=1):
+        for sort_order, item in enumerate(base_categories, start=1):
+            name = item["name"]
             slug = slugify(name)
             category = db.scalar(select(Category).where(Category.slug == slug))
             if category is None:
-                category = Category(name=name, slug=slug, description=description, sort_order=sort_order)
+                category = Category(name=name, slug=slug)
                 db.add(category)
                 db.flush()
+            category.description = item["description"]
+            category.color = item["color"]
+            category.color_light = item["color_light"]
+            category.icon = item["icon"]
+            category.is_active = True
+            category.sort_order = sort_order
             categories_by_name[name] = category
 
         users_seed = [
@@ -334,34 +378,70 @@ def seed_initial_data() -> None:
                     )
                 )
 
-        categories_seed = [
-            ("Despensa", ["Promos", "Despensa", "Bebidas"]),
-        ]
-        for _, names in categories_seed:
-            for index, name in enumerate(names):
-                slug = slugify(name)
-                product_category = db.scalar(
-                    select(ProductCategory).where(ProductCategory.store_id == store.id, ProductCategory.slug == slug)
+        category_taxonomy_seed = {
+            "Promos": ["Combos", "Oportunidades"],
+            "Despensa": ["Yerbas", "Almacen"],
+            "Bebidas": ["Gaseosas", "Aguas"],
+        }
+        for index, (category_name, subcategory_names) in enumerate(category_taxonomy_seed.items()):
+            category_slug = slugify(category_name)
+            product_category = db.scalar(
+                select(ProductCategory).where(
+                    ProductCategory.store_id == store.id, ProductCategory.slug == category_slug
                 )
-                if product_category is None:
-                    db.add(ProductCategory(store_id=store.id, name=name, slug=slug, sort_order=index))
+            )
+            if product_category is None:
+                product_category = ProductCategory(
+                    store_id=store.id,
+                    name=category_name,
+                    slug=category_slug,
+                    sort_order=index,
+                )
+                db.add(product_category)
+                db.flush()
+            for sub_index, subcategory_name in enumerate(subcategory_names):
+                subcategory_slug = slugify(subcategory_name)
+                subcategory = db.scalar(
+                    select(ProductSubcategory).where(
+                        ProductSubcategory.product_category_id == product_category.id,
+                        ProductSubcategory.slug == subcategory_slug,
+                    )
+                )
+                if subcategory is None:
+                    db.add(
+                        ProductSubcategory(
+                            product_category_id=product_category.id,
+                            name=subcategory_name,
+                            slug=subcategory_slug,
+                            sort_order=sub_index,
+                        )
+                    )
 
         db.flush()
         product_categories = {
             item.slug: item
             for item in db.scalars(select(ProductCategory).where(ProductCategory.store_id == store.id)).all()
         }
+        product_subcategories = {
+            f"{item.product_category.slug}:{item.slug}": item
+            for item in db.scalars(
+                select(ProductSubcategory)
+                .join(ProductSubcategory.product_category)
+                .where(ProductCategory.store_id == store.id)
+            ).all()
+        }
         products_seed = [
-            ("combo-ahorro", "Combo Ahorro", "Promo del dia con gaseosa y snack.", 8.9, None, "promos"),
-            ("yerba-premium", "Yerba Premium 1kg", "Ideal para mate de todos los dias.", 6.4, None, "despensa"),
-            ("gaseosa-cola", "Gaseosa Cola 1.5L", "Bebida fria lista para delivery.", 3.25, None, "bebidas"),
+            ("combo-ahorro", "Combo Ahorro", "Promo del dia con gaseosa y snack.", 8.9, None, "promos", "combos"),
+            ("yerba-premium", "Yerba Premium 1kg", "Ideal para mate de todos los dias.", 6.4, None, "despensa", "yerbas"),
+            ("gaseosa-cola", "Gaseosa Cola 1.5L", "Bebida fria lista para delivery.", 3.25, None, "bebidas", "gaseosas"),
         ]
-        for index, (_, name, description, price, compare_at, category_slug) in enumerate(products_seed):
+        for index, (_, name, description, price, compare_at, category_slug, subcategory_slug) in enumerate(products_seed):
             product = db.scalar(select(Product).where(Product.store_id == store.id, Product.name == name))
             if product is None:
                 product = Product(
                     store_id=store.id,
                     product_category_id=product_categories[category_slug].id,
+                    product_subcategory_id=product_subcategories[f"{category_slug}:{subcategory_slug}"].id,
                     name=name,
                     description=description,
                     price=price,
@@ -373,6 +453,7 @@ def seed_initial_data() -> None:
                 db.add(product)
             else:
                 product.product_category_id = product_categories[category_slug].id
+                product.product_subcategory_id = product_subcategories[f"{category_slug}:{subcategory_slug}"].id
                 product.description = description
                 product.price = price
                 product.compare_at_price = compare_at

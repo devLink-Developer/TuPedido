@@ -7,6 +7,9 @@ import type {
   ProductCategory,
   ProductCategoryCreate,
   ProductCategoryUpdate,
+  ProductSubcategory,
+  ProductSubcategoryCreate,
+  ProductSubcategoryUpdate,
   ProductWrite,
   SettlementCharge,
   SettlementChargeCreate,
@@ -139,6 +142,43 @@ export async function updateMerchantProductCategory(
     method: "PUT",
     token,
     body: JSON.stringify(payload)
+  });
+}
+
+export async function deleteMerchantProductCategory(token: string, id: number): Promise<void> {
+  await apiRequest<void>(`/merchant/product-categories/${id}`, {
+    method: "DELETE",
+    token
+  });
+}
+
+export async function createMerchantProductSubcategory(
+  token: string,
+  payload: ProductSubcategoryCreate
+): Promise<ProductSubcategory> {
+  return apiRequest<ProductSubcategory>("/merchant/product-subcategories", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function updateMerchantProductSubcategory(
+  token: string,
+  id: number,
+  payload: ProductSubcategoryUpdate
+): Promise<ProductSubcategory> {
+  return apiRequest<ProductSubcategory>(`/merchant/product-subcategories/${id}`, {
+    method: "PUT",
+    token,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function deleteMerchantProductSubcategory(token: string, id: number): Promise<void> {
+  await apiRequest<void>(`/merchant/product-subcategories/${id}`, {
+    method: "DELETE",
+    token
   });
 }
 

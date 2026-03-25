@@ -216,8 +216,17 @@ export type ProductCategoryCreate = {
 
 export type ProductCategoryUpdate = ProductCategoryCreate;
 
+export type ProductSubcategoryCreate = {
+  product_category_id: number;
+  name: string;
+  sort_order: number;
+};
+
+export type ProductSubcategoryUpdate = ProductSubcategoryCreate;
+
 export type ProductWrite = {
   product_category_id: number | null;
+  product_subcategory_id: number | null;
   sku: string;
   name: string;
   brand: string | null;
