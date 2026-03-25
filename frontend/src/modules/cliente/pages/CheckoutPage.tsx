@@ -9,24 +9,7 @@ import { Button } from "../../../shared/ui/Button";
 import { notifyCustomerAddressesChanged } from "../../../shared/utils/customerAddresses";
 import { normalizePath } from "../../../shared/utils/routing";
 import { CheckoutSummary } from "../components/CheckoutSummary";
-
-type AddressFormState = {
-  label: string;
-  street: string;
-  details: string;
-  latitude: string;
-  longitude: string;
-  is_default: boolean;
-};
-
-const emptyAddressForm: AddressFormState = {
-  label: "",
-  street: "",
-  details: "",
-  latitude: "",
-  longitude: "",
-  is_default: false
-};
+import { AddressFormCard, emptyAddressForm, getAddressCoordinates, hasAddressGeolocation, type AddressFormState } from "../components/AddressFormCard";
 
 function hasMercadoPago(paymentSettings: StoreDetail["payment_settings"]) {
   return paymentSettings.mercadopago_enabled && paymentSettings.mercadopago_configured;
@@ -62,7 +45,8 @@ export function CheckoutPage() {
         if (cancelled) return;
         setAddresses(addressList);
         setStore(storeData);
-        const defaultAddress = addressList.find((address) => address.is_default) ?? addressList[0];
+        const geolocatedAddresses = addressList.filter((address) => address.latitude !== null && address.longitude !== null);
+        const defaultAddress = geolocatedAddresses.find((address) => address.is_default) ?? geolocatedAddresses[0];
         setSelectedAddressId(cart.delivery_mode === "delivery" ? defaultAddress?.id ?? "" : "");
         setSelectedPaymentMethod(hasMercadoPago(storeData.payment_settings) ? "mercadopago" : "cash");
       })
@@ -111,16 +95,30 @@ export function CheckoutPage() {
 
   async function handleCreateAddress() {
     if (!token) return;
+    if (!addressForm.label.trim() || !addressForm.street.trim() || !addressForm.details.trim()) {
+      setError("Completa etiqueta, calle y detalle de la direccion.");
+      return;
+    }
+    if (!hasAddressGeolocation(addressForm)) {
+      setError("Debes seleccionar la geolocalizacion exacta en el mapa.");
+      return;
+    }
+
+    const coordinates = getAddressCoordinates(addressForm);
+    if (coordinates.latitude === null || coordinates.longitude === null) {
+      setError("No se pudo leer la geolocalizacion seleccionada.");
+      return;
+    }
 
     setError(null);
 
     try {
       const created = await createAddress(token, {
-        label: addressForm.label,
-        street: addressForm.street,
-        details: addressForm.details,
-        latitude: addressForm.latitude ? Number(addressForm.latitude) : null,
-        longitude: addressForm.longitude ? Number(addressForm.longitude) : null,
+        label: addressForm.label.trim(),
+        street: addressForm.street.trim(),
+        details: addressForm.details.trim(),
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
         is_default: addressForm.is_default
       });
       setAddresses((current) => [created, ...current]);
@@ -193,14 +191,24 @@ export function CheckoutPage() {
                   <button
                     key={address.id}
                     type="button"
+                    disabled={address.latitude === null || address.longitude === null}
                     onClick={() => setSelectedAddressId(address.id)}
                     className={`block w-full rounded-[24px] border px-4 py-3 text-left text-sm ${
-                      selectedAddressId === address.id ? "border-brand-500 bg-brand-50 text-brand-900" : "border-black/10 bg-zinc-50 text-zinc-700"
+                      address.latitude === null || address.longitude === null
+                        ? "cursor-not-allowed border-amber-200 bg-amber-50 text-amber-900"
+                        : selectedAddressId === address.id
+                          ? "border-brand-500 bg-brand-50 text-brand-900"
+                          : "border-black/10 bg-zinc-50 text-zinc-700"
                     }`}
                   >
                     <p className="font-semibold">{address.label}</p>
                     <p className="mt-1 text-zinc-500">{address.street}</p>
                     <p className="mt-1 text-zinc-500">{address.details}</p>
+                    {address.latitude === null || address.longitude === null ? (
+                      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+                        Requiere geolocalizacion. Editala desde tu perfil.
+                      </p>
+                    ) : null}
                   </button>
                 ))}
 
@@ -213,51 +221,19 @@ export function CheckoutPage() {
                 </button>
 
                 {showAddressForm ? (
-                  <div className="grid gap-3 rounded-[24px] bg-zinc-50 p-4 md:grid-cols-2">
-                    <input
-                      value={addressForm.label}
-                      onChange={(event) => setAddressForm((current) => ({ ...current, label: event.target.value }))}
-                      placeholder="Casa, trabajo..."
-                      className="rounded-2xl border border-black/10 bg-white px-4 py-3"
-                      required
-                    />
-                    <input
-                      value={addressForm.street}
-                      onChange={(event) => setAddressForm((current) => ({ ...current, street: event.target.value }))}
-                      placeholder="Calle y numero"
-                      className="rounded-2xl border border-black/10 bg-white px-4 py-3"
-                      required
-                    />
-                    <input
-                      value={addressForm.details}
-                      onChange={(event) => setAddressForm((current) => ({ ...current, details: event.target.value }))}
-                      placeholder="Depto, referencia..."
-                      className="rounded-2xl border border-black/10 bg-white px-4 py-3 md:col-span-2"
-                    />
-                    <input
-                      value={addressForm.latitude}
-                      onChange={(event) => setAddressForm((current) => ({ ...current, latitude: event.target.value }))}
-                      placeholder="Latitud"
-                      className="rounded-2xl border border-black/10 bg-white px-4 py-3"
-                    />
-                    <input
-                      value={addressForm.longitude}
-                      onChange={(event) => setAddressForm((current) => ({ ...current, longitude: event.target.value }))}
-                      placeholder="Longitud"
-                      className="rounded-2xl border border-black/10 bg-white px-4 py-3"
-                    />
-                    <label className="flex items-center gap-2 text-sm font-semibold text-zinc-700 md:col-span-2">
-                      <input
-                        type="checkbox"
-                        checked={addressForm.is_default}
-                        onChange={(event) => setAddressForm((current) => ({ ...current, is_default: event.target.checked }))}
-                      />
-                      Marcar como predeterminada
-                    </label>
-                    <Button type="button" onClick={() => void handleCreateAddress()} className="md:col-span-2">
-                      Guardar direccion
-                    </Button>
-                  </div>
+                  <AddressFormCard
+                    title="Nueva direccion"
+                    submitLabel="Guardar direccion"
+                    form={addressForm}
+                    error={error}
+                    onChange={setAddressForm}
+                    onSubmit={handleCreateAddress}
+                    onCancel={() => {
+                      setShowAddressForm(false);
+                      setAddressForm(emptyAddressForm);
+                      setError(null);
+                    }}
+                  />
                 ) : null}
 
                 {!addresses.length && !showAddressForm ? <p className="text-sm text-zinc-500">Aun no tienes direcciones guardadas.</p> : null}

@@ -1,40 +1,16 @@
 import { useEffect, useState } from "react";
 import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
-import { createAddress, deleteAddress, fetchAddresses } from "../../../shared/services/api";
+import { createAddress, deleteAddress, fetchAddresses, updateAddress } from "../../../shared/services/api";
 import type { Address } from "../../../shared/types";
-import { Button } from "../../../shared/ui/Button";
 import { notifyCustomerAddressesChanged } from "../../../shared/utils/customerAddresses";
-
-type AddressFormState = {
-  label: string;
-  street: string;
-  details: string;
-  latitude: string;
-  longitude: string;
-  is_default: boolean;
-};
-
-const emptyAddressForm: AddressFormState = {
-  label: "",
-  street: "",
-  details: "",
-  latitude: "",
-  longitude: "",
-  is_default: false
-};
-
-function toNullableNumber(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const parsed = Number(trimmed);
-  return Number.isFinite(parsed) ? parsed : null;
-}
+import { AddressFormCard, emptyAddressForm, getAddressCoordinates, hasAddressGeolocation, toAddressFormState, type AddressFormState } from "../components/AddressFormCard";
 
 export function ProfilePage() {
   const { token, user } = useAuthSession();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [form, setForm] = useState<AddressFormState>(emptyAddressForm);
+  const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,25 +33,41 @@ export function ProfilePage() {
     void load();
   }, [token]);
 
-  async function handleCreateAddress() {
+  async function handleSaveAddress() {
     if (!token) return;
     if (!form.label.trim() || !form.street.trim() || !form.details.trim()) {
       setError("Completa etiqueta, calle y detalle de la direccion.");
+      return;
+    }
+    if (!hasAddressGeolocation(form)) {
+      setError("Debes seleccionar la geolocalizacion exacta en el mapa.");
+      return;
+    }
+
+    const coordinates = getAddressCoordinates(form);
+    if (coordinates.latitude === null || coordinates.longitude === null) {
+      setError("No se pudo leer la geolocalizacion seleccionada.");
       return;
     }
 
     setSaving(true);
     setError(null);
     try {
-      await createAddress(token, {
+      const payload = {
         label: form.label.trim(),
         street: form.street.trim(),
         details: form.details.trim(),
-        latitude: toNullableNumber(form.latitude),
-        longitude: toNullableNumber(form.longitude),
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
         is_default: form.is_default
-      });
+      };
+      if (editingAddressId) {
+        await updateAddress(token, editingAddressId, payload);
+      } else {
+        await createAddress(token, payload);
+      }
       setForm(emptyAddressForm);
+      setEditingAddressId(null);
       await load();
       notifyCustomerAddressesChanged();
     } catch (requestError) {
@@ -91,6 +83,10 @@ export function ProfilePage() {
     setError(null);
     try {
       await deleteAddress(token, addressId);
+      if (editingAddressId === addressId) {
+        setEditingAddressId(null);
+        setForm(emptyAddressForm);
+      }
       await load();
       notifyCustomerAddressesChanged();
     } catch (requestError) {
@@ -98,6 +94,12 @@ export function ProfilePage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleStartEdit(address: Address) {
+    setEditingAddressId(address.id);
+    setForm(toAddressFormState(address));
+    setError(null);
   }
 
   if (loading) return <LoadingCard />;
@@ -123,56 +125,24 @@ export function ProfilePage() {
             </div>
           </article>
 
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Nueva direccion</p>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <input
-                value={form.label}
-                onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
-                placeholder="Casa, trabajo, consultorio"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              />
-              <input
-                value={form.street}
-                onChange={(event) => setForm((current) => ({ ...current, street: event.target.value }))}
-                placeholder="Calle y numero"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              />
-              <textarea
-                value={form.details}
-                onChange={(event) => setForm((current) => ({ ...current, details: event.target.value }))}
-                rows={4}
-                placeholder="Piso, depto, referencia, timbre"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
-              />
-              <input
-                value={form.latitude}
-                onChange={(event) => setForm((current) => ({ ...current, latitude: event.target.value }))}
-                placeholder="Latitud opcional"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              />
-              <input
-                value={form.longitude}
-                onChange={(event) => setForm((current) => ({ ...current, longitude: event.target.value }))}
-                placeholder="Longitud opcional"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              />
-              <label className="flex items-center gap-2 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700 md:col-span-2">
-                <input
-                  type="checkbox"
-                  checked={form.is_default}
-                  onChange={(event) => setForm((current) => ({ ...current, is_default: event.target.checked }))}
-                />
-                Usar como direccion predeterminada
-              </label>
-            </div>
-
-            {error ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
-
-            <Button type="button" onClick={() => void handleCreateAddress()} disabled={saving} className="mt-4 w-full">
-              {saving ? "Guardando..." : "Guardar direccion"}
-            </Button>
-          </article>
+          <AddressFormCard
+            title={editingAddressId ? "Editar direccion" : "Nueva direccion"}
+            submitLabel={editingAddressId ? "Guardar cambios" : "Guardar direccion"}
+            form={form}
+            saving={saving}
+            error={error}
+            onChange={setForm}
+            onSubmit={handleSaveAddress}
+            onCancel={
+              editingAddressId
+                ? () => {
+                    setEditingAddressId(null);
+                    setForm(emptyAddressForm);
+                    setError(null);
+                  }
+                : undefined
+            }
+          />
         </section>
 
         <section className="space-y-4">
@@ -202,14 +172,26 @@ export function ProfilePage() {
                       </div>
                       <p className="mt-2 text-sm text-zinc-700">{address.street}</p>
                       <p className="mt-1 text-sm text-zinc-500">{address.details}</p>
+                      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+                        {address.latitude !== null && address.longitude !== null ? "Geolocalizacion lista" : "Falta geolocalizacion"}
+                      </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteAddress(address.id)}
-                      className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm"
-                    >
-                      Eliminar
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(address)}
+                        className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteAddress(address.id)}
+                        className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   </div>
                 </article>
               ))}

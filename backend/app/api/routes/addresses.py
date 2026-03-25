@@ -27,9 +27,9 @@ def list_addresses(user: User = Depends(get_current_user), db: Session = Depends
 def create_address(payload: AddressCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> AddressRead:
     address = Address(
         user_id=user.id,
-        label=payload.label,
-        street=payload.street,
-        details=payload.details,
+        label=payload.label.strip(),
+        street=payload.street.strip(),
+        details=payload.details.strip(),
         latitude=payload.latitude,
         longitude=payload.longitude,
         is_default=payload.is_default,
@@ -50,14 +50,21 @@ def update_address(address_id: int, payload: AddressUpdate, user: User = Depends
     address = db.scalar(select(Address).where(Address.id == address_id, Address.user_id == user.id))
     if address is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Address not found")
-    address.label = payload.label
-    address.street = payload.street
-    address.details = payload.details
+    was_default = address.is_default
+    address.label = payload.label.strip()
+    address.street = payload.street.strip()
+    address.details = payload.details.strip()
     address.latitude = payload.latitude
     address.longitude = payload.longitude
     address.is_default = payload.is_default
     if payload.is_default:
         normalize_default_flag(db, user.id, address.id)
+    elif was_default:
+        fallback = db.scalar(select(Address).where(Address.user_id == user.id, Address.id != address.id).order_by(Address.id))
+        if fallback is None:
+            address.is_default = True
+        else:
+            fallback.is_default = True
     db.commit()
     db.refresh(address)
     return AddressRead.model_validate(address)

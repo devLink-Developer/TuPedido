@@ -80,6 +80,11 @@ def checkout(
         address = db.scalar(select(Address).where(Address.id == payload.address_id, Address.user_id == user.id))
         if address is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Address not found")
+        if address.latitude is None or address.longitude is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La direccion seleccionada debe tener geolocalizacion obligatoria",
+            )
 
     cart.delivery_mode = payload.delivery_mode
     compute_cart_totals(cart)
