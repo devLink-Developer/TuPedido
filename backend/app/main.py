@@ -9,7 +9,7 @@ import app.models  # noqa: F401
 from app.api.routes import router as api_router
 from app.core.config import settings
 from app.db.migrations import run_schema_migrations
-from app.db.seed import seed_initial_data
+from app.db.seed import ensure_default_admin, seed_initial_data
 from app.services.delivery_jobs import run_delivery_maintenance_loop
 
 
@@ -25,6 +25,7 @@ async def lifespan(_: FastAPI):
                 raise
             await asyncio.sleep(2)
 
+    ensure_default_admin()
     if settings.app_env == "development" and settings.seed_demo_data:
         seed_initial_data()
     if settings.delivery_embedded_worker:

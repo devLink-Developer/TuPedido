@@ -1,7 +1,9 @@
+import logging
 from datetime import UTC, datetime, time
 
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.core.security import hash_password
 from app.core.utils import encrypt_sensitive_value, slugify
 from app.db.session import SessionLocal
@@ -19,6 +21,84 @@ from app.models.store import (
     StorePaymentSettings,
 )
 from app.models.user import Address, MerchantApplication, User
+
+logger = logging.getLogger(__name__)
+
+
+def _default_admin_seed() -> dict[str, object]:
+    return {
+        "full_name": settings.bootstrap_admin_full_name,
+        "email": settings.bootstrap_admin_email,
+        "password": settings.bootstrap_admin_password,
+        "role": "admin",
+        "address": (
+            settings.bootstrap_admin_address_label,
+            settings.bootstrap_admin_address_street,
+            settings.bootstrap_admin_address_details,
+        ),
+    }
+
+
+def ensure_default_admin() -> bool:
+    if not settings.bootstrap_admin_enabled:
+        return False
+
+    db = SessionLocal()
+    try:
+        admin_user = db.scalar(select(User).where(User.role == "admin").limit(1))
+        if admin_user is not None:
+            return False
+
+        seed = _default_admin_seed()
+        email = str(seed["email"])
+        user = db.scalar(select(User).where(User.email == email))
+        created = user is None
+
+        if user is None:
+            user = User(
+                full_name=str(seed["full_name"]),
+                email=email,
+                hashed_password=hash_password(str(seed["password"])),
+                role="admin",
+                is_active=True,
+            )
+            db.add(user)
+            db.flush()
+        else:
+            user.full_name = str(seed["full_name"])
+            user.hashed_password = hash_password(str(seed["password"]))
+            user.role = "admin"
+            user.is_active = True
+
+        address_values = seed["address"]
+        if not isinstance(address_values, tuple):
+            raise TypeError("Default admin address configuration is invalid")
+
+        address = db.scalar(select(Address).where(Address.user_id == user.id).limit(1))
+        if address is None:
+            address = Address(
+                user_id=user.id,
+                label=str(address_values[0]),
+                street=str(address_values[1]),
+                details=str(address_values[2]),
+                is_default=True,
+            )
+            db.add(address)
+        else:
+            address.label = str(address_values[0])
+            address.street = str(address_values[1])
+            address.details = str(address_values[2])
+            address.is_default = True
+
+        db.commit()
+        logger.warning(
+            "Bootstrap admin %s at startup with email '%s'. Change BOOTSTRAP_ADMIN_* values in production.",
+            "created" if created else "promoted",
+            email,
+        )
+        return True
+    finally:
+        db.close()
 
 
 def seed_initial_data() -> None:
@@ -47,13 +127,7 @@ def seed_initial_data() -> None:
             categories_by_name[name] = category
 
         users_seed = [
-            {
-                "full_name": "Admin TuPedido",
-                "email": "admin@tupedido.example.com",
-                "password": "admin1234",
-                "role": "admin",
-                "address": ("HQ", "Av. Corrientes 1000", "Piso 10, CABA"),
-            },
+            _default_admin_seed(),
             {
                 "full_name": "Cliente Demo",
                 "email": "cliente@tupedido.example.com",

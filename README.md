@@ -21,6 +21,13 @@ docker compose up --build
 - Cliente demo: `cliente@tupedido.example.com` / `cliente123`
 - Aspirante comercio: `applicant@tupedido.example.com` / `applicant123`
 
+## Bootstrap admin
+
+- En cada arranque del backend se verifica si existe algun usuario con rol `admin`.
+- Si no existe ninguno y `BOOTSTRAP_ADMIN_ENABLED=true`, se crea un admin inicial con `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD`.
+- Si ya existe un admin, no se crea otro ni se pisa ese usuario.
+- En `development`, el seed demo reutiliza esos mismos valores para el admin.
+
 ## Estructura
 
 - `frontend/`: SPA React/Vite/PWA ahora usada como interfaz principal.

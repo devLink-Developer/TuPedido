@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 1440
     seed_demo_data: bool = True
+    bootstrap_admin_enabled: bool = True
+    bootstrap_admin_full_name: str = "Admin TuPedido"
+    bootstrap_admin_email: str = "admin@tupedido.example.com"
+    bootstrap_admin_password: str = "admin1234"
+    bootstrap_admin_address_label: str = "HQ"
+    bootstrap_admin_address_street: str = "Av. Corrientes 1000"
+    bootstrap_admin_address_details: str = "Piso 10, CABA"
     mercadopago_simulated: bool = True
     mercadopago_api_base_url: str = "https://api.mercadopago.com"
     mercadopago_auth_base_url: str = "https://auth.mercadopago.com.ar"
