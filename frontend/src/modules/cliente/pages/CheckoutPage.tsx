@@ -6,6 +6,7 @@ import { checkout, createAddress, fetchAddresses, fetchStoreById } from "../../.
 import { useClienteStore } from "../../../shared/stores";
 import type { Address, StoreDetail } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
+import { notifyCustomerAddressesChanged } from "../../../shared/utils/customerAddresses";
 import { normalizePath } from "../../../shared/utils/routing";
 import { CheckoutSummary } from "../components/CheckoutSummary";
 
@@ -126,6 +127,7 @@ export function CheckoutPage() {
       setSelectedAddressId(created.id);
       setAddressForm(emptyAddressForm);
       setShowAddressForm(false);
+      notifyCustomerAddressesChanged();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudo guardar la direccion");
     }

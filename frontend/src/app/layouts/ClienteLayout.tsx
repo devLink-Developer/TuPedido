@@ -1,17 +1,30 @@
-import { useEffect, useRef, useState, type PropsWithChildren } from "react";
+import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { fetchAddresses } from "../../shared/services/api";
 import { useAuthSession, useCart } from "../../shared/hooks";
+import { useClienteStore } from "../../shared/stores";
+import type { Address } from "../../shared/types";
+import { CUSTOMER_ADDRESSES_CHANGED_EVENT } from "../../shared/utils/customerAddresses";
 
 export function ClienteLayout({ children }: PropsWithChildren) {
   const navigate = useNavigate();
   const location = useLocation();
   const menuRef = useRef<HTMLDivElement | null>(null);
   const lastScrollYRef = useRef(0);
-  const { user, isAuthenticated, logout } = useAuthSession();
+  const { user, token, isAuthenticated, logout } = useAuthSession();
   const { itemCount } = useCart();
+  const selectedAddressId = useClienteStore((state) => state.selectedAddressId);
+  const setSelectedAddressId = useClienteStore((state) => state.setSelectedAddressId);
   const [menuOpen, setMenuOpen] = useState(false);
   const [navbarVisible, setNavbarVisible] = useState(true);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [addressesLoading, setAddressesLoading] = useState(false);
   const showFloatingCart = location.pathname !== "/c/carrito" && location.pathname !== "/c/checkout" && itemCount > 0;
+  const showAddressSelector = isAuthenticated && user?.role === "customer";
+  const selectedAddress = useMemo(
+    () => addresses.find((address) => address.id === selectedAddressId) ?? null,
+    [addresses, selectedAddressId]
+  );
 
   useEffect(() => {
     setMenuOpen(false);
@@ -59,6 +72,62 @@ export function ClienteLayout({ children }: PropsWithChildren) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (!showAddressSelector || !token) {
+      setAddresses([]);
+      return;
+    }
+
+    const authToken = token;
+    let cancelled = false;
+
+    async function loadAddresses() {
+      setAddressesLoading(true);
+      try {
+        const items = await fetchAddresses(authToken);
+        if (!cancelled) {
+          setAddresses(items);
+        }
+      } catch {
+        if (!cancelled) {
+          setAddresses([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setAddressesLoading(false);
+        }
+      }
+    }
+
+    void loadAddresses();
+
+    function handleAddressesChanged() {
+      void loadAddresses();
+    }
+
+    window.addEventListener(CUSTOMER_ADDRESSES_CHANGED_EVENT, handleAddressesChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(CUSTOMER_ADDRESSES_CHANGED_EVENT, handleAddressesChanged);
+    };
+  }, [location.pathname, showAddressSelector, token]);
+
+  useEffect(() => {
+    if (!addresses.length) {
+      if (selectedAddressId !== "") {
+        setSelectedAddressId("");
+      }
+      return;
+    }
+
+    if (addresses.some((address) => address.id === selectedAddressId)) {
+      return;
+    }
+
+    const defaultAddress = addresses.find((address) => address.is_default) ?? addresses[0];
+    setSelectedAddressId(defaultAddress?.id ?? "");
+  }, [addresses, selectedAddressId, setSelectedAddressId]);
+
   return (
     <div className="ambient-grid min-h-screen text-ink">
       <header
@@ -67,15 +136,43 @@ export function ClienteLayout({ children }: PropsWithChildren) {
         }`}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-          <Link to="/c" className="flex min-w-0 items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.2rem] bg-[linear-gradient(135deg,#fb923c,#c2410c)] text-sm font-bold text-white shadow-float">
-              TP
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Cliente</p>
-              <h2 className="truncate font-display text-lg font-bold tracking-tight">Comprar ahora</h2>
-            </div>
+          <Link to="/c" aria-label="Ir al catalogo" className="shrink-0">
+            <img src="/icons/icon-192.svg" alt="TuPedido" className="h-11 w-11 rounded-[1.2rem] shadow-float" />
           </Link>
+          {showAddressSelector ? (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Direccion de envio</p>
+              {addressesLoading ? (
+                <div className="mt-1 h-[46px] w-full animate-pulse rounded-2xl bg-white shadow-sm" />
+              ) : addresses.length > 1 ? (
+                <select
+                  value={selectedAddress?.id ?? ""}
+                  onChange={(event) => setSelectedAddressId(event.target.value ? Number(event.target.value) : "")}
+                  className="mt-1 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-ink shadow-sm outline-none transition focus:border-brand-500"
+                >
+                  {addresses.map((address) => (
+                    <option key={address.id} value={address.id}>
+                      {address.label} · {address.street}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <Link
+                  to="/c/perfil"
+                  className="mt-1 block rounded-2xl border border-black/10 bg-white px-4 py-2.5 shadow-sm transition hover:border-brand-200"
+                >
+                  <span className="block truncate text-sm font-semibold text-ink">
+                    {selectedAddress?.label ?? "Agregar direccion"}
+                  </span>
+                  <span className="block truncate text-xs text-zinc-500">
+                    {selectedAddress ? `${selectedAddress.street} · ${selectedAddress.details}` : "Define tu direccion de entrega"}
+                  </span>
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1" />
+          )}
           {isAuthenticated ? (
             <div ref={menuRef} className="relative">
               <button
@@ -87,10 +184,8 @@ export function ClienteLayout({ children }: PropsWithChildren) {
                   {user?.full_name?.trim().charAt(0).toUpperCase() || "P"}
                 </span>
                 <span className="hidden text-left md:block">
-                  <span className="block max-w-[180px] truncate text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-                    Perfil
-                  </span>
-                  <span className="block max-w-[180px] truncate">{user?.full_name ?? "Mi cuenta"}</span>
+                  <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Cuenta</span>
+                  <span className="block">Mi perfil</span>
                 </span>
               </button>
               {menuOpen ? (
@@ -104,6 +199,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
                   <button
                     type="button"
                     onClick={() => {
+                      setSelectedAddressId("");
                       logout();
                       navigate("/login", { replace: true });
                     }}
@@ -114,11 +210,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
                 </div>
               ) : null}
             </div>
-          ) : (
-            <Link to="/login" className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white">
-              Ingresar
-            </Link>
-          )}
+          ) : null}
         </div>
       </header>
       <main className={`mx-auto w-full max-w-6xl px-4 pt-24 md:px-8 ${showFloatingCart ? "pb-28 md:pb-10" : "pb-10"}`}>{children}</main>

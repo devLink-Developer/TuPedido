@@ -4,6 +4,7 @@ import { useAuthSession } from "../../../shared/hooks";
 import { createAddress, deleteAddress, fetchAddresses } from "../../../shared/services/api";
 import type { Address } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
+import { notifyCustomerAddressesChanged } from "../../../shared/utils/customerAddresses";
 
 type AddressFormState = {
   label: string;
@@ -76,6 +77,7 @@ export function ProfilePage() {
       });
       setForm(emptyAddressForm);
       await load();
+      notifyCustomerAddressesChanged();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudo guardar la direccion");
     } finally {
@@ -90,6 +92,7 @@ export function ProfilePage() {
     try {
       await deleteAddress(token, addressId);
       await load();
+      notifyCustomerAddressesChanged();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudo eliminar la direccion");
     } finally {
