@@ -77,7 +77,7 @@ def update_store(
     store.longitude = payload.longitude
     store.logo_url = payload.logo_url
     store.cover_image_url = payload.cover_image_url
-    store.accepting_orders = payload.accepting_orders
+    store.accepting_orders = payload.accepting_orders if store.status == "approved" else False
     store.opening_note = payload.opening_note
     store.min_delivery_minutes = payload.min_delivery_minutes
     store.max_delivery_minutes = payload.max_delivery_minutes

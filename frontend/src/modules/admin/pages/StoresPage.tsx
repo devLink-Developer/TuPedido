@@ -41,6 +41,8 @@ const emptyStoreForm: StoreFormState = {
   category_ids: []
 };
 
+const resolvedApplicationStatuses = new Set(["approved", "rejected", "suspended"]);
+
 export function StoresPage() {
   const { token } = useAuthSession();
   const [applications, setApplications] = useState<MerchantApplication[]>([]);
@@ -78,7 +80,7 @@ export function StoresPage() {
 
   const selectedCategoryIds = useMemo(() => new Set(form.category_ids), [form.category_ids]);
   const pendingApplications = useMemo(
-    () => applications.filter((application) => application.status === "pending_review"),
+    () => applications.filter((application) => !resolvedApplicationStatuses.has(application.status)),
     [applications]
   );
 
@@ -120,6 +122,11 @@ export function StoresPage() {
         eyebrow="Admin"
         title="Comercios"
         description="Gestiona solicitudes, altas directas y comercios activos desde un solo lugar."
+        action={
+          <button type="button" onClick={() => void load()} className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white">
+            Actualizar
+          </button>
+        }
       />
 
       <form onSubmit={(event) => void handleCreate(event)} className="grid gap-4 rounded-[28px] bg-white p-5 shadow-sm lg:grid-cols-2">
@@ -266,7 +273,15 @@ export function StoresPage() {
             </article>
           ))}
           {!pendingApplications.length ? (
-            <EmptyState title="Sin solicitudes pendientes" description="No hay nuevas solicitudes de comercio para revisar." />
+            <EmptyState
+              title="Sin solicitudes pendientes"
+              description="No hay nuevas solicitudes de comercio para revisar."
+              action={
+                <button type="button" onClick={() => void load()} className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white">
+                  Actualizar listado
+                </button>
+              }
+            />
           ) : null}
         </div>
 

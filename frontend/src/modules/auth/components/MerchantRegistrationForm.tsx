@@ -1,45 +1,46 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthSession } from "../../../shared/hooks";
-import { createMerchantApplication, fetchCategories, fetchMerchantApplications } from "../../../shared/services/api";
-import { useUiStore } from "../../../shared/stores";
-import type { Category, MerchantApplication, MerchantApplicationCreate } from "../../../shared/types";
+import { createMerchantApplication, fetchCategories, fetchMerchantApplications, registerMerchantApplication } from "../../../shared/services/api";
+import { useAuthStore } from "../../../shared/stores";
+import type { Category, MerchantApplication, MerchantApplicationCreate, MerchantApplicationRegister } from "../../../shared/types";
 import { EmptyState, LoadingCard, PageHeader, StatusPill } from "../../../shared/components";
 import { Button } from "../../../shared/ui/Button";
 import { roleToHomePath } from "../../../shared/utils/routing";
 
-type MerchantDraft = MerchantApplicationCreate;
+type MerchantRegistrationState = MerchantApplicationRegister;
 
-const emptyDraft: MerchantDraft = {
+const emptyForm: MerchantRegistrationState = {
+  full_name: "",
+  email: "",
+  password: "",
   business_name: "",
   description: "",
   address: "",
   phone: "",
-  logo_url: "",
-  cover_image_url: "",
   requested_category_ids: []
 };
 
+function toApplicationDraft(form: MerchantRegistrationState): MerchantApplicationCreate {
+  return {
+    business_name: form.business_name,
+    description: form.description,
+    address: form.address,
+    phone: form.phone,
+    requested_category_ids: form.requested_category_ids
+  };
+}
+
 export function MerchantRegistrationForm() {
-  const { token, user, isAuthenticated } = useAuthSession();
+  const { token, user, isAuthenticated, refresh } = useAuthSession();
+  const setSession = useAuthStore((state) => state.setSession);
   const navigate = useNavigate();
-  const saveDraft = useUiStore((state) => state.saveApplicationDraft);
-  const clearDraft = useUiStore((state) => state.clearApplicationDraft);
-  const getDraft = useUiStore((state) => state.getApplicationDraft);
   const [categories, setCategories] = useState<Category[]>([]);
   const [applications, setApplications] = useState<MerchantApplication[]>([]);
-  const [form, setForm] = useState<MerchantDraft>(emptyDraft);
+  const [form, setForm] = useState<MerchantRegistrationState>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const autoSubmitRef = useRef(false);
-
-  useEffect(() => {
-    const saved = getDraft("merchant");
-    if (saved?.draft) {
-      setForm(saved.draft as MerchantDraft);
-    }
-  }, [getDraft]);
 
   useEffect(() => {
     if (isAuthenticated && user && user.role !== "customer") {
@@ -57,10 +58,18 @@ export function MerchantRegistrationForm() {
         if (cancelled) return;
         setCategories(categoriesResult);
         setApplications(applicationsResult);
+        if (user?.role === "customer") {
+          setForm((current) => ({
+            ...current,
+            full_name: current.full_name || user.full_name,
+            email: current.email || user.email
+          }));
+        }
       })
       .catch((requestError) => {
-        if (cancelled) return;
-        setError(requestError instanceof Error ? requestError.message : "No se pudo preparar la postulación");
+        if (!cancelled) {
+          setError(requestError instanceof Error ? requestError.message : "No se pudo preparar la solicitud");
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -71,47 +80,45 @@ export function MerchantRegistrationForm() {
     };
   }, [isAuthenticated, navigate, token, user]);
 
-  const savedDraft = getDraft("merchant");
+  const selectedCategoryIds = useMemo(() => new Set(form.requested_category_ids), [form.requested_category_ids]);
 
-  async function submitCurrentForm(currentForm: MerchantDraft) {
-    if (!token) return;
-    setSaving(true);
+  async function handleSubmit() {
     setError(null);
+    if (!form.requested_category_ids.length) {
+      setError("Selecciona al menos un rubro para crear la solicitud.");
+      return;
+    }
+    setSaving(true);
     try {
-      const application = await createMerchantApplication(token, {
-        ...currentForm,
-        logo_url: currentForm.logo_url || null,
-        cover_image_url: currentForm.cover_image_url || null
-      });
-      clearDraft("merchant");
-      setApplications((current) => [application, ...current]);
+      if (isAuthenticated && token && user?.role === "customer") {
+        await createMerchantApplication(token, toApplicationDraft(form));
+        const profile = await refresh();
+        if (profile?.role === "merchant") {
+          navigate(roleToHomePath[profile.role], { replace: true });
+          return;
+        }
+        setError("La solicitud se guardo, pero tu acceso comercial aun no se actualizo. Cierra sesion e ingresa nuevamente.");
+        return;
+      }
+
+      const auth = await registerMerchantApplication(form);
+      setSession(auth);
+      navigate(roleToHomePath[auth.user.role], { replace: true });
     } catch (submissionError) {
-      setError(
-        submissionError instanceof Error
-          ? submissionError.message
-          : "No se pudo enviar la postulación"
-      );
+      setError(submissionError instanceof Error ? submissionError.message : "No se pudo completar el alta");
     } finally {
       setSaving(false);
     }
   }
-
-  useEffect(() => {
-    if (!isAuthenticated || !token || !savedDraft?.pendingSubmit || autoSubmitRef.current) return;
-    autoSubmitRef.current = true;
-    void submitCurrentForm(savedDraft.draft as MerchantDraft);
-  }, [isAuthenticated, savedDraft, token]);
-
-  const selectedCategoryIds = useMemo(() => new Set(form.requested_category_ids), [form.requested_category_ids]);
 
   if (loading) return <LoadingCard />;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Postulación comercio"
-        title="Completa tu alta comercial"
-        description="El formulario es público. Si todavía no tienes sesión, el draft se guarda y se reanuda después del login."
+        eyebrow="Solicitud de comercio"
+        title="Completa el alta de tu negocio"
+        description="Crea tu acceso, registra tu comercio y empieza a configurar tu panel desde el primer momento."
       />
 
       <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
@@ -119,23 +126,76 @@ export function MerchantRegistrationForm() {
           className="grid gap-4 rounded-[30px] bg-white p-5 shadow-sm md:grid-cols-2"
           onSubmit={(event) => {
             event.preventDefault();
-            if (!isAuthenticated) {
-              saveDraft("merchant", form, "/registro-comercio", true);
-              navigate("/registro?redirectTo=/registro-comercio");
-              return;
-            }
-            void submitCurrentForm(form);
+            void handleSubmit();
           }}
         >
-          <input value={form.business_name} onChange={(event) => setForm((current) => ({ ...current, business_name: event.target.value }))} placeholder="Nombre comercial" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" required />
-          <input value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Teléfono" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" required />
-          <input value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} placeholder="Dirección" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2" required />
-          <input value={form.logo_url ?? ""} onChange={(event) => setForm((current) => ({ ...current, logo_url: event.target.value }))} placeholder="Logo URL" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-          <input value={form.cover_image_url ?? ""} onChange={(event) => setForm((current) => ({ ...current, cover_image_url: event.target.value }))} placeholder="Portada URL" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-          <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Describe tu propuesta comercial" rows={5} className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2" required />
+          {isAuthenticated && user?.role === "customer" ? (
+            <div className="rounded-[24px] bg-zinc-50 px-4 py-4 md:col-span-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Cuenta actual</p>
+              <p className="mt-2 text-sm font-semibold text-ink">{user.full_name}</p>
+              <p className="mt-1 text-sm text-zinc-600">{user.email}</p>
+            </div>
+          ) : (
+            <>
+              <input
+                value={form.full_name}
+                onChange={(event) => setForm((current) => ({ ...current, full_name: event.target.value }))}
+                placeholder="Nombre del responsable"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                required
+              />
+              <input
+                type="email"
+                value={form.email}
+                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+                placeholder="Email"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                required
+              />
+              <input
+                type="password"
+                value={form.password}
+                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                placeholder="Contrasena"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+                minLength={6}
+                required
+              />
+            </>
+          )}
+
+          <input
+            value={form.business_name}
+            onChange={(event) => setForm((current) => ({ ...current, business_name: event.target.value }))}
+            placeholder="Nombre comercial"
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            required
+          />
+          <input
+            value={form.phone}
+            onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+            placeholder="Telefono"
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            required
+          />
+          <input
+            value={form.address}
+            onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
+            placeholder="Direccion"
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+            required
+          />
+          <textarea
+            value={form.description}
+            onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+            placeholder="Describe tu propuesta comercial"
+            rows={5}
+            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+            required
+          />
 
           <div className="space-y-3 md:col-span-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">Categorías</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">Categorias</p>
             <div className="flex flex-wrap gap-2">
               {categories.map((category) => (
                 <button
@@ -149,7 +209,9 @@ export function MerchantRegistrationForm() {
                         : [...current.requested_category_ids, category.id]
                     }))
                   }
-                  className={`rounded-full px-4 py-2 text-sm font-semibold ${selectedCategoryIds.has(category.id) ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"}`}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                    selectedCategoryIds.has(category.id) ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
+                  }`}
                 >
                   {category.name}
                 </button>
@@ -159,18 +221,23 @@ export function MerchantRegistrationForm() {
 
           {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 md:col-span-2">{error}</p> : null}
           <Button type="submit" disabled={saving} className="md:col-span-2">
-            {saving ? "Enviando..." : isAuthenticated ? "Enviar postulación" : "Guardar draft y continuar"}
+            {saving
+              ? "Guardando..."
+              : isAuthenticated && user?.role === "customer"
+                ? "Guardar solicitud"
+                : "Guardar solicitud y registrarse"}
           </Button>
         </form>
 
         <div className="space-y-4">
           <div className="rounded-[30px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-6 text-white shadow-lift">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">Flujo</p>
-            <h3 className="mt-3 font-display text-3xl font-bold tracking-tight">Onboarding público con reanudación</h3>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">Tu comercio</p>
+            <h3 className="mt-3 font-display text-3xl font-bold tracking-tight">Configura primero, activa despues</h3>
             <div className="mt-4 grid gap-3 text-sm text-white/72">
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">El formulario puede completarse sin estar autenticado.</div>
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Al enviar, el draft se guarda y la sesión se resuelve en /login o /registro.</div>
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Al volver, la postulación se ejecuta con el endpoint autenticado actual.</div>
+              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Creas tu acceso y entras al panel en el mismo paso.</div>
+              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Tu rubro define imagenes iniciales para el comercio y luego puedes personalizarlas desde configuracion.</div>
+              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Podras cargar productos, medios de pago y datos del negocio mientras se revisa la solicitud.</div>
+              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Tu local no podra recibir pedidos hasta que el equipo apruebe el alta.</div>
             </div>
           </div>
 
@@ -186,11 +253,14 @@ export function MerchantRegistrationForm() {
                     <StatusPill value={application.status} />
                   </div>
                   <p className="mt-3 text-sm text-zinc-600">{application.description}</p>
+                  {application.review_notes ? (
+                    <p className="mt-3 rounded-2xl bg-zinc-50 px-4 py-3 text-sm text-zinc-700">{application.review_notes}</p>
+                  ) : null}
                 </article>
               ))}
             </div>
           ) : (
-            <EmptyState title="Sin postulaciones todavía" description="Cuando envíes la solicitud verás aquí el estado de revisión." />
+            <EmptyState title="Listo para comenzar" description="Completa los datos y te llevamos al panel de tu comercio para continuar la configuracion." />
           )}
         </div>
       </div>

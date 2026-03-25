@@ -1,8 +1,10 @@
 import type {
+  AuthResponse,
   DeliveryApplication,
   DeliveryApplicationCreate,
   MerchantApplication,
-  MerchantApplicationCreate
+  MerchantApplicationCreate,
+  MerchantApplicationRegister
 } from "../../types";
 import { apiRequest } from "./client";
 
@@ -17,6 +19,13 @@ export async function createMerchantApplication(
   return apiRequest<MerchantApplication>("/merchant-applications", {
     method: "POST",
     token,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function registerMerchantApplication(payload: MerchantApplicationRegister): Promise<AuthResponse> {
+  return apiRequest<AuthResponse>("/merchant-applications/register", {
+    method: "POST",
     body: JSON.stringify(payload)
   });
 }

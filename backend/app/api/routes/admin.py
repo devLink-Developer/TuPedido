@@ -26,6 +26,7 @@ from app.models.user import MerchantApplication, User
 from app.schemas.admin import AdminMerchantCreate, StoreStatusUpdate
 from app.schemas.catalog import CategoryCreate
 from app.schemas.merchant import MerchantApplicationReviewUpdate
+from app.services.store_branding import resolve_store_assets
 
 router = APIRouter()
 
@@ -121,6 +122,7 @@ def create_store(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="max_delivery_minutes must be >= min_delivery_minutes")
 
     categories = get_categories_or_400(db, payload.category_ids)
+    assets = resolve_store_assets(categories)
 
     user = User(
         full_name=payload.full_name,
@@ -138,8 +140,8 @@ def create_store(
         description=payload.description,
         address=payload.address,
         phone=payload.phone,
-        logo_url=payload.logo_url,
-        cover_image_url=payload.cover_image_url,
+        logo_url=payload.logo_url or assets["logo_url"],
+        cover_image_url=payload.cover_image_url or assets["cover_image_url"],
         requested_category_ids=[category.id for category in categories],
         status="approved",
         review_notes=payload.review_notes or "Alta directa por admin",
@@ -155,8 +157,8 @@ def create_store(
         description=payload.description,
         address=payload.address,
         phone=payload.phone,
-        logo_url=payload.logo_url,
-        cover_image_url=payload.cover_image_url,
+        logo_url=payload.logo_url or assets["logo_url"],
+        cover_image_url=payload.cover_image_url or assets["cover_image_url"],
         latitude=payload.latitude,
         longitude=payload.longitude,
         status="approved",
@@ -223,12 +225,23 @@ def review_application(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
 
     application.status = payload.status
-    application.review_notes = payload.review_notes
+    if payload.review_notes is not None:
+        application.review_notes = payload.review_notes
+    elif payload.status == "approved":
+        application.review_notes = (
+            "Solicitud aprobada. Ingresa con el mismo email y contrasena de tu cuenta para administrar tu comercio."
+        )
+    elif payload.status == "rejected":
+        application.review_notes = "Solicitud rechazada. Revisa los datos y vuelve a postularte cuando estes listo."
+    elif payload.status == "suspended":
+        application.review_notes = "Solicitud suspendida temporalmente. Contacta al equipo para continuar el proceso."
 
     if payload.status == "approved":
         if not application.requested_category_ids:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Application must include at least one category")
 
+        categories = get_categories_or_400(db, application.requested_category_ids)
+        assets = resolve_store_assets(categories)
         store = db.scalar(select(Store).options(*STORE_OPTIONS).where(Store.owner_user_id == application.user_id))
         if store is None:
             store = Store(
@@ -239,10 +252,10 @@ def review_application(
                 description=application.description,
                 address=application.address,
                 phone=application.phone,
-                logo_url=application.logo_url,
-                cover_image_url=application.cover_image_url,
+                logo_url=application.logo_url or assets["logo_url"],
+                cover_image_url=application.cover_image_url or assets["cover_image_url"],
                 status="approved",
-                accepting_orders=True,
+                accepting_orders=False,
             )
             db.add(store)
             db.flush()
@@ -253,22 +266,22 @@ def review_application(
                 db.add(hour)
         else:
             store.application_id = application.id
-            store.name = application.business_name
-            store.description = application.description
-            store.address = application.address
-            store.phone = application.phone
-            store.logo_url = application.logo_url
-            store.cover_image_url = application.cover_image_url
             store.status = "approved"
-
-        categories = get_categories_or_400(db, application.requested_category_ids)
+            store.logo_url = store.logo_url or application.logo_url or assets["logo_url"]
+            store.cover_image_url = store.cover_image_url or application.cover_image_url or assets["cover_image_url"]
         store.category_links = [
             StoreCategoryLink(store_id=store.id, category_id=category.id, is_primary=index == 0)
             for index, category in enumerate(categories)
         ]
         application.user.role = "merchant"
     elif payload.status == "rejected" and application.user.role != "admin":
+        if application.store is not None:
+            application.store.status = "rejected"
+            application.store.accepting_orders = False
         application.user.role = "customer"
+    elif payload.status == "suspended" and application.store is not None:
+        application.store.status = "suspended"
+        application.store.accepting_orders = False
 
     db.commit()
     db.refresh(application)

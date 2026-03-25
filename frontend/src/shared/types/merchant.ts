@@ -38,6 +38,17 @@ export type MerchantApplicationCreate = {
   requested_category_ids: number[];
 };
 
+export type MerchantApplicationRegister = {
+  full_name: string;
+  email: string;
+  password: string;
+  business_name: string;
+  description: string;
+  address: string;
+  phone: string;
+  requested_category_ids: number[];
+};
+
 export type AdminMerchantCreate = {
   full_name: string;
   email: string;

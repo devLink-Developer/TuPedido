@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import time
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 class MerchantApplicationCreate(BaseModel):
@@ -13,7 +13,18 @@ class MerchantApplicationCreate(BaseModel):
     phone: str
     logo_url: str | None = None
     cover_image_url: str | None = None
-    requested_category_ids: list[int] = Field(default_factory=list)
+    requested_category_ids: list[int] = Field(min_length=1)
+
+
+class MerchantApplicationRegister(BaseModel):
+    full_name: str
+    email: EmailStr
+    password: str = Field(min_length=6)
+    business_name: str
+    description: str
+    address: str
+    phone: str
+    requested_category_ids: list[int] = Field(min_length=1)
 
 
 class MerchantApplicationReviewUpdate(BaseModel):
