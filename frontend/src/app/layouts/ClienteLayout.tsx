@@ -126,15 +126,14 @@ export function ClienteLayout({ children }: PropsWithChildren) {
         <Link
           to="/c/carrito"
           aria-label={`Abrir carrito con ${itemCount} productos`}
-          className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 min-w-16 items-center justify-center rounded-full bg-brand-500 px-5 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(255,61,0,0.34)] transition hover:opacity-95 md:hidden"
+          className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 w-16 items-center justify-center rounded-full bg-brand-500 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(255,61,0,0.34)] transition hover:opacity-95 md:hidden"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
             <path d="M4.5 6h1.25l1.1 7.05a1 1 0 0 0 .98.8h8.77a1 1 0 0 0 .97-.76L19 8.25H7.2" />
             <circle cx="9.25" cy="18.25" r="1.35" />
             <circle cx="16.75" cy="18.25" r="1.35" />
           </svg>
-          <span className="ml-2">Carrito</span>
-          <span className="ml-2 inline-flex min-w-6 items-center justify-center rounded-full bg-white/18 px-2 py-1 text-xs font-bold">
+          <span className="absolute -right-1 -top-1 inline-flex min-w-6 items-center justify-center rounded-full bg-ink px-2 py-1 text-xs font-bold text-white">
             {itemCount}
           </span>
         </Link>
