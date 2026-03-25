@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { EmptyState, LoadingCard, PageHeader, RubroChip } from "../../../shared/components";
-import { fetchStores } from "../../../shared/services/api";
+import { fetchCatalogBanner, fetchStores } from "../../../shared/services/api";
 import { useCategoryStore, useClienteStore } from "../../../shared/stores";
 import type { StoreSummary } from "../../../shared/types";
 import { StoreList } from "../components/StoreList";
@@ -18,6 +18,7 @@ export function CatalogPage() {
   const categoryLoading = useCategoryStore((state) => state.loading);
   const loadCategories = useCategoryStore((state) => state.loadCategories);
   const [stores, setStores] = useState<StoreSummary[]>([]);
+  const [catalogBannerImageUrl, setCatalogBannerImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +32,24 @@ export function CatalogPage() {
   useEffect(() => {
     void loadCategories();
   }, [loadCategories]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCatalogBanner()
+      .then((result) => {
+        if (!cancelled) {
+          setCatalogBannerImageUrl(result.catalog_banner_image_url ?? null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCatalogBannerImageUrl(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +95,7 @@ export function CatalogPage() {
         eyebrow="Cliente"
         title="Comercios adheridos listos para convertir pedidos"
         description="Busca por rubro, filtra por entrega y entra directo a la tienda que mejor resuelva tu compra."
+        backgroundImageUrl={catalogBannerImageUrl}
       />
 
       <div className="grid gap-4 rounded-[28px] bg-white p-5 shadow-sm md:grid-cols-[1.3fr_0.7fr]">

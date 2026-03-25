@@ -5,10 +5,12 @@ from sqlalchemy.orm import Session, selectinload
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.api.presenters import serialize_category, serialize_store_detail, serialize_store_summary
+from app.api.presenters import serialize_catalog_banner, serialize_category, serialize_store_detail, serialize_store_summary
 from app.core.utils import next_store_opening_at
 from app.db.session import get_db
 from app.models.store import Category, Product, ProductCategory, Store, StoreCategoryLink
+from app.schemas.catalog import CatalogBannerRead
+from app.services.platform import get_or_create_platform_settings
 
 router = APIRouter()
 
@@ -30,6 +32,11 @@ def list_categories(db: Session = Depends(get_db)) -> list[dict[str, object]]:
         select(Category).where(Category.is_active.is_(True)).order_by(Category.sort_order, Category.name)
     ).all()
     return [serialize_category(category).model_dump() for category in categories]
+
+
+@router.get("/platform-banner", response_model=CatalogBannerRead)
+def get_platform_banner(db: Session = Depends(get_db)) -> CatalogBannerRead:
+    return serialize_catalog_banner(get_or_create_platform_settings(db))
 
 
 @router.get("/stores")

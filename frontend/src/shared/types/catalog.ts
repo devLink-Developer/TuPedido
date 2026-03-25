@@ -10,6 +10,10 @@ export type Category = {
   sort_order: number;
 };
 
+export type CatalogBanner = {
+  catalog_banner_image_url: string | null;
+};
+
 export type CategoryWrite = {
   name: string;
   description?: string | null;

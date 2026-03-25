@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "./AppShell";
 import { RequireRoles, GuestOnlyRoute } from "./guards";
+import { RouteErrorBoundary } from "./RouteErrorBoundary";
 import {
   LazyAdminDashboardRoute,
   LazyAdminModuleLayoutRoute,
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: <AppShell />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <LazyLandingRoute /> },
       {

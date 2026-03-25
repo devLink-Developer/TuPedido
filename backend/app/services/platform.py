@@ -16,6 +16,7 @@ def get_or_create_platform_settings(db: Session) -> PlatformSettings:
         settings = PlatformSettings(
             id=PLATFORM_SETTINGS_SINGLETON_ID,
             service_fee_amount=DEFAULT_SERVICE_FEE_AMOUNT,
+            catalog_banner_image_url=None,
         )
         db.add(settings)
         db.flush()

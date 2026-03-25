@@ -49,6 +49,10 @@ class CategoryRead(BaseModel):
     sort_order: int
 
 
+class CatalogBannerRead(BaseModel):
+    catalog_banner_image_url: str | None = None
+
+
 class StoreHourRead(BaseModel):
     day_of_week: int
     opens_at: time | None = None

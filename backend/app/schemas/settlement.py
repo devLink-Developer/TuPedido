@@ -8,12 +8,14 @@ from pydantic import BaseModel
 
 class PlatformSettingsRead(BaseModel):
     service_fee_amount: float
+    catalog_banner_image_url: str | None = None
     updated_at: datetime | None = None
     updated_by: str | None = None
 
 
 class PlatformSettingsUpdate(BaseModel):
     service_fee_amount: float
+    catalog_banner_image_url: str | None = None
 
 
 class SettlementAllocationRead(BaseModel):

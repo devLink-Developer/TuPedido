@@ -72,6 +72,8 @@ def update_platform_settings(
         )
     settings = get_or_create_platform_settings(db)
     settings.service_fee_amount = payload.service_fee_amount
+    if "catalog_banner_image_url" in payload.model_fields_set:
+        settings.catalog_banner_image_url = (payload.catalog_banner_image_url or "").strip() or None
     db.commit()
     db.refresh(settings)
     return serialize_platform_settings(settings)

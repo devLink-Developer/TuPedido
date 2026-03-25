@@ -1,22 +1,25 @@
 import { useEffect, useRef, useState, type PropsWithChildren } from "react";
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useAuthSession } from "../../shared/hooks";
-
-const navItems = [
-  { to: "/c", label: "Inicio" },
-  { to: "/c/carrito", label: "Carrito" },
-  { to: "/c/checkout", label: "Checkout" }
-];
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuthSession, useCart } from "../../shared/hooks";
 
 export function ClienteLayout({ children }: PropsWithChildren) {
   const navigate = useNavigate();
   const location = useLocation();
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const lastScrollYRef = useRef(0);
   const { user, isAuthenticated, logout } = useAuthSession();
+  const { itemCount } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [navbarVisible, setNavbarVisible] = useState(true);
+  const showFloatingCart = location.pathname !== "/c/carrito" && location.pathname !== "/c/checkout" && itemCount > 0;
 
   useEffect(() => {
     setMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    setNavbarVisible(true);
+    lastScrollYRef.current = window.scrollY;
   }, [location.pathname]);
 
   useEffect(() => {
@@ -32,9 +35,37 @@ export function ClienteLayout({ children }: PropsWithChildren) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
 
+  useEffect(() => {
+    function handleScroll() {
+      const currentScrollY = window.scrollY;
+      const delta = currentScrollY - lastScrollYRef.current;
+
+      if (menuOpen || currentScrollY <= 24) {
+        setNavbarVisible(true);
+        lastScrollYRef.current = currentScrollY;
+        return;
+      }
+
+      if (delta > 8) {
+        setNavbarVisible(false);
+      } else if (delta < -8) {
+        setNavbarVisible(true);
+      }
+
+      lastScrollYRef.current = currentScrollY;
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [menuOpen]);
+
   return (
     <div className="ambient-grid min-h-screen text-ink">
-      <header className="sticky top-0 z-30 border-b border-black/5 bg-[rgba(255,251,246,0.88)] px-4 py-3 backdrop-blur md:px-8">
+      <header
+        className={`fixed inset-x-0 top-0 z-30 border-b border-black/5 bg-[rgba(255,251,246,0.88)] px-4 py-3 backdrop-blur transition-transform duration-200 md:px-8 ${
+          navbarVisible ? "translate-y-0" : "-translate-y-[calc(100%+0.75rem)]"
+        }`}
+      >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <Link to="/c" className="flex min-w-0 items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.2rem] bg-[linear-gradient(135deg,#fb923c,#c2410c)] text-sm font-bold text-white shadow-float">
@@ -90,27 +121,24 @@ export function ClienteLayout({ children }: PropsWithChildren) {
           )}
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-28 md:px-8">{children}</main>
-      <nav className="fixed bottom-[calc(0.5rem+var(--safe-bottom))] left-3 right-3 z-40 md:hidden">
-        <div className="mx-auto max-w-md rounded-[28px] border border-white/70 bg-[rgba(255,251,246,0.96)] p-1.5 shadow-[0_18px_40px_rgba(24,19,18,0.16)] backdrop-blur">
-          <div className="grid grid-cols-3 gap-1">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  [
-                    "relative flex min-h-[56px] flex-col items-center justify-center rounded-[20px] px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition",
-                    isActive ? "bg-[linear-gradient(135deg,#fb923c,#c2410c)] text-white shadow-float" : "text-zinc-500"
-                  ].join(" ")
-                }
-              >
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
-          </div>
-        </div>
-      </nav>
+      <main className={`mx-auto w-full max-w-6xl px-4 pt-24 md:px-8 ${showFloatingCart ? "pb-28 md:pb-10" : "pb-10"}`}>{children}</main>
+      {showFloatingCart ? (
+        <Link
+          to="/c/carrito"
+          aria-label={`Abrir carrito con ${itemCount} productos`}
+          className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 min-w-16 items-center justify-center rounded-full bg-brand-500 px-5 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(255,61,0,0.34)] transition hover:opacity-95 md:hidden"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+            <path d="M4.5 6h1.25l1.1 7.05a1 1 0 0 0 .98.8h8.77a1 1 0 0 0 .97-.76L19 8.25H7.2" />
+            <circle cx="9.25" cy="18.25" r="1.35" />
+            <circle cx="16.75" cy="18.25" r="1.35" />
+          </svg>
+          <span className="ml-2">Carrito</span>
+          <span className="ml-2 inline-flex min-w-6 items-center justify-center rounded-full bg-white/18 px-2 py-1 text-xs font-bold">
+            {itemCount}
+          </span>
+        </Link>
+      ) : null}
     </div>
   );
 }

@@ -49,15 +49,35 @@ export function PageHeader({
   eyebrow,
   title,
   description,
-  action
+  action,
+  backgroundImageUrl
 }: {
   eyebrow: string;
   title: string;
   description?: string;
   action?: ReactNode;
+  backgroundImageUrl?: string | null;
 }) {
+  const bannerUrl = backgroundImageUrl?.trim() || "";
+  const hasBanner = Boolean(bannerUrl);
   return (
-    <div className="ambient-grid overflow-hidden rounded-[34px] bg-[linear-gradient(135deg,#1d1614_0%,#281b18_45%,#3a221a_100%)] p-6 text-white shadow-lift">
+    <div
+      className={`ambient-grid overflow-hidden rounded-[34px] p-6 text-white shadow-lift ${
+        hasBanner ? "min-h-[190px] md:min-h-[220px] bg-[#1d1614]" : "bg-[linear-gradient(135deg,#1d1614_0%,#281b18_45%,#3a221a_100%)]"
+      }`}
+      style={
+        hasBanner
+          ? {
+              backgroundImage: `linear-gradient(180deg, rgba(17, 12, 10, 0.34), rgba(17, 12, 10, 0.74)), url(${bannerUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center"
+            }
+          : undefined
+      }
+    >
+      {hasBanner ? (
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(20,14,12,0.52)_0%,rgba(20,14,12,0.2)_55%,rgba(20,14,12,0.38)_100%)]" />
+      ) : null}
       <div className="absolute right-4 top-4 h-24 w-24 rounded-full bg-brand-400/20 blur-3xl" />
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="relative">

@@ -458,9 +458,10 @@ export function StoreDetailPage() {
                   type="number"
                   min={1}
                   value={quantities[product.id] ?? 1}
-                  onChange={(event) =>
-                    setQuantities((current) => ({ ...current, [product.id]: Math.max(1, event.currentTarget.valueAsNumber || 1) }))
-                  }
+                  onChange={(event) => {
+                    const nextValue = Number.isFinite(event.currentTarget.valueAsNumber) ? event.currentTarget.valueAsNumber : 1;
+                    setQuantities((current) => ({ ...current, [product.id]: Math.max(1, nextValue) }));
+                  }}
                   className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 outline-none focus:border-brand-500"
                 />
               </label>

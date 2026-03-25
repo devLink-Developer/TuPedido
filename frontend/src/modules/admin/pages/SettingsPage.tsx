@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
+import { EmptyState, ImageAssetField, LoadingCard, PageHeader } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import { useCategoryStore } from "../../../shared/stores";
 import {
@@ -38,6 +38,10 @@ const emptyCategoryForm: CategoryFormState = {
 };
 
 const suggestedColors = ["#FF7043", "#29B6F6", "#66BB6A", "#AB47BC", "#EF5350", "#FFCA28", "#8D6E63", "#26A69A"];
+const catalogBannerRecommendation = {
+  width: 1600,
+  height: 520
+};
 
 function toNumber(value: string, fallback = 0) {
   const parsed = Number(value);
@@ -83,14 +87,17 @@ export function SettingsPage() {
   const [categoryForm, setCategoryForm] = useState<CategoryFormState>(emptyCategoryForm);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [serviceFee, setServiceFee] = useState("0");
+  const [catalogBannerImageUrl, setCatalogBannerImageUrl] = useState("");
   const [paymentForm, setPaymentForm] = useState({ store_id: "", amount: "", reference: "", notes: "" });
   const [loading, setLoading] = useState(true);
   const [categorySaving, setCategorySaving] = useState(false);
   const [serviceSaving, setServiceSaving] = useState(false);
+  const [bannerSaving, setBannerSaving] = useState(false);
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [serviceError, setServiceError] = useState<string | null>(null);
+  const [bannerError, setBannerError] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const categoryPreview = useMemo(
@@ -111,6 +118,7 @@ export function SettingsPage() {
       syncPublicCategories(categoryResult.filter((category) => category.is_active));
       setPlatformSettings(settingsResult);
       setServiceFee(settingsResult.service_fee_amount.toFixed(2));
+      setCatalogBannerImageUrl(settingsResult.catalog_banner_image_url ?? "");
       setSettlementStores(storesResult);
       setPaymentForm((current) => ({ ...current, store_id: current.store_id || String(storesResult[0]?.id ?? "") }));
       setError(null);
@@ -216,6 +224,24 @@ export function SettingsPage() {
       setServiceError(requestError instanceof Error ? requestError.message : "No se pudo guardar la tarifa");
     } finally {
       setServiceSaving(false);
+    }
+  }
+
+  async function handleCatalogBannerSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token || !platformSettings) return;
+    setBannerSaving(true);
+    setBannerError(null);
+    try {
+      await updatePlatformSettings(token, {
+        service_fee_amount: platformSettings.service_fee_amount,
+        catalog_banner_image_url: catalogBannerImageUrl.trim() || null
+      });
+      await load();
+    } catch (requestError) {
+      setBannerError(requestError instanceof Error ? requestError.message : "No se pudo guardar el banner");
+    } finally {
+      setBannerSaving(false);
     }
   }
 
@@ -526,6 +552,51 @@ export function SettingsPage() {
           </div>
         </form>
 
+        <form onSubmit={(event) => void handleCatalogBannerSave(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
+          <h3 className="text-lg font-bold text-ink">Banner del catalogo cliente</h3>
+          <p className="mt-2 text-sm text-zinc-600">
+            Visible en la cabecera de <code>/c</code>. Tamano recomendado: {catalogBannerRecommendation.width} x{" "}
+            {catalogBannerRecommendation.height} px, relacion 40:13, con el contenido importante centrado para evitar recortes.
+          </p>
+          <div className="mt-4 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+            <ImageAssetField
+              label="Imagen del banner"
+              value={catalogBannerImageUrl}
+              onChange={setCatalogBannerImageUrl}
+              folder="platform-banners"
+              placeholder="https://..."
+              description="Carga un archivo desde tu dispositivo o pega una URL. Si dejas el campo vacio, el catalogo vuelve al degradado por defecto."
+              previewClassName="aspect-[40/13] w-full object-cover"
+              emptyLabel="Sin banner configurado"
+            />
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Preview</p>
+              <PageHeader
+                eyebrow="Cliente"
+                title="Comercios adheridos listos para convertir pedidos"
+                description="Busca por rubro, filtra por entrega y entra directo a la tienda que mejor resuelva tu compra."
+                backgroundImageUrl={catalogBannerImageUrl || undefined}
+              />
+            </div>
+          </div>
+          {bannerError ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{bannerError}</p> : null}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button type="submit" disabled={bannerSaving}>
+              {bannerSaving ? "Guardando..." : "Guardar banner"}
+            </Button>
+            <button
+              type="button"
+              onClick={() => setCatalogBannerImageUrl("")}
+              className="rounded-full bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700"
+            >
+              Quitar banner
+            </button>
+          </div>
+        </form>
+
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-1">
         <form onSubmit={(event) => void handlePaymentSubmit(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
           <h3 className="text-lg font-bold text-ink">Pago manual a comercio</h3>
           <div className="mt-4 grid gap-3 md:grid-cols-2">

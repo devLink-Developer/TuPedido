@@ -107,7 +107,9 @@ def seed_initial_data() -> None:
     try:
         platform_settings = db.scalar(select(PlatformSettings).where(PlatformSettings.id == 1))
         if platform_settings is None:
-            db.add(PlatformSettings(id=1, service_fee_amount=350))
+            db.add(PlatformSettings(id=1, service_fee_amount=350, catalog_banner_image_url=None))
+        else:
+            platform_settings.catalog_banner_image_url = platform_settings.catalog_banner_image_url or None
 
         base_categories = [
             {

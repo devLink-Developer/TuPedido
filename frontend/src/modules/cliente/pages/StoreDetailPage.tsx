@@ -205,18 +205,14 @@ export function StoreDetailPage() {
                   min={1}
                   max={product.max_per_order ?? product.stock_quantity ?? undefined}
                   value={quantities[product.id] ?? 1}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    const nextValue = Number.isFinite(event.currentTarget.valueAsNumber) ? event.currentTarget.valueAsNumber : 1;
+                    const maxAllowed = product.max_per_order ?? product.stock_quantity ?? Number.MAX_SAFE_INTEGER;
                     setQuantities((current) => ({
                       ...current,
-                      [product.id]: Math.max(
-                        1,
-                        Math.min(
-                          product.max_per_order ?? product.stock_quantity ?? Number.MAX_SAFE_INTEGER,
-                          event.currentTarget.valueAsNumber || 1
-                        )
-                      )
-                    }))
-                  }
+                      [product.id]: Math.max(1, Math.min(maxAllowed, nextValue))
+                    }));
+                  }}
                   className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 outline-none focus:border-brand-500"
                 />
               </label>
@@ -253,23 +249,6 @@ export function StoreDetailPage() {
         ) : null}
       </div>
 
-      {itemCount > 0 ? (
-        <div className="fixed bottom-[calc(var(--bottom-nav-height)+1rem+var(--safe-bottom))] left-4 right-4 z-30 md:hidden">
-          <Link
-            to="/c/carrito"
-            className="mx-auto flex max-w-md items-center justify-between gap-3 rounded-[26px] bg-ink px-4 py-4 text-white shadow-[0_22px_44px_rgba(24,19,18,0.28)]"
-          >
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/55">Carrito activo</p>
-              <p className="mt-1 truncate text-sm font-semibold">{itemCount} productos en {store.name}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-base font-black">{formatCurrency(total)}</p>
-              <p className="text-xs font-semibold text-brand-200">Ver carrito</p>
-            </div>
-          </Link>
-        </div>
-      ) : null}
     </div>
   );
 }

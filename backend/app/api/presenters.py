@@ -3,6 +3,7 @@ from __future__ import annotations
 from app.core.utils import is_store_open, mask_secret
 from app.schemas.cart import CartItemRead, CartRead
 from app.schemas.catalog import (
+    CatalogBannerRead,
     CategoryRead,
     MerchantApplicationRead,
     ProductCategoryRead,
@@ -442,8 +443,15 @@ def serialize_notification(notification: object) -> NotificationRead:
 def serialize_platform_settings(settings: object) -> PlatformSettingsRead:
     return PlatformSettingsRead(
         service_fee_amount=float(settings.service_fee_amount),
+        catalog_banner_image_url=getattr(settings, "catalog_banner_image_url", None),
         updated_at=getattr(settings, "updated_at", None),
         updated_by=None,
+    )
+
+
+def serialize_catalog_banner(settings: object) -> CatalogBannerRead:
+    return CatalogBannerRead(
+        catalog_banner_image_url=getattr(settings, "catalog_banner_image_url", None),
     )
 
 
