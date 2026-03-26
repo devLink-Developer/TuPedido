@@ -57,6 +57,7 @@ export function RidersPage() {
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [dispatchOrders, setDispatchOrders] = useState<Order[]>([]);
   const [form, setForm] = useState<RiderFormState>(emptyRiderForm);
+  const [formOpen, setFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +119,7 @@ export function RidersPage() {
         current_zone_id: form.current_zone_id ? Number(form.current_zone_id) : null
       });
       setForm(emptyRiderForm);
+      setFormOpen(false);
       await load();
     } catch (requestError) {
       setCreateError(requestError instanceof Error ? requestError.message : "No se pudo crear el rider");
@@ -135,135 +137,25 @@ export function RidersPage() {
         eyebrow="Admin"
         title="Riders"
         description="Gestiona solicitudes, altas directas y asignaciones operativas."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setCreateError(null);
+                setForm(emptyRiderForm);
+                setFormOpen(true);
+              }}
+              className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
+            >
+              Agregar rider
+            </button>
+            <button type="button" onClick={() => void load()} className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white">
+              Actualizar
+            </button>
+          </div>
+        }
       />
-
-      <form onSubmit={(event) => void handleCreate(event)} className="grid gap-4 rounded-[28px] bg-white p-5 shadow-sm lg:grid-cols-2">
-        <div className="lg:col-span-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Alta directa</p>
-          <h2 className="mt-2 text-xl font-bold">Crear rider desde admin</h2>
-        </div>
-
-        <input
-          value={form.full_name}
-          onChange={(event) => setForm((current) => ({ ...current, full_name: event.target.value }))}
-          placeholder="Nombre completo"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-          required
-        />
-        <input
-          type="email"
-          value={form.email}
-          onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-          placeholder="Email"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-          required
-        />
-        <input
-          type="password"
-          value={form.password}
-          onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-          placeholder="Contrasena inicial"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-          minLength={6}
-          required
-        />
-        <input
-          value={form.phone}
-          onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-          placeholder="Telefono"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-          required
-        />
-        <select
-          value={form.vehicle_type}
-          onChange={(event) => setForm((current) => ({ ...current, vehicle_type: event.target.value as DeliveryVehicleType }))}
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-        >
-          <option value="bicycle">Bicicleta</option>
-          <option value="motorcycle">Moto</option>
-          <option value="car">Auto</option>
-        </select>
-        <select
-          value={form.current_zone_id}
-          onChange={(event) => setForm((current) => ({ ...current, current_zone_id: event.target.value }))}
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-        >
-          <option value="">Sin zona inicial</option>
-          {zones.map((zone) => (
-            <option key={zone.id} value={zone.id}>
-              {zone.name}
-            </option>
-          ))}
-        </select>
-        <input
-          value={form.dni_number}
-          onChange={(event) => setForm((current) => ({ ...current, dni_number: event.target.value }))}
-          placeholder="DNI"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-          required
-        />
-        <div className="lg:col-span-2">
-          <ImageAssetField
-            label="Foto del rider"
-            value={form.photo_url}
-            onChange={(value) => setForm((current) => ({ ...current, photo_url: value }))}
-            folder="riders"
-            description="Carga una foto desde el dispositivo o pega una URL."
-            previewClassName="h-56 w-full object-contain bg-white p-4"
-          />
-        </div>
-        <input
-          value={form.emergency_contact_name}
-          onChange={(event) => setForm((current) => ({ ...current, emergency_contact_name: event.target.value }))}
-          placeholder="Contacto de emergencia"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-          required
-        />
-        <input
-          value={form.emergency_contact_phone}
-          onChange={(event) => setForm((current) => ({ ...current, emergency_contact_phone: event.target.value }))}
-          placeholder="Telefono de emergencia"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-          required
-        />
-        <input
-          value={form.license_number}
-          onChange={(event) => setForm((current) => ({ ...current, license_number: event.target.value }))}
-          placeholder="Licencia"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-        />
-        <input
-          value={form.vehicle_plate}
-          onChange={(event) => setForm((current) => ({ ...current, vehicle_plate: event.target.value }))}
-          placeholder="Patente"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-        />
-        <input
-          value={form.insurance_policy}
-          onChange={(event) => setForm((current) => ({ ...current, insurance_policy: event.target.value }))}
-          placeholder="Seguro"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 lg:col-span-2"
-        />
-        <textarea
-          value={form.notes}
-          onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-          placeholder="Notas operativas"
-          rows={3}
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 lg:col-span-2"
-        />
-        <textarea
-          value={form.review_notes}
-          onChange={(event) => setForm((current) => ({ ...current, review_notes: event.target.value }))}
-          placeholder="Nota interna opcional"
-          rows={3}
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 lg:col-span-2"
-        />
-
-        {createError ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 lg:col-span-2">{createError}</p> : null}
-        <Button type="submit" disabled={creating} className="lg:col-span-2">
-          {creating ? "Creando..." : "Crear rider"}
-        </Button>
-      </form>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
@@ -360,6 +252,165 @@ export function RidersPage() {
         ))}
         {!dispatchOrders.length ? <EmptyState title="Sin dispatch" description="No hay pedidos esperando asignacion." /> : null}
       </div>
+
+      {formOpen ? (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(17,24,39,0.48)] p-4 md:items-center">
+          <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[32px] bg-[linear-gradient(180deg,#fcf6ef_0%,#fffdfa_100%)] p-3 shadow-[0_32px_80px_rgba(24,19,18,0.28)] md:p-5">
+            <div className="mb-4 flex items-center justify-between gap-3 px-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Alta directa</p>
+                <h2 className="mt-2 text-2xl font-bold text-ink">Crear rider desde admin</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormOpen(false);
+                  setCreateError(null);
+                }}
+                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <form onSubmit={(event) => void handleCreate(event)} className="grid gap-4 rounded-[28px] bg-white p-5 shadow-sm lg:grid-cols-2">
+              <input
+                value={form.full_name}
+                onChange={(event) => setForm((current) => ({ ...current, full_name: event.target.value }))}
+                placeholder="Nombre completo"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                required
+              />
+              <input
+                type="email"
+                value={form.email}
+                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+                placeholder="Email"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                required
+              />
+              <input
+                type="password"
+                value={form.password}
+                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                placeholder="Contrasena inicial"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                minLength={6}
+                required
+              />
+              <input
+                value={form.phone}
+                onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+                placeholder="Telefono"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                required
+              />
+              <select
+                value={form.vehicle_type}
+                onChange={(event) => setForm((current) => ({ ...current, vehicle_type: event.target.value as DeliveryVehicleType }))}
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              >
+                <option value="bicycle">Bicicleta</option>
+                <option value="motorcycle">Moto</option>
+                <option value="car">Auto</option>
+              </select>
+              <select
+                value={form.current_zone_id}
+                onChange={(event) => setForm((current) => ({ ...current, current_zone_id: event.target.value }))}
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              >
+                <option value="">Sin zona inicial</option>
+                {zones.map((zone) => (
+                  <option key={zone.id} value={zone.id}>
+                    {zone.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={form.dni_number}
+                onChange={(event) => setForm((current) => ({ ...current, dni_number: event.target.value }))}
+                placeholder="DNI"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                required
+              />
+              <div className="lg:col-span-2">
+                <ImageAssetField
+                  label="Foto del rider"
+                  value={form.photo_url}
+                  onChange={(value) => setForm((current) => ({ ...current, photo_url: value }))}
+                  folder="riders"
+                  description="Carga una foto desde el dispositivo o pega una URL."
+                  previewClassName="h-56 w-full object-contain bg-white p-4"
+                />
+              </div>
+              <input
+                value={form.emergency_contact_name}
+                onChange={(event) => setForm((current) => ({ ...current, emergency_contact_name: event.target.value }))}
+                placeholder="Contacto de emergencia"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                required
+              />
+              <input
+                value={form.emergency_contact_phone}
+                onChange={(event) => setForm((current) => ({ ...current, emergency_contact_phone: event.target.value }))}
+                placeholder="Telefono de emergencia"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                required
+              />
+              <input
+                value={form.license_number}
+                onChange={(event) => setForm((current) => ({ ...current, license_number: event.target.value }))}
+                placeholder="Licencia"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              />
+              <input
+                value={form.vehicle_plate}
+                onChange={(event) => setForm((current) => ({ ...current, vehicle_plate: event.target.value }))}
+                placeholder="Patente"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              />
+              <input
+                value={form.insurance_policy}
+                onChange={(event) => setForm((current) => ({ ...current, insurance_policy: event.target.value }))}
+                placeholder="Seguro"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 lg:col-span-2"
+              />
+              <textarea
+                value={form.notes}
+                onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+                placeholder="Notas operativas"
+                rows={3}
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 lg:col-span-2"
+              />
+              <textarea
+                value={form.review_notes}
+                onChange={(event) => setForm((current) => ({ ...current, review_notes: event.target.value }))}
+                placeholder="Nota interna opcional"
+                rows={3}
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 lg:col-span-2"
+              />
+
+              {createError ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 lg:col-span-2">{createError}</p> : null}
+
+              <div className="flex flex-wrap gap-2 lg:col-span-2">
+                <Button type="submit" disabled={creating}>
+                  {creating ? "Creando..." : "Crear rider"}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormOpen(false);
+                    setCreateError(null);
+                  }}
+                  className="rounded-full bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

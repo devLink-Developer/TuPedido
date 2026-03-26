@@ -2,6 +2,7 @@ import type {
   AdminMerchantCreate,
   AdminRiderCreate,
   AdminSettlementStore,
+  AuthUser,
   Category,
   CategoryWrite,
   DeliveryApplication,
@@ -99,6 +100,10 @@ export async function updateAdminStoreStatus(
 export async function fetchAdminOrders(token: string): Promise<Order[]> {
   const orders = await apiRequest<RawOrder[]>("/admin/orders", { token });
   return orders.map(mapOrder);
+}
+
+export async function fetchAdminUsers(token: string): Promise<AuthUser[]> {
+  return apiRequest<AuthUser[]>("/admin/users", { token });
 }
 
 export async function fetchPlatformSettings(token: string): Promise<PlatformSettings> {

@@ -25,6 +25,7 @@ from app.models.store import (
 )
 from app.models.user import MerchantApplication, User
 from app.schemas.admin import AdminMerchantCreate, StoreStatusUpdate
+from app.schemas.auth import UserRead
 from app.schemas.catalog import CategoryCreate, CategoryUpdate
 from app.schemas.merchant import MerchantApplicationReviewUpdate
 from app.services.category_colors import resolve_category_palette
@@ -371,3 +372,9 @@ def update_store_status(
 def list_orders(_: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict[str, object]]:
     orders = db.scalars(select(StoreOrder).options(*ORDER_OPTIONS).order_by(StoreOrder.id.desc())).all()
     return [serialize_order(order).model_dump() for order in orders]
+
+
+@router.get("/users")
+def list_users(_: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict[str, object]]:
+    users = db.scalars(select(User).order_by(User.id.desc())).all()
+    return [UserRead.model_validate(user).model_dump() for user in users]
