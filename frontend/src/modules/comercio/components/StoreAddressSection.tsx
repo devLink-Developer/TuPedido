@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AddressLocationPicker } from "../../../shared/components/maps/AddressLocationPicker";
 import { geocodeAddress, lookupPostalCode } from "../../../shared/services/api";
 import type { AddressLookupLocality, MerchantStore } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
 import {
+  buildAddressGeocodeRequest,
   buildStructuredAddress,
   extractArgentinePostalCode,
   normalizePostalCodeInput,
@@ -101,6 +102,10 @@ export function StoreAddressSection({
   form: StoreAddressFormState;
   onChange: (value: StoreAddressFormState) => void;
 }) {
+  const formRef = useRef(form);
+  const lastResolvedGeocodeKeyRef = useRef<string | null>(null);
+  const inFlightGeocodeKeyRef = useRef<string | null>(null);
+  const geocodePromiseRef = useRef<Promise<StoreAddressFormState | null> | null>(null);
   const [localities, setLocalities] = useState<AddressLookupLocality[]>([]);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
@@ -114,15 +119,26 @@ export function StoreAddressSection({
     () => localities.find((item) => item.name === form.locality.trim()) ?? null,
     [form.locality, localities]
   );
-  const canEditStreet = Boolean(form.locality.trim());
-  const canGeocode = Boolean(
-    token &&
-      extractArgentinePostalCode(form.postal_code) &&
-      form.province.trim() &&
-      form.locality.trim() &&
-      form.street_name.trim() &&
-      form.street_number.trim()
+  const geocodeRequest = useMemo(() => buildAddressGeocodeRequest(form), [form]);
+  const geocodeKey = useMemo(
+    () =>
+      geocodeRequest
+        ? [
+            geocodeRequest.postal_code,
+            geocodeRequest.province,
+            geocodeRequest.locality,
+            geocodeRequest.street_name,
+            geocodeRequest.street_number,
+          ].join("|")
+        : null,
+    [geocodeRequest]
   );
+  const canEditStreet = Boolean(form.locality.trim());
+  const canGeocode = Boolean(token && geocodeRequest);
+
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
 
   useEffect(() => {
     if (!form.locality.trim()) {
@@ -138,12 +154,25 @@ export function StoreAddressSection({
     });
   }, [form.locality]);
 
+  useEffect(() => {
+    if (geocodeKey && latitude !== null && longitude !== null) {
+      lastResolvedGeocodeKeyRef.current = geocodeKey;
+      return;
+    }
+
+    if (latitude === null || longitude === null) {
+      lastResolvedGeocodeKeyRef.current = null;
+    }
+  }, [geocodeKey, latitude, longitude]);
+
   function updateFields(nextFields: Partial<StoreAddressFormState>, clearCoordinates = false) {
-    const nextValue = { ...form, ...nextFields };
+    const nextValue = { ...formRef.current, ...nextFields };
     if (clearCoordinates) {
       nextValue.latitude = "";
       nextValue.longitude = "";
+      lastResolvedGeocodeKeyRef.current = null;
     }
+    formRef.current = nextValue;
     onChange(nextValue);
   }
 
@@ -185,40 +214,104 @@ export function StoreAddressSection({
     }
   }
 
-  async function handleGeocode() {
+  async function handleGeocode(mode: "manual" | "auto" = "manual") {
     if (!token) {
-      setGeocodingError("Tu sesion vencio. Vuelve a iniciar sesion para ubicar la direccion.");
-      return;
+      if (mode === "manual") {
+        setGeocodingError("Tu sesion vencio. Vuelve a iniciar sesion para ubicar la direccion.");
+      }
+      return null;
     }
-    if (!canGeocode) {
-      setGeocodingError("Primero valida el CP, elige la localidad y completa calle y altura.");
-      return;
+
+    const currentRequest = buildAddressGeocodeRequest(formRef.current);
+    if (!currentRequest) {
+      if (mode === "manual") {
+        setGeocodingError("Primero valida el CP, elige una localidad y completa calle y altura.");
+      }
+      return null;
+    }
+
+    const currentGeocodeKey = [
+      currentRequest.postal_code,
+      currentRequest.province,
+      currentRequest.locality,
+      currentRequest.street_name,
+      currentRequest.street_number,
+    ].join("|");
+
+    if (
+      lastResolvedGeocodeKeyRef.current === currentGeocodeKey &&
+      toCoordinate(formRef.current.latitude) !== null &&
+      toCoordinate(formRef.current.longitude) !== null
+    ) {
+      return formRef.current;
+    }
+
+    if (inFlightGeocodeKeyRef.current === currentGeocodeKey && geocodePromiseRef.current) {
+      return geocodePromiseRef.current;
+    }
+
+    if (geocodePromiseRef.current) {
+      await geocodePromiseRef.current;
+      return handleGeocode(mode);
     }
 
     setGeocoding(true);
     setGeocodingError(null);
     setGeocodingSuccess(null);
+    inFlightGeocodeKeyRef.current = currentGeocodeKey;
 
-    try {
-      const result = await geocodeAddress(token, {
-        postal_code: extractArgentinePostalCode(form.postal_code),
-        province: form.province.trim(),
-        locality: form.locality.trim(),
-        street_name: form.street_name.trim(),
-        street_number: form.street_number.trim(),
-      });
-      updateFields({
-        latitude: result.latitude.toFixed(7),
-        longitude: result.longitude.toFixed(7),
-      });
-      setGeocodingSuccess(
-        result.display_name ? `Ubicacion encontrada: ${result.display_name}` : "Direccion ubicada correctamente en el mapa."
-      );
-    } catch (requestError) {
-      setGeocodingError(requestError instanceof Error ? requestError.message : "No se pudo ubicar la direccion del local.");
-    } finally {
-      setGeocoding(false);
+    const geocodePromise = (async () => {
+      try {
+        const result = await geocodeAddress(token, currentRequest);
+        const latestRequest = buildAddressGeocodeRequest(formRef.current);
+        const latestGeocodeKey = latestRequest
+          ? [
+              latestRequest.postal_code,
+              latestRequest.province,
+              latestRequest.locality,
+              latestRequest.street_name,
+              latestRequest.street_number,
+            ].join("|")
+          : null;
+
+        if (latestGeocodeKey !== currentGeocodeKey) {
+          return null;
+        }
+
+        const nextValue: StoreAddressFormState = {
+          ...formRef.current,
+          latitude: result.latitude.toFixed(7),
+          longitude: result.longitude.toFixed(7),
+        };
+        formRef.current = nextValue;
+        onChange(nextValue);
+        lastResolvedGeocodeKeyRef.current = currentGeocodeKey;
+        setGeocodingSuccess(
+          result.display_name ? `Ubicacion encontrada: ${result.display_name}` : "Direccion ubicada correctamente en el mapa."
+        );
+        return nextValue;
+      } catch (requestError) {
+        setGeocodingError(requestError instanceof Error ? requestError.message : "No se pudo ubicar la direccion del local.");
+        return null;
+      } finally {
+        if (inFlightGeocodeKeyRef.current === currentGeocodeKey) {
+          inFlightGeocodeKeyRef.current = null;
+          geocodePromiseRef.current = null;
+        }
+        setGeocoding(false);
+      }
+    })();
+
+    geocodePromiseRef.current = geocodePromise;
+    return geocodePromise;
+  }
+
+  async function handleStreetNumberBlur() {
+    if (!token || !buildAddressGeocodeRequest(formRef.current)) {
+      return;
     }
+
+    await handleGeocode("auto");
   }
 
   return (
@@ -303,20 +396,19 @@ export function StoreAddressSection({
             setGeocodingSuccess(null);
             updateFields({ street_number: event.target.value }, true);
           }}
+          onBlur={() => void handleStreetNumberBlur()}
           placeholder="Altura"
           disabled={!canEditStreet}
           className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
         />
 
         <div className="rounded-[24px] bg-zinc-50 p-4 text-sm text-zinc-600 md:col-span-2">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="font-semibold text-ink">Geolocalizacion del local</p>
-              <p className="mt-1">Valida el CP, elige la localidad y luego ubica la calle y altura para posicionar correctamente el local.</p>
-            </div>
-            <Button type="button" onClick={() => void handleGeocode()} disabled={!canGeocode || geocoding} className="px-4 py-3 text-sm">
-              {geocoding ? "Ubicando..." : "Ubicar en mapa"}
-            </Button>
+          <div>
+            <p className="font-semibold text-ink">Geolocalizacion automatica del local</p>
+            <p className="mt-1">
+              Al salir del campo de altura ubicamos el local automaticamente. Si hace falta, puedes ajustar el pin en el mapa antes de guardar.
+            </p>
+            {canGeocode && geocoding ? <p className="mt-2 text-xs font-semibold text-brand-600">Ubicando local...</p> : null}
           </div>
         </div>
 

@@ -7,7 +7,7 @@ class AddressBase(BaseModel):
     province: str | None = Field(default=None, min_length=1, max_length=120)
     locality: str | None = Field(default=None, min_length=1, max_length=120)
     street: str = Field(min_length=1, max_length=255)
-    details: str = Field(min_length=1)
+    details: str = Field(default="", max_length=500)
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
     is_default: bool = False

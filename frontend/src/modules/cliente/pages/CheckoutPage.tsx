@@ -9,7 +9,26 @@ import { Button } from "../../../shared/ui/Button";
 import { notifyCustomerAddressesChanged } from "../../../shared/utils/customerAddresses";
 import { normalizePath } from "../../../shared/utils/routing";
 import { CheckoutSummary } from "../components/CheckoutSummary";
-import { AddressFormCard, emptyAddressForm, hasAddressGeolocation, toAddressPayload, type AddressFormState } from "../components/AddressFormCard";
+import {
+  AddressFormCard,
+  emptyAddressForm,
+  getAddressMissingFields,
+  hasAddressGeolocation,
+  toAddressPayload,
+  type AddressFormState,
+} from "../components/AddressFormCard";
+
+function formatMissingAddressFields(fields: string[]) {
+  if (!fields.length) {
+    return "";
+  }
+
+  if (fields.length === 1) {
+    return fields[0];
+  }
+
+  return `${fields.slice(0, -1).join(", ")} y ${fields[fields.length - 1]}`;
+}
 
 function hasMercadoPago(paymentSettings: StoreDetail["payment_settings"]) {
   return paymentSettings.mercadopago_enabled && paymentSettings.mercadopago_configured;
@@ -93,26 +112,19 @@ export function CheckoutPage() {
     );
   }
 
-  async function handleCreateAddress() {
+  async function handleCreateAddress(nextForm: AddressFormState) {
     if (!token) return;
-    if (
-      !addressForm.label.trim() ||
-      !addressForm.postal_code.trim() ||
-      !addressForm.province.trim() ||
-      !addressForm.locality.trim() ||
-      !addressForm.street_name.trim() ||
-      !addressForm.street_number.trim() ||
-      !addressForm.details.trim()
-    ) {
-      setError("Completa etiqueta, CP, provincia, localidad, calle, altura y detalle de la direccion.");
+    const missingFields = getAddressMissingFields(nextForm);
+    if (missingFields.length) {
+      setError(`Completa ${formatMissingAddressFields(missingFields)}.`);
       return;
     }
-    if (!hasAddressGeolocation(addressForm)) {
-      setError("Debes ubicar la direccion en el mapa antes de guardarla.");
+    if (!hasAddressGeolocation(nextForm)) {
+      setError("No pudimos ubicar la direccion todavia. Revisa calle y altura o ajusta el pin en el mapa.");
       return;
     }
 
-    const payload = toAddressPayload(addressForm);
+    const payload = toAddressPayload(nextForm);
     if (!payload) {
       setError("No se pudo leer la geolocalizacion seleccionada.");
       return;
@@ -207,7 +219,7 @@ export function CheckoutPage() {
                     {address.locality || address.province || address.postal_code ? (
                       <p className="mt-1 text-zinc-500">{[address.locality, address.province, address.postal_code].filter(Boolean).join(" - ")}</p>
                     ) : null}
-                    <p className="mt-1 text-zinc-500">{address.details}</p>
+                    {address.details ? <p className="mt-1 text-zinc-500">{address.details}</p> : null}
                     {address.latitude === null || address.longitude === null ? (
                       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
                         Requiere geolocalizacion. Editala desde tu perfil.
@@ -231,7 +243,10 @@ export function CheckoutPage() {
                     lookupToken={token}
                     form={addressForm}
                     error={error}
-                    onChange={setAddressForm}
+                    onChange={(value) => {
+                      setAddressForm(value);
+                      setError(null);
+                    }}
                     onSubmit={handleCreateAddress}
                     onCancel={() => {
                       setShowAddressForm(false);
@@ -273,7 +288,7 @@ export function CheckoutPage() {
               {selectedAddress.locality || selectedAddress.province || selectedAddress.postal_code ? (
                 <p className="mt-1">{[selectedAddress.locality, selectedAddress.province, selectedAddress.postal_code].filter(Boolean).join(" - ")}</p>
               ) : null}
-              <p className="mt-1">Detalle: {selectedAddress.details}</p>
+              {selectedAddress.details ? <p className="mt-1">Detalle: {selectedAddress.details}</p> : null}
             </div>
           ) : null}
 

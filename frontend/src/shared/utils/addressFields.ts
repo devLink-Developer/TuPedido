@@ -44,3 +44,29 @@ export function extractArgentinePostalCode(value: string) {
   const match = normalizePostalCodeInput(value).match(/(\d{4})/);
   return match ? match[1] : "";
 }
+
+export function buildAddressGeocodeRequest(fields: {
+  postal_code: string;
+  province: string;
+  locality: string;
+  street_name: string;
+  street_number: string;
+}) {
+  const postalCode = extractArgentinePostalCode(fields.postal_code);
+  const province = fields.province.trim();
+  const locality = fields.locality.trim();
+  const streetName = fields.street_name.trim();
+  const streetNumber = fields.street_number.trim();
+
+  if (!postalCode || !province || !locality || !streetName || !streetNumber) {
+    return null;
+  }
+
+  return {
+    postal_code: postalCode,
+    province,
+    locality,
+    street_name: streetName,
+    street_number: streetNumber,
+  };
+}

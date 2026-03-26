@@ -1,9 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AddressLocationPicker } from "../../../shared/components/maps/AddressLocationPicker";
 import { geocodeAddress, lookupPostalCode } from "../../../shared/services/api";
 import type { Address, AddressLookupLocality, AddressWrite } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
-import { buildStreetLine, extractArgentinePostalCode, normalizePostalCodeInput, splitStreetLine } from "../../../shared/utils/addressFields";
+import {
+  buildAddressGeocodeRequest,
+  buildStreetLine,
+  extractArgentinePostalCode,
+  normalizePostalCodeInput,
+  splitStreetLine,
+} from "../../../shared/utils/addressFields";
 
 export type AddressFormState = {
   label: string;
@@ -69,6 +75,20 @@ export function getAddressCoordinates(form: AddressFormState) {
   };
 }
 
+function getAddressLabel(form: AddressFormState) {
+  return form.label.trim() || "Mi direccion";
+}
+
+export function getAddressMissingFields(form: AddressFormState) {
+  return [
+    !form.postal_code.trim() ? "CP" : null,
+    !form.province.trim() ? "provincia" : null,
+    !form.locality.trim() ? "localidad" : null,
+    !form.street_name.trim() ? "calle" : null,
+    !form.street_number.trim() ? "altura" : null,
+  ].filter((value): value is string => Boolean(value));
+}
+
 export function toAddressPayload(form: AddressFormState): AddressWrite | null {
   const coordinates = getAddressCoordinates(form);
   if (coordinates.latitude === null || coordinates.longitude === null) {
@@ -76,7 +96,7 @@ export function toAddressPayload(form: AddressFormState): AddressWrite | null {
   }
 
   return {
-    label: form.label.trim(),
+    label: getAddressLabel(form),
     postal_code: extractArgentinePostalCode(form.postal_code) || form.postal_code.trim(),
     province: form.province.trim(),
     locality: form.locality.trim(),
@@ -106,11 +126,15 @@ export function AddressFormCard({
   saving?: boolean;
   error?: string | null;
   onChange: (value: AddressFormState) => void;
-  onSubmit: () => void | Promise<void>;
+  onSubmit: (value: AddressFormState) => void | Promise<void>;
   onCancel?: () => void;
 }) {
   const latitude = getAddressCoordinates(form).latitude;
   const longitude = getAddressCoordinates(form).longitude;
+  const formRef = useRef(form);
+  const lastResolvedGeocodeKeyRef = useRef<string | null>(null);
+  const inFlightGeocodeKeyRef = useRef<string | null>(null);
+  const geocodePromiseRef = useRef<Promise<AddressFormState | null> | null>(null);
   const [localities, setLocalities] = useState<AddressLookupLocality[]>([]);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
@@ -122,15 +146,26 @@ export function AddressFormCard({
     () => localities.find((item) => item.name === form.locality.trim()) ?? null,
     [form.locality, localities]
   );
-  const canEditStreet = Boolean(form.locality.trim());
-  const canGeocodeAddress = Boolean(
-    lookupToken &&
-      extractArgentinePostalCode(form.postal_code) &&
-      form.province.trim() &&
-      form.locality.trim() &&
-      form.street_name.trim() &&
-      form.street_number.trim()
+  const geocodeRequest = useMemo(() => buildAddressGeocodeRequest(form), [form]);
+  const geocodeKey = useMemo(
+    () =>
+      geocodeRequest
+        ? [
+            geocodeRequest.postal_code,
+            geocodeRequest.province,
+            geocodeRequest.locality,
+            geocodeRequest.street_name,
+            geocodeRequest.street_number,
+          ].join("|")
+        : null,
+    [geocodeRequest]
   );
+  const canEditStreet = Boolean(form.locality.trim());
+  const canGeocodeAddress = Boolean(lookupToken && geocodeRequest);
+
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
 
   useEffect(() => {
     if (!form.locality.trim()) {
@@ -146,16 +181,31 @@ export function AddressFormCard({
     });
   }, [form.locality]);
 
+  useEffect(() => {
+    if (geocodeKey && hasAddressGeolocation(form)) {
+      lastResolvedGeocodeKeyRef.current = geocodeKey;
+      return;
+    }
+
+    if (!hasAddressGeolocation(form)) {
+      lastResolvedGeocodeKeyRef.current = null;
+    }
+  }, [form, geocodeKey]);
+
   function updateField<Key extends keyof AddressFormState>(field: Key, value: AddressFormState[Key]) {
-    onChange({ ...form, [field]: value });
+    const nextValue = { ...formRef.current, [field]: value };
+    formRef.current = nextValue;
+    onChange(nextValue);
   }
 
   function updateAddressFields(nextFields: Partial<AddressFormState>, clearCoordinates = false) {
-    const nextValue: AddressFormState = { ...form, ...nextFields };
+    const nextValue: AddressFormState = { ...formRef.current, ...nextFields };
     if (clearCoordinates) {
       nextValue.latitude = "";
       nextValue.longitude = "";
+      lastResolvedGeocodeKeyRef.current = null;
     }
+    formRef.current = nextValue;
     onChange(nextValue);
   }
 
@@ -197,39 +247,114 @@ export function AddressFormCard({
     }
   }
 
-  async function handleGeocodeAddress() {
+  async function handleGeocodeAddress(mode: "manual" | "auto" = "manual") {
     if (!lookupToken) {
-      setGeocodingError("Tu sesion vencio. Vuelve a iniciar sesion para ubicar la direccion.");
+      if (mode === "manual") {
+        setGeocodingError("Tu sesion vencio. Vuelve a iniciar sesion para ubicar la direccion.");
+      }
       return;
     }
-    if (!canGeocodeAddress) {
-      setGeocodingError("Primero valida el CP, elige una localidad y completa calle y altura.");
-      return;
+
+    const currentRequest = buildAddressGeocodeRequest(formRef.current);
+    if (!currentRequest) {
+      if (mode === "manual") {
+        setGeocodingError("Primero valida el CP, elige una localidad y completa calle y altura.");
+      }
+      return null;
+    }
+
+    const currentGeocodeKey = [
+      currentRequest.postal_code,
+      currentRequest.province,
+      currentRequest.locality,
+      currentRequest.street_name,
+      currentRequest.street_number,
+    ].join("|");
+
+    if (lastResolvedGeocodeKeyRef.current === currentGeocodeKey && hasAddressGeolocation(formRef.current)) {
+      return formRef.current;
+    }
+
+    if (inFlightGeocodeKeyRef.current === currentGeocodeKey && geocodePromiseRef.current) {
+      return geocodePromiseRef.current;
+    }
+
+    if (geocodePromiseRef.current) {
+      await geocodePromiseRef.current;
+      return handleGeocodeAddress(mode);
     }
 
     setGeocoding(true);
     setGeocodingError(null);
     setGeocodingSuccess(null);
+    inFlightGeocodeKeyRef.current = currentGeocodeKey;
 
-    try {
-      const result = await geocodeAddress(lookupToken, {
-        postal_code: extractArgentinePostalCode(form.postal_code),
-        province: form.province.trim(),
-        locality: form.locality.trim(),
-        street_name: form.street_name.trim(),
-        street_number: form.street_number.trim(),
-      });
+    const geocodePromise = (async () => {
+      try {
+        const result = await geocodeAddress(lookupToken, currentRequest);
+        const latestRequest = buildAddressGeocodeRequest(formRef.current);
+        const latestGeocodeKey = latestRequest
+          ? [
+              latestRequest.postal_code,
+              latestRequest.province,
+              latestRequest.locality,
+              latestRequest.street_name,
+              latestRequest.street_number,
+            ].join("|")
+          : null;
 
-      updateAddressFields({
-        latitude: result.latitude.toFixed(7),
-        longitude: result.longitude.toFixed(7),
-      });
-      setGeocodingSuccess(result.display_name ? `Ubicacion encontrada: ${result.display_name}` : "Direccion ubicada correctamente en el mapa.");
-    } catch (requestError) {
-      setGeocodingError(requestError instanceof Error ? requestError.message : "No se pudo ubicar la direccion en el mapa.");
-    } finally {
-      setGeocoding(false);
+        if (latestGeocodeKey !== currentGeocodeKey) {
+          return null;
+        }
+
+        const nextForm: AddressFormState = {
+          ...formRef.current,
+          latitude: result.latitude.toFixed(7),
+          longitude: result.longitude.toFixed(7),
+        };
+        formRef.current = nextForm;
+        onChange(nextForm);
+        lastResolvedGeocodeKeyRef.current = currentGeocodeKey;
+        setGeocodingSuccess(
+          result.display_name ? `Ubicacion encontrada: ${result.display_name}` : "Direccion ubicada correctamente en el mapa."
+        );
+        return nextForm;
+      } catch (requestError) {
+        setGeocodingError(requestError instanceof Error ? requestError.message : "No se pudo ubicar la direccion en el mapa.");
+        return null;
+      } finally {
+        if (inFlightGeocodeKeyRef.current === currentGeocodeKey) {
+          inFlightGeocodeKeyRef.current = null;
+          geocodePromiseRef.current = null;
+        }
+        setGeocoding(false);
+      }
+    })();
+
+    geocodePromiseRef.current = geocodePromise;
+    return geocodePromise;
+  }
+
+  async function handleStreetNumberBlur() {
+    if (!lookupToken || !buildAddressGeocodeRequest(formRef.current)) {
+      return;
     }
+
+    await handleGeocodeAddress("auto");
+  }
+
+  async function handleSubmitClick() {
+    let nextForm = formRef.current;
+
+    if (!hasAddressGeolocation(nextForm) && lookupToken && buildAddressGeocodeRequest(nextForm)) {
+      const geocodedForm = await handleGeocodeAddress("auto");
+      if (!geocodedForm) {
+        return;
+      }
+      nextForm = geocodedForm;
+    }
+
+    await onSubmit(nextForm);
   }
 
   return (
@@ -239,7 +364,7 @@ export function AddressFormCard({
         <input
           value={form.label}
           onChange={(event) => updateField("label", event.target.value)}
-          placeholder="Casa, trabajo, consultorio"
+          placeholder="Etiqueta opcional: casa, trabajo, consultorio"
           className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
         />
         <div className="flex gap-2">
@@ -309,6 +434,7 @@ export function AddressFormCard({
             setGeocodingSuccess(null);
             updateAddressFields({ street_number: event.target.value }, true);
           }}
+          onBlur={() => void handleStreetNumberBlur()}
           placeholder="Altura"
           disabled={!canEditStreet}
           className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
@@ -317,18 +443,16 @@ export function AddressFormCard({
           value={form.details}
           onChange={(event) => updateField("details", event.target.value)}
           rows={4}
-          placeholder="Piso, depto, referencia, timbre"
+          placeholder="Piso, depto, referencia, timbre (opcional)"
           className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
         />
         <div className="rounded-[24px] bg-zinc-50 p-4 text-sm text-zinc-600 md:col-span-2">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="font-semibold text-ink">Geolocalizacion por direccion</p>
-              <p className="mt-1">Primero valida el CP, luego elige la localidad y completa calle con altura para ubicar el punto exacto.</p>
-            </div>
-            <Button type="button" onClick={() => void handleGeocodeAddress()} disabled={!canGeocodeAddress || geocoding} className="px-4 py-3 text-sm">
-              {geocoding ? "Ubicando..." : "Ubicar en mapa"}
-            </Button>
+          <div>
+            <p className="font-semibold text-ink">Geolocalizacion automatica</p>
+            <p className="mt-1">
+              Al salir del campo de altura ubicamos la direccion automaticamente. Si necesitas corregir el punto, puedes mover el pin en el mapa.
+            </p>
+            {canGeocodeAddress && geocoding ? <p className="mt-2 text-xs font-semibold text-brand-600">Ubicando direccion...</p> : null}
           </div>
         </div>
         <AddressLocationPicker
@@ -359,7 +483,7 @@ export function AddressFormCard({
       {error ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button type="button" onClick={() => void onSubmit()} disabled={saving}>
+        <Button type="button" onClick={() => void handleSubmitClick()} disabled={saving || geocoding}>
           {saving ? "Guardando..." : submitLabel}
         </Button>
         {onCancel ? (

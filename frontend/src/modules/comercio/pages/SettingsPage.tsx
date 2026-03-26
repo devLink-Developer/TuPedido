@@ -8,6 +8,7 @@ import {
   deleteMerchantProductSubcategory,
   fetchMerchantProductCategories,
   fetchMerchantStore,
+  geocodeAddress,
   updateMerchantProductCategory,
   updateMerchantProductSubcategory,
   updateMerchantDeliverySettings,
@@ -18,6 +19,7 @@ import {
 import { useCategoryStore } from "../../../shared/stores";
 import type { MerchantStore, ProductCategory } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
+import { buildAddressGeocodeRequest } from "../../../shared/utils/addressFields";
 import {
   StoreAddressSection,
   emptyStoreAddressForm,
@@ -139,14 +141,27 @@ export function SettingsPage() {
       setError("El tiempo maximo de entrega debe ser mayor o igual al minimo.");
       return;
     }
-    if (store.delivery_settings.delivery_enabled && !deliveryAddressReady) {
-      setError("Configura la direccion completa del local y su geolocalizacion antes de habilitar delivery.");
-      return;
-    }
     setSaving(true);
     try {
+      let nextStoreAddressForm = storeAddressForm;
+      const geocodeRequest = buildAddressGeocodeRequest(storeAddressForm);
+      if (geocodeRequest && !hasStoreAddressConfiguration(storeAddressForm)) {
+        const result = await geocodeAddress(token, geocodeRequest);
+        nextStoreAddressForm = {
+          ...storeAddressForm,
+          latitude: result.latitude.toFixed(7),
+          longitude: result.longitude.toFixed(7)
+        };
+        setStoreAddressForm(nextStoreAddressForm);
+      }
+
+      if (store.delivery_settings.delivery_enabled && !hasStoreAddressConfiguration(nextStoreAddressForm)) {
+        setError("Configura la direccion completa del local y su geolocalizacion antes de habilitar delivery.");
+        return;
+      }
+
       const addressPayload =
-        toStoreAddressPayload(storeAddressForm) ?? {
+        toStoreAddressPayload(nextStoreAddressForm) ?? {
           address: store.address,
           postal_code: store.postal_code ?? null,
           province: store.province ?? null,
@@ -341,7 +356,14 @@ export function SettingsPage() {
           </div>
         </section>
 
-        <StoreAddressSection token={token} form={storeAddressForm} onChange={setStoreAddressForm} />
+        <StoreAddressSection
+          token={token}
+          form={storeAddressForm}
+          onChange={(value) => {
+            setStoreAddressForm(value);
+            setError(null);
+          }}
+        />
 
         <section className="space-y-4">
           <div>

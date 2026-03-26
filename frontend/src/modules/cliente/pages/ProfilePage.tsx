@@ -4,7 +4,27 @@ import { useAuthSession } from "../../../shared/hooks";
 import { createAddress, deleteAddress, fetchAddresses, updateAddress } from "../../../shared/services/api";
 import type { Address } from "../../../shared/types";
 import { notifyCustomerAddressesChanged } from "../../../shared/utils/customerAddresses";
-import { AddressFormCard, emptyAddressForm, hasAddressGeolocation, toAddressFormState, toAddressPayload, type AddressFormState } from "../components/AddressFormCard";
+import {
+  AddressFormCard,
+  emptyAddressForm,
+  getAddressMissingFields,
+  hasAddressGeolocation,
+  toAddressFormState,
+  toAddressPayload,
+  type AddressFormState,
+} from "../components/AddressFormCard";
+
+function formatMissingAddressFields(fields: string[]) {
+  if (!fields.length) {
+    return "";
+  }
+
+  if (fields.length === 1) {
+    return fields[0];
+  }
+
+  return `${fields.slice(0, -1).join(", ")} y ${fields[fields.length - 1]}`;
+}
 
 export function ProfilePage() {
   const { token, user } = useAuthSession();
@@ -33,26 +53,19 @@ export function ProfilePage() {
     void load();
   }, [token]);
 
-  async function handleSaveAddress() {
+  async function handleSaveAddress(nextForm: AddressFormState) {
     if (!token) return;
-    if (
-      !form.label.trim() ||
-      !form.postal_code.trim() ||
-      !form.province.trim() ||
-      !form.locality.trim() ||
-      !form.street_name.trim() ||
-      !form.street_number.trim() ||
-      !form.details.trim()
-    ) {
-      setError("Completa etiqueta, CP, provincia, localidad, calle, altura y detalle de la direccion.");
+    const missingFields = getAddressMissingFields(nextForm);
+    if (missingFields.length) {
+      setError(`Completa ${formatMissingAddressFields(missingFields)}.`);
       return;
     }
-    if (!hasAddressGeolocation(form)) {
-      setError("Debes ubicar la direccion en el mapa antes de guardarla.");
+    if (!hasAddressGeolocation(nextForm)) {
+      setError("No pudimos ubicar la direccion todavia. Revisa calle y altura o ajusta el pin en el mapa.");
       return;
     }
 
-    const payload = toAddressPayload(form);
+    const payload = toAddressPayload(nextForm);
     if (!payload) {
       setError("No se pudo leer la geolocalizacion seleccionada.");
       return;
@@ -132,7 +145,10 @@ export function ProfilePage() {
             form={form}
             saving={saving}
             error={error}
-            onChange={setForm}
+            onChange={(value) => {
+              setForm(value);
+              setError(null);
+            }}
             onSubmit={handleSaveAddress}
             onCancel={
               editingAddressId
@@ -177,7 +193,7 @@ export function ProfilePage() {
                           {[address.locality, address.province, address.postal_code].filter(Boolean).join(" - ")}
                         </p>
                       ) : null}
-                      <p className="mt-1 text-sm text-zinc-500">{address.details}</p>
+                      {address.details ? <p className="mt-1 text-sm text-zinc-500">{address.details}</p> : null}
                       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
                         {address.latitude !== null && address.longitude !== null ? "Geolocalizacion lista" : "Falta geolocalizacion"}
                       </p>
