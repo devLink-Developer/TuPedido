@@ -64,6 +64,10 @@ export type Order = {
   tracking_stale: boolean;
   eta_minutes: number | null;
   otp_required: boolean;
+  merchant_ready_at: string | null;
+  out_for_delivery_at: string | null;
+  delivered_at: string | null;
+  updated_at: string | null;
   created_at: string;
   items: OrderItem[];
   pricing: PricingSummary;

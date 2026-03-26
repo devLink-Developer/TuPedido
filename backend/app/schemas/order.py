@@ -70,6 +70,10 @@ class OrderRead(BaseModel):
     tracking_stale: bool = False
     eta_minutes: int | None = None
     otp_required: bool = False
+    merchant_ready_at: datetime | None = None
+    out_for_delivery_at: datetime | None = None
+    delivered_at: datetime | None = None
+    updated_at: datetime | None = None
     created_at: datetime
     items: list[OrderItemRead]
     pricing: PricingSummaryRead

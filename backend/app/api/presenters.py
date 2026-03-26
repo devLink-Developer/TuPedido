@@ -312,6 +312,10 @@ def serialize_order(order: object) -> OrderRead:
         tracking_stale=bool(getattr(order, "tracking_stale", False)),
         eta_minutes=getattr(order, "eta_minutes", None),
         otp_required=bool(getattr(order, "otp_required", False)),
+        merchant_ready_at=getattr(order, "merchant_ready_at", None),
+        out_for_delivery_at=getattr(order, "out_for_delivery_at", None),
+        delivered_at=getattr(order, "delivered_at", None),
+        updated_at=getattr(order, "updated_at", None),
         created_at=order.created_at,
         items=[
             OrderItemRead(
