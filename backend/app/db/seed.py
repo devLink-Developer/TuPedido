@@ -23,6 +23,7 @@ from app.models.store import (
 )
 from app.models.user import Address, MerchantApplication, User
 from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
+from app.services.store_address import build_store_address
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +256,15 @@ def seed_initial_data() -> None:
                 slug="almacen-belgrano",
                 name="Almacen Belgrano",
                 description="Despensa y kiosko de cercania con envios rapidos y retiro en local.",
-                address="Amenabar 1234, Belgrano, CABA",
+                address=build_store_address(
+                    street_line="Amenabar 1234",
+                    locality="CABA",
+                    province="CABA",
+                    postal_code="1426",
+                ),
+                postal_code="1426",
+                province="CABA",
+                locality="CABA",
                 phone="+54 11 5555 1234",
                 logo_url="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80",
                 cover_image_url="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80",
@@ -273,6 +282,15 @@ def seed_initial_data() -> None:
             db.flush()
         store.latitude = -34.5627
         store.longitude = -58.4565
+        store.address = build_store_address(
+            street_line="Amenabar 1234",
+            locality="CABA",
+            province="CABA",
+            postal_code="1426",
+        )
+        store.postal_code = "1426"
+        store.province = "CABA"
+        store.locality = "CABA"
 
         desired_category_links = {
             categories_by_name["Despensa"].id: True,

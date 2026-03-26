@@ -18,6 +18,14 @@ import {
 import { useCategoryStore } from "../../../shared/stores";
 import type { MerchantStore, ProductCategory } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
+import {
+  StoreAddressSection,
+  emptyStoreAddressForm,
+  hasStoreAddressConfiguration,
+  toStoreAddressFormState,
+  toStoreAddressPayload,
+  type StoreAddressFormState
+} from "../components/StoreAddressSection";
 
 const storeStatusMessages: Record<string, string> = {
   pending_review:
@@ -62,6 +70,7 @@ export function SettingsPage() {
   const categoryLoading = useCategoryStore((state) => state.loading);
   const loadCategories = useCategoryStore((state) => state.loadCategories);
   const [store, setStore] = useState<MerchantStore | null>(null);
+  const [storeAddressForm, setStoreAddressForm] = useState<StoreAddressFormState>(emptyStoreAddressForm);
   const [productCategories, setProductCategories] = useState<ProductCategory[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +84,7 @@ export function SettingsPage() {
 
   const isApproved = store?.status === "approved";
   const canToggleOrders = isApproved;
+  const deliveryAddressReady = hasStoreAddressConfiguration(storeAddressForm);
   const statusMessage = useMemo(() => {
     if (!store) return "";
     return storeStatusMessages[store.status] ?? "Actualiza la informacion de tu negocio y mantente listo para operar.";
@@ -91,6 +101,7 @@ export function SettingsPage() {
         fetchMerchantProductCategories(token)
       ]);
       setStore(storeResult);
+      setStoreAddressForm(toStoreAddressFormState(storeResult));
       setProductCategories(productCategoryResult);
       setSelectedCategoryIds(storeResult.category_ids ?? []);
     } catch (requestError) {
@@ -128,15 +139,31 @@ export function SettingsPage() {
       setError("El tiempo maximo de entrega debe ser mayor o igual al minimo.");
       return;
     }
+    if (store.delivery_settings.delivery_enabled && !deliveryAddressReady) {
+      setError("Configura la direccion completa del local y su geolocalizacion antes de habilitar delivery.");
+      return;
+    }
     setSaving(true);
     try {
+      const addressPayload =
+        toStoreAddressPayload(storeAddressForm) ?? {
+          address: store.address,
+          postal_code: store.postal_code ?? null,
+          province: store.province ?? null,
+          locality: store.locality ?? null,
+          latitude: store.latitude ?? null,
+          longitude: store.longitude ?? null
+        };
       await updateMerchantStore(token, {
         name: store.name,
         description: store.description,
-        address: store.address,
+        address: addressPayload.address,
+        postal_code: addressPayload.postal_code,
+        province: addressPayload.province,
+        locality: addressPayload.locality,
         phone: store.phone,
-        latitude: store.latitude,
-        longitude: store.longitude,
+        latitude: addressPayload.latitude,
+        longitude: addressPayload.longitude,
         logo_url: store.logo_url,
         cover_image_url: store.cover_image_url,
         accepting_orders: canToggleOrders ? store.accepting_orders : false,
@@ -302,12 +329,6 @@ export function SettingsPage() {
               placeholder="Telefono de contacto"
               className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
             />
-            <input
-              value={store.address}
-              onChange={(event) => setStore((current) => (current ? { ...current, address: event.target.value } : current))}
-              placeholder="Direccion"
-              className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
-            />
             <textarea
               value={store.description}
               onChange={(event) =>
@@ -319,6 +340,8 @@ export function SettingsPage() {
             />
           </div>
         </section>
+
+        <StoreAddressSection token={token} form={storeAddressForm} onChange={setStoreAddressForm} />
 
         <section className="space-y-4">
           <div>
@@ -379,7 +402,12 @@ export function SettingsPage() {
               <input
                 type="checkbox"
                 checked={store.delivery_settings.delivery_enabled}
-                onChange={(event) =>
+                onChange={(event) => {
+                  if (event.target.checked && !deliveryAddressReady) {
+                    setError("Configura CP, provincia, localidad, calle, altura y geolocalizacion del local antes de habilitar delivery.");
+                    return;
+                  }
+                  setError(null);
                   setStore((current) =>
                     current
                       ? {
@@ -387,8 +415,8 @@ export function SettingsPage() {
                           delivery_settings: { ...current.delivery_settings, delivery_enabled: event.target.checked }
                         }
                       : current
-                  )
-                }
+                  );
+                }}
               />
               Delivery habilitado
             </label>
@@ -447,6 +475,11 @@ export function SettingsPage() {
               Mercado Pago
             </label>
           </div>
+          {!deliveryAddressReady ? (
+            <p className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+              El delivery permanece bloqueado hasta que la direccion del comercio quede configurada con CP, localidad y punto exacto en el mapa.
+            </p>
+          ) : null}
         </section>
 
         <section className="space-y-4">

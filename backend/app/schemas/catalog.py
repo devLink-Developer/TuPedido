@@ -131,6 +131,9 @@ class StoreSummaryRead(BaseModel):
     name: str
     description: str
     address: str
+    postal_code: str | None = None
+    province: str | None = None
+    locality: str | None = None
     phone: str
     latitude: float | None = None
     longitude: float | None = None

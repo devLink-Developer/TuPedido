@@ -17,6 +17,7 @@ from app.models.user import MerchantApplication, User
 from app.schemas.auth import AuthResponse, UserRead
 from app.schemas.merchant import MerchantApplicationCreate, MerchantApplicationRegister
 from app.services.store_branding import resolve_store_assets
+from app.services.store_address import store_has_configured_delivery_address
 
 router = APIRouter()
 
@@ -114,12 +115,14 @@ def ensure_pending_store(
     if settings is None:
         settings = StoreDeliverySettings(
             store_id=store.id,
-            delivery_enabled=True,
+            delivery_enabled=False,
             pickup_enabled=True,
             delivery_fee=0,
             min_order=0,
         )
         db.add(settings)
+    elif not store_has_configured_delivery_address(store):
+        settings.delivery_enabled = False
 
     payment_settings = store.payment_settings
     if payment_settings is None:

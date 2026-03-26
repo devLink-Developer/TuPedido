@@ -39,6 +39,7 @@ from app.schemas.merchant import (
 from app.schemas.order import OrderStatusUpdate
 from app.services.settlements import create_cash_service_fee_charge
 from app.services.delivery import mark_order_ready_for_dispatch, publish_order_snapshot
+from app.services.store_address import store_has_configured_delivery_address
 
 router = APIRouter()
 
@@ -77,6 +78,9 @@ def update_store(
     store.name = payload.name
     store.description = payload.description
     store.address = payload.address
+    store.postal_code = payload.postal_code.strip() if payload.postal_code else None
+    store.province = payload.province.strip() if payload.province else None
+    store.locality = payload.locality.strip() if payload.locality else None
     store.phone = payload.phone
     store.latitude = payload.latitude
     store.longitude = payload.longitude
@@ -86,6 +90,8 @@ def update_store(
     store.opening_note = payload.opening_note
     store.min_delivery_minutes = payload.min_delivery_minutes
     store.max_delivery_minutes = payload.max_delivery_minutes
+    if store.delivery_settings and not store_has_configured_delivery_address(store):
+        store.delivery_settings.delivery_enabled = False
     db.commit()
     db.refresh(store)
     return serialize_store_detail(store).model_dump()
@@ -141,6 +147,11 @@ def update_delivery_settings(
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     store = get_merchant_store(db, user.id)
+    if payload.delivery_enabled and not store_has_configured_delivery_address(store):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Configura la direccion exacta del comercio con CP, localidad y geolocalizacion antes de habilitar delivery.",
+        )
     settings = store.delivery_settings
     if settings is None:
         settings = StoreDeliverySettings(store_id=store.id)

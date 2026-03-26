@@ -48,6 +48,9 @@ export type StoreSummary = {
   name: string;
   description: string;
   address: string;
+  postal_code?: string | null;
+  province?: string | null;
+  locality?: string | null;
   phone: string;
   latitude: number | null;
   longitude: number | null;

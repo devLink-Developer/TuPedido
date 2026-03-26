@@ -13,6 +13,7 @@ from app.services.delivery import as_float, haversine_km, select_zone_rate
 from app.services.platform import get_service_fee_amount
 from app.services.product_pricing import compute_discount_amount, compute_final_price
 from app.services.mercadopago import is_store_mercadopago_ready
+from app.services.store_address import store_delivery_is_enabled
 
 STORE_OPTIONS = (
     selectinload(Store.category_links).selectinload(StoreCategoryLink.category),
@@ -87,7 +88,7 @@ def compute_cart_totals(cart: ShoppingCart) -> None:
     service_fee = 0.0
     if cart.store and final_items_total > 0 and cart.delivery_mode == "delivery":
         settings = cart.store.delivery_settings
-        if settings and settings.delivery_enabled:
+        if settings and store_delivery_is_enabled(cart.store):
             delivery_fee = estimate_store_delivery_fee(object_session(cart), cart.store) or float(settings.delivery_fee)
     if final_items_total > 0:
         service_fee = get_service_fee_amount(object_session(cart))
@@ -148,7 +149,7 @@ def ensure_delivery_mode_supported(store: Store, delivery_mode: str) -> None:
     if settings is None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Store delivery settings are not configured")
 
-    if delivery_mode == "delivery" and not settings.delivery_enabled:
+    if delivery_mode == "delivery" and not store_delivery_is_enabled(store):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Delivery is not available for this store")
     if delivery_mode == "pickup" and not settings.pickup_enabled:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Pickup is not available for this store")

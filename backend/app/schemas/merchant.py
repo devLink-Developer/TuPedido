@@ -36,6 +36,9 @@ class StoreUpdate(BaseModel):
     name: str
     description: str
     address: str
+    postal_code: str | None = Field(default=None, min_length=4, max_length=20)
+    province: str | None = Field(default=None, min_length=1, max_length=120)
+    locality: str | None = Field(default=None, min_length=1, max_length=120)
     phone: str
     latitude: float | None = None
     longitude: float | None = None

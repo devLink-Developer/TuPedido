@@ -35,6 +35,7 @@ from app.services.category_colors import resolve_category_palette
 from app.services.mercadopago import is_store_mercadopago_ready, mercadopago_connection_status
 from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
 from app.services.product_pricing import serialize_product_pricing
+from app.services.store_address import store_delivery_is_enabled
 from app.services.settlements import (
     charge_outstanding_amount,
     charge_paid_amount,
@@ -64,7 +65,7 @@ def serialize_category(category: object) -> CategoryRead:
 def serialize_store_delivery_settings(store: object) -> StoreDeliverySettingsRead:
     settings = getattr(store, "delivery_settings", None)
     return StoreDeliverySettingsRead(
-        delivery_enabled=bool(settings.delivery_enabled) if settings else False,
+        delivery_enabled=store_delivery_is_enabled(store),
         pickup_enabled=bool(settings.pickup_enabled) if settings else False,
         delivery_fee=float(settings.delivery_fee) if settings else 0,
         min_order=float(settings.min_order) if settings else 0,
@@ -165,6 +166,9 @@ def serialize_store_summary(store: object) -> StoreSummaryRead:
         name=store.name,
         description=store.description,
         address=store.address,
+        postal_code=getattr(store, "postal_code", None),
+        province=getattr(store, "province", None),
+        locality=getattr(store, "locality", None),
         phone=store.phone,
         latitude=float(store.latitude) if getattr(store, "latitude", None) is not None else None,
         longitude=float(store.longitude) if getattr(store, "longitude", None) is not None else None,
