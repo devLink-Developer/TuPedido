@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     mercadopago_redirect_uri: str | None = None
     osrm_base_url: str = "https://router.project-osrm.org"
     map_style_url: str = "https://demotiles.maplibre.org/style.json"
+    address_lookup_base_url: str = "https://api.zippopotam.us"
+    geocoding_base_url: str = "https://nominatim.openstreetmap.org"
+    geocoding_user_agent: str = "TuPedido/0.1 (+https://tupedido.local)"
+    address_lookup_timeout_seconds: float = 10.0
     redis_url: str = "redis://redis:6379/0"
     delivery_offer_timeout_seconds: int = 20
     delivery_tracking_stale_seconds: int = 30

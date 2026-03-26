@@ -4,7 +4,7 @@ import { useAuthSession } from "../../../shared/hooks";
 import { createAddress, deleteAddress, fetchAddresses, updateAddress } from "../../../shared/services/api";
 import type { Address } from "../../../shared/types";
 import { notifyCustomerAddressesChanged } from "../../../shared/utils/customerAddresses";
-import { AddressFormCard, emptyAddressForm, getAddressCoordinates, hasAddressGeolocation, toAddressFormState, type AddressFormState } from "../components/AddressFormCard";
+import { AddressFormCard, emptyAddressForm, hasAddressGeolocation, toAddressFormState, toAddressPayload, type AddressFormState } from "../components/AddressFormCard";
 
 export function ProfilePage() {
   const { token, user } = useAuthSession();
@@ -35,17 +35,25 @@ export function ProfilePage() {
 
   async function handleSaveAddress() {
     if (!token) return;
-    if (!form.label.trim() || !form.street.trim() || !form.details.trim()) {
-      setError("Completa etiqueta, calle y detalle de la direccion.");
+    if (
+      !form.label.trim() ||
+      !form.postal_code.trim() ||
+      !form.province.trim() ||
+      !form.locality.trim() ||
+      !form.street_name.trim() ||
+      !form.street_number.trim() ||
+      !form.details.trim()
+    ) {
+      setError("Completa etiqueta, CP, provincia, localidad, calle, altura y detalle de la direccion.");
       return;
     }
     if (!hasAddressGeolocation(form)) {
-      setError("Debes seleccionar la geolocalizacion exacta en el mapa.");
+      setError("Debes ubicar la direccion en el mapa antes de guardarla.");
       return;
     }
 
-    const coordinates = getAddressCoordinates(form);
-    if (coordinates.latitude === null || coordinates.longitude === null) {
+    const payload = toAddressPayload(form);
+    if (!payload) {
       setError("No se pudo leer la geolocalizacion seleccionada.");
       return;
     }
@@ -53,14 +61,6 @@ export function ProfilePage() {
     setSaving(true);
     setError(null);
     try {
-      const payload = {
-        label: form.label.trim(),
-        street: form.street.trim(),
-        details: form.details.trim(),
-        latitude: coordinates.latitude,
-        longitude: coordinates.longitude,
-        is_default: form.is_default
-      };
       if (editingAddressId) {
         await updateAddress(token, editingAddressId, payload);
       } else {
@@ -128,6 +128,7 @@ export function ProfilePage() {
           <AddressFormCard
             title={editingAddressId ? "Editar direccion" : "Nueva direccion"}
             submitLabel={editingAddressId ? "Guardar cambios" : "Guardar direccion"}
+            lookupToken={token}
             form={form}
             saving={saving}
             error={error}
@@ -171,6 +172,11 @@ export function ProfilePage() {
                         ) : null}
                       </div>
                       <p className="mt-2 text-sm text-zinc-700">{address.street}</p>
+                      {address.locality || address.province || address.postal_code ? (
+                        <p className="mt-1 text-sm text-zinc-500">
+                          {[address.locality, address.province, address.postal_code].filter(Boolean).join(" - ")}
+                        </p>
+                      ) : null}
                       <p className="mt-1 text-sm text-zinc-500">{address.details}</p>
                       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
                         {address.latitude !== null && address.longitude !== null ? "Geolocalizacion lista" : "Falta geolocalizacion"}

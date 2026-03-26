@@ -13,10 +13,14 @@ type Coordinates = {
 export function AddressLocationPicker({
   latitude,
   longitude,
+  fallbackLatitude,
+  fallbackLongitude,
   onChange,
 }: {
   latitude: number | null;
   longitude: number | null;
+  fallbackLatitude?: number | null;
+  fallbackLongitude?: number | null;
   onChange: (coordinates: Coordinates) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -25,6 +29,8 @@ export function AddressLocationPicker({
   const onChangeRef = useRef(onChange);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const canUseCurrentLocation =
+    typeof window !== "undefined" && window.isSecureContext && typeof navigator !== "undefined" && Boolean(navigator.geolocation);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -33,8 +39,8 @@ export function AddressLocationPicker({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const initialLongitude = longitude ?? DEFAULT_ADDRESS_COORDINATES.longitude;
-    const initialLatitude = latitude ?? DEFAULT_ADDRESS_COORDINATES.latitude;
+    const initialLongitude = longitude ?? fallbackLongitude ?? DEFAULT_ADDRESS_COORDINATES.longitude;
+    const initialLatitude = latitude ?? fallbackLatitude ?? DEFAULT_ADDRESS_COORDINATES.latitude;
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: resolveMapStyle(),
@@ -60,7 +66,7 @@ export function AddressLocationPicker({
       map.remove();
       mapRef.current = null;
     };
-  }, [latitude, longitude]);
+  }, [fallbackLatitude, fallbackLongitude, latitude, longitude]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -87,7 +93,26 @@ export function AddressLocationPicker({
     });
   }, [latitude, longitude]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || latitude !== null || longitude !== null) return;
+
+    const nextLongitude = fallbackLongitude ?? DEFAULT_ADDRESS_COORDINATES.longitude;
+    const nextLatitude = fallbackLatitude ?? DEFAULT_ADDRESS_COORDINATES.latitude;
+    map.easeTo({
+      center: [nextLongitude, nextLatitude],
+      zoom: fallbackLatitude != null && fallbackLongitude != null ? 13 : 12,
+      duration: 350,
+      essential: true,
+    });
+  }, [fallbackLatitude, fallbackLongitude, latitude, longitude]);
+
   function handleUseCurrentLocation() {
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      setError("Tu navegador solo permite usar la ubicacion actual desde HTTPS o localhost. Usa el mapa o geolocaliza por direccion.");
+      return;
+    }
+
     if (!navigator.geolocation) {
       setError("Tu dispositivo no permite obtener la ubicacion actual.");
       return;
@@ -103,8 +128,16 @@ export function AddressLocationPicker({
           longitude: position.coords.longitude,
         });
       },
-      () => {
+      (locationError) => {
         setLocating(false);
+        if (locationError.code === locationError.PERMISSION_DENIED) {
+          setError("El navegador bloqueo tu ubicacion actual. Habilitala o usa CP, localidad, calle y altura para ubicarte en el mapa.");
+          return;
+        }
+        if (locationError.code === locationError.TIMEOUT) {
+          setError("La ubicacion actual tardo demasiado. Reintenta o marca el punto manualmente en el mapa.");
+          return;
+        }
         setError("No se pudo obtener tu ubicacion actual. Seleccionala manualmente en el mapa.");
       },
       {
@@ -122,10 +155,16 @@ export function AddressLocationPicker({
           <p className="text-sm font-semibold text-ink">Ubicacion en mapa</p>
           <p className="text-sm text-zinc-500">Selecciona el punto exacto o usa tu ubicacion actual. Es obligatoria para guardar la direccion.</p>
         </div>
-        <Button type="button" onClick={handleUseCurrentLocation} disabled={locating} className="px-3 py-2 text-xs">
+        <Button type="button" onClick={handleUseCurrentLocation} disabled={locating || !canUseCurrentLocation} className="px-3 py-2 text-xs">
           {locating ? "Ubicando..." : "Usar mi ubicacion"}
         </Button>
       </div>
+
+      {!canUseCurrentLocation ? (
+        <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          La ubicacion actual requiere HTTPS o localhost. Mientras tanto usa el CP, la localidad, calle y altura para ubicar la direccion.
+        </p>
+      ) : null}
 
       <div ref={containerRef} className="h-72 overflow-hidden rounded-[24px] border border-black/5" />
 

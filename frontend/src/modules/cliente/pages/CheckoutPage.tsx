@@ -9,7 +9,7 @@ import { Button } from "../../../shared/ui/Button";
 import { notifyCustomerAddressesChanged } from "../../../shared/utils/customerAddresses";
 import { normalizePath } from "../../../shared/utils/routing";
 import { CheckoutSummary } from "../components/CheckoutSummary";
-import { AddressFormCard, emptyAddressForm, getAddressCoordinates, hasAddressGeolocation, type AddressFormState } from "../components/AddressFormCard";
+import { AddressFormCard, emptyAddressForm, hasAddressGeolocation, toAddressPayload, type AddressFormState } from "../components/AddressFormCard";
 
 function hasMercadoPago(paymentSettings: StoreDetail["payment_settings"]) {
   return paymentSettings.mercadopago_enabled && paymentSettings.mercadopago_configured;
@@ -95,17 +95,25 @@ export function CheckoutPage() {
 
   async function handleCreateAddress() {
     if (!token) return;
-    if (!addressForm.label.trim() || !addressForm.street.trim() || !addressForm.details.trim()) {
-      setError("Completa etiqueta, calle y detalle de la direccion.");
+    if (
+      !addressForm.label.trim() ||
+      !addressForm.postal_code.trim() ||
+      !addressForm.province.trim() ||
+      !addressForm.locality.trim() ||
+      !addressForm.street_name.trim() ||
+      !addressForm.street_number.trim() ||
+      !addressForm.details.trim()
+    ) {
+      setError("Completa etiqueta, CP, provincia, localidad, calle, altura y detalle de la direccion.");
       return;
     }
     if (!hasAddressGeolocation(addressForm)) {
-      setError("Debes seleccionar la geolocalizacion exacta en el mapa.");
+      setError("Debes ubicar la direccion en el mapa antes de guardarla.");
       return;
     }
 
-    const coordinates = getAddressCoordinates(addressForm);
-    if (coordinates.latitude === null || coordinates.longitude === null) {
+    const payload = toAddressPayload(addressForm);
+    if (!payload) {
       setError("No se pudo leer la geolocalizacion seleccionada.");
       return;
     }
@@ -113,14 +121,7 @@ export function CheckoutPage() {
     setError(null);
 
     try {
-      const created = await createAddress(token, {
-        label: addressForm.label.trim(),
-        street: addressForm.street.trim(),
-        details: addressForm.details.trim(),
-        latitude: coordinates.latitude,
-        longitude: coordinates.longitude,
-        is_default: addressForm.is_default
-      });
+      const created = await createAddress(token, payload);
       setAddresses((current) => [created, ...current]);
       setSelectedAddressId(created.id);
       setAddressForm(emptyAddressForm);
@@ -203,6 +204,9 @@ export function CheckoutPage() {
                   >
                     <p className="font-semibold">{address.label}</p>
                     <p className="mt-1 text-zinc-500">{address.street}</p>
+                    {address.locality || address.province || address.postal_code ? (
+                      <p className="mt-1 text-zinc-500">{[address.locality, address.province, address.postal_code].filter(Boolean).join(" - ")}</p>
+                    ) : null}
                     <p className="mt-1 text-zinc-500">{address.details}</p>
                     {address.latitude === null || address.longitude === null ? (
                       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
@@ -224,6 +228,7 @@ export function CheckoutPage() {
                   <AddressFormCard
                     title="Nueva direccion"
                     submitLabel="Guardar direccion"
+                    lookupToken={token}
                     form={addressForm}
                     error={error}
                     onChange={setAddressForm}
@@ -265,6 +270,9 @@ export function CheckoutPage() {
             <div className="rounded-[28px] bg-white p-5 text-sm text-zinc-600 shadow-sm">
               <h3 className="text-lg font-bold text-ink">Confirmacion</h3>
               <p className="mt-3">Direccion: {selectedAddress.street}</p>
+              {selectedAddress.locality || selectedAddress.province || selectedAddress.postal_code ? (
+                <p className="mt-1">{[selectedAddress.locality, selectedAddress.province, selectedAddress.postal_code].filter(Boolean).join(" - ")}</p>
+              ) : null}
               <p className="mt-1">Detalle: {selectedAddress.details}</p>
             </div>
           ) : null}

@@ -4,11 +4,52 @@ import type { Order } from "./order";
 export type Address = {
   id: number;
   label: string;
+  postal_code: string | null;
+  province: string | null;
+  locality: string | null;
   street: string;
   details: string;
   latitude: number | null;
   longitude: number | null;
   is_default: boolean;
+};
+
+export type AddressWrite = {
+  label: string;
+  postal_code?: string | null;
+  province?: string | null;
+  locality?: string | null;
+  street: string;
+  details: string;
+  latitude: number | null;
+  longitude: number | null;
+  is_default: boolean;
+};
+
+export type AddressLookupLocality = {
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+export type AddressPostalCodeLookup = {
+  postal_code: string;
+  province: string;
+  localities: AddressLookupLocality[];
+};
+
+export type AddressGeocodeRequest = {
+  postal_code: string;
+  province: string;
+  locality: string;
+  street_name: string;
+  street_number: string;
+};
+
+export type AddressGeocodeResult = {
+  latitude: number;
+  longitude: number;
+  display_name: string | null;
 };
 
 export type MerchantApplication = {
