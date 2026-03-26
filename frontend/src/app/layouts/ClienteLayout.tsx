@@ -141,14 +141,14 @@ export function ClienteLayout({ children }: PropsWithChildren) {
           </Link>
           {showAddressSelector ? (
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Direccion de envio</p>
               {addressesLoading ? (
-                <div className="mt-1 h-[46px] w-full animate-pulse rounded-2xl bg-white shadow-sm" />
+                <div className="h-[46px] w-full animate-pulse rounded-2xl bg-white shadow-sm" />
               ) : addresses.length > 1 ? (
                 <select
                   value={selectedAddress?.id ?? ""}
                   onChange={(event) => setSelectedAddressId(event.target.value ? Number(event.target.value) : "")}
-                  className="mt-1 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-ink shadow-sm outline-none transition focus:border-brand-500"
+                  aria-label="Define tu direccion de entrega"
+                  className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-ink shadow-sm outline-none transition focus:border-brand-500"
                 >
                   {addresses.map((address) => (
                     <option key={address.id} value={address.id}>
@@ -159,12 +159,12 @@ export function ClienteLayout({ children }: PropsWithChildren) {
               ) : (
                 <Link
                   to="/c/perfil"
-                  className="mt-1 block rounded-2xl border border-black/10 bg-white px-4 py-2.5 shadow-sm transition hover:border-brand-200"
+                  className="block rounded-2xl border border-black/10 bg-white px-4 py-3 shadow-sm transition hover:border-brand-200"
                 >
-                  <span className="block truncate text-sm font-semibold text-ink">
-                    {selectedAddress?.label ?? "Agregar direccion"}
+                  <span className="hidden">
+                    {selectedAddress?.label ?? ""}
                   </span>
-                  <span className="block truncate text-xs text-zinc-500">
+                  <span className="block truncate text-sm font-semibold text-ink">
                     {selectedAddress ? `${selectedAddress.street} · ${selectedAddress.details}` : "Define tu direccion de entrega"}
                   </span>
                 </Link>
