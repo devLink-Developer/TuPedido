@@ -10,6 +10,8 @@ type OrderFilters = {
   status: string;
   paymentMethod: string;
   deliveryMode: string;
+  fromDate: string;
+  toDate: string;
 };
 
 const deliveryModeLabels: Record<string, string> = {
@@ -17,11 +19,19 @@ const deliveryModeLabels: Record<string, string> = {
   pickup: "Retiro"
 };
 
+function toDateInputValue(date: Date) {
+  const timezoneOffset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 10);
+}
+
 function matchesOrder(order: Order, filters: OrderFilters) {
+  const orderDate = toDateInputValue(new Date(order.created_at));
   return (
     (!filters.status || order.status === filters.status) &&
     (!filters.paymentMethod || order.payment_method === filters.paymentMethod) &&
-    (!filters.deliveryMode || order.delivery_mode === filters.deliveryMode)
+    (!filters.deliveryMode || order.delivery_mode === filters.deliveryMode) &&
+    (!filters.fromDate || orderDate >= filters.fromDate) &&
+    (!filters.toDate || orderDate <= filters.toDate)
   );
 }
 
@@ -31,10 +41,13 @@ function uniqueValues(items: string[]) {
 
 export function OrdersPage() {
   const { token } = useAuthSession();
+  const today = useMemo(() => toDateInputValue(new Date()), []);
   const [orders, setOrders] = useState<Order[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState("");
   const [deliveryModeFilter, setDeliveryModeFilter] = useState("");
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate] = useState(today);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,17 +79,29 @@ export function OrdersPage() {
         matchesOrder(order, {
           status: statusFilter,
           paymentMethod: paymentMethodFilter,
-          deliveryMode: deliveryModeFilter
+          deliveryMode: deliveryModeFilter,
+          fromDate,
+          toDate
         })
       ),
-    [deliveryModeFilter, orders, paymentMethodFilter, statusFilter]
+    [deliveryModeFilter, fromDate, orders, paymentMethodFilter, statusFilter, toDate]
   );
 
   const totalAmount = useMemo(() => filteredOrders.reduce((sum, order) => sum + (order.pricing.total ?? 0), 0), [filteredOrders]);
-  const activeFiltersCount = Number(Boolean(statusFilter)) + Number(Boolean(paymentMethodFilter)) + Number(Boolean(deliveryModeFilter));
+  const hasCustomFilters =
+    statusFilter !== "" || paymentMethodFilter !== "" || deliveryModeFilter !== "" || fromDate !== today || toDate !== today;
+  const isTodayRange = fromDate === today && toDate === today;
 
   function countForFilter(nextFilters: OrderFilters) {
     return orders.filter((order) => matchesOrder(order, nextFilters)).length;
+  }
+
+  function resetFilters() {
+    setStatusFilter("");
+    setPaymentMethodFilter("");
+    setDeliveryModeFilter("");
+    setFromDate(today);
+    setToDate(today);
   }
 
   if (loading) return <LoadingCard />;
@@ -101,21 +126,44 @@ export function OrdersPage() {
         <StatCard label="Total filtrado" value={formatCurrency(totalAmount)} description="Suma de importes de los pedidos filtrados." />
       </div>
 
-      <section className="rounded-[28px] bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Filtros dinamicos</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Cruza estado, pago y entrega</h2>
-            <p className="mt-2 text-sm text-zinc-600">Cada contador se recalcula segun los otros filtros activos para mostrar solo combinaciones disponibles.</p>
-          </div>
-          {activeFiltersCount ? (
+      <section className="rounded-[28px] bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="space-y-1">
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Desde</span>
+            <input
+              type="date"
+              value={fromDate}
+              max={toDate || undefined}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                setFromDate(nextValue);
+                if (toDate && nextValue > toDate) {
+                  setToDate(nextValue);
+                }
+              }}
+              className="rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 outline-none transition focus:border-brand-500"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Hasta</span>
+            <input
+              type="date"
+              value={toDate}
+              min={fromDate || undefined}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                setToDate(nextValue);
+                if (fromDate && nextValue < fromDate) {
+                  setFromDate(nextValue);
+                }
+              }}
+              className="rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 outline-none transition focus:border-brand-500"
+            />
+          </label>
+          {hasCustomFilters ? (
             <button
               type="button"
-              onClick={() => {
-                setStatusFilter("");
-                setPaymentMethodFilter("");
-                setDeliveryModeFilter("");
-              }}
+              onClick={resetFilters}
               className="rounded-full bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700"
             >
               Limpiar filtros
@@ -123,7 +171,7 @@ export function OrdersPage() {
           ) : null}
         </div>
 
-        <div className="mt-5 space-y-4">
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Estado del pedido</p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -134,7 +182,7 @@ export function OrdersPage() {
                   statusFilter === "" ? "bg-brand-500 text-white shadow-float" : "bg-zinc-100 text-zinc-700"
                 }`}
               >
-                Todos ({countForFilter({ status: "", paymentMethod: paymentMethodFilter, deliveryMode: deliveryModeFilter })})
+                Todos ({countForFilter({ status: "", paymentMethod: paymentMethodFilter, deliveryMode: deliveryModeFilter, fromDate, toDate })})
               </button>
               {statusOptions.map((status) => (
                 <button
@@ -145,7 +193,7 @@ export function OrdersPage() {
                     statusFilter === status ? "bg-brand-500 text-white shadow-float" : "bg-zinc-100 text-zinc-700"
                   }`}
                 >
-                  {(statusLabels[status] ?? status)} ({countForFilter({ status, paymentMethod: paymentMethodFilter, deliveryMode: deliveryModeFilter })})
+                  {(statusLabels[status] ?? status)} ({countForFilter({ status, paymentMethod: paymentMethodFilter, deliveryMode: deliveryModeFilter, fromDate, toDate })})
                 </button>
               ))}
             </div>
@@ -161,7 +209,7 @@ export function OrdersPage() {
                   paymentMethodFilter === "" ? "bg-brand-500 text-white shadow-float" : "bg-zinc-100 text-zinc-700"
                 }`}
               >
-                Todos ({countForFilter({ status: statusFilter, paymentMethod: "", deliveryMode: deliveryModeFilter })})
+                Todos ({countForFilter({ status: statusFilter, paymentMethod: "", deliveryMode: deliveryModeFilter, fromDate, toDate })})
               </button>
               {paymentMethodOptions.map((paymentMethod) => (
                 <button
@@ -172,7 +220,7 @@ export function OrdersPage() {
                     paymentMethodFilter === paymentMethod ? "bg-brand-500 text-white shadow-float" : "bg-zinc-100 text-zinc-700"
                   }`}
                 >
-                  {(paymentMethodLabels[paymentMethod] ?? paymentMethod)} ({countForFilter({ status: statusFilter, paymentMethod, deliveryMode: deliveryModeFilter })})
+                  {(paymentMethodLabels[paymentMethod] ?? paymentMethod)} ({countForFilter({ status: statusFilter, paymentMethod, deliveryMode: deliveryModeFilter, fromDate, toDate })})
                 </button>
               ))}
             </div>
@@ -188,7 +236,7 @@ export function OrdersPage() {
                   deliveryModeFilter === "" ? "bg-brand-500 text-white shadow-float" : "bg-zinc-100 text-zinc-700"
                 }`}
               >
-                Todos ({countForFilter({ status: statusFilter, paymentMethod: paymentMethodFilter, deliveryMode: "" })})
+                Todos ({countForFilter({ status: statusFilter, paymentMethod: paymentMethodFilter, deliveryMode: "", fromDate, toDate })})
               </button>
               {deliveryModeOptions.map((deliveryMode) => (
                 <button
@@ -199,7 +247,7 @@ export function OrdersPage() {
                     deliveryModeFilter === deliveryMode ? "bg-brand-500 text-white shadow-float" : "bg-zinc-100 text-zinc-700"
                   }`}
                 >
-                  {(deliveryModeLabels[deliveryMode] ?? deliveryMode)} ({countForFilter({ status: statusFilter, paymentMethod: paymentMethodFilter, deliveryMode })})
+                  {(deliveryModeLabels[deliveryMode] ?? deliveryMode)} ({countForFilter({ status: statusFilter, paymentMethod: paymentMethodFilter, deliveryMode, fromDate, toDate })})
                 </button>
               ))}
             </div>
@@ -230,21 +278,25 @@ export function OrdersPage() {
 
         {!filteredOrders.length ? (
           <EmptyState
-            title={orders.length ? "No hay pedidos para esos filtros" : "Sin pedidos"}
+            title={
+              orders.length
+                ? hasCustomFilters || !isTodayRange
+                  ? "No hay pedidos para esos filtros"
+                  : "Sin pedidos hoy"
+                : "Sin pedidos"
+            }
             description={
               orders.length
-                ? "Ajusta o limpia los filtros para volver a ver pedidos."
+                ? hasCustomFilters || !isTodayRange
+                  ? "Ajusta o limpia los filtros para volver a ver pedidos."
+                  : "No se registraron pedidos en la fecha actual."
                 : "Todavia no hay pedidos registrados."
             }
             action={
-              activeFiltersCount ? (
+              hasCustomFilters ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    setStatusFilter("");
-                    setPaymentMethodFilter("");
-                    setDeliveryModeFilter("");
-                  }}
+                  onClick={resetFilters}
                   className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
                 >
                   Ver todos
