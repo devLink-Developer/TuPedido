@@ -1,6 +1,7 @@
 import { AddressLocationPicker } from "../../../shared/components/maps/AddressLocationPicker";
 import type { Address } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
+import { DEFAULT_ADDRESS_COORDINATES } from "../../../shared/utils/defaultAddressCoordinates";
 
 export type AddressFormState = {
   label: string;
@@ -15,8 +16,8 @@ export const emptyAddressForm: AddressFormState = {
   label: "",
   street: "",
   details: "",
-  latitude: "",
-  longitude: "",
+  latitude: DEFAULT_ADDRESS_COORDINATES.latitude.toFixed(7),
+  longitude: DEFAULT_ADDRESS_COORDINATES.longitude.toFixed(7),
   is_default: false,
 };
 

@@ -3,11 +3,7 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Button } from "../../ui/Button";
 import { resolveMapStyle } from "../../utils/mapStyle";
-
-const DEFAULT_CENTER = {
-  latitude: -34.6037,
-  longitude: -58.3816,
-};
+import { DEFAULT_ADDRESS_COORDINATES } from "../../utils/defaultAddressCoordinates";
 
 type Coordinates = {
   latitude: number;
@@ -37,8 +33,8 @@ export function AddressLocationPicker({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const initialLongitude = longitude ?? DEFAULT_CENTER.longitude;
-    const initialLatitude = latitude ?? DEFAULT_CENTER.latitude;
+    const initialLongitude = longitude ?? DEFAULT_ADDRESS_COORDINATES.longitude;
+    const initialLatitude = latitude ?? DEFAULT_ADDRESS_COORDINATES.latitude;
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: resolveMapStyle(),
