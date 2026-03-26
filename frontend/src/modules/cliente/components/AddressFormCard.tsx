@@ -343,6 +343,24 @@ export function AddressFormCard({
     await handleGeocodeAddress("auto");
   }
 
+  useEffect(() => {
+    if (!lookupToken || !geocodeKey) {
+      return;
+    }
+
+    if (lastResolvedGeocodeKeyRef.current === geocodeKey && hasAddressGeolocation(form)) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void handleGeocodeAddress("auto");
+    }, 450);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [form, geocodeKey, lookupToken]);
+
   async function handleSubmitClick() {
     let nextForm = formRef.current;
 

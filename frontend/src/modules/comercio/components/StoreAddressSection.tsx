@@ -314,6 +314,24 @@ export function StoreAddressSection({
     await handleGeocode("auto");
   }
 
+  useEffect(() => {
+    if (!token || !geocodeKey) {
+      return;
+    }
+
+    if (lastResolvedGeocodeKeyRef.current === geocodeKey && latitude !== null && longitude !== null) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void handleGeocode("auto");
+    }, 450);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [form, geocodeKey, latitude, longitude, token]);
+
   return (
     <section className="space-y-4">
       <div>
