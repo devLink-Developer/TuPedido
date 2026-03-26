@@ -8,7 +8,7 @@ export function CartPage() {
   const { cart, loading, error, updateItem, removeItem, setDeliveryMode, clear } = useCart();
   const navigate = useNavigate();
 
-  if (loading) return <LoadingCard />;
+  if (loading && !cart) return <LoadingCard />;
   if (error) return <EmptyState title="No se pudo cargar el carrito" description={error} />;
   if (!cart || !cart.items.length) {
     return (
