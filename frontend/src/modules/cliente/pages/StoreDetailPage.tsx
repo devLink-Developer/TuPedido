@@ -19,7 +19,7 @@ export function StoreDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthSession();
-  const { addItem, itemCount, total, storeId: cartStoreId, storeName: cartStoreName } = useCart();
+  const { addItem, items, storeId: cartStoreId, storeName: cartStoreName } = useCart();
   const enqueueToast = useUiStore((state) => state.enqueueToast);
   const [store, setStore] = useState<StoreDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +60,17 @@ export function StoreDetailPage() {
     if (!store) return [];
     return store.products.filter((product) => selectedCategory === "all" || product.product_category_id === selectedCategory);
   }, [selectedCategory, store]);
+
+  const cartQuantitiesByProductId = useMemo(() => {
+    if (!storeId || cartStoreId !== storeId) {
+      return new Map<number, number>();
+    }
+
+    return items.reduce((currentMap, item) => {
+      currentMap.set(item.product_id, (currentMap.get(item.product_id) ?? 0) + item.quantity);
+      return currentMap;
+    }, new Map<number, number>());
+  }, [cartStoreId, items, storeId]);
 
   function normalizeQuantity(product: Product, rawQuantity: string | undefined) {
     const parsedQuantity = Number(rawQuantity);
@@ -211,85 +222,98 @@ export function StoreDetailPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {filteredProducts.map((product) => (
-          <article key={product.id} className="rounded-[28px] bg-white p-5 shadow-sm">
-            <div className="flex gap-4">
-              <div
-                className="h-24 w-24 shrink-0 rounded-2xl bg-zinc-100"
-                style={product.image_url ? { backgroundImage: `url(${product.image_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">{product.product_category_name ?? "Sin categoria"}</p>
-                <h3 className="mt-1 text-lg font-bold">{product.name}</h3>
-                <p className="mt-1 line-clamp-2 text-sm text-zinc-600">{product.description}</p>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-lg font-black text-ink">{formatCurrency(product.final_price)}</p>
-                {product.has_commercial_discount ? (
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <p className="text-xs text-zinc-400 line-through">{formatCurrency(product.price)}</p>
-                    <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700">
-                      -{product.commercial_discount_percentage}% comercial
-                    </span>
-                  </div>
-                ) : product.compare_at_price ? (
-                  <p className="text-xs text-zinc-400 line-through">{formatCurrency(product.compare_at_price)}</p>
-                ) : null}
-                <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold text-zinc-500">
-                  {product.brand ? <span className="rounded-full bg-zinc-100 px-2 py-1">{product.brand}</span> : null}
-                  {product.unit_label ? <span className="rounded-full bg-zinc-100 px-2 py-1">{product.unit_label}</span> : null}
-                  {product.stock_quantity !== null ? (
-                    <span className="rounded-full bg-zinc-100 px-2 py-1">Stock {product.stock_quantity}</span>
-                  ) : null}
+        {filteredProducts.map((product) => {
+          const cartQuantity = cartQuantitiesByProductId.get(product.id) ?? 0;
+          const isInCart = cartQuantity > 0;
+
+          return (
+            <article
+              key={product.id}
+              className={`rounded-[28px] bg-white p-5 shadow-sm transition ${
+                isInCart ? "ring-2 ring-brand-100 shadow-[0_14px_40px_rgba(255,108,64,0.16)]" : ""
+              }`}
+            >
+              <div className="flex gap-4">
+                <div
+                  className="h-24 w-24 shrink-0 rounded-2xl bg-zinc-100"
+                  style={product.image_url ? { backgroundImage: `url(${product.image_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">{product.product_category_name ?? "Sin categoria"}</p>
+                  <h3 className="mt-1 text-lg font-bold">{product.name}</h3>
+                  <p className="mt-1 line-clamp-2 text-sm text-zinc-600">{product.description}</p>
                 </div>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${product.is_available ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
-                {product.is_available ? "Disponible" : "Agotado"}
-              </span>
-            </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-[90px_1fr] md:items-end">
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Cant.</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={getMaxAllowed(product) ?? undefined}
-                  inputMode="numeric"
-                  value={quantities[product.id] ?? "1"}
-                  onChange={(event) => setProductQuantity(product, event.currentTarget.value)}
-                  onBlur={() => handleQuantityBlur(product)}
-                  className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 outline-none focus:border-brand-500"
-                />
-              </label>
-              {noteInputsOpen[product.id] ? (
-                <input
-                  value={notes[product.id] ?? ""}
-                  onChange={(event) => setNotes((current) => ({ ...current, [product.id]: event.target.value }))}
-                  placeholder="Sin cebolla, etc."
-                  className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 outline-none focus:border-brand-500"
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setNoteInputsOpen((current) => ({ ...current, [product.id]: true }))}
-                  className="justify-self-start pb-2 text-sm font-semibold text-zinc-500 transition hover:text-ink"
-                >
-                  Agregar nota
-                </button>
-              )}
-            </div>
-            <button
-              type="button"
-              disabled={!product.is_available || savingProductId === product.id}
-              onClick={() => void handleAdd(product)}
-              className="mt-4 w-full rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-float transition disabled:cursor-not-allowed disabled:bg-zinc-300"
-            >
-              {savingProductId === product.id ? "Agregando..." : "Agregar al carrito"}
-            </button>
-          </article>
-        ))}
+
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-lg font-black text-ink">{formatCurrency(product.final_price)}</p>
+                  {product.has_commercial_discount ? (
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <p className="text-xs text-zinc-400 line-through">{formatCurrency(product.price)}</p>
+                      <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                        -{product.commercial_discount_percentage}% comercial
+                      </span>
+                    </div>
+                  ) : product.compare_at_price ? (
+                    <p className="text-xs text-zinc-400 line-through">{formatCurrency(product.compare_at_price)}</p>
+                  ) : null}
+                  <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold text-zinc-500">
+                    {isInCart ? <span className="rounded-full bg-brand-50 px-2 py-1 text-brand-700">En carrito: {cartQuantity}</span> : null}
+                    {product.brand ? <span className="rounded-full bg-zinc-100 px-2 py-1">{product.brand}</span> : null}
+                    {product.unit_label ? <span className="rounded-full bg-zinc-100 px-2 py-1">{product.unit_label}</span> : null}
+                    {product.stock_quantity !== null ? (
+                      <span className="rounded-full bg-zinc-100 px-2 py-1">Stock {product.stock_quantity}</span>
+                    ) : null}
+                  </div>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${product.is_available ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
+                  {product.is_available ? "Disponible" : "Agotado"}
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-[90px_1fr] md:items-end">
+                <label className="space-y-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Cant.</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={getMaxAllowed(product) ?? undefined}
+                    inputMode="numeric"
+                    value={quantities[product.id] ?? "1"}
+                    onChange={(event) => setProductQuantity(product, event.currentTarget.value)}
+                    onBlur={() => handleQuantityBlur(product)}
+                    className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 outline-none focus:border-brand-500"
+                  />
+                </label>
+                {noteInputsOpen[product.id] ? (
+                  <input
+                    value={notes[product.id] ?? ""}
+                    onChange={(event) => setNotes((current) => ({ ...current, [product.id]: event.target.value }))}
+                    placeholder="Sin cebolla, etc."
+                    className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 outline-none focus:border-brand-500"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setNoteInputsOpen((current) => ({ ...current, [product.id]: true }))}
+                    className="justify-self-start pb-2 text-sm font-semibold text-zinc-500 transition hover:text-ink"
+                  >
+                    Agregar nota
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                disabled={!product.is_available || savingProductId === product.id}
+                onClick={() => void handleAdd(product)}
+                className="mt-4 w-full rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-float transition disabled:cursor-not-allowed disabled:bg-zinc-300"
+              >
+                {savingProductId === product.id ? "Agregando..." : "Agregar al carrito"}
+              </button>
+            </article>
+          );
+        })}
         {!filteredProducts.length ? (
           <div className="md:col-span-2">
             <EmptyState title="No hay productos en esta categoria" description="Prueba otro filtro o revisa mas abajo." />

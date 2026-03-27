@@ -44,4 +44,25 @@ describe("PricingSummaryCard", () => {
     expect(screen.getByText(/se estan actualizando/i)).toBeInTheDocument();
     expect(screen.getAllByText("Pendiente de confirmacion").length).toBeGreaterThan(0);
   });
+
+  it("combines discounts into a single row when requested", () => {
+    render(
+      <PricingSummaryCard
+        pricing={{
+          subtotal: 10000,
+          commercialDiscountTotal: -1000,
+          financialDiscountTotal: -500,
+          deliveryFee: 700,
+          serviceFee: 300,
+          total: 9500,
+          complete: true
+        }}
+        discountMode="combined"
+      />
+    );
+
+    expect(screen.getByText("Descuentos")).toBeInTheDocument();
+    expect(screen.queryByText("Descuento comercial")).not.toBeInTheDocument();
+    expect(screen.queryByText("Descuento financiero")).not.toBeInTheDocument();
+  });
 });

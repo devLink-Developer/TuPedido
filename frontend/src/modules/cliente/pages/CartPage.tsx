@@ -29,7 +29,6 @@ export function CartPage() {
       <PageHeader
         eyebrow="Carrito"
         title={cart.store_name ?? "Tu carrito"}
-        description="Tu carrito se mantiene sincronizado para que puedas continuar tu compra sin perder cambios."
         action={
           <button className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white" onClick={() => void clear()}>
             Vaciar carrito
@@ -94,7 +93,7 @@ export function CartPage() {
         </div>
 
         <aside className="space-y-4">
-          <CheckoutSummary pricing={cart.pricing} title="Resumen" />
+          <CheckoutSummary pricing={cart.pricing} title="Resumen" discountMode="combined" />
           <button type="button" onClick={() => navigate("/c/checkout")} className="w-full rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white">
             Ir a pagar
           </button>
