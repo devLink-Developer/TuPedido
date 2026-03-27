@@ -183,6 +183,7 @@ export type SettlementOverview = {
   store_id: number;
   store_name: string;
   store_slug?: string | null;
+  service_fee_amount?: number;
   pending_balance: number;
   paid_balance: number;
   pending_charges_count: number;
@@ -215,6 +216,9 @@ export type SettlementNotice = {
   bank: string;
   reference: string;
   notes: string | null;
+  proof_url?: string | null;
+  proof_content_type?: string | null;
+  proof_original_name?: string | null;
   status: string;
   created_at: string;
   reviewed_at?: string | null;
@@ -228,6 +232,7 @@ export type SettlementPayment = {
   amount: number;
   applied_amount: number;
   method: string;
+  paid_at?: string;
   reference: string | null;
   notes: string | null;
   created_at: string;
@@ -244,12 +249,15 @@ export type AdminSettlementStore = {
   status?: string;
 };
 
-export type SettlementChargeCreate = {
+export type SettlementNoticeCreate = {
   amount: number;
   transfer_date: string;
   bank: string;
   reference: string;
   notes?: string | null;
+  proof_url: string;
+  proof_content_type: string;
+  proof_original_name: string;
 };
 
 export type SettlementPaymentCreate = {

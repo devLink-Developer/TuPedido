@@ -49,6 +49,9 @@ class MerchantTransferNotice(Base):
     bank: Mapped[str] = mapped_column(String(120))
     reference: Mapped[str] = mapped_column(String(180))
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    proof_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    proof_content_type: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    proof_original_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(40), default="pending_review", index=True)
     review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewed_by_user_id: Mapped[int | None] = mapped_column(

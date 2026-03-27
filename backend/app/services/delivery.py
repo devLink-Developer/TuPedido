@@ -18,9 +18,7 @@ from app.models.delivery import (
     DeliveryProfile,
     DeliveryZone,
     DeliveryZoneRate,
-    MerchantCashDeliveryPayable,
     NotificationEvent,
-    RiderSettlementCharge,
 )
 from app.models.order import StoreOrder
 from app.models.store import Store
@@ -498,32 +496,6 @@ def sync_delivery_location(
 
 def finalize_delivery_financials(db: Session, order: StoreOrder) -> None:
     if order.payment_method != "cash":
-        return
-    if order.delivery_provider == "platform" and order.delivery_mode == "delivery":
-        existing_charge = db.scalar(
-            select(RiderSettlementCharge).where(RiderSettlementCharge.order_id == order.id)
-        )
-        if existing_charge is None and order.assigned_rider_id is not None:
-            db.add(
-                RiderSettlementCharge(
-                    rider_user_id=order.assigned_rider_id,
-                    order_id=order.id,
-                    entry_type="cash_liability",
-                    amount=order.total,
-                )
-            )
-        existing_payable = db.scalar(
-            select(MerchantCashDeliveryPayable).where(MerchantCashDeliveryPayable.order_id == order.id)
-        )
-        if existing_payable is None:
-            db.add(
-                MerchantCashDeliveryPayable(
-                    store_id=order.store_id,
-                    order_id=order.id,
-                    amount=order.subtotal,
-                    status="pending",
-                )
-            )
         return
     create_cash_service_fee_charge(db, order)
 

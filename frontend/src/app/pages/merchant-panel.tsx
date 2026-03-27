@@ -19,7 +19,8 @@ import {
   updateMerchantProduct,
   updateMerchantStore,
   updateMerchantStoreCategories,
-  updateMerchantStoreHours
+  updateMerchantStoreHours,
+  uploadProofAsset
 } from "../api";
 import { useSession } from "../session";
 import type {
@@ -71,6 +72,10 @@ function makeEmptyHours(): StoreHourWrite[] {
   return Array.from({ length: 7 }, (_, day_of_week) => ({ day_of_week, opens_at: "09:00:00", closes_at: "18:00:00", is_closed: false }));
 }
 
+function todayInputValue() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export function MerchantDashboardPage() {
   const { token } = useSession();
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
@@ -93,7 +98,16 @@ export function MerchantDashboardPage() {
   const [paymentForm, setPaymentForm] = useState({ cash_enabled: true, mercadopago_enabled: true });
   const [connectUrl, setConnectUrl] = useState<string | null>(null);
   const [connectStatus, setConnectStatus] = useState<string | null>(null);
-  const [noticeForm, setNoticeForm] = useState({ amount: 0, transfer_date: "", bank: "", reference: "", notes: "" });
+  const [noticeForm, setNoticeForm] = useState({
+    amount: 0,
+    transfer_date: todayInputValue(),
+    bank: "",
+    reference: "",
+    notes: "",
+    proof_url: "",
+    proof_content_type: "",
+    proof_original_name: ""
+  });
   const [productForm, setProductForm] = useState({
     sku: "",
     name: "",
@@ -240,13 +254,44 @@ export function MerchantDashboardPage() {
         transfer_date: noticeForm.transfer_date,
         bank: noticeForm.bank,
         reference: noticeForm.reference,
-        notes: noticeForm.notes || null
+        notes: noticeForm.notes || null,
+        proof_url: noticeForm.proof_url,
+        proof_content_type: noticeForm.proof_content_type,
+        proof_original_name: noticeForm.proof_original_name
       });
-      setNoticeForm({ amount: 0, transfer_date: "", bank: "", reference: "", notes: "" });
+      setNoticeForm({
+        amount: 0,
+        transfer_date: todayInputValue(),
+        bank: "",
+        reference: "",
+        notes: "",
+        proof_url: "",
+        proof_content_type: "",
+        proof_original_name: ""
+      });
       setSuccess("Notificacion enviada");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo registrar la transferencia");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function uploadNoticeProof(file: File | null) {
+    if (!token || !file) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const uploaded = await uploadProofAsset(token, file);
+      setNoticeForm((current) => ({
+        ...current,
+        proof_url: uploaded.url,
+        proof_content_type: uploaded.content_type,
+        proof_original_name: uploaded.original_name
+      }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo subir el comprobante");
     } finally {
       setSaving(false);
     }
@@ -609,6 +654,8 @@ export function MerchantDashboardPage() {
             <input value={noticeForm.bank} onChange={(event) => setNoticeForm((current) => ({ ...current, bank: event.target.value }))} placeholder="Banco" className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
             <input value={noticeForm.reference} onChange={(event) => setNoticeForm((current) => ({ ...current, reference: event.target.value }))} placeholder="Referencia" className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
             <textarea value={noticeForm.notes} onChange={(event) => setNoticeForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notas" rows={4} className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
+            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf" onChange={(event) => void uploadNoticeProof(event.target.files?.[0] ?? null)} className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
+            {noticeForm.proof_url ? <p className="text-xs text-zinc-500">Comprobante cargado: {noticeForm.proof_original_name}</p> : null}
             <button type="submit" disabled={saving} className="rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
               Enviar aviso
             </button>

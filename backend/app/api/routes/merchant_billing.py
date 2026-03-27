@@ -28,7 +28,13 @@ from app.services.mercadopago import (
     mercadopago_connection_status,
 )
 from app.services.platform import get_service_fee_amount
-from app.services.settlements import get_store_charges, get_store_notices, get_store_payments
+from app.services.settlements import (
+    get_outstanding_balance,
+    get_pending_notice,
+    get_store_charges,
+    get_store_notices,
+    get_store_payments,
+)
 
 router = APIRouter()
 
@@ -105,6 +111,24 @@ def create_transfer_notice(
     store = get_merchant_store(db, user.id)
     if payload.amount <= 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be greater than zero")
+    outstanding_balance = round(get_outstanding_balance(db, store.id), 2)
+    if outstanding_balance <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Store has no outstanding balance")
+    if get_pending_notice(db, store.id) is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Store already has a transfer notice pending review",
+        )
+    if round(float(payload.amount), 2) != outstanding_balance:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Transfer amount must match the outstanding store balance",
+        )
+    if not payload.proof_url.strip() or not payload.proof_content_type.strip() or not payload.proof_original_name.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Transfer proof is required",
+        )
     notice = MerchantTransferNotice(store_id=store.id, **payload.model_dump())
     db.add(notice)
     db.commit()

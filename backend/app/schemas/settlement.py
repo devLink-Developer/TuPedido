@@ -76,6 +76,9 @@ class MerchantTransferNoticeRead(BaseModel):
     bank: str
     reference: str
     notes: str | None = None
+    proof_url: str | None = None
+    proof_content_type: str | None = None
+    proof_original_name: str | None = None
     status: str
     review_notes: str | None = None
     reviewed_notes: str | None = None
@@ -90,6 +93,9 @@ class MerchantTransferNoticeCreate(BaseModel):
     bank: str
     reference: str
     notes: str | None = None
+    proof_url: str
+    proof_content_type: str
+    proof_original_name: str
 
 
 class MerchantTransferNoticeReviewUpdate(BaseModel):

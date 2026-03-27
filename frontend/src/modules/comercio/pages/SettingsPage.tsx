@@ -398,6 +398,9 @@ export function SettingsPage() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Operacion</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Entregas, cobros y disponibilidad</h2>
+            <p className="mt-2 text-sm text-zinc-600">
+              El costo de delivery lo defines tu comercio y no forma parte del fee global de plataforma cobrado al comprador.
+            </p>
           </div>
           {!isApproved ? (
             <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
@@ -508,6 +511,9 @@ export function SettingsPage() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Parametros</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Detalle operativo</h2>
+            <p className="mt-2 text-sm text-zinc-600">
+              El fee de plataforma es global y lo administra Tu Pedido. Aqui solo configuras tiempos, minimo de compra y delivery de tu comercio.
+            </p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <input

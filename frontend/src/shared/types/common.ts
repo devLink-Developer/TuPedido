@@ -29,3 +29,5 @@ export type ImageUploadResponse = {
   size: number;
   original_name: string;
 };
+
+export type FileUploadResponse = ImageUploadResponse;

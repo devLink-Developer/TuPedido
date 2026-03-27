@@ -167,7 +167,7 @@ def checkout(
                     order_id=order.id,
                     reference=payment_reference,
                     items=build_payment_items(cart, delivery_fee=delivery_fee_customer),
-                    marketplace_fee=float(order.service_fee + order.delivery_fee_customer),
+                    marketplace_fee=float(order.service_fee),
                 )
             except MercadoPagoAPIError as exc:
                 db.rollback()

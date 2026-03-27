@@ -266,10 +266,13 @@ export function OrdersPage() {
               </div>
               <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[order.status] ?? order.status}</span>
             </div>
-            <div className="mt-3 grid gap-2 text-sm text-zinc-600 md:grid-cols-5">
+            <div className="mt-3 grid gap-2 text-sm text-zinc-600 md:grid-cols-7">
               <p>Pago: {paymentMethodLabels[order.payment_method] ?? order.payment_method}</p>
               <p>Entrega: {deliveryModeLabels[order.delivery_mode] ?? order.delivery_mode}</p>
               <p>Total: {formatCurrency(order.pricing.total)}</p>
+              <p>Neto comercio: {formatCurrency(order.total - order.service_fee)}</p>
+              <p>Delivery cliente: {formatCurrency(order.delivery_fee_customer)}</p>
+              <p>Fee plataforma: {formatCurrency(order.service_fee)}</p>
               <p>Estado pago: {statusLabels[order.payment_status] ?? order.payment_status}</p>
               <p>Estado delivery: {statusLabels[order.delivery_status] ?? order.delivery_status}</p>
             </div>

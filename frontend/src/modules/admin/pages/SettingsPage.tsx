@@ -8,14 +8,25 @@ import {
   createAdminSettlementPayment,
   deleteAdminCategory,
   fetchAdminCategories,
+  fetchAdminSettlementNotices,
+  fetchAdminSettlementPayments,
   fetchAdminSettlementStores,
   fetchPlatformSettings,
+  reviewAdminSettlementNotice,
   updateAdminCategory,
   updatePlatformSettings
 } from "../../../shared/services/api";
-import type { AdminSettlementStore, Category, CategoryWrite, PlatformSettings } from "../../../shared/types";
+import type {
+  AdminSettlementStore,
+  Category,
+  CategoryWrite,
+  PlatformSettings,
+  SettlementNotice,
+  SettlementPayment
+} from "../../../shared/types";
 import { hexToRgba, isHexColor, normalizeHexColor, resolveCategoryPalette } from "../../../shared/utils/categoryTheme";
-import { formatCurrency } from "../../../shared/utils/format";
+import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
+import { statusLabels } from "../../../shared/utils/labels";
 import { Button } from "../../../shared/ui/Button";
 
 type CategoryFormState = {
@@ -81,6 +92,8 @@ export function SettingsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
   const [settlementStores, setSettlementStores] = useState<AdminSettlementStore[]>([]);
+  const [settlementNotices, setSettlementNotices] = useState<SettlementNotice[]>([]);
+  const [settlementPayments, setSettlementPayments] = useState<SettlementPayment[]>([]);
   const [categoryForm, setCategoryForm] = useState<CategoryFormState>(emptyCategoryForm);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [serviceFee, setServiceFee] = useState("0");
@@ -88,6 +101,7 @@ export function SettingsPage() {
   const [catalogBannerWidth, setCatalogBannerWidth] = useState(String(CATALOG_BANNER_RECOMMENDATION.width));
   const [catalogBannerHeight, setCatalogBannerHeight] = useState(String(CATALOG_BANNER_RECOMMENDATION.height));
   const [paymentForm, setPaymentForm] = useState({ store_id: "", amount: "", reference: "", notes: "" });
+  const [noticeNotes, setNoticeNotes] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [categorySaving, setCategorySaving] = useState(false);
   const [serviceSaving, setServiceSaving] = useState(false);
@@ -116,20 +130,24 @@ export function SettingsPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const [categoryResult, settingsResult, storesResult] = await Promise.all([
+      const [noticeResult, paymentResult, categoriesResult, platformResult, storesWithBalanceResult] = await Promise.all([
+        fetchAdminSettlementNotices(token),
+        fetchAdminSettlementPayments(token),
         fetchAdminCategories(token),
         fetchPlatformSettings(token),
         fetchAdminSettlementStores(token)
       ]);
-      setCategories(categoryResult);
-      syncPublicCategories(categoryResult.filter((category) => category.is_active));
-      setPlatformSettings(settingsResult);
-      setServiceFee(settingsResult.service_fee_amount.toFixed(2));
-      setCatalogBannerImageUrl(settingsResult.catalog_banner_image_url ?? "");
-      setCatalogBannerWidth(String(settingsResult.catalog_banner_width ?? CATALOG_BANNER_RECOMMENDATION.width));
-      setCatalogBannerHeight(String(settingsResult.catalog_banner_height ?? CATALOG_BANNER_RECOMMENDATION.height));
-      setSettlementStores(storesResult);
-      setPaymentForm((current) => ({ ...current, store_id: current.store_id || String(storesResult[0]?.id ?? "") }));
+      setCategories(categoriesResult);
+      syncPublicCategories(categoriesResult.filter((category) => category.is_active));
+      setPlatformSettings(platformResult);
+      setServiceFee(platformResult.service_fee_amount.toFixed(2));
+      setCatalogBannerImageUrl(platformResult.catalog_banner_image_url ?? "");
+      setCatalogBannerWidth(String(platformResult.catalog_banner_width ?? CATALOG_BANNER_RECOMMENDATION.width));
+      setCatalogBannerHeight(String(platformResult.catalog_banner_height ?? CATALOG_BANNER_RECOMMENDATION.height));
+      setSettlementStores(storesWithBalanceResult);
+      setSettlementNotices(noticeResult);
+      setSettlementPayments(paymentResult);
+      setPaymentForm((current) => ({ ...current, store_id: current.store_id || String(storesWithBalanceResult[0]?.id ?? "") }));
       setError(null);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudo cargar la configuracion");
@@ -287,6 +305,23 @@ export function SettingsPage() {
     }
   }
 
+  async function handleNoticeReview(noticeId: number, status: "approved" | "rejected") {
+    if (!token) return;
+    setPaymentSaving(true);
+    setPaymentError(null);
+    try {
+      await reviewAdminSettlementNotice(token, noticeId, {
+        status,
+        review_notes: noticeNotes[noticeId] ?? null
+      });
+      await load();
+    } catch (requestError) {
+      setPaymentError(requestError instanceof Error ? requestError.message : "No se pudo revisar el aviso");
+    } finally {
+      setPaymentSaving(false);
+    }
+  }
+
   if (loading) return <LoadingCard />;
   if (error || !platformSettings) return <EmptyState title="Configuracion no disponible" description={error ?? "Sin datos"} />;
 
@@ -295,7 +330,7 @@ export function SettingsPage() {
       <PageHeader
         eyebrow="Admin"
         title="Configuracion"
-        description="Administra los rubros visibles de la plataforma, la tarifa global y los pagos manuales de settlement desde una sola pantalla."
+        description="Administra rubros, el fee global cobrado al comprador y la revision de liquidaciones de cuenta corriente."
       />
 
       <section className="rounded-[28px] bg-white p-5 shadow-sm">
@@ -645,7 +680,10 @@ export function SettingsPage() {
 
       <div className="grid gap-4 lg:grid-cols-1">
         <form onSubmit={(event) => void handlePaymentSubmit(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
-          <h3 className="text-lg font-bold text-ink">Pago manual a comercio</h3>
+          <h3 className="text-lg font-bold text-ink">Pago manual excepcional</h3>
+          <p className="mt-2 text-sm text-zinc-600">
+            Usa este formulario solo si debes aplicar un pago por fuera del flujo normal de aviso con comprobante.
+          </p>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <select
               value={paymentForm.store_id}
@@ -686,6 +724,99 @@ export function SettingsPage() {
           </Button>
         </form>
       </div>
+
+      <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <h3 className="text-lg font-bold text-ink">Comercios con saldo</h3>
+          <div className="mt-4 space-y-3">
+            {settlementStores.map((store) => (
+              <div key={store.id} className="rounded-2xl bg-zinc-50 p-4 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <strong>{store.store_name}</strong>
+                  <span>{formatCurrency(store.pending_balance)}</span>
+                </div>
+                <p className="mt-1 text-zinc-500">
+                  {store.owner_name} | {store.pending_charges_count} cargos | {store.pending_notices_count} avisos
+                </p>
+              </div>
+            ))}
+            {!settlementStores.length ? <p className="text-sm text-zinc-500">No hay comercios con saldo pendiente.</p> : null}
+          </div>
+        </article>
+
+        <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <h3 className="text-lg font-bold text-ink">Avisos con comprobante</h3>
+          <div className="mt-4 space-y-3">
+            {settlementNotices.map((notice) => (
+              <div key={notice.id} className="rounded-2xl bg-zinc-50 p-4 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <strong>{notice.store_name ?? "Comercio"}</strong>
+                    <p className="mt-1 text-zinc-500">
+                      {formatCurrency(notice.amount)} | {notice.bank} | {notice.reference}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
+                    {statusLabels[notice.status] ?? notice.status}
+                  </span>
+                </div>
+                <p className="mt-2 text-zinc-500">Enviado {formatDateTime(notice.created_at)}</p>
+                {notice.proof_url ? (
+                  <div className="mt-3">
+                    {notice.proof_content_type?.startsWith("image/") ? (
+                      <img src={notice.proof_url} alt="Comprobante" className="max-h-48 rounded-2xl object-contain" />
+                    ) : (
+                      <a href={notice.proof_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-brand-600">
+                        Ver comprobante PDF
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-zinc-500">Aviso historico sin comprobante adjunto.</p>
+                )}
+                <textarea
+                  value={noticeNotes[notice.id] ?? notice.reviewed_notes ?? ""}
+                  onChange={(event) => setNoticeNotes((current) => ({ ...current, [notice.id]: event.target.value }))}
+                  rows={2}
+                  className="mt-3 w-full rounded-2xl border border-black/10 bg-white px-4 py-3"
+                  placeholder="Notas de revision"
+                  disabled={paymentSaving || notice.status !== "pending_review"}
+                />
+                {notice.status === "pending_review" ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button type="button" disabled={paymentSaving} onClick={() => void handleNoticeReview(notice.id, "approved")} className="bg-emerald-600 px-4 py-2 text-xs">
+                      Aprobar
+                    </Button>
+                    <Button type="button" disabled={paymentSaving} onClick={() => void handleNoticeReview(notice.id, "rejected")} className="bg-rose-600 px-4 py-2 text-xs">
+                      Rechazar
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+            {!settlementNotices.length ? <p className="text-sm text-zinc-500">No hay avisos registrados.</p> : null}
+          </div>
+        </article>
+      </div>
+
+      <article className="rounded-[28px] bg-white p-5 shadow-sm">
+        <h3 className="text-lg font-bold text-ink">Pagos aplicados</h3>
+        <div className="mt-4 space-y-3">
+          {settlementPayments.map((payment) => (
+            <div key={payment.id} className="rounded-2xl bg-zinc-50 p-4 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <strong>{payment.store_name ?? "Comercio"}</strong>
+                <span>{formatCurrency(payment.amount)}</span>
+              </div>
+              <p className="mt-1 text-zinc-500">
+                Aplicado {formatCurrency(payment.applied_amount)} | {payment.method} | {formatDateTime(payment.paid_at ?? payment.created_at)}
+              </p>
+              {payment.reference ? <p className="mt-1 text-zinc-500">Referencia: {payment.reference}</p> : null}
+            </div>
+          ))}
+          {!settlementPayments.length ? <p className="text-sm text-zinc-500">Todavia no hay pagos imputados.</p> : null}
+        </div>
+      </article>
     </div>
   );
 }

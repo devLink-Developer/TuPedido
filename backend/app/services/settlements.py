@@ -73,6 +73,18 @@ def get_store_notices(db: Session, store_id: int) -> list[MerchantTransferNotice
     ).all()
 
 
+def get_pending_notice(db: Session, store_id: int) -> MerchantTransferNotice | None:
+    return db.scalar(
+        select(MerchantTransferNotice)
+        .options(*NOTICE_OPTIONS)
+        .where(
+            MerchantTransferNotice.store_id == store_id,
+            MerchantTransferNotice.status == "pending_review",
+        )
+        .order_by(MerchantTransferNotice.created_at.desc(), MerchantTransferNotice.id.desc())
+    )
+
+
 def get_store_payments(db: Session, store_id: int) -> list[MerchantSettlementPayment]:
     return db.scalars(
         select(MerchantSettlementPayment)
@@ -89,8 +101,6 @@ def get_outstanding_balance(db: Session, store_id: int) -> float:
 
 def create_cash_service_fee_charge(db: Session, order: StoreOrder) -> MerchantServiceFeeCharge | None:
     if order.payment_method != "cash" or order.status != "delivered":
-        return None
-    if getattr(order, "delivery_provider", None) == "platform" and order.delivery_mode == "delivery":
         return None
     amount = float(order.service_fee)
     if amount <= 0:

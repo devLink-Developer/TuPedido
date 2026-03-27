@@ -33,6 +33,7 @@ export const statusLabels: Record<string, string> = {
   delivery_failed: "Entrega fallida",
   cancelled: "Cancelado",
   pending: "Pendiente",
+  pending_review: "Pendiente de revision",
   approved: "Aprobado",
   rejected: "Rechazado",
   suspended: "Suspendido"

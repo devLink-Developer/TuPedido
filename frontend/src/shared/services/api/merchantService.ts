@@ -12,7 +12,7 @@ import type {
   ProductSubcategoryUpdate,
   ProductWrite,
   SettlementCharge,
-  SettlementChargeCreate,
+  SettlementNoticeCreate,
   SettlementNotice,
   SettlementOverview,
   StoreCategoriesUpdate,
@@ -109,7 +109,7 @@ export async function fetchMerchantSettlementNotices(token: string): Promise<Set
 
 export async function createMerchantSettlementNotice(
   token: string,
-  payload: SettlementChargeCreate
+  payload: SettlementNoticeCreate
 ): Promise<SettlementNotice> {
   return apiRequest<SettlementNotice>("/merchant/settlements/notices", {
     method: "POST",

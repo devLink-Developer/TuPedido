@@ -14,6 +14,11 @@ ALLOWED_IMAGE_TYPES = {
     "image/gif": ".gif",
 }
 
+ALLOWED_PROOF_TYPES = {
+    **ALLOWED_IMAGE_TYPES,
+    "application/pdf": ".pdf",
+}
+
 
 def get_media_root() -> Path:
     media_root = Path(settings.media_root)
@@ -28,25 +33,32 @@ def _safe_folder(folder: str) -> str:
     return cleaned or "general"
 
 
-async def save_uploaded_image(file: UploadFile, *, folder: str) -> dict[str, object]:
+async def _save_uploaded_asset(
+    file: UploadFile,
+    *,
+    folder: str,
+    allowed_types: dict[str, str],
+    kind_label: str,
+) -> dict[str, object]:
     content_type = (file.content_type or "").lower()
-    if content_type not in ALLOWED_IMAGE_TYPES:
+    if content_type not in allowed_types:
+        allowed_labels = ", ".join(sorted(extension.lstrip(".").upper() for extension in set(allowed_types.values())))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Unsupported image type. Use JPG, PNG, WEBP or GIF.",
+            detail=f"Unsupported {kind_label} type. Use {allowed_labels}.",
         )
 
     content = await file.read()
     max_size_bytes = settings.media_max_upload_mb * 1024 * 1024
     if not content:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Image file is empty")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{kind_label.capitalize()} file is empty")
     if len(content) > max_size_bytes:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"Image exceeds the {settings.media_max_upload_mb} MB limit",
+            detail=f"{kind_label.capitalize()} exceeds the {settings.media_max_upload_mb} MB limit",
         )
 
-    extension = ALLOWED_IMAGE_TYPES[content_type]
+    extension = allowed_types[content_type]
     folder_name = _safe_folder(folder)
     target_dir = get_media_root() / folder_name
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -63,3 +75,21 @@ async def save_uploaded_image(file: UploadFile, *, folder: str) -> dict[str, obj
         "size": len(content),
         "original_name": file.filename or filename,
     }
+
+
+async def save_uploaded_image(file: UploadFile, *, folder: str) -> dict[str, object]:
+    return await _save_uploaded_asset(
+        file,
+        folder=folder,
+        allowed_types=ALLOWED_IMAGE_TYPES,
+        kind_label="image",
+    )
+
+
+async def save_uploaded_proof(file: UploadFile, *, folder: str) -> dict[str, object]:
+    return await _save_uploaded_asset(
+        file,
+        folder=folder,
+        allowed_types=ALLOWED_PROOF_TYPES,
+        kind_label="proof",
+    )

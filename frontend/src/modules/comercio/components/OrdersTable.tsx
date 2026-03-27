@@ -23,10 +23,12 @@ export function OrdersTable({
               {statusLabels[order.status] ?? order.status}
             </span>
           </div>
-          <div className="mt-3 grid gap-2 text-sm text-zinc-600 md:grid-cols-4">
+          <div className="mt-3 grid gap-2 text-sm text-zinc-600 md:grid-cols-6">
             <p>Pago: {paymentMethodLabels[order.payment_method]}</p>
             <p>Total cliente: {formatCurrency(order.pricing.total)}</p>
-            <p>Servicio: {formatCurrency(order.pricing.serviceFee)}</p>
+            <p>Neto comercio: {formatCurrency(order.total - order.service_fee)}</p>
+            <p>Delivery cliente: {formatCurrency(order.delivery_fee_customer)}</p>
+            <p>Fee plataforma: {formatCurrency(order.pricing.serviceFee)}</p>
             <p>Delivery: {statusLabels[order.delivery_status] ?? order.delivery_status}</p>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
