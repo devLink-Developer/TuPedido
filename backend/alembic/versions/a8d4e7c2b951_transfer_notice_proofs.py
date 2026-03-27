@@ -1,7 +1,7 @@
 """transfer_notice_proofs
 
 Revision ID: a8d4e7c2b951
-Revises: f3c1b8a9d204
+Revises: c4e8f1a2b903
 Create Date: 2026-03-26 11:20:00.000000
 """
 
@@ -15,7 +15,7 @@ from sqlalchemy import inspect
 
 
 revision: str = "a8d4e7c2b951"
-down_revision: Union[str, None] = "f3c1b8a9d204"
+down_revision: Union[str, None] = "c4e8f1a2b903"
 branch_labels = None
 depends_on = None
 
