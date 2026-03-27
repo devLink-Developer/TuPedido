@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
 import { useAuthSession, useCart } from "../../../shared/hooks";
 import { fetchStoreById } from "../../../shared/services/api";
+import { useUiStore } from "../../../shared/stores";
 import type { Product, StoreDetail } from "../../../shared/types";
 import { formatCurrency } from "../../../shared/utils/format";
 
@@ -10,17 +11,23 @@ function hasMercadoPago(paymentSettings: StoreDetail["payment_settings"]) {
   return paymentSettings.mercadopago_enabled && paymentSettings.mercadopago_configured;
 }
 
+function getMaxAllowed(product: Product) {
+  return product.max_per_order ?? product.stock_quantity;
+}
+
 export function StoreDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthSession();
   const { addItem, itemCount, total, storeId: cartStoreId, storeName: cartStoreName } = useCart();
+  const enqueueToast = useUiStore((state) => state.enqueueToast);
   const [store, setStore] = useState<StoreDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number | "all">("all");
-  const [quantities, setQuantities] = useState<Record<number, number>>({});
+  const [quantities, setQuantities] = useState<Record<number, string>>({});
   const [notes, setNotes] = useState<Record<number, string>>({});
+  const [noteInputsOpen, setNoteInputsOpen] = useState<Record<number, boolean>>({});
   const [savingProductId, setSavingProductId] = useState<number | null>(null);
   const storeId = id ? Number(id) : null;
 
@@ -54,6 +61,48 @@ export function StoreDetailPage() {
     return store.products.filter((product) => selectedCategory === "all" || product.product_category_id === selectedCategory);
   }, [selectedCategory, store]);
 
+  function normalizeQuantity(product: Product, rawQuantity: string | undefined) {
+    const parsedQuantity = Number(rawQuantity);
+    const maxAllowed = getMaxAllowed(product);
+
+    if (!rawQuantity || !Number.isInteger(parsedQuantity) || parsedQuantity < 1) {
+      return 1;
+    }
+
+    if (maxAllowed !== null && parsedQuantity > maxAllowed) {
+      return maxAllowed;
+    }
+
+    return parsedQuantity;
+  }
+
+  function setProductQuantity(product: Product, nextValue: string) {
+    if (nextValue === "") {
+      setQuantities((current) => ({ ...current, [product.id]: "" }));
+      return;
+    }
+
+    if (!/^\d+$/.test(nextValue)) {
+      return;
+    }
+
+    const parsedQuantity = Number(nextValue);
+    const maxAllowed = getMaxAllowed(product);
+
+    if (maxAllowed !== null && parsedQuantity > maxAllowed) {
+      enqueueToast(`Solo puedes pedir hasta ${maxAllowed} ${maxAllowed === 1 ? "unidad" : "unidades"}.`);
+      setQuantities((current) => ({ ...current, [product.id]: String(maxAllowed) }));
+      return;
+    }
+
+    setQuantities((current) => ({ ...current, [product.id]: nextValue }));
+  }
+
+  function handleQuantityBlur(product: Product) {
+    const normalizedQuantity = normalizeQuantity(product, quantities[product.id]);
+    setQuantities((current) => ({ ...current, [product.id]: String(normalizedQuantity) }));
+  }
+
   async function handleAdd(product: Product) {
     if (!store) return;
     if (!isAuthenticated) {
@@ -61,16 +110,19 @@ export function StoreDetailPage() {
       return;
     }
 
+    const quantity = normalizeQuantity(product, quantities[product.id]);
+    setQuantities((current) => ({ ...current, [product.id]: String(quantity) }));
     setSavingProductId(product.id);
     setError(null);
     try {
       await addItem({
         storeId: store.id,
         productId: product.id,
-        quantity: quantities[product.id] ?? 1,
+        quantity,
         note: notes[product.id]?.trim() || null
       });
       setNotes((current) => ({ ...current, [product.id]: "" }));
+      setNoteInputsOpen((current) => ({ ...current, [product.id]: false }));
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudo agregar al carrito");
     } finally {
@@ -197,40 +249,36 @@ export function StoreDetailPage() {
                 {product.is_available ? "Disponible" : "Agotado"}
               </span>
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-[90px_120px_1fr]">
+            <div className="mt-4 grid gap-3 md:grid-cols-[90px_1fr] md:items-end">
               <label className="space-y-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Cant.</span>
                 <input
                   type="number"
                   min={1}
-                  max={product.max_per_order ?? product.stock_quantity ?? undefined}
-                  value={quantities[product.id] ?? 1}
-                  onChange={(event) => {
-                    const nextValue = Number.isFinite(event.currentTarget.valueAsNumber) ? event.currentTarget.valueAsNumber : 1;
-                    const maxAllowed = product.max_per_order ?? product.stock_quantity ?? Number.MAX_SAFE_INTEGER;
-                    setQuantities((current) => ({
-                      ...current,
-                      [product.id]: Math.max(1, Math.min(maxAllowed, nextValue))
-                    }));
-                  }}
+                  max={getMaxAllowed(product) ?? undefined}
+                  inputMode="numeric"
+                  value={quantities[product.id] ?? "1"}
+                  onChange={(event) => setProductQuantity(product, event.currentTarget.value)}
+                  onBlur={() => handleQuantityBlur(product)}
                   className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 outline-none focus:border-brand-500"
                 />
               </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Limite</span>
-                <div className="rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
-                  {product.max_per_order ?? product.stock_quantity ?? "Sin limite"}
-                </div>
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Nota</span>
+              {noteInputsOpen[product.id] ? (
                 <input
                   value={notes[product.id] ?? ""}
                   onChange={(event) => setNotes((current) => ({ ...current, [product.id]: event.target.value }))}
                   placeholder="Sin cebolla, etc."
                   className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 outline-none focus:border-brand-500"
                 />
-              </label>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setNoteInputsOpen((current) => ({ ...current, [product.id]: true }))}
+                  className="justify-self-start pb-2 text-sm font-semibold text-zinc-500 transition hover:text-ink"
+                >
+                  Agregar nota
+                </button>
+              )}
             </div>
             <button
               type="button"
