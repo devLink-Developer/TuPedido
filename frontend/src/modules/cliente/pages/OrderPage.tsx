@@ -23,15 +23,21 @@ export function OrderPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    Promise.all([fetchOrder(token, orderId), fetchOrderTracking(token, orderId)])
+    setOrder(null);
+    setTracking(null);
+    Promise.allSettled([fetchOrder(token, orderId), fetchOrderTracking(token, orderId)])
       .then(([orderResult, trackingResult]) => {
         if (cancelled) return;
-        setOrder(orderResult);
-        setTracking(trackingResult);
-      })
-      .catch((requestError) => {
-        if (!cancelled) {
-          setError(requestError instanceof Error ? requestError.message : "No se pudo cargar el pedido");
+
+        if (orderResult.status === "rejected") {
+          setError(orderResult.reason instanceof Error ? orderResult.reason.message : "No se pudo cargar el pedido");
+          return;
+        }
+
+        setOrder(orderResult.value);
+
+        if (trackingResult.status === "fulfilled") {
+          setTracking(trackingResult.value);
         }
       })
       .finally(() => {
@@ -51,8 +57,7 @@ export function OrderPage() {
     orderId,
     enabled: Boolean(orderId && token),
     onOrder: handleOrderUpdate,
-    onTracking: handleTrackingUpdate,
-    onError: setError
+    onTracking: handleTrackingUpdate
   });
 
   const liveTracking = useMemo(() => {

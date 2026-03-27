@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { buildOrderSocketUrl, fetchOrder, fetchOrderTracking } from "../services/api";
+import { buildOrderSocketUrl } from "../services/api";
 import type { Order, OrderTracking } from "../types";
 
 export function useOrderLiveTracking({
@@ -19,28 +19,9 @@ export function useOrderLiveTracking({
 }) {
   useEffect(() => {
     if (!token || !orderId || !enabled) return;
-    const authToken = token;
-    const currentOrderId = orderId;
     let socket: WebSocket | null = null;
-    let cancelled = false;
-
-    async function hydrate() {
-      try {
-        const [order, tracking] = await Promise.all([
-          fetchOrder(authToken, currentOrderId),
-          fetchOrderTracking(authToken, currentOrderId)
-        ]);
-        if (cancelled) return;
-        onOrder(order);
-        onTracking(tracking);
-      } catch (error) {
-        if (!cancelled) onError?.(error instanceof Error ? error.message : "No se pudo sincronizar el pedido");
-      }
-    }
-
-    void hydrate();
     try {
-      socket = new WebSocket(buildOrderSocketUrl(authToken, currentOrderId));
+      socket = new WebSocket(buildOrderSocketUrl(token, orderId));
       socket.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data);
@@ -59,7 +40,6 @@ export function useOrderLiveTracking({
     }
 
     return () => {
-      cancelled = true;
       socket?.close();
     };
   }, [enabled, onError, onOrder, onTracking, orderId, token]);
