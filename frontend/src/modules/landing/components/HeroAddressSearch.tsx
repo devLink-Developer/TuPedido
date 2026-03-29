@@ -14,7 +14,7 @@ export function HeroAddressSearch() {
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ffd2bd]/80">TuPedido</p>
             <h1 className="max-w-3xl font-display text-[2rem] font-bold leading-[1.05] sm:text-4xl md:text-5xl">
-              Todo lo que necesitas para pedir, vender y repartir en un solo lugar.
+              Todo lo que necesitas en un solo lugar.
             </h1>
             <p className="max-w-2xl text-sm leading-6 text-white/72 md:text-base md:leading-7">
               Descubre comercios cercanos, organiza tu compra y sigue cada pedido con una experiencia simple y clara.
