@@ -12,6 +12,7 @@ from app.schemas.order import OrderRead, OrderTrackingRead
 
 router = APIRouter()
 
+TERMINAL_ORDER_STATUSES = {"delivered", "cancelled", "delivery_failed"}
 
 ORDER_OPTIONS = (
     selectinload(StoreOrder.items),
@@ -33,6 +34,10 @@ def _can_access_order(user: User, order: StoreOrder) -> bool:
             order.delivery_assignment is not None and order.delivery_assignment.rider_user_id == user.id
         )
     return False
+
+
+def _customer_can_track_order(order: StoreOrder) -> bool:
+    return order.status not in TERMINAL_ORDER_STATUSES
 
 
 @router.get("", response_model=list[OrderRead])
@@ -68,6 +73,8 @@ def get_order_tracking(
     order = db.scalar(select(StoreOrder).options(*ORDER_OPTIONS).where(StoreOrder.id == order_id))
     if order is None or not _can_access_order(user, order):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    if user.role == "customer" and not _customer_can_track_order(order):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order tracking not available")
     tracking = serialize_tracking(order)
     if user.role not in {"customer", "delivery"}:
         tracking.otp_code = None

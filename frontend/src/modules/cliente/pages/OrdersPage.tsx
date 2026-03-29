@@ -56,7 +56,7 @@ export function OrdersPage() {
       <PageHeader
         eyebrow="Cliente"
         title="Mis pedidos"
-        description="Revisa tus compras activas, entregadas y canceladas desde un solo lugar."
+        description="Revisa tus pedidos activos y el historial completo de entregados o cancelados."
       />
 
       {loading ? <LoadingCard /> : null}
@@ -97,7 +97,7 @@ export function OrdersPage() {
         ) : (
           <EmptyState
             title="Todavia no tienes pedidos"
-            description="Cuando confirmes una compra aparecera aqui para volver al tracking cuando lo necesites."
+            description="Cuando confirmes una compra aparecera aqui. El tracking solo se muestra mientras el pedido este activo."
           />
         )
       ) : null}

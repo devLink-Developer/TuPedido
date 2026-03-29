@@ -15,6 +15,8 @@ from app.services.realtime import realtime_hub
 
 router = APIRouter()
 
+TERMINAL_ORDER_STATUSES = {"delivered", "cancelled", "delivery_failed"}
+
 ORDER_OPTIONS = (
     selectinload(StoreOrder.items),
     selectinload(StoreOrder.store),
@@ -35,6 +37,10 @@ def _can_access_order(user: User, order: StoreOrder) -> bool:
             order.delivery_assignment is not None and order.delivery_assignment.rider_user_id == user.id
         )
     return False
+
+
+def _customer_can_track_order(order: StoreOrder) -> bool:
+    return order.status not in TERMINAL_ORDER_STATUSES
 
 
 def _get_user_from_token(token: str | None) -> User | None:
@@ -61,6 +67,9 @@ async def order_tracking_socket(websocket: WebSocket, order_id: int) -> None:
     try:
         order = db.scalar(select(StoreOrder).options(*ORDER_OPTIONS).where(StoreOrder.id == order_id))
         if order is None or not _can_access_order(user, order):
+            await websocket.close(code=4404)
+            return
+        if user.role == "customer" and not _customer_can_track_order(order):
             await websocket.close(code=4404)
             return
         await realtime_hub.connect_order(order_id, websocket)

@@ -8,8 +8,24 @@ import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
 import { paymentMethodLabels, statusLabels } from "../../../shared/utils/labels";
 import { CheckoutSummary } from "../components/CheckoutSummary";
 import { OrderTracking } from "../components/OrderTracking";
+import { isActiveCustomerOrder } from "../orders";
 
 const LIVE_REFRESH_INTERVAL_MS = 15000;
+
+async function loadOrderSnapshot(token: string, orderId: number) {
+  const order = await fetchOrder(token, orderId);
+
+  if (!isActiveCustomerOrder(order)) {
+    return { order, tracking: null };
+  }
+
+  try {
+    const tracking = await fetchOrderTracking(token, orderId);
+    return { order, tracking };
+  } catch {
+    return { order, tracking: null };
+  }
+}
 
 export function OrderPage() {
   const { id } = useParams();
@@ -28,19 +44,15 @@ export function OrderPage() {
     setError(null);
     setOrder(null);
     setTracking(null);
-    Promise.allSettled([fetchOrder(token, orderId), fetchOrderTracking(token, orderId)])
-      .then(([orderResult, trackingResult]) => {
+    loadOrderSnapshot(token, orderId)
+      .then(({ order: nextOrder, tracking: nextTracking }) => {
         if (cancelled) return;
-
-        if (orderResult.status === "rejected") {
-          setError(orderResult.reason instanceof Error ? orderResult.reason.message : "No se pudo cargar el pedido");
-          return;
-        }
-
-        setOrder(orderResult.value);
-
-        if (trackingResult.status === "fulfilled") {
-          setTracking(trackingResult.value);
+        setOrder(nextOrder);
+        setTracking(nextTracking);
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          setError(requestError instanceof Error ? requestError.message : "No se pudo cargar el pedido");
         }
       })
       .finally(() => {
@@ -52,13 +64,19 @@ export function OrderPage() {
     };
   }, [orderId, token]);
 
-  const handleOrderUpdate = useCallback((value: Order) => setOrder(value), []);
+  const isActiveOrder = Boolean(order && isActiveCustomerOrder(order));
+  const handleOrderUpdate = useCallback((value: Order) => {
+    setOrder(value);
+    if (!isActiveCustomerOrder(value)) {
+      setTracking(null);
+    }
+  }, []);
   const handleTrackingUpdate = useCallback((value: OrderTrackingType) => setTracking(value), []);
 
   useOrderLiveTracking({
     token,
     orderId,
-    enabled: Boolean(orderId && token),
+    enabled: Boolean(orderId && token && isActiveOrder),
     onOrder: handleOrderUpdate,
     onTracking: handleTrackingUpdate
   });
@@ -69,16 +87,14 @@ export function OrderPage() {
     }
 
     const refreshSilently = () => {
-      Promise.allSettled([fetchOrder(token, orderId), fetchOrderTracking(token, orderId)]).then(
-        ([orderResult, trackingResult]) => {
-          if (orderResult.status === "fulfilled") {
-            setOrder(orderResult.value);
-          }
-          if (trackingResult.status === "fulfilled") {
-            setTracking(trackingResult.value);
-          }
-        }
-      );
+      void loadOrderSnapshot(token, orderId)
+        .then(({ order: nextOrder, tracking: nextTracking }) => {
+          setOrder(nextOrder);
+          setTracking(nextTracking);
+        })
+        .catch(() => {
+          // Keep the current detail visible on transient refresh failures.
+        });
     };
 
     const intervalId = window.setInterval(() => {
@@ -107,7 +123,7 @@ export function OrderPage() {
   }, [orderId, token]);
 
   useEffect(() => {
-    if (!token || !order || !order.otp_required || !order.assigned_rider_id) {
+    if (!token || !order || !isActiveCustomerOrder(order) || !order.otp_required || !order.assigned_rider_id) {
       return;
     }
     if (tracking?.otp_code || otpFetchRequestedRef.current.has(order.id)) {
@@ -122,7 +138,7 @@ export function OrderPage() {
   }, [order, token, tracking]);
 
   const liveTracking = useMemo(() => {
-    if (!order) return null;
+    if (!order || !isActiveCustomerOrder(order)) return null;
     return (
       tracking ?? {
         order_id: order.id,
@@ -151,7 +167,11 @@ export function OrderPage() {
 
   if (loading) return <LoadingCard />;
   if (error) return <EmptyState title="Pedido no disponible" description={error} />;
-  if (!order || !liveTracking) return <EmptyState title="Pedido inexistente" description="No encontramos ese pedido." />;
+  if (!order) return <EmptyState title="Pedido inexistente" description="No encontramos ese pedido." />;
+
+  const deliveryStatus = liveTracking?.delivery_status ?? order.delivery_status;
+  const assignedRiderName = liveTracking?.assigned_rider_name ?? order.assigned_rider_name;
+  const etaMinutes = liveTracking?.eta_minutes ?? order.eta_minutes;
 
   return (
     <div className="space-y-6">
@@ -173,7 +193,7 @@ export function OrderPage() {
             </div>
           </div>
 
-          {liveTracking.tracking_enabled ? <OrderTracking order={order} tracking={liveTracking} /> : null}
+          {liveTracking?.tracking_enabled ? <OrderTracking order={order} tracking={liveTracking} /> : null}
 
           <div className="rounded-[28px] bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Items</h3>
@@ -198,9 +218,9 @@ export function OrderPage() {
             <h3 className="text-lg font-bold">Estado operativo</h3>
             <div className="mt-4 space-y-2 text-sm text-zinc-600">
               <p>Pago: {statusLabels[order.payment_status] ?? order.payment_status}</p>
-              <p>Delivery: {statusLabels[liveTracking.delivery_status] ?? liveTracking.delivery_status}</p>
-              {liveTracking.assigned_rider_name ? <p>Rider: {liveTracking.assigned_rider_name}</p> : null}
-              {liveTracking.eta_minutes ? <p>ETA: {liveTracking.eta_minutes} min</p> : null}
+              <p>Delivery: {statusLabels[deliveryStatus] ?? deliveryStatus}</p>
+              {assignedRiderName ? <p>Rider: {assignedRiderName}</p> : null}
+              {etaMinutes !== null ? <p>ETA: {etaMinutes} min</p> : null}
             </div>
           </div>
         </aside>
