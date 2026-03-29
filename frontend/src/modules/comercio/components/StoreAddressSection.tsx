@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AddressLocationPicker } from "../../../shared/components/maps/AddressLocationPicker";
-import { geocodeAddress, lookupPostalCode } from "../../../shared/services/api";
+import { AddressLocationPicker, type AddressLocationChangeSource } from "../../../shared/components/maps/AddressLocationPicker";
+import { geocodeAddress, lookupPostalCode, reverseGeocodeAddress } from "../../../shared/services/api";
 import type { AddressLookupLocality, MerchantStore } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
 import {
@@ -103,6 +103,7 @@ export function StoreAddressSection({
   onChange: (value: StoreAddressFormState) => void;
 }) {
   const formRef = useRef(form);
+  const localChangeRef = useRef(false);
   const lastResolvedGeocodeKeyRef = useRef<string | null>(null);
   const inFlightGeocodeKeyRef = useRef<string | null>(null);
   const geocodePromiseRef = useRef<Promise<StoreAddressFormState | null> | null>(null);
@@ -138,7 +139,15 @@ export function StoreAddressSection({
 
   useEffect(() => {
     formRef.current = form;
-  }, [form]);
+    if (!localChangeRef.current) {
+      if (geocodeKey && latitude !== null && longitude !== null) {
+        lastResolvedGeocodeKeyRef.current = geocodeKey;
+      } else {
+        lastResolvedGeocodeKeyRef.current = null;
+      }
+    }
+    localChangeRef.current = false;
+  }, [form, geocodeKey, latitude, longitude]);
 
   useEffect(() => {
     if (!form.locality.trim()) {
@@ -154,17 +163,6 @@ export function StoreAddressSection({
     });
   }, [form.locality]);
 
-  useEffect(() => {
-    if (geocodeKey && latitude !== null && longitude !== null) {
-      lastResolvedGeocodeKeyRef.current = geocodeKey;
-      return;
-    }
-
-    if (latitude === null || longitude === null) {
-      lastResolvedGeocodeKeyRef.current = null;
-    }
-  }, [geocodeKey, latitude, longitude]);
-
   function updateFields(nextFields: Partial<StoreAddressFormState>, clearCoordinates = false) {
     const nextValue = { ...formRef.current, ...nextFields };
     if (clearCoordinates) {
@@ -173,6 +171,7 @@ export function StoreAddressSection({
       lastResolvedGeocodeKeyRef.current = null;
     }
     formRef.current = nextValue;
+    localChangeRef.current = true;
     onChange(nextValue);
   }
 
@@ -195,8 +194,7 @@ export function StoreAddressSection({
 
     try {
       const result = await lookupPostalCode(token, postalCode);
-      const selectedLocalityName =
-        result.localities.find((item) => item.name === form.locality.trim())?.name ?? result.localities[0]?.name ?? "";
+      const selectedLocalityName = result.localities.find((item) => item.name === form.locality.trim())?.name ?? "";
       setLocalities(result.localities);
       updateFields(
         {
@@ -214,7 +212,71 @@ export function StoreAddressSection({
     }
   }
 
-  async function handleGeocode(mode: "manual" | "auto" = "manual") {
+  function handleLocalityChange(localityName: string) {
+    const locality = localities.find((item) => item.name === localityName) ?? null;
+    setGeocodingError(null);
+    setGeocodingSuccess(null);
+    lastResolvedGeocodeKeyRef.current = null;
+    updateFields({
+      locality: localityName,
+      street_name: "",
+      street_number: "",
+      latitude: formatCoordinate(locality?.latitude ?? null),
+      longitude: formatCoordinate(locality?.longitude ?? null),
+    });
+
+    if (localityName && locality?.latitude !== null && locality?.longitude !== null) {
+      setGeocodingSuccess(`Localidad ubicada en el mapa: ${localityName}. Ahora completa calle y altura o ajusta el pin.`);
+    }
+  }
+
+  async function handleMapLocationChange(
+    coordinates: { latitude: number; longitude: number },
+    source: AddressLocationChangeSource
+  ) {
+    const nextLatitude = coordinates.latitude.toFixed(7);
+    const nextLongitude = coordinates.longitude.toFixed(7);
+
+    updateFields({
+      latitude: nextLatitude,
+      longitude: nextLongitude,
+    });
+    setGeocodingError(null);
+    setGeocodingSuccess(null);
+
+    if (!token || !formRef.current.locality.trim()) {
+      return;
+    }
+
+    try {
+      const result = await reverseGeocodeAddress(token, coordinates);
+      updateFields({
+        street_name: result.street_name ?? "",
+        street_number: result.street_number ?? "",
+        latitude: nextLatitude,
+        longitude: nextLongitude,
+      });
+      setGeocodingSuccess(
+        result.street_name && result.street_number
+          ? `Direccion detectada desde el mapa: ${result.street_name} ${result.street_number}`
+          : result.street_name
+            ? `Calle detectada desde el mapa: ${result.street_name}. Completa la altura si falta.`
+            : result.display_name
+              ? `Ubicacion detectada desde el mapa: ${result.display_name}`
+              : "Ubicacion tomada desde el mapa."
+      );
+    } catch (requestError) {
+      setGeocodingError(
+        requestError instanceof Error
+          ? requestError.message
+          : source === "current_location"
+            ? "Tomamos tu ubicacion, pero no pudimos completar calle y altura."
+            : "Tomamos el pin del mapa, pero no pudimos completar calle y altura."
+      );
+    }
+  }
+
+  async function handleGeocode(mode: "manual" | "auto" = "manual", options?: { force?: boolean }) {
     if (!token) {
       if (mode === "manual") {
         setGeocodingError("Tu sesion vencio. Vuelve a iniciar sesion para ubicar la direccion.");
@@ -239,6 +301,7 @@ export function StoreAddressSection({
     ].join("|");
 
     if (
+      !options?.force &&
       lastResolvedGeocodeKeyRef.current === currentGeocodeKey &&
       toCoordinate(formRef.current.latitude) !== null &&
       toCoordinate(formRef.current.longitude) !== null
@@ -284,6 +347,7 @@ export function StoreAddressSection({
           longitude: result.longitude.toFixed(7),
         };
         formRef.current = nextValue;
+        localChangeRef.current = true;
         onChange(nextValue);
         lastResolvedGeocodeKeyRef.current = currentGeocodeKey;
         setGeocodingSuccess(
@@ -311,7 +375,7 @@ export function StoreAddressSection({
       return;
     }
 
-    await handleGeocode("auto");
+    await handleGeocode("auto", { force: true });
   }
 
   useEffect(() => {
@@ -380,9 +444,7 @@ export function StoreAddressSection({
         <select
           value={form.locality}
           onChange={(event) => {
-            setGeocodingError(null);
-            setGeocodingSuccess(null);
-            updateFields({ locality: event.target.value }, true);
+            handleLocalityChange(event.target.value);
           }}
           disabled={!localities.length}
           className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
@@ -435,12 +497,7 @@ export function StoreAddressSection({
           longitude={longitude}
           fallbackLatitude={selectedLocality?.latitude ?? null}
           fallbackLongitude={selectedLocality?.longitude ?? null}
-          onChange={(coordinates) =>
-            updateFields({
-              latitude: coordinates.latitude.toFixed(7),
-              longitude: coordinates.longitude.toFixed(7),
-            })
-          }
+          onChange={(coordinates, source) => void handleMapLocationChange(coordinates, source)}
         />
       </div>
 

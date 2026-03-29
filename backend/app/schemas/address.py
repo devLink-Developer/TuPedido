@@ -60,3 +60,14 @@ class AddressGeocodeRead(BaseModel):
     latitude: float
     longitude: float
     display_name: str | None = None
+
+
+class AddressReverseGeocodeRequest(BaseModel):
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+
+
+class AddressReverseGeocodeRead(BaseModel):
+    street_name: str | None = None
+    street_number: str | None = None
+    display_name: str | None = None

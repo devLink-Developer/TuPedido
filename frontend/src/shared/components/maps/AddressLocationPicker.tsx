@@ -10,6 +10,8 @@ type Coordinates = {
   longitude: number;
 };
 
+export type AddressLocationChangeSource = "map" | "current_location";
+
 export function AddressLocationPicker({
   latitude,
   longitude,
@@ -21,7 +23,7 @@ export function AddressLocationPicker({
   longitude: number | null;
   fallbackLatitude?: number | null;
   fallbackLongitude?: number | null;
-  onChange: (coordinates: Coordinates) => void;
+  onChange: (coordinates: Coordinates, source: AddressLocationChangeSource) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -55,7 +57,7 @@ export function AddressLocationPicker({
       onChangeRef.current({
         latitude: event.lngLat.lat,
         longitude: event.lngLat.lng,
-      });
+      }, "map");
     });
 
     mapRef.current = map;
@@ -126,7 +128,7 @@ export function AddressLocationPicker({
         onChangeRef.current({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-        });
+        }, "current_location");
       },
       (locationError) => {
         setLocating(false);

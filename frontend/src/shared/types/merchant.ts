@@ -52,6 +52,17 @@ export type AddressGeocodeResult = {
   display_name: string | null;
 };
 
+export type AddressReverseGeocodeRequest = {
+  latitude: number;
+  longitude: number;
+};
+
+export type AddressReverseGeocodeResult = {
+  street_name: string | null;
+  street_number: string | null;
+  display_name: string | null;
+};
+
 export type MerchantApplication = {
   id: number;
   business_name: string;

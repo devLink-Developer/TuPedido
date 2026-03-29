@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AddressLocationPicker } from "../../../shared/components/maps/AddressLocationPicker";
-import { geocodeAddress, lookupPostalCode } from "../../../shared/services/api";
+import { AddressLocationPicker, type AddressLocationChangeSource } from "../../../shared/components/maps/AddressLocationPicker";
+import { geocodeAddress, lookupPostalCode, reverseGeocodeAddress } from "../../../shared/services/api";
 import type { Address, AddressLookupLocality, AddressWrite } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
 import {
@@ -132,6 +132,7 @@ export function AddressFormCard({
   const latitude = getAddressCoordinates(form).latitude;
   const longitude = getAddressCoordinates(form).longitude;
   const formRef = useRef(form);
+  const localChangeRef = useRef(false);
   const lastResolvedGeocodeKeyRef = useRef<string | null>(null);
   const inFlightGeocodeKeyRef = useRef<string | null>(null);
   const geocodePromiseRef = useRef<Promise<AddressFormState | null> | null>(null);
@@ -165,7 +166,15 @@ export function AddressFormCard({
 
   useEffect(() => {
     formRef.current = form;
-  }, [form]);
+    if (!localChangeRef.current) {
+      if (geocodeKey && hasAddressGeolocation(form)) {
+        lastResolvedGeocodeKeyRef.current = geocodeKey;
+      } else {
+        lastResolvedGeocodeKeyRef.current = null;
+      }
+    }
+    localChangeRef.current = false;
+  }, [form, geocodeKey]);
 
   useEffect(() => {
     if (!form.locality.trim()) {
@@ -181,20 +190,10 @@ export function AddressFormCard({
     });
   }, [form.locality]);
 
-  useEffect(() => {
-    if (geocodeKey && hasAddressGeolocation(form)) {
-      lastResolvedGeocodeKeyRef.current = geocodeKey;
-      return;
-    }
-
-    if (!hasAddressGeolocation(form)) {
-      lastResolvedGeocodeKeyRef.current = null;
-    }
-  }, [form, geocodeKey]);
-
   function updateField<Key extends keyof AddressFormState>(field: Key, value: AddressFormState[Key]) {
     const nextValue = { ...formRef.current, [field]: value };
     formRef.current = nextValue;
+    localChangeRef.current = true;
     onChange(nextValue);
   }
 
@@ -206,6 +205,7 @@ export function AddressFormCard({
       lastResolvedGeocodeKeyRef.current = null;
     }
     formRef.current = nextValue;
+    localChangeRef.current = true;
     onChange(nextValue);
   }
 
@@ -228,8 +228,7 @@ export function AddressFormCard({
 
     try {
       const result = await lookupPostalCode(lookupToken, normalizedPostalCode);
-      const selectedLocalityName =
-        result.localities.find((item) => item.name === form.locality.trim())?.name ?? result.localities[0]?.name ?? "";
+      const selectedLocalityName = result.localities.find((item) => item.name === form.locality.trim())?.name ?? "";
       setLocalities(result.localities);
       updateAddressFields(
         {
@@ -247,7 +246,71 @@ export function AddressFormCard({
     }
   }
 
-  async function handleGeocodeAddress(mode: "manual" | "auto" = "manual") {
+  function handleLocalityChange(localityName: string) {
+    const locality = localities.find((item) => item.name === localityName) ?? null;
+    setGeocodingError(null);
+    setGeocodingSuccess(null);
+    lastResolvedGeocodeKeyRef.current = null;
+    updateAddressFields({
+      locality: localityName,
+      street_name: "",
+      street_number: "",
+      latitude: formatCoordinate(locality?.latitude ?? null),
+      longitude: formatCoordinate(locality?.longitude ?? null),
+    });
+
+    if (localityName && locality?.latitude !== null && locality?.longitude !== null) {
+      setGeocodingSuccess(`Localidad ubicada en el mapa: ${localityName}. Ahora completa calle y altura o ajusta el pin.`);
+    }
+  }
+
+  async function handleMapLocationChange(
+    coordinates: { latitude: number; longitude: number },
+    source: AddressLocationChangeSource
+  ) {
+    const nextLatitude = coordinates.latitude.toFixed(7);
+    const nextLongitude = coordinates.longitude.toFixed(7);
+
+    updateAddressFields({
+      latitude: nextLatitude,
+      longitude: nextLongitude,
+    });
+    setGeocodingError(null);
+    setGeocodingSuccess(null);
+
+    if (!lookupToken || !formRef.current.locality.trim()) {
+      return;
+    }
+
+    try {
+      const result = await reverseGeocodeAddress(lookupToken, coordinates);
+      updateAddressFields({
+        street_name: result.street_name ?? "",
+        street_number: result.street_number ?? "",
+        latitude: nextLatitude,
+        longitude: nextLongitude,
+      });
+      setGeocodingSuccess(
+        result.street_name && result.street_number
+          ? `Direccion detectada desde el mapa: ${buildStreetLine(result.street_name, result.street_number)}`
+          : result.street_name
+            ? `Calle detectada desde el mapa: ${result.street_name}. Completa la altura si falta.`
+            : result.display_name
+              ? `Ubicacion detectada desde el mapa: ${result.display_name}`
+              : "Ubicacion tomada desde el mapa."
+      );
+    } catch (requestError) {
+      setGeocodingError(
+        requestError instanceof Error
+          ? requestError.message
+          : source === "current_location"
+            ? "Tomamos tu ubicacion, pero no pudimos completar calle y altura."
+            : "Tomamos el pin del mapa, pero no pudimos completar calle y altura."
+      );
+    }
+  }
+
+  async function handleGeocodeAddress(mode: "manual" | "auto" = "manual", options?: { force?: boolean }) {
     if (!lookupToken) {
       if (mode === "manual") {
         setGeocodingError("Tu sesion vencio. Vuelve a iniciar sesion para ubicar la direccion.");
@@ -271,7 +334,7 @@ export function AddressFormCard({
       currentRequest.street_number,
     ].join("|");
 
-    if (lastResolvedGeocodeKeyRef.current === currentGeocodeKey && hasAddressGeolocation(formRef.current)) {
+    if (!options?.force && lastResolvedGeocodeKeyRef.current === currentGeocodeKey && hasAddressGeolocation(formRef.current)) {
       return formRef.current;
     }
 
@@ -313,6 +376,7 @@ export function AddressFormCard({
           longitude: result.longitude.toFixed(7),
         };
         formRef.current = nextForm;
+        localChangeRef.current = true;
         onChange(nextForm);
         lastResolvedGeocodeKeyRef.current = currentGeocodeKey;
         setGeocodingSuccess(
@@ -340,7 +404,7 @@ export function AddressFormCard({
       return;
     }
 
-    await handleGeocodeAddress("auto");
+    await handleGeocodeAddress("auto", { force: true });
   }
 
   useEffect(() => {
@@ -420,9 +484,7 @@ export function AddressFormCard({
         <select
           value={form.locality}
           onChange={(event) => {
-            setGeocodingError(null);
-            setGeocodingSuccess(null);
-            updateAddressFields({ locality: event.target.value }, true);
+            handleLocalityChange(event.target.value);
           }}
           disabled={!localities.length}
           className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
@@ -478,12 +540,7 @@ export function AddressFormCard({
           longitude={longitude}
           fallbackLatitude={selectedLocality?.latitude ?? null}
           fallbackLongitude={selectedLocality?.longitude ?? null}
-          onChange={(coordinates) =>
-            updateAddressFields({
-              latitude: coordinates.latitude.toFixed(7),
-              longitude: coordinates.longitude.toFixed(7),
-            })
-          }
+          onChange={(coordinates, source) => void handleMapLocationChange(coordinates, source)}
         />
         <label className="flex items-center gap-2 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700 md:col-span-2">
           <input

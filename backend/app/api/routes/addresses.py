@@ -10,6 +10,8 @@ from app.schemas.address import (
     AddressCreate,
     AddressGeocodeRead,
     AddressGeocodeRequest,
+    AddressReverseGeocodeRead,
+    AddressReverseGeocodeRequest,
     AddressRead,
     AddressUpdate,
     PostalCodeLocality,
@@ -20,6 +22,7 @@ from app.services.address_lookup import (
     AddressLookupNotFound,
     geocode_address,
     lookup_postal_code,
+    reverse_geocode_coordinates,
 )
 
 router = APIRouter()
@@ -74,6 +77,28 @@ def geocode_customer_address(payload: AddressGeocodeRequest, _: User = Depends(g
     return AddressGeocodeRead(
         latitude=result.latitude,
         longitude=result.longitude,
+        display_name=result.display_name,
+    )
+
+
+@router.post("/reverse-geocode", response_model=AddressReverseGeocodeRead)
+def reverse_geocode_customer_address(
+    payload: AddressReverseGeocodeRequest,
+    _: User = Depends(get_current_user),
+) -> AddressReverseGeocodeRead:
+    try:
+        result = reverse_geocode_coordinates(
+            latitude=payload.latitude,
+            longitude=payload.longitude,
+        )
+    except AddressLookupNotFound as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except AddressLookupError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    return AddressReverseGeocodeRead(
+        street_name=result.street_name,
+        street_number=result.street_number,
         display_name=result.display_name,
     )
 

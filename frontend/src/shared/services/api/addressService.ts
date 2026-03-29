@@ -1,4 +1,12 @@
-import type { Address, AddressGeocodeRequest, AddressGeocodeResult, AddressPostalCodeLookup, AddressWrite } from "../../types";
+import type {
+  Address,
+  AddressGeocodeRequest,
+  AddressGeocodeResult,
+  AddressPostalCodeLookup,
+  AddressReverseGeocodeRequest,
+  AddressReverseGeocodeResult,
+  AddressWrite
+} from "../../types";
 import { apiRequest } from "./client";
 
 export async function fetchAddresses(token: string): Promise<Address[]> {
@@ -38,6 +46,14 @@ export async function lookupPostalCode(token: string, postalCode: string): Promi
 
 export async function geocodeAddress(token: string, payload: AddressGeocodeRequest): Promise<AddressGeocodeResult> {
   return apiRequest<AddressGeocodeResult>("/addresses/geocode", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function reverseGeocodeAddress(token: string, payload: AddressReverseGeocodeRequest): Promise<AddressReverseGeocodeResult> {
+  return apiRequest<AddressReverseGeocodeResult>("/addresses/reverse-geocode", {
     method: "POST",
     token,
     body: JSON.stringify(payload)

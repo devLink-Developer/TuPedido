@@ -39,6 +39,13 @@ class GeocodedAddress:
     display_name: str | None
 
 
+@dataclass(frozen=True)
+class ReverseGeocodedAddress:
+    street_name: str | None
+    street_number: str | None
+    display_name: str | None
+
+
 def normalize_postal_code(value: str) -> str:
     compact = re.sub(r"\s+", "", value or "").upper()
     match = POSTAL_CODE_RE.search(compact)
@@ -61,6 +68,10 @@ def _parse_coordinate(value: object) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _compact_text(value: object) -> str:
+    return " ".join(str(value or "").split())
 
 
 def _headers() -> dict[str, str]:
@@ -182,4 +193,47 @@ def geocode_address(
         latitude=latitude,
         longitude=longitude,
         display_name=location.get("display_name"),
+    )
+
+
+def reverse_geocode_coordinates(*, latitude: float, longitude: float) -> ReverseGeocodedAddress:
+    reverse_url = f"{settings.geocoding_base_url.rstrip('/')}/reverse"
+    params = {
+        "lat": latitude,
+        "lon": longitude,
+        "format": "jsonv2",
+        "addressdetails": 1,
+        "zoom": 18,
+    }
+
+    try:
+        with httpx.Client(timeout=settings.address_lookup_timeout_seconds, follow_redirects=True) as client:
+            response = client.get(reverse_url, params=params, headers=_headers())
+    except httpx.HTTPError as exc:
+        raise AddressLookupError("No se pudo interpretar la ubicacion seleccionada en este momento.") from exc
+
+    if response.status_code == 429:
+        raise AddressLookupError("El servicio de mapas esta momentaneamente saturado. Reintenta en unos segundos.")
+    if response.status_code >= 400:
+        raise AddressLookupError("El servicio de mapas no respondio correctamente.")
+
+    payload = response.json()
+    address = payload.get("address") or {}
+    street_name = next(
+        (
+            _compact_text(address.get(key))
+            for key in ("road", "pedestrian", "footway", "street", "residential", "path", "cycleway")
+            if _compact_text(address.get(key))
+        ),
+        "",
+    )
+    street_number = _compact_text(address.get("house_number"))
+
+    if not street_name and not street_number:
+        raise AddressLookupNotFound("No pudimos reconocer calle y altura en ese punto del mapa.")
+
+    return ReverseGeocodedAddress(
+        street_name=street_name or None,
+        street_number=street_number or None,
+        display_name=payload.get("display_name"),
     )
