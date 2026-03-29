@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPage } from "./SettingsPage";
 
@@ -10,10 +11,12 @@ const updateMerchantStoreCategoriesMock = vi.fn();
 const updateMerchantDeliverySettingsMock = vi.fn();
 const updateMerchantPaymentSettingsMock = vi.fn();
 const loadCategoriesMock = vi.fn();
+const refreshMock = vi.fn();
 
 vi.mock("../../../shared/hooks", () => ({
   useAuthSession: () => ({
-    token: "token"
+    token: "token",
+    refresh: refreshMock
   })
 }));
 
@@ -200,6 +203,7 @@ describe("SettingsPage", () => {
     updateMerchantDeliverySettingsMock.mockReset();
     updateMerchantPaymentSettingsMock.mockReset();
     loadCategoriesMock.mockReset();
+    refreshMock.mockReset();
 
     loadCategoriesMock.mockResolvedValue(undefined);
     fetchMerchantProductCategoriesMock.mockResolvedValue([]);
@@ -231,7 +235,11 @@ describe("SettingsPage", () => {
       })
     );
 
-    render(<SettingsPage />);
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>
+    );
 
     await waitFor(() => expect(screen.getByText("Configura tu local")).toBeInTheDocument());
     expect(screen.queryByText("Formulario direccion")).not.toBeInTheDocument();
@@ -266,7 +274,11 @@ describe("SettingsPage", () => {
         })
       );
 
-    render(<SettingsPage />);
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>
+    );
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Eliminar direccion" })).toBeInTheDocument());
     expect(screen.queryByText("Formulario direccion")).not.toBeInTheDocument();

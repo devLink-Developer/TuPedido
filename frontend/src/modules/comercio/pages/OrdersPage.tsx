@@ -16,6 +16,7 @@ import type { DeliveryProfile, MerchantStore, Order, OrderStatusUpdate, StoreUpd
 import { notifyCatalogStoresChanged } from "../../../shared/utils/catalogStores";
 import { playNotificationTone } from "../../../shared/utils/notificationSound";
 import { hasStoreAddressConfiguration, toStoreAddressFormState } from "../components/StoreAddressSection";
+import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync";
 import { OrdersTable } from "../components/OrdersTable";
 
 const LIVE_REFRESH_INTERVAL_MS = 15000;
@@ -193,6 +194,8 @@ export function OrdersPage() {
   useEffect(() => {
     void load();
   }, [token]);
+
+  useMerchantStoreStatusSync({ paused: savingToggle, store, setStore });
 
   useEffect(() => {
     if (!token || !REALTIME_ENABLED) return;

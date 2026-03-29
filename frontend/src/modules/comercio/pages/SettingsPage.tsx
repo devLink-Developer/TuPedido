@@ -28,6 +28,7 @@ import {
   toStoreAddressPayload,
   type StoreAddressFormState
 } from "../components/StoreAddressSection";
+import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync";
 
 const storeStatusMessages: Record<string, string> = {
   pending_review:
@@ -147,6 +148,8 @@ export function SettingsPage() {
   useEffect(() => {
     void load();
   }, [token]);
+
+  useMerchantStoreStatusSync({ paused: saving || taxonomySaving, store, setStore });
 
   function resetCategoryEditor() {
     setEditingCategoryId(null);

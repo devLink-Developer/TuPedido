@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OrdersPage } from "./OrdersPage";
 
@@ -13,6 +14,7 @@ const buildMerchantSocketUrlMock = vi.fn((_: string) => "ws://merchant.test");
 const notifyCatalogStoresChangedMock = vi.fn();
 const enqueueToastMock = vi.fn();
 const playNotificationToneMock = vi.fn();
+const refreshMock = vi.fn();
 
 type MockSocketEvent = {
   data: string;
@@ -44,7 +46,8 @@ class MockWebSocket {
 
 vi.mock("../../../shared/hooks", () => ({
   useAuthSession: () => ({
-    token: "token"
+    token: "token",
+    refresh: refreshMock
   })
 }));
 
@@ -199,6 +202,7 @@ describe("OrdersPage", () => {
     notifyCatalogStoresChangedMock.mockReset();
     enqueueToastMock.mockReset();
     playNotificationToneMock.mockReset();
+    refreshMock.mockReset();
     MockWebSocket.reset();
     globalThis.WebSocket = MockWebSocket as unknown as typeof WebSocket;
     fetchMerchantOrdersMock.mockResolvedValue([]);
@@ -211,7 +215,11 @@ describe("OrdersPage", () => {
     fetchMerchantStoreMock.mockResolvedValueOnce(approvedStoreWithAddress);
     updateMerchantStoreMock.mockResolvedValueOnce({ ...approvedStoreWithAddress, accepting_orders: false });
 
-    render(<OrdersPage />);
+    render(
+      <MemoryRouter>
+        <OrdersPage />
+      </MemoryRouter>
+    );
 
     await waitFor(() => expect(fetchMerchantStoreMock).toHaveBeenCalledWith("token"));
     expect(screen.getByRole("switch", { name: "Recibir pedidos" })).toHaveAttribute("aria-checked", "true");
@@ -238,7 +246,11 @@ describe("OrdersPage", () => {
   it("bloquea el toggle hasta que el comercio quede aprobado", async () => {
     fetchMerchantStoreMock.mockResolvedValueOnce({ ...approvedStore, status: "pending_review", accepting_orders: false });
 
-    render(<OrdersPage />);
+    render(
+      <MemoryRouter>
+        <OrdersPage />
+      </MemoryRouter>
+    );
 
     await waitFor(() => expect(fetchMerchantStoreMock).toHaveBeenCalledWith("token"));
     expect(screen.getByRole("switch", { name: "Recibir pedidos" })).toBeDisabled();
@@ -248,7 +260,11 @@ describe("OrdersPage", () => {
   it("no permite habilitar la venta si falta configurar la direccion del comercio", async () => {
     fetchMerchantStoreMock.mockResolvedValueOnce({ ...approvedStore, accepting_orders: false });
 
-    render(<OrdersPage />);
+    render(
+      <MemoryRouter>
+        <OrdersPage />
+      </MemoryRouter>
+    );
 
     await waitFor(() => expect(fetchMerchantStoreMock).toHaveBeenCalledWith("token"));
     expect(screen.getByRole("switch", { name: "Recibir pedidos" })).toBeDisabled();
@@ -261,7 +277,11 @@ describe("OrdersPage", () => {
     fetchMerchantStoreMock.mockResolvedValueOnce(approvedStoreWithAddress);
     fetchMerchantOrdersMock.mockResolvedValueOnce([baseOrder]);
 
-    render(<OrdersPage />);
+    render(
+      <MemoryRouter>
+        <OrdersPage />
+      </MemoryRouter>
+    );
 
     await waitFor(() => expect(screen.getByText("Pedido #10")).toBeInTheDocument());
     expect(buildMerchantSocketUrlMock).toHaveBeenCalledWith("token");

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Button } from "../../../shared/ui/Button";
 import { EmptyState, ImageAssetField, LoadingCard, PageHeader, RubroChip } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
@@ -42,6 +42,7 @@ const emptyStoreForm: StoreFormState = {
 };
 
 const resolvedApplicationStatuses = new Set(["approved", "rejected", "suspended"]);
+const LIVE_REFRESH_INTERVAL_MS = 15000;
 
 export function StoresPage() {
   const { token } = useAuthSession();
@@ -54,29 +55,83 @@ export function StoresPage() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
+  const hasLoadedRef = useRef(false);
+  const requestIdRef = useRef(0);
 
-  async function load() {
+  async function load(options?: { silent?: boolean }) {
     if (!token) return;
-    setLoading(true);
+    const requestId = ++requestIdRef.current;
+    if (!options?.silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const [applicationsResult, storesResult, categoriesResult] = await Promise.all([
         fetchAdminApplications(token),
         fetchAdminStores(token),
         fetchAdminCategories(token)
       ]);
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       setApplications(applicationsResult);
       setStores(storesResult);
       setCategories(categoriesResult);
       setError(null);
+      hasLoadedRef.current = true;
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No se pudo cargar comercios");
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+      if (!options?.silent) {
+        setError(requestError instanceof Error ? requestError.message : "No se pudo cargar comercios");
+      }
     } finally {
-      setLoading(false);
+      if (!options?.silent && requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }
 
   useEffect(() => {
+    hasLoadedRef.current = false;
     void load();
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    const refreshSilently = () => {
+      if (hasLoadedRef.current) {
+        void load({ silent: true });
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        refreshSilently();
+      }
+    }, LIVE_REFRESH_INTERVAL_MS);
+
+    const handleFocus = () => {
+      refreshSilently();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshSilently();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [token]);
 
   const selectedCategoryIds = useMemo(() => new Set(form.category_ids), [form.category_ids]);
@@ -108,7 +163,7 @@ export function StoresPage() {
       });
       setForm(emptyStoreForm);
       setFormOpen(false);
-      await load();
+      await load({ silent: true });
     } catch (requestError) {
       setCreateError(requestError instanceof Error ? requestError.message : "No se pudo crear el comercio");
     } finally {
@@ -138,7 +193,11 @@ export function StoresPage() {
             >
               Agregar comercio
             </button>
-            <button type="button" onClick={() => void load()} className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white">
+            <button
+              type="button"
+              onClick={() => void load({ silent: true })}
+              className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white"
+            >
               Actualizar
             </button>
           </div>
@@ -168,7 +227,7 @@ export function StoresPage() {
                     onClick={async () => {
                       if (!token) return;
                       await reviewMerchantApplication(token, application.id, { status });
-                      await load();
+                      await load({ silent: true });
                     }}
                     className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white"
                   >
@@ -183,7 +242,11 @@ export function StoresPage() {
               title="Sin solicitudes pendientes"
               description="No hay nuevas solicitudes de comercio para revisar."
               action={
-                <button type="button" onClick={() => void load()} className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white">
+                <button
+                  type="button"
+                  onClick={() => void load({ silent: true })}
+                  className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
+                >
                   Actualizar listado
                 </button>
               }
@@ -213,7 +276,7 @@ export function StoresPage() {
                     onClick={async () => {
                       if (!token) return;
                       await updateAdminStoreStatus(token, store.id, { status });
-                      await load();
+                      await load({ silent: true });
                     }}
                     className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
                   >

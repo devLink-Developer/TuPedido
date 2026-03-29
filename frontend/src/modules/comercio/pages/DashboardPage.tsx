@@ -14,6 +14,7 @@ import {
 import type { MerchantStore, Order, SettlementCharge, SettlementNotice, SettlementOverview } from "../../../shared/types";
 import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
 import { statusLabels } from "../../../shared/utils/labels";
+import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync";
 
 const dashboardMessages: Record<string, { title: string; description: string }> = {
   pending_review: {
@@ -107,6 +108,8 @@ export function DashboardPage() {
   useEffect(() => {
     void load();
   }, [token]);
+
+  useMerchantStoreStatusSync({ store, setStore });
 
   const approvalMessage = useMemo(() => {
     if (!store) return null;
