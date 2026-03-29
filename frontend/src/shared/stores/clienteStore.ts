@@ -20,7 +20,7 @@ type ClienteState = {
 export const useClienteStore = create<ClienteState>((set) => ({
   categorySlug: "",
   search: "",
-  deliveryMode: "delivery",
+  deliveryMode: "",
   selectedAddressId: "",
   selectedPaymentMethod: "cash",
   setCategorySlug(value) {
@@ -48,7 +48,7 @@ export const useClienteStore = create<ClienteState>((set) => ({
     set({
       categorySlug: "",
       search: "",
-      deliveryMode: "delivery"
+      deliveryMode: ""
     });
   }
 }));

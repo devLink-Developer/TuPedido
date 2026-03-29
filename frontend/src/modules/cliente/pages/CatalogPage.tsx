@@ -26,7 +26,7 @@ export function CatalogPage() {
     setCategorySlug(searchParams.get("category") ?? "");
     setSearch(searchParams.get("search") ?? "");
     const delivery = searchParams.get("delivery");
-    setDeliveryMode(delivery === "pickup" || delivery === "delivery" ? delivery : "delivery");
+    setDeliveryMode(delivery === "pickup" || delivery === "delivery" ? delivery : "");
   }, [searchParams, setCategorySlug, setDeliveryMode, setSearch]);
 
   useEffect(() => {
@@ -61,7 +61,9 @@ export function CatalogPage() {
       deliveryMode: deliveryMode || undefined
     })
       .then((items) => {
-        if (!cancelled) setStores(items);
+        if (!cancelled) {
+          setStores(items);
+        }
       })
       .catch((requestError) => {
         if (!cancelled) {
@@ -70,7 +72,9 @@ export function CatalogPage() {
         }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -121,9 +125,9 @@ export function CatalogPage() {
             }}
             className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 outline-none transition focus:border-brand-500"
           >
-            <option value="delivery">Envío</option>
-            <option value="pickup">Retiro</option>
             <option value="">Todos</option>
+            <option value="delivery">Envio</option>
+            <option value="pickup">Retiro</option>
           </select>
         </label>
       </div>
@@ -169,7 +173,7 @@ export function CatalogPage() {
         ) : (
           <EmptyState
             title="No hay comercios para ese filtro"
-            description="Prueba cambiar el rubro, la búsqueda o el modo de entrega."
+            description="Prueba cambiar el rubro, la busqueda o el modo de entrega."
           />
         )
       ) : null}
