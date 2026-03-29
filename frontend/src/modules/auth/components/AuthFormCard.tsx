@@ -33,33 +33,33 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-      <div className="rounded-[32px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-6 text-white shadow-lift">
+      <div className="rounded-[32px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-5 text-white shadow-lift sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">TuPedido</p>
-        <h1 className="mt-3 font-display text-4xl font-bold tracking-tight">
+        <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.05] tracking-tight sm:text-4xl">
           {mode === "login" ? "Ingresar a TuPedido" : "Crear cuenta cliente"}
         </h1>
-        <p className="mt-3 text-sm leading-7 text-white/72">
+        <p className="mt-3 text-sm leading-6 text-white/72 sm:leading-7">
           Ingresa una sola vez y te llevamos a la experiencia correspondiente para tu cuenta.
         </p>
-        <div className="mt-6 grid gap-3 text-sm text-white/78">
+        <div className="mt-6 grid gap-3 text-sm leading-6 text-white/78">
           <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Un solo acceso para clientes, comercios, riders y administradores.</div>
           <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">El registro desde esta pantalla esta disponible para cuentas cliente.</div>
           <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Si estabas completando una solicitud, podras retomarla al volver.</div>
         </div>
       </div>
 
-      <form onSubmit={(event) => void handleSubmit(event)} className="rounded-[32px] bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div>
+      <form onSubmit={(event) => void handleSubmit(event)} className="rounded-[32px] bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
               {mode === "login" ? "Acceso" : "Registro"}
             </p>
-            <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-ink">
+            <h2 className="mt-2 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight text-ink sm:text-3xl">
               {mode === "login" ? "Iniciar sesion" : "Crear cuenta"}
             </h2>
           </div>
           <Link
-            className="rounded-full border border-black/10 bg-zinc-50 px-4 py-2 text-sm font-semibold text-zinc-700"
+            className="w-full rounded-full border border-black/10 bg-zinc-50 px-4 py-2 text-center text-sm font-semibold text-zinc-700 sm:w-auto"
             to={mode === "login" ? "/registro" : "/login"}
           >
             {mode === "login" ? "Crear cuenta" : "Ya tengo cuenta"}

@@ -54,6 +54,14 @@ describe("AdminLayout", () => {
     logoutMock.mockReset();
   });
 
+  it("usa un header mobile apilado para no comprimir el titulo", () => {
+    renderLayout();
+
+    const openButton = screen.getByRole("button", { name: "Abrir menu admin" });
+    expect(openButton).toHaveClass("self-end", "sm:self-auto");
+    expect(openButton.closest("header")).toHaveClass("flex-col", "sm:flex-row");
+  });
+
   it("abre el drawer mobile y lo cierra al navegar", async () => {
     const user = userEvent.setup();
 

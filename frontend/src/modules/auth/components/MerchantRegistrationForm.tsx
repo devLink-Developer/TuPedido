@@ -230,10 +230,10 @@ export function MerchantRegistrationForm() {
         </form>
 
         <div className="space-y-4">
-          <div className="rounded-[30px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-6 text-white shadow-lift">
+          <div className="rounded-[30px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-5 text-white shadow-lift sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">Tu comercio</p>
-            <h3 className="mt-3 font-display text-3xl font-bold tracking-tight">Configura primero, activa despues</h3>
-            <div className="mt-4 grid gap-3 text-sm text-white/72">
+            <h3 className="mt-3 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight sm:text-3xl">Configura primero, activa despues</h3>
+            <div className="mt-4 grid gap-3 text-sm leading-6 text-white/72 sm:leading-7">
               <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Creas tu acceso y entras al panel en el mismo paso.</div>
               <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Tu rubro define imagenes iniciales para el comercio y luego puedes personalizarlas desde configuracion.</div>
               <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Podras cargar productos, medios de pago y datos del negocio mientras se revisa la solicitud.</div>
@@ -245,8 +245,8 @@ export function MerchantRegistrationForm() {
             <div className="space-y-3">
               {applications.map((application) => (
                 <article key={application.id} className="rounded-[28px] bg-white p-5 shadow-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
+                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
                       <h4 className="text-lg font-bold">{application.business_name}</h4>
                       <p className="text-sm text-zinc-600">{application.address}</p>
                     </div>

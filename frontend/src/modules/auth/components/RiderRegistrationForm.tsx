@@ -201,10 +201,10 @@ export function RiderRegistrationForm() {
         </form>
 
         <div className="space-y-4">
-          <div className="rounded-[30px] bg-[linear-gradient(180deg,#0f1f1b_0%,#132c24_100%)] p-6 text-white shadow-lift">
+          <div className="rounded-[30px] bg-[linear-gradient(180deg,#0f1f1b_0%,#132c24_100%)] p-5 text-white shadow-lift sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#9be3c1]/70">Postulacion</p>
-            <h3 className="mt-3 font-display text-3xl font-bold tracking-tight">Suma tu perfil y activa tu proceso</h3>
-            <div className="mt-4 grid gap-3 text-sm text-white/72">
+            <h3 className="mt-3 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight sm:text-3xl">Suma tu perfil y activa tu proceso</h3>
+            <div className="mt-4 grid gap-3 text-sm leading-6 text-white/72 sm:leading-7">
               <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Si interrumpes el proceso, podras retomarlo al volver.</div>
               <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Tu informacion se usa para validar tu perfil operativo.</div>
               <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">El equipo revisara tu solicitud y te informara el resultado.</div>
@@ -215,8 +215,8 @@ export function RiderRegistrationForm() {
             <div className="space-y-3">
               {applications.map((application) => (
                 <article key={application.id} className="rounded-[28px] bg-white p-5 shadow-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
+                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
                       <h4 className="text-lg font-bold">{application.user_name}</h4>
                       <p className="text-sm text-zinc-600">
                         {application.vehicle_type} - {application.phone}

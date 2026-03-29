@@ -6,6 +6,26 @@ import { useAuthStore } from "../../../shared/stores";
 import { AuthFormCard } from "./AuthFormCard";
 
 describe("AuthFormCard", () => {
+  it("apila la accion secundaria debajo del titulo en mobile", () => {
+    useAuthStore.setState({
+      loading: false,
+      hydrated: true
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/login"]}>
+        <Routes>
+          <Route path="/login" element={<AuthFormCard mode="login" />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const secondaryAction = screen.getByRole("link", { name: "Crear cuenta" });
+    expect(secondaryAction).toHaveClass("w-full", "sm:w-auto", "text-center");
+    expect(secondaryAction.parentElement).toHaveClass("flex-col", "sm:flex-row");
+    expect(screen.getByRole("heading", { name: "Iniciar sesion" })).toHaveClass("text-[1.85rem]", "sm:text-3xl");
+  });
+
   it("redirects to the role home returned by backend login", async () => {
     const user = userEvent.setup();
     const loginMock = vi.fn().mockResolvedValue({

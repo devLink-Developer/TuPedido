@@ -66,8 +66,8 @@ export function AdminLayout({ children }: PropsWithChildren) {
           </div>
         </aside>
         <main className="flex-1 px-4 py-6 md:px-8">
-          <header className="mb-5 flex items-center justify-between gap-3 rounded-[26px] border border-black/5 bg-white/90 px-4 py-4 shadow-sm backdrop-blur lg:hidden">
-            <div>
+          <header className="mb-5 flex flex-col items-start gap-4 rounded-[26px] border border-black/5 bg-white/90 px-4 py-4 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between lg:hidden">
+            <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-700/70">Admin</p>
               <h2 className="mt-1 text-lg font-bold text-ink">{activeLabel}</h2>
             </div>
@@ -76,7 +76,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
               aria-label="Abrir menu admin"
               aria-expanded={open}
               onClick={() => setOpen(true)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-ink shadow-sm"
+              className="inline-flex h-11 w-11 items-center justify-center self-end rounded-full border border-black/10 bg-white text-ink shadow-sm sm:self-auto"
             >
               <span className="sr-only">Menu</span>
               <span className="space-y-1.5">
@@ -104,16 +104,16 @@ export function AdminLayout({ children }: PropsWithChildren) {
             aria-label="Menu admin"
             className="absolute inset-y-0 left-0 flex w-[min(84vw,340px)] flex-col bg-[#111827] px-6 py-6 text-white shadow-[0_24px_60px_rgba(17,24,39,0.36)]"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div>
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-200/70">Admin</p>
-                <h2 className="mt-3 font-display text-2xl font-bold tracking-tight">Control central</h2>
+                <h2 className="mt-3 font-display text-[1.75rem] font-bold leading-[1.08] tracking-tight sm:text-2xl">Control central</h2>
               </div>
               <button
                 type="button"
                 aria-label="Cerrar menu admin"
                 onClick={close}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white"
+                className="inline-flex h-10 w-10 items-center justify-center self-end rounded-full border border-white/10 bg-white/5 text-white sm:self-auto"
               >
                 ×
               </button>

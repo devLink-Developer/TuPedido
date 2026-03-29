@@ -95,7 +95,7 @@ function getDeliverySummary(
   if (assignedRiderName) {
     return {
       title: assignedRiderName,
-      description: etaMinutes !== null ? `ETA ${etaMinutes} min · ${deliveryStatusLabel}` : deliveryStatusLabel
+      description: etaMinutes !== null ? `ETA ${etaMinutes} min - ${deliveryStatusLabel}` : deliveryStatusLabel
     };
   }
 
@@ -294,19 +294,21 @@ export function OrderPage() {
         description={`${order.store_name} - ${formatDateTime(order.created_at)}`}
       />
 
-      <section className={`rounded-[28px] border ${statusTone.border} ${statusTone.background} p-5 shadow-sm`}>
+      <section className={`rounded-[28px] border ${statusTone.border} ${statusTone.background} p-4 shadow-sm sm:p-5`}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${statusTone.eyebrow}`}>
               Estado del pedido
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <h2 className="font-display text-3xl font-bold tracking-tight text-ink">{statusLabel}</h2>
+              <h2 className="font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight text-ink sm:text-3xl">
+                {statusLabel}
+              </h2>
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone.badge}`}>
                 {trackingAvailabilityLabel}
               </span>
             </div>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-700">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-700 sm:leading-7">
               {getOrderStatusSummary(order, deliveryStatus, etaMinutes)}
             </p>
           </div>
