@@ -6,6 +6,7 @@ services:
     ports:
       - "8015:8015"
     environment:
+      VITE_PROXY_TARGET: "http://backend:8016"
       VITE_API_PORT: "8016"
       VITE_MERCADOPAGO_SIMULATED: "true"
     volumes:
