@@ -100,10 +100,12 @@ export function StoreAddressSection({
   token,
   form,
   onChange,
+  showHeader = true,
 }: {
   token: string | null;
   form: StoreAddressFormState;
   onChange: (value: StoreAddressFormState) => void;
+  showHeader?: boolean;
 }) {
   const formRef = useRef(form);
   const localChangeRef = useRef(false);
@@ -401,13 +403,15 @@ export function StoreAddressSection({
 
   return (
     <section className="space-y-4">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Direccion del local</p>
-        <h2 className="mt-2 text-xl font-bold text-ink">Ubicacion comercial</h2>
-        <p className="mt-2 text-sm text-zinc-600">
-          Configura CP, provincia, localidad, calle y altura para geolocalizar el local. El delivery solo se puede activar con esta direccion completa.
-        </p>
-      </div>
+      {showHeader ? (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Direccion del local</p>
+          <h2 className="mt-2 text-xl font-bold text-ink">Ubicacion comercial</h2>
+          <p className="mt-2 text-sm text-zinc-600">
+            Configura CP, provincia, localidad, calle y altura para geolocalizar el local. El delivery solo se puede activar con esta direccion completa.
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 md:grid-cols-2">
         <div className="flex gap-2">

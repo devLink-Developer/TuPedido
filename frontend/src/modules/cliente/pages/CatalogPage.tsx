@@ -7,6 +7,8 @@ import type { CatalogBanner as CatalogBannerData, StoreSummary } from "../../../
 import { subscribeCatalogStoresChanged } from "../../../shared/utils/catalogStores";
 import { StoreList } from "../components/StoreList";
 
+const LIVE_REFRESH_INTERVAL_MS = 5000;
+
 export function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const categorySlug = useClienteStore((state) => state.categorySlug);
@@ -105,14 +107,24 @@ export function CatalogPage() {
       void loadStores({ silent: hasLoadedStoresRef.current });
     });
 
-    const handleFocus = () => {
+    const refreshStoresSilently = () => {
       if (hasLoadedStoresRef.current) {
         void loadStores({ silent: true });
       }
     };
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        refreshStoresSilently();
+      }
+    }, LIVE_REFRESH_INTERVAL_MS);
+
+    const handleFocus = () => {
+      refreshStoresSilently();
+    };
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && hasLoadedStoresRef.current) {
-        void loadStores({ silent: true });
+      if (document.visibilityState === "visible") {
+        refreshStoresSilently();
       }
     };
 
@@ -121,6 +133,7 @@ export function CatalogPage() {
 
     return () => {
       unsubscribe();
+      window.clearInterval(intervalId);
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };

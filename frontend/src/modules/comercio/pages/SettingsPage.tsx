@@ -58,6 +58,25 @@ const emptyCategoryForm: CategoryFormState = {
   sort_order: "0"
 };
 
+function hasStoreAddressDraft(form: StoreAddressFormState) {
+  return Boolean(
+    form.postal_code.trim() ||
+      form.province.trim() ||
+      form.locality.trim() ||
+      form.street_name.trim() ||
+      form.street_number.trim() ||
+      form.latitude.trim() ||
+      form.longitude.trim()
+  );
+}
+
+function buildStoreAddressSummary(form: StoreAddressFormState) {
+  return {
+    streetLine: [form.street_name.trim(), form.street_number.trim()].filter(Boolean).join(" "),
+    locationLine: [form.locality.trim(), form.province.trim(), form.postal_code.trim()].filter(Boolean).join(" - ")
+  };
+}
+
 function emptySubcategoryDraft(): SubcategoryDraftState {
   return {
     name: "",
@@ -83,10 +102,13 @@ export function SettingsPage() {
   const [categoryForm, setCategoryForm] = useState<CategoryFormState>(emptyCategoryForm);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [subcategoryDrafts, setSubcategoryDrafts] = useState<Record<number, SubcategoryDraftState>>({});
+  const [showAddressEditor, setShowAddressEditor] = useState(false);
 
   const isApproved = store?.status === "approved";
   const canToggleOrders = isApproved;
   const deliveryAddressReady = hasStoreAddressConfiguration(storeAddressForm);
+  const hasAddressDraft = hasStoreAddressDraft(storeAddressForm);
+  const addressSummary = useMemo(() => buildStoreAddressSummary(storeAddressForm), [storeAddressForm]);
   const statusMessage = useMemo(() => {
     if (!store) return "";
     return storeStatusMessages[store.status] ?? "Actualiza la informacion de tu negocio y mantente listo para operar.";
@@ -129,6 +151,41 @@ export function SettingsPage() {
     }));
   }
 
+  function handleOpenAddressEditor() {
+    setShowAddressEditor(true);
+    setError(null);
+  }
+
+  function handleCancelAddressEditor() {
+    if (!store) return;
+    setStoreAddressForm(toStoreAddressFormState(store));
+    setShowAddressEditor(false);
+    setError(null);
+  }
+
+  function handleDeleteAddress() {
+    setStoreAddressForm(emptyStoreAddressForm);
+    setStore((current) =>
+      current
+        ? {
+            ...current,
+            address: "",
+            postal_code: null,
+            province: null,
+            locality: null,
+            latitude: null,
+            longitude: null,
+            delivery_settings: {
+              ...current.delivery_settings,
+              delivery_enabled: false
+            }
+          }
+        : current
+    );
+    setShowAddressEditor(false);
+    setError(null);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!token || !store) return;
@@ -161,14 +218,24 @@ export function SettingsPage() {
       }
 
       const addressPayload =
-        toStoreAddressPayload(nextStoreAddressForm) ?? {
-          address: store.address,
-          postal_code: store.postal_code ?? null,
-          province: store.province ?? null,
-          locality: store.locality ?? null,
-          latitude: store.latitude ?? null,
-          longitude: store.longitude ?? null
-        };
+        toStoreAddressPayload(nextStoreAddressForm) ??
+        (hasStoreAddressDraft(nextStoreAddressForm)
+          ? {
+              address: store.address,
+              postal_code: store.postal_code ?? null,
+              province: store.province ?? null,
+              locality: store.locality ?? null,
+              latitude: store.latitude ?? null,
+              longitude: store.longitude ?? null
+            }
+          : {
+              address: "",
+              postal_code: null,
+              province: null,
+              locality: null,
+              latitude: null,
+              longitude: null
+            });
       await updateMerchantStore(token, {
         name: store.name,
         description: store.description,
@@ -193,6 +260,7 @@ export function SettingsPage() {
         mercadopago_enabled: store.payment_settings.mercadopago_enabled
       });
       await load();
+      setShowAddressEditor(false);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudo guardar la configuracion");
     } finally {
@@ -356,14 +424,72 @@ export function SettingsPage() {
           </div>
         </section>
 
-        <StoreAddressSection
-          token={token}
-          form={storeAddressForm}
-          onChange={(value) => {
-            setStoreAddressForm(value);
-            setError(null);
-          }}
-        />
+        <section className="space-y-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Direccion del local</p>
+              <h2 className="mt-2 text-xl font-bold text-ink">Ubicacion comercial</h2>
+              <p className="mt-2 text-sm text-zinc-600">
+                Configura la direccion solo cuando quieras agregarla, editarla o eliminarla. El delivery requiere esta ubicacion completa.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {hasAddressDraft ? (
+                <>
+                  <Button type="button" onClick={handleOpenAddressEditor} className="bg-zinc-900 shadow-none">
+                    Editar direccion
+                  </Button>
+                  <Button type="button" onClick={handleDeleteAddress} className="bg-rose-600 shadow-none">
+                    Eliminar direccion
+                  </Button>
+                </>
+              ) : (
+                <Button type="button" onClick={handleOpenAddressEditor} className="shadow-none">
+                  Agregar direccion
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-[24px] bg-zinc-50 p-4 text-sm text-zinc-600">
+            {hasAddressDraft ? (
+              <div className="space-y-1">
+                <p className="font-semibold text-ink">{addressSummary.streetLine || "Direccion cargada"}</p>
+                {addressSummary.locationLine ? <p>{addressSummary.locationLine}</p> : null}
+                <p className={deliveryAddressReady ? "text-emerald-700" : "text-amber-700"}>
+                  {deliveryAddressReady
+                    ? "Direccion completa y geolocalizada."
+                    : "Direccion incompleta. Completa calle, altura, CP, localidad y geolocalizacion para delivery."}
+                </p>
+              </div>
+            ) : (
+              <p>Sin direccion configurada. Agregala solo cuando quieras dejar listo el local para operar con delivery.</p>
+            )}
+          </div>
+
+          {showAddressEditor ? (
+            <div className="rounded-[24px] border border-black/10 bg-white p-4">
+              <StoreAddressSection
+                token={token}
+                form={storeAddressForm}
+                showHeader={false}
+                onChange={(value) => {
+                  setStoreAddressForm(value);
+                  setError(null);
+                }}
+              />
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleCancelAddressEditor}
+                  className="rounded-full bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </section>
 
         <section className="space-y-4">
           <div>

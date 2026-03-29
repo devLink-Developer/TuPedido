@@ -29,6 +29,7 @@ function createDeferred<T>() {
 
 describe("CatalogPage", () => {
   beforeEach(() => {
+    vi.useRealTimers();
     fetchCatalogBannerMock.mockReset();
     fetchStoresMock.mockReset();
     fetchCategoriesMock.mockReset();
@@ -98,5 +99,48 @@ describe("CatalogPage", () => {
     refreshRequest.resolve([{ id: 1 }, { id: 2 }]);
 
     await waitFor(() => expect(screen.getByText("2 comercios")).toBeInTheDocument());
+  });
+
+  it("revalida periodicamente el listado sin parpadeo", async () => {
+    const refreshRequest = createDeferred<Array<{ id: number }>>();
+    let intervalCallback: VoidFunction | null = null;
+    const setIntervalSpy = vi.spyOn(window, "setInterval").mockImplementation(((handler: TimerHandler, timeout?: number) => {
+      if (timeout === 5000 && typeof handler === "function") {
+        intervalCallback = handler as VoidFunction;
+      }
+      return 1 as unknown as number;
+    }) as typeof window.setInterval);
+    const clearIntervalSpy = vi.spyOn(window, "clearInterval").mockImplementation(() => undefined);
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible"
+    });
+    fetchStoresMock.mockResolvedValueOnce([{ id: 1 }]);
+    fetchStoresMock.mockImplementationOnce(() => refreshRequest.promise);
+
+    render(
+      <MemoryRouter initialEntries={["/c"]}>
+        <CatalogPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByText("1 comercios")).toBeInTheDocument());
+
+    expect(intervalCallback).not.toBeNull();
+    const callback = intervalCallback;
+    if (!callback) {
+      throw new Error("No se registro el polling del catalogo");
+    }
+    (callback as VoidFunction)();
+
+    await waitFor(() => expect(fetchStoresMock).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText("Cargando...")).not.toBeInTheDocument();
+    expect(screen.getByText("1 comercios")).toBeInTheDocument();
+
+    refreshRequest.resolve([]);
+
+    await waitFor(() => expect(screen.getByText("No hay comercios para ese filtro")).toBeInTheDocument());
+    setIntervalSpy.mockRestore();
+    clearIntervalSpy.mockRestore();
   });
 });
