@@ -289,7 +289,7 @@ export function RidersPage() {
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
-              className="bg-white text-ink shadow-none"
+              className="bg-brand-500 text-white"
               onClick={() => {
                 setFormVisible((current) => !current || editingId !== null);
                 setEditingId(null);

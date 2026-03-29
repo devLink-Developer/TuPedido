@@ -81,6 +81,7 @@ export function ProductsPage() {
         action={
           <Button
             type="button"
+            className="bg-brand-500 text-white"
             onClick={() => {
               setEditingProduct(null);
               setFormOpen(true);

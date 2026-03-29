@@ -7,6 +7,7 @@ export function useAuthSession() {
   const loading = useAuthStore((state) => state.loading);
   const login = useAuthStore((state) => state.login);
   const register = useAuthStore((state) => state.register);
+  const changePassword = useAuthStore((state) => state.changePassword);
   const refresh = useAuthStore((state) => state.refresh);
   const logout = useAuthStore((state) => state.logout);
 
@@ -17,6 +18,7 @@ export function useAuthSession() {
     loading,
     login,
     register,
+    changePassword,
     refresh,
     logout,
     isAuthenticated: Boolean(user && token)

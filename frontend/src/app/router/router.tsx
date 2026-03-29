@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "./AppShell";
-import { RequireRoles, GuestOnlyRoute } from "./guards";
+import { RequireRoles, GuestOnlyRoute, PasswordChangeRoute } from "./guards";
 import { LegacyCustomerOrderRedirectRoute, LegacyCustomerOrdersRedirectRoute } from "./legacyCustomerRoutes";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
 import {
@@ -26,6 +26,7 @@ import {
   LazyComercioPromotionsRoute,
   LazyComercioRidersRoute,
   LazyComercioSettingsRoute,
+  LazyForcePasswordChangeRoute,
   LazyLandingRoute,
   LazyLoginRoute,
   LazyMerchantRegistrationRoute,
@@ -58,6 +59,14 @@ export const router = createBrowserRouter([
           <GuestOnlyRoute>
             <LazyRegisterRoute />
           </GuestOnlyRoute>
+        )
+      },
+      {
+        path: "cambiar-contrasena",
+        element: (
+          <PasswordChangeRoute>
+            <LazyForcePasswordChangeRoute />
+          </PasswordChangeRoute>
         )
       },
       { path: "registro-comercio", element: <LazyMerchantRegistrationRoute /> },

@@ -6,6 +6,7 @@ export type AuthUser = {
   email: string;
   role: Role;
   is_active: boolean;
+  must_change_password?: boolean;
 };
 
 export type AuthResponse = {

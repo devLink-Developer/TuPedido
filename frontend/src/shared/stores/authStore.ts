@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { fetchMe, login as loginRequest, register as registerRequest } from "../services/api";
+import { changePassword as changePasswordRequest, fetchMe, login as loginRequest, register as registerRequest } from "../services/api";
 import type { AuthResponse, AuthUser } from "../types";
 import { readJsonStorage, removeStorageValue, writeJsonStorage } from "../utils/storage";
 
@@ -13,6 +13,7 @@ type AuthState = {
   hydrate: () => Promise<void>;
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (fullName: string, email: string, password: string) => Promise<AuthUser>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<AuthUser>;
   refresh: () => Promise<AuthUser | null>;
   logout: () => void;
   setSession: (auth: AuthResponse | null) => void;
@@ -92,6 +93,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         loading: false
       });
       return auth.user;
+    } catch (error) {
+      set({ loading: false, hydrated: true });
+      throw error;
+    }
+  },
+  async changePassword(currentPassword, newPassword) {
+    const token = get().token;
+    if (!token) {
+      throw new Error("Missing bearer token");
+    }
+
+    set({ loading: true });
+    try {
+      const user = await changePasswordRequest(token, currentPassword, newPassword);
+      const auth: AuthResponse = {
+        access_token: token,
+        token_type: "bearer",
+        user
+      };
+      persistSession(auth);
+      set({
+        user,
+        token,
+        hydrated: true,
+        loading: false
+      });
+      return user;
     } catch (error) {
       set({ loading: false, hydrated: true });
       throw error;

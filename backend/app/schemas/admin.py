@@ -9,6 +9,10 @@ class StoreStatusUpdate(BaseModel):
     status: Literal["approved", "suspended"]
 
 
+class AdminUserPasswordResetResponse(BaseModel):
+    temporary_password: str
+
+
 class AdminMerchantCreate(BaseModel):
     full_name: str
     email: EmailStr

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState, LoadingCard, PageHeader, StatCard } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
-import { fetchAdminUsers } from "../../../shared/services/api";
+import { fetchAdminUsers, resetAdminCustomerPassword } from "../../../shared/services/api";
 import type { AuthUser, Role } from "../../../shared/types";
 import { roleLabels } from "../../../shared/utils/labels";
 
@@ -17,6 +17,9 @@ export function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<Role | "">("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [busyUserId, setBusyUserId] = useState<number | null>(null);
 
   async function load() {
     if (!token) return;
@@ -25,6 +28,7 @@ export function UsersPage() {
       const items = await fetchAdminUsers(token);
       setUsers(items);
       setError(null);
+      setActionError(null);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudieron cargar los usuarios");
     } finally {
@@ -42,6 +46,39 @@ export function UsersPage() {
     [roleFilter, users]
   );
   const activeUsers = useMemo(() => users.filter((user) => user.is_active).length, [users]);
+  const customersRequiringPasswordChange = useMemo(
+    () => users.filter((user) => user.role === "customer" && user.must_change_password).length,
+    [users]
+  );
+
+  async function handleResetPassword(user: AuthUser) {
+    if (!token) return;
+    setBusyUserId(user.id);
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      const response = await resetAdminCustomerPassword(token, user.id);
+      setUsers((current) =>
+        current.map((item) =>
+          item.id === user.id
+            ? {
+                ...item,
+                must_change_password: true
+              }
+            : item
+        )
+      );
+      setActionMessage(
+        `Contrasena de ${user.full_name} restablecida a ${response.temporary_password}. El cliente debera cambiarla al ingresar.`
+      );
+    } catch (requestError) {
+      setActionError(
+        requestError instanceof Error ? requestError.message : "No se pudo restablecer la contrasena del cliente"
+      );
+    } finally {
+      setBusyUserId(null);
+    }
+  }
 
   if (loading) return <LoadingCard />;
   if (error) return <EmptyState title="Usuarios no disponibles" description={error} />;
@@ -62,8 +99,23 @@ export function UsersPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard label="Usuarios totales" value={String(users.length)} description="Base completa de accesos registrados." />
         <StatCard label="Usuarios activos" value={String(activeUsers)} description="Cuentas habilitadas actualmente." />
-        <StatCard label="Resultados filtrados" value={String(filteredUsers.length)} description="Usuarios visibles con el filtro actual." />
+        <StatCard
+          label="Cambio requerido"
+          value={String(customersRequiringPasswordChange)}
+          description="Clientes que deben actualizar su contrasena al ingresar."
+        />
       </div>
+
+      {actionMessage ? (
+        <p className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900">
+          {actionMessage}
+        </p>
+      ) : null}
+      {actionError ? (
+        <p className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
+          {actionError}
+        </p>
+      ) : null}
 
       <section className="rounded-[28px] bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -126,8 +178,26 @@ export function UsersPage() {
                 >
                   {user.is_active ? "Activo" : "Inactivo"}
                 </span>
+                {user.role === "customer" && user.must_change_password ? (
+                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                    Cambio requerido
+                  </span>
+                ) : null}
               </div>
             </div>
+            {user.role === "customer" ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => void handleResetPassword(user)}
+                  disabled={busyUserId === user.id}
+                  className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-zinc-300"
+                >
+                  {busyUserId === user.id ? "Restableciendo..." : "Restablecer contrasena"}
+                </button>
+                <p className="text-sm text-zinc-500">La contrasena temporal se fija en 12345678.</p>
+              </div>
+            ) : null}
           </article>
         ))}
 

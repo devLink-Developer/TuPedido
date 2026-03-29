@@ -20,6 +20,10 @@ function createLazyRoute(loadModule: () => Promise<ModuleExports>, exportName: s
 
 export const LazyLandingRoute = createLazyRoute(() => import("../../modules/landing/routes"), "LandingRoute");
 
+export const LazyForcePasswordChangeRoute = createLazyRoute(
+  () => import("../../modules/auth/routes"),
+  "ForcePasswordChangeRoute"
+);
 export const LazyLoginRoute = createLazyRoute(() => import("../../modules/auth/routes"), "LoginRoute");
 export const LazyRegisterRoute = createLazyRoute(() => import("../../modules/auth/routes"), "RegisterRoute");
 export const LazyMerchantRegistrationRoute = createLazyRoute(

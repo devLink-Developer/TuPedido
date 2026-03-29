@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class LoginRequest(BaseModel):
@@ -12,6 +12,11 @@ class RegisterRequest(BaseModel):
     password: str
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=6)
+    new_password: str = Field(min_length=6)
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -20,9 +25,10 @@ class TokenResponse(BaseModel):
 class UserRead(BaseModel):
     id: int
     full_name: str
-    email: EmailStr
+    email: str
     role: str
     is_active: bool
+    must_change_password: bool
 
     model_config = {"from_attributes": True}
 

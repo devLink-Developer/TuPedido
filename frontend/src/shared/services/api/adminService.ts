@@ -106,6 +106,16 @@ export async function fetchAdminUsers(token: string): Promise<AuthUser[]> {
   return apiRequest<AuthUser[]>("/admin/users", { token });
 }
 
+export async function resetAdminCustomerPassword(
+  token: string,
+  userId: number
+): Promise<{ temporary_password: string }> {
+  return apiRequest<{ temporary_password: string }>(`/admin/users/${userId}/reset-password`, {
+    method: "POST",
+    token
+  });
+}
+
 export async function fetchPlatformSettings(token: string): Promise<PlatformSettings> {
   return apiRequest<PlatformSettings>("/admin/platform-settings", { token });
 }

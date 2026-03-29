@@ -23,6 +23,11 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
 
     try {
       const profile = mode === "login" ? await login(email, password) : await register(fullName, email, password);
+      if (profile.must_change_password) {
+        const next = redirectTo ? `/cambiar-contrasena?redirectTo=${encodeURIComponent(redirectTo)}` : "/cambiar-contrasena";
+        navigate(next, { replace: true });
+        return;
+      }
       navigate(redirectTo || roleToHomePath[profile.role], { replace: true });
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "No se pudo completar el acceso");

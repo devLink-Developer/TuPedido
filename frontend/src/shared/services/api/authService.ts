@@ -18,3 +18,15 @@ export async function register(full_name: string, email: string, password: strin
 export async function fetchMe(token: string): Promise<AuthResponse["user"]> {
   return apiRequest<AuthResponse["user"]>("/auth/me", { token });
 }
+
+export async function changePassword(
+  token: string,
+  current_password: string,
+  new_password: string
+): Promise<AuthResponse["user"]> {
+  return apiRequest<AuthResponse["user"]>("/auth/change-password", {
+    method: "POST",
+    token,
+    body: JSON.stringify({ current_password, new_password })
+  });
+}

@@ -1,11 +1,15 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthStore } from "../../../shared/stores";
 import { AuthFormCard } from "./AuthFormCard";
 
 describe("AuthFormCard", () => {
+  beforeEach(() => {
+    useAuthStore.getState().resetForTest();
+  });
+
   it("apila la accion secundaria debajo del titulo en mobile", () => {
     useAuthStore.setState({
       loading: false,
@@ -59,5 +63,41 @@ describe("AuthFormCard", () => {
       expect(screen.getByText("merchant dashboard")).toBeInTheDocument();
     });
     expect(loginMock).toHaveBeenCalledWith("merchant@test.com", "secret123");
+  });
+
+  it("redirects to forced password change when backend marks the session", async () => {
+    const user = userEvent.setup();
+    const loginMock = vi.fn().mockResolvedValue({
+      id: 11,
+      full_name: "Cliente Reset",
+      email: "cliente@test.com",
+      role: "customer" as const,
+      is_active: true,
+      must_change_password: true
+    });
+
+    useAuthStore.setState({
+      login: loginMock,
+      loading: false,
+      hydrated: true
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/login?redirectTo=/c/pedidos"]}>
+        <Routes>
+          <Route path="/login" element={<AuthFormCard mode="login" />} />
+          <Route path="/cambiar-contrasena" element={<div>password change route</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await user.type(screen.getByLabelText(/email/i), "cliente@test.com");
+    await user.type(screen.getByLabelText(/contrase/i), "12345678");
+    await user.click(screen.getByRole("button", { name: "Ingresar" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("password change route")).toBeInTheDocument();
+    });
+    expect(loginMock).toHaveBeenCalledWith("cliente@test.com", "12345678");
   });
 });

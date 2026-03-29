@@ -17,6 +17,7 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(40), default="customer", index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
 
     addresses: Mapped[list["Address"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
