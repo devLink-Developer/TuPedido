@@ -8,6 +8,7 @@ import httpx
 from app.core.config import settings
 
 POSTAL_CODE_RE = re.compile(r"(\d{4})")
+STREET_NUMBER_RE = re.compile(r"\b\d[\w/-]*\b")
 
 
 class AddressLookupError(RuntimeError):
@@ -72,6 +73,46 @@ def _parse_coordinate(value: object) -> float | None:
 
 def _compact_text(value: object) -> str:
     return " ".join(str(value or "").split())
+
+
+def _extract_street_number(value: object) -> str:
+    match = STREET_NUMBER_RE.search(_compact_text(value))
+    return match.group(0) if match else ""
+
+
+def _extract_street_number_from_display_name(display_name: object, street_name: str | None) -> str:
+    compact_display_name = _compact_text(display_name)
+    compact_street_name = _compact_text(street_name)
+    if not compact_display_name or not compact_street_name:
+        return ""
+
+    normalized_street_name = compact_street_name.casefold()
+    segments = [segment for segment in (_compact_text(item) for item in compact_display_name.split(",")) if segment]
+
+    for index, segment in enumerate(segments):
+        if normalized_street_name not in segment.casefold():
+            continue
+
+        direct_number = _extract_street_number(segment)
+        if direct_number:
+            return direct_number
+
+        if index > 0:
+            previous_segment = segments[index - 1]
+            previous_number = _extract_street_number(previous_segment)
+            if previous_number and previous_segment == previous_number:
+                return previous_number
+
+        if index + 1 < len(segments):
+            next_segment = segments[index + 1]
+            next_number = _extract_street_number(next_segment)
+            if next_number and next_segment == next_number:
+                return next_number
+
+    if normalized_street_name in compact_display_name.casefold():
+        return _extract_street_number(compact_display_name)
+
+    return ""
 
 
 def _headers() -> dict[str, str]:
@@ -227,7 +268,9 @@ def reverse_geocode_coordinates(*, latitude: float, longitude: float) -> Reverse
         ),
         "",
     )
-    street_number = _compact_text(address.get("house_number"))
+    street_number = _compact_text(address.get("house_number") or address.get("housenumber"))
+    if not street_number:
+        street_number = _extract_street_number_from_display_name(payload.get("display_name"), street_name)
 
     if not street_name and not street_number:
         raise AddressLookupNotFound("No pudimos reconocer calle y altura en ese punto del mapa.")

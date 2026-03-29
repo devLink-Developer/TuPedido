@@ -84,7 +84,8 @@ export const router = createBrowserRouter([
           {
             element: <LazyComercioModuleLayoutRoute />,
             children: [
-              { index: true, element: <LazyComercioDashboardRoute /> },
+              { index: true, element: <Navigate to="pedidos" replace /> },
+              { path: "dashboard", element: <LazyComercioDashboardRoute /> },
               { path: "productos", element: <LazyComercioProductsRoute /> },
               { path: "pedidos", element: <LazyComercioOrdersRoute /> },
               { path: "promociones", element: <LazyComercioPromotionsRoute /> },

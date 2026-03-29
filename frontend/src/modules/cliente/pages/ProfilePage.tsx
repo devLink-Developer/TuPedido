@@ -30,6 +30,7 @@ export function ProfilePage() {
   const { token, user } = useAuthSession();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [form, setForm] = useState<AddressFormState>(emptyAddressForm);
+  const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -81,6 +82,7 @@ export function ProfilePage() {
       }
       setForm(emptyAddressForm);
       setEditingAddressId(null);
+      setShowAddressForm(false);
       await load();
       notifyCustomerAddressesChanged();
     } catch (requestError) {
@@ -99,6 +101,7 @@ export function ProfilePage() {
       if (editingAddressId === addressId) {
         setEditingAddressId(null);
         setForm(emptyAddressForm);
+        setShowAddressForm(false);
       }
       await load();
       notifyCustomerAddressesChanged();
@@ -112,6 +115,14 @@ export function ProfilePage() {
   function handleStartEdit(address: Address) {
     setEditingAddressId(address.id);
     setForm(toAddressFormState(address));
+    setShowAddressForm(true);
+    setError(null);
+  }
+
+  function handleStartCreate() {
+    setEditingAddressId(null);
+    setForm(emptyAddressForm);
+    setShowAddressForm(true);
     setError(null);
   }
 
@@ -138,28 +149,35 @@ export function ProfilePage() {
             </div>
           </article>
 
-          <AddressFormCard
-            title={editingAddressId ? "Editar direccion" : "Nueva direccion"}
-            submitLabel={editingAddressId ? "Guardar cambios" : "Guardar direccion"}
-            lookupToken={token}
-            form={form}
-            saving={saving}
-            error={error}
-            onChange={(value) => {
-              setForm(value);
-              setError(null);
-            }}
-            onSubmit={handleSaveAddress}
-            onCancel={
-              editingAddressId
-                ? () => {
-                    setEditingAddressId(null);
-                    setForm(emptyAddressForm);
-                    setError(null);
-                  }
-                : undefined
-            }
-          />
+          {!showAddressForm ? (
+            <button
+              type="button"
+              onClick={handleStartCreate}
+              className="w-full rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-sm"
+            >
+              Nueva direccion
+            </button>
+          ) : (
+            <AddressFormCard
+              title={editingAddressId ? "Editar direccion" : "Nueva direccion"}
+              submitLabel={editingAddressId ? "Guardar cambios" : "Guardar direccion"}
+              lookupToken={token}
+              form={form}
+              saving={saving}
+              error={error}
+              onChange={(value) => {
+                setForm(value);
+                setError(null);
+              }}
+              onSubmit={handleSaveAddress}
+              onCancel={() => {
+                setEditingAddressId(null);
+                setForm(emptyAddressForm);
+                setShowAddressForm(false);
+                setError(null);
+              }}
+            />
+          )}
         </section>
 
         <section className="space-y-4">

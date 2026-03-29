@@ -3,11 +3,11 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuthSession } from "../../shared/hooks";
 
 const navItems = [
-  { to: "/m", label: "Resumen" },
-  { to: "/m/productos", label: "Productos" },
   { to: "/m/pedidos", label: "Pedidos" },
+  { to: "/m/dashboard", label: "Resumen" },
+  { to: "/m/productos", label: "Productos" },
   { to: "/m/promociones", label: "Promociones" },
-  { to: "/m/configuracion", label: "Configuración" }
+  { to: "/m/configuracion", label: "Configuracion" }
 ];
 
 export function MerchantDashboardLayout({ children }: PropsWithChildren) {
@@ -26,7 +26,7 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  end={item.to === "/m"}
+                  end={item.to === "/m/pedidos" || item.to === "/m/dashboard"}
                   className={({ isActive }) =>
                     [
                       "rounded-[22px] px-4 py-3 text-sm font-semibold transition",

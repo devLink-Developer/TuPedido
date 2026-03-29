@@ -402,27 +402,18 @@ export function SettingsPage() {
               El costo de delivery lo defines tu comercio y no forma parte del fee global de plataforma cobrado al comprador.
             </p>
           </div>
-          {!isApproved ? (
-            <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
-              Podras activar "Recibir pedidos" una vez que el equipo apruebe tu comercio.
-            </div>
-          ) : null}
+          <div
+            className={`rounded-[24px] px-4 py-4 text-sm ${
+              isApproved
+                ? "border border-black/5 bg-zinc-50 text-zinc-700"
+                : "border border-amber-200 bg-amber-50 text-amber-950"
+            }`}
+          >
+            {isApproved
+              ? 'La recepcion de pedidos se administra desde la pantalla "Pedidos". Aqui configuras delivery, retiro y medios de cobro.'
+              : 'Podras habilitar la venta desde la pantalla "Pedidos" una vez que el equipo apruebe tu comercio.'}
+          </div>
           <div className="grid gap-3 md:grid-cols-2">
-            <label
-              className={`flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold ${
-                canToggleOrders ? "bg-zinc-50 text-zinc-700" : "bg-zinc-100 text-zinc-400"
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={canToggleOrders ? store.accepting_orders : false}
-                disabled={!canToggleOrders}
-                onChange={(event) =>
-                  setStore((current) => (current ? { ...current, accepting_orders: event.target.checked } : current))
-                }
-              />
-              Recibir pedidos
-            </label>
             <label className="flex items-center gap-2 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
               <input
                 type="checkbox"
