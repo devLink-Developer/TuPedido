@@ -6,6 +6,8 @@ export type DeliveryAvailability = "offline" | "idle" | "reserved" | "delivering
 export type DeliveryApplication = {
   id: number;
   user_id: number;
+  store_id: number | null;
+  store_name: string | null;
   user_name: string;
   user_email: string;
   phone: string;
@@ -60,10 +62,20 @@ export type AdminRiderCreate = {
 
 export type DeliveryProfile = {
   user_id: number;
+  store_id: number | null;
+  store_name: string | null;
   full_name: string;
   email: string;
   phone: string;
   vehicle_type: DeliveryVehicleType;
+  photo_url: string | null;
+  dni_number: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  license_number: string | null;
+  vehicle_plate: string | null;
+  insurance_policy: string | null;
+  notes: string | null;
   availability: DeliveryAvailability;
   is_active: boolean;
   current_zone_id: number | null;
@@ -102,7 +114,8 @@ export type DeliverySettlement = {
   cash_liability_open: number;
   rider_fee_earned_total: number;
   rider_fee_paid_total: number;
-  merchant_cash_payable_total?: number;
+  pending_amount: number;
+  merchant_cash_payable_total: number;
 };
 
 export type DeliverySettlementPaymentCreate = {
@@ -114,3 +127,42 @@ export type DeliverySettlementPaymentCreate = {
 };
 
 export type DeliveryOrder = Order;
+
+export type MerchantRiderCreate = {
+  full_name: string;
+  email: string;
+  password: string;
+  phone: string;
+  vehicle_type: DeliveryVehicleType;
+  dni_number: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  photo_url?: string | null;
+  license_number?: string | null;
+  vehicle_plate?: string | null;
+  insurance_policy?: string | null;
+  notes?: string | null;
+};
+
+export type MerchantRiderUpdate = {
+  full_name: string;
+  phone: string;
+  vehicle_type: DeliveryVehicleType;
+  dni_number: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  photo_url?: string | null;
+  license_number?: string | null;
+  vehicle_plate?: string | null;
+  insurance_policy?: string | null;
+  notes?: string | null;
+  is_active: boolean;
+};
+
+export type MerchantRiderSettlementPaymentCreate = {
+  rider_user_id: number;
+  amount: number;
+  paid_at: string;
+  reference?: string | null;
+  notes?: string | null;
+};

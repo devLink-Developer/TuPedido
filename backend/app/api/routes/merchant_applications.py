@@ -118,6 +118,8 @@ def ensure_pending_store(
             delivery_enabled=False,
             pickup_enabled=True,
             delivery_fee=0,
+            free_delivery_min_order=None,
+            rider_fee=0,
             min_order=0,
         )
         db.add(settings)

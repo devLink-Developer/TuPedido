@@ -13,6 +13,7 @@ class DeliveryApplication(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    store_id: Mapped[int | None] = mapped_column(ForeignKey("stores.id", ondelete="SET NULL"), nullable=True, index=True)
     phone: Mapped[str] = mapped_column(String(60))
     vehicle_type: Mapped[str] = mapped_column(String(40), index=True)
     photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -35,6 +36,7 @@ class DeliveryApplication(Base):
     )
 
     user: Mapped["User"] = relationship(back_populates="delivery_applications", foreign_keys=[user_id])
+    store: Mapped["Store | None"] = relationship(back_populates="delivery_applications")
     reviewed_by: Mapped["User | None"] = relationship(foreign_keys=[reviewed_by_user_id])
     profile: Mapped["DeliveryProfile | None"] = relationship(back_populates="application", uselist=False)
 
@@ -49,6 +51,7 @@ class DeliveryProfile(Base):
         nullable=True,
         index=True,
     )
+    store_id: Mapped[int | None] = mapped_column(ForeignKey("stores.id", ondelete="SET NULL"), nullable=True, index=True)
     phone: Mapped[str] = mapped_column(String(60))
     vehicle_type: Mapped[str] = mapped_column(String(40), index=True)
     photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -80,6 +83,7 @@ class DeliveryProfile(Base):
 
     user: Mapped["User"] = relationship(back_populates="delivery_profile", foreign_keys=[user_id])
     application: Mapped["DeliveryApplication | None"] = relationship(back_populates="profile")
+    store: Mapped["Store | None"] = relationship(back_populates="delivery_riders")
     approved_by: Mapped["User | None"] = relationship(foreign_keys=[approved_by_user_id])
     zone: Mapped["DeliveryZone | None"] = relationship(back_populates="riders")
     assignments: Mapped[list["DeliveryAssignment"]] = relationship(
@@ -260,7 +264,8 @@ class RiderSettlementPayment(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     rider_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    source: Mapped[str] = mapped_column(String(40), default="admin_manual")
+    store_id: Mapped[int | None] = mapped_column(ForeignKey("stores.id", ondelete="SET NULL"), nullable=True, index=True)
+    source: Mapped[str] = mapped_column(String(40), default="merchant_manual")
     amount: Mapped[float] = mapped_column(Numeric(10, 2))
     paid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     reference: Mapped[str | None] = mapped_column(String(180), nullable=True)
@@ -271,6 +276,7 @@ class RiderSettlementPayment(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     rider: Mapped["User"] = relationship(foreign_keys=[rider_user_id])
+    store: Mapped["Store | None"] = relationship(back_populates="delivery_rider_settlement_payments")
     created_by: Mapped["User | None"] = relationship(foreign_keys=[created_by_user_id])
     allocations: Mapped[list["RiderSettlementAllocation"]] = relationship(
         back_populates="payment", cascade="all, delete-orphan"

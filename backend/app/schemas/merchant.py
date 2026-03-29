@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import time
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
@@ -69,12 +70,53 @@ class StoreDeliverySettingsUpdate(BaseModel):
     delivery_enabled: bool
     pickup_enabled: bool
     delivery_fee: float
+    free_delivery_min_order: float | None = Field(default=None, ge=0)
+    rider_fee: float = Field(default=0, ge=0)
     min_order: float = 0
 
 
 class StorePaymentSettingsUpdate(BaseModel):
     cash_enabled: bool
     mercadopago_enabled: bool
+
+
+class MerchantRiderCreate(BaseModel):
+    full_name: str
+    email: EmailStr
+    password: str = Field(min_length=6)
+    phone: str
+    vehicle_type: Literal["bicycle", "motorcycle", "car"]
+    dni_number: str
+    emergency_contact_name: str
+    emergency_contact_phone: str
+    photo_url: str | None = None
+    license_number: str | None = None
+    vehicle_plate: str | None = None
+    insurance_policy: str | None = None
+    notes: str | None = None
+
+
+class MerchantRiderUpdate(BaseModel):
+    full_name: str
+    phone: str
+    vehicle_type: Literal["bicycle", "motorcycle", "car"]
+    dni_number: str
+    emergency_contact_name: str
+    emergency_contact_phone: str
+    photo_url: str | None = None
+    license_number: str | None = None
+    vehicle_plate: str | None = None
+    insurance_policy: str | None = None
+    notes: str | None = None
+    is_active: bool = True
+
+
+class MerchantRiderSettlementPaymentCreate(BaseModel):
+    rider_user_id: int
+    amount: float = Field(gt=0)
+    paid_at: datetime
+    reference: str | None = None
+    notes: str | None = None
 
 
 class MercadoPagoCredentialsUpdate(BaseModel):

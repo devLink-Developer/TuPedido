@@ -21,7 +21,7 @@ def list_my_delivery_applications(
 ) -> list[dict[str, object]]:
     applications = db.scalars(
         select(DeliveryApplication)
-        .options(selectinload(DeliveryApplication.user))
+        .options(selectinload(DeliveryApplication.user), selectinload(DeliveryApplication.store))
         .where(DeliveryApplication.user_id == user.id)
         .order_by(DeliveryApplication.id.desc())
     ).all()
@@ -34,6 +34,11 @@ def create_delivery_application(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="Public rider applications are disabled. Riders are now created by merchants.",
+    )
+
     active_application = db.scalar(
         select(DeliveryApplication).where(
             DeliveryApplication.user_id == user.id,

@@ -15,8 +15,8 @@ export function Footer() {
           <Link className="rounded-full border border-black/10 bg-zinc-50 px-4 py-2 text-sm font-semibold text-zinc-700" to="/registro-comercio">
             Sumar comercio
           </Link>
-          <Link className="rounded-full border border-black/10 bg-zinc-50 px-4 py-2 text-sm font-semibold text-zinc-700" to="/registro-rider">
-            Sumar rider
+          <Link className="rounded-full border border-black/10 bg-zinc-50 px-4 py-2 text-sm font-semibold text-zinc-700" to="/login">
+            Ingreso rider
           </Link>
         </div>
       </div>

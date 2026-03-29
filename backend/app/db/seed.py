@@ -313,14 +313,18 @@ def seed_initial_data() -> None:
                     store_id=store.id,
                     delivery_enabled=True,
                     pickup_enabled=True,
-                    delivery_fee=3.5,
+                    delivery_fee=350,
+                    free_delivery_min_order=5000,
+                    rider_fee=220,
                     min_order=0,
                 )
             )
         else:
             store.delivery_settings.delivery_enabled = True
             store.delivery_settings.pickup_enabled = True
-            store.delivery_settings.delivery_fee = 3.5
+            store.delivery_settings.delivery_fee = 350
+            store.delivery_settings.free_delivery_min_order = 5000
+            store.delivery_settings.rider_fee = 220
             store.delivery_settings.min_order = 0
 
         if store.payment_settings is None:
@@ -511,6 +515,7 @@ def seed_initial_data() -> None:
         if rider_application is None:
             rider_application = DeliveryApplication(
                 user_id=rider_user.id,
+                store_id=store.id,
                 phone="+54 11 3333 1234",
                 vehicle_type="motorcycle",
                 dni_number="30111222",
@@ -523,12 +528,14 @@ def seed_initial_data() -> None:
             )
             db.add(rider_application)
             db.flush()
+        rider_application.store_id = store.id
         rider_application.status = "approved"
         rider_profile = db.get(DeliveryProfile, rider_user.id)
         if rider_profile is None:
             rider_profile = DeliveryProfile(
                 user_id=rider_user.id,
                 application_id=rider_application.id,
+                store_id=store.id,
                 phone=rider_application.phone,
                 vehicle_type="motorcycle",
                 photo_url=None,
@@ -548,6 +555,7 @@ def seed_initial_data() -> None:
             db.add(rider_profile)
         else:
             rider_profile.application_id = rider_application.id
+            rider_profile.store_id = store.id
             rider_profile.phone = rider_application.phone
             rider_profile.vehicle_type = "motorcycle"
             rider_profile.availability = "idle"

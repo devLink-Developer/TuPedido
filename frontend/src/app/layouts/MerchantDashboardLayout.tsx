@@ -4,6 +4,7 @@ import { useAuthSession } from "../../shared/hooks";
 
 const navItems = [
   { to: "/m/pedidos", label: "Pedidos" },
+  { to: "/m/riders", label: "Riders" },
   { to: "/m/dashboard", label: "Resumen" },
   { to: "/m/productos", label: "Productos" },
   { to: "/m/promociones", label: "Promociones" },

@@ -10,7 +10,7 @@ import anyio
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.api.presenters import serialize_order, serialize_tracking
+from app.api.presenters import serialize_notification, serialize_order, serialize_tracking
 from app.core.config import settings
 from app.models.delivery import (
     DeliveryAssignment,
@@ -25,6 +25,7 @@ from app.models.store import Store
 from app.models.user import Address, User
 from app.services.realtime import realtime_hub
 from app.services.settlements import create_cash_service_fee_charge
+from app.services.store_address import store_delivery_is_enabled
 
 RIDER_VEHICLE_PRIORITY = ("motorcycle", "bicycle", "car")
 TRACKING_VISIBLE_DELIVERY_STATUSES = {"assigned", "heading_to_store", "picked_up", "near_customer", "delivered"}
@@ -63,6 +64,30 @@ def estimate_eta_minutes(distance_km: float | None, *, speed_kmh: float = 22) ->
     return max(1, round((distance_km / max(speed_kmh, 1)) * 60))
 
 
+def customer_delivery_fee_for_store(store: Store, *, discounted_subtotal: float) -> float:
+    settings = getattr(store, "delivery_settings", None)
+    if settings is None or not store_delivery_is_enabled(store):
+        return 0.0
+
+    base_fee = as_float(getattr(settings, "delivery_fee", None)) or 0.0
+    free_delivery_min_order = as_float(getattr(settings, "free_delivery_min_order", None))
+
+    if base_fee <= 0:
+        return 0.0
+    if free_delivery_min_order is not None and free_delivery_min_order <= 0:
+        return 0.0
+    if free_delivery_min_order is not None and discounted_subtotal >= free_delivery_min_order:
+        return 0.0
+    return base_fee
+
+
+def rider_fee_for_store(store: Store) -> float:
+    settings = getattr(store, "delivery_settings", None)
+    if settings is None:
+        return 0.0
+    return as_float(getattr(settings, "rider_fee", None)) or 0.0
+
+
 def _user_ids_for_order(order: StoreOrder) -> list[int]:
     user_ids = [order.user_id]
     if getattr(order.store, "owner_user_id", None):
@@ -99,7 +124,8 @@ def create_notifications(
 ) -> list[NotificationEvent]:
     notifications: list[NotificationEvent] = []
     payload_json = json.dumps(payload or {}, ensure_ascii=True)
-    for user_id in dict.fromkeys(int(item) for item in user_ids):
+    unique_user_ids = [user_id for user_id in dict.fromkeys(int(item) for item in user_ids)]
+    for user_id in unique_user_ids:
         notification = NotificationEvent(
             user_id=user_id,
             order_id=order_id,
@@ -112,6 +138,17 @@ def create_notifications(
         db.add(notification)
         notifications.append(notification)
     db.flush()
+    try:
+        anyio.from_thread.run(
+            realtime_hub.broadcast_users,
+            unique_user_ids,
+            {
+                "type": "notifications.created",
+                "notifications": [serialize_notification(item).model_dump() for item in notifications],
+            },
+        )
+    except RuntimeError:
+        pass
     return notifications
 
 
@@ -192,6 +229,7 @@ def snapshot_delivery_quote(
     store: Store,
     address: Address | None,
     delivery_mode: str,
+    discounted_subtotal: float,
 ) -> dict[str, object]:
     if delivery_mode == "pickup":
         return {
@@ -206,16 +244,14 @@ def snapshot_delivery_quote(
     if address is None:
         raise ValueError("Address is required for delivery")
 
-    zone, rate = resolve_delivery_zone(db, store=store, address=address)
-    if zone is None:
-        raise ValueError("No active delivery zone covers this store and address")
+    ensure_platform_delivery_coordinates(store, address)
 
     return {
         "provider": "platform",
-        "zone": zone,
-        "rate": rate,
-        "delivery_fee_customer": as_float(rate.delivery_fee_customer) if rate else 0.0,
-        "rider_fee": as_float(rate.rider_fee) if rate else 0.0,
+        "zone": None,
+        "rate": None,
+        "delivery_fee_customer": customer_delivery_fee_for_store(store, discounted_subtotal=discounted_subtotal),
+        "rider_fee": rider_fee_for_store(store),
         "otp_required": True,
     }
 
@@ -348,7 +384,23 @@ def mark_order_ready_for_dispatch(db: Session, order: StoreOrder) -> DeliveryAss
     order.status = "ready_for_dispatch"
     order.delivery_status = "assignment_pending"
     order.merchant_ready_at = datetime.now(UTC)
-    assignment = offer_next_rider(db, order)
+    assignment = ensure_assignment(db, order)
+    if assignment is not None:
+        if assignment.rider_user_id is not None:
+            previous_profile = db.get(DeliveryProfile, assignment.rider_user_id)
+            if previous_profile is not None and previous_profile.availability == "reserved":
+                previous_profile.availability = "idle"
+        assignment.rider_user_id = None
+        assignment.zone_id = None
+        assignment.status = "assignment_pending"
+        assignment.offer_expires_at = None
+        assignment.accepted_at = None
+        assignment.vehicle_type_snapshot = None
+        assignment.otp_code = order.otp_code
+    order.assigned_rider_id = None
+    order.assigned_rider_name_snapshot = None
+    order.assigned_rider_phone_masked = None
+    order.assigned_rider_vehicle_type = None
     create_notifications(
         db,
         user_ids=[order.user_id],
@@ -356,6 +408,101 @@ def mark_order_ready_for_dispatch(db: Session, order: StoreOrder) -> DeliveryAss
         event_type="order.ready_for_dispatch",
         title="Pedido listo para despacho",
         body=f"{order.store_name_snapshot} ya tiene tu pedido listo para retirar.",
+        payload={"order_id": order.id},
+    )
+    db.flush()
+    return assignment
+
+
+def rider_has_active_order(db: Session, *, rider_user_id: int, exclude_order_id: int | None = None) -> bool:
+    query = select(StoreOrder.id).where(
+        StoreOrder.assigned_rider_id == rider_user_id,
+        StoreOrder.delivery_mode == "delivery",
+        StoreOrder.status.not_in(("delivered", "cancelled", "delivery_failed")),
+    )
+    if exclude_order_id is not None:
+        query = query.where(StoreOrder.id != exclude_order_id)
+    return db.scalar(query.limit(1)) is not None
+
+
+def assign_order_to_rider(db: Session, *, order: StoreOrder, rider: User) -> DeliveryAssignment:
+    assignment = ensure_assignment(db, order)
+    if assignment is None:
+        raise ValueError("Order is not handled by platform delivery")
+    if order.delivery_mode != "delivery":
+        raise ValueError("Pickup orders cannot be assigned to riders")
+    if order.status not in {"ready_for_dispatch"} and order.delivery_status not in {"assigned", "heading_to_store"}:
+        raise ValueError("Order is not ready to assign")
+    if order.delivery_status in {"picked_up", "near_customer", "delivered"}:
+        raise ValueError("Order cannot be reassigned after pickup")
+
+    rider_profile = db.get(DeliveryProfile, rider.id)
+    if rider_profile is None or not rider_profile.is_active:
+        raise ValueError("Rider profile is not active")
+    if rider_profile.store_id != order.store_id:
+        raise ValueError("Rider does not belong to this store")
+    if order.assigned_rider_id != rider.id:
+        if rider_profile.availability != "idle":
+            raise ValueError("Rider is not available")
+        if rider_has_active_order(db, rider_user_id=rider.id, exclude_order_id=order.id):
+            raise ValueError("Rider already has an active delivery")
+
+    if assignment.rider_user_id and assignment.rider_user_id != rider.id:
+        previous_profile = db.get(DeliveryProfile, assignment.rider_user_id)
+        if previous_profile is not None and previous_profile.availability in {"reserved", "delivering"}:
+            previous_profile.availability = "idle"
+
+    if order.otp_required and not order.otp_code:
+        order.otp_code = str(100000 + secrets.randbelow(900000))
+
+    now = datetime.now(UTC)
+    rider_profile.availability = "reserved"
+    assignment.rider_user_id = rider.id
+    assignment.zone_id = None
+    assignment.status = "assigned"
+    assignment.vehicle_type_snapshot = rider_profile.vehicle_type
+    assignment.offer_expires_at = None
+    assignment.accepted_at = now
+    assignment.otp_code = order.otp_code
+    order.assigned_rider_id = rider.id
+    order.assigned_rider_name_snapshot = rider.full_name
+    order.assigned_rider_phone_masked = mask_phone(rider_profile.phone)
+    order.assigned_rider_vehicle_type = rider_profile.vehicle_type
+    order.delivery_status = "assigned"
+    create_notifications(
+        db,
+        user_ids=[order.user_id, order.store.owner_user_id, rider.id],
+        order_id=order.id,
+        event_type="delivery.assigned",
+        title="Pedido asignado",
+        body=f"{rider.full_name} fue asignado para la entrega.",
+        payload={"order_id": order.id, "rider_name": rider.full_name},
+    )
+    db.flush()
+    return assignment
+
+
+def cancel_delivery_order(db: Session, *, order: StoreOrder, reason: str | None = None) -> DeliveryAssignment | None:
+    assignment = ensure_assignment(db, order)
+    now = datetime.now(UTC)
+    if assignment is not None:
+        if assignment.rider_user_id is not None:
+            rider_profile = db.get(DeliveryProfile, assignment.rider_user_id)
+            if rider_profile is not None and rider_profile.availability in {"reserved", "delivering"}:
+                rider_profile.availability = "idle"
+        assignment.status = "failed"
+        assignment.failed_at = now
+        assignment.offer_expires_at = None
+    order.status = "cancelled"
+    if order.delivery_mode == "delivery" and order.delivery_provider == "platform":
+        order.delivery_status = "delivery_failed"
+    create_notifications(
+        db,
+        user_ids=_user_ids_for_order(order),
+        order_id=order.id,
+        event_type="order.cancelled",
+        title="Pedido cancelado",
+        body=reason or "El pedido fue cancelado.",
         payload={"order_id": order.id},
     )
     db.flush()

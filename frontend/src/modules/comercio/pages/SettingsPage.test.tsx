@@ -172,6 +172,8 @@ function buildStore(overrides: Partial<Record<string, unknown>> = {}) {
       delivery_enabled: true,
       pickup_enabled: true,
       delivery_fee: 0,
+      free_delivery_min_order: null,
+      rider_fee: 0,
       min_order: 0
     },
     payment_settings: {
@@ -222,6 +224,8 @@ describe("SettingsPage", () => {
           delivery_enabled: false,
           pickup_enabled: true,
           delivery_fee: 0,
+          free_delivery_min_order: null,
+          rider_fee: 0,
           min_order: 0
         }
       })
@@ -255,6 +259,8 @@ describe("SettingsPage", () => {
             delivery_enabled: false,
             pickup_enabled: true,
             delivery_fee: 0,
+            free_delivery_min_order: null,
+            rider_fee: 0,
             min_order: 0
           }
         })

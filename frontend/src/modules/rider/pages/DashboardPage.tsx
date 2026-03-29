@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
-  acceptDeliveryOrder,
+  buildDeliverySocketUrl,
   deliverDeliveryOrder,
   fetchDeliveryMe,
   fetchDeliveryNotifications,
@@ -12,19 +12,33 @@ import {
   pushDeliveryLocation,
   updateDeliveryAvailability
 } from "../../../shared/services/api";
-import type { DeliveryProfile, DeliverySettlement, Order } from "../../../shared/types";
+import type { AppNotification, DeliveryProfile, DeliverySettlement, Order } from "../../../shared/types";
 import { statusLabels } from "../../../shared/utils/labels";
 import { ActiveDelivery } from "../components/ActiveDelivery";
 import { AvailableOrders } from "../components/AvailableOrders";
 import { EarningsSummary } from "../components/EarningsSummary";
 import { OnlineToggle } from "../components/OnlineToggle";
 
+function upsertOrderList(current: Order[], nextOrder: Order) {
+  const existing = current.some((order) => order.id === nextOrder.id);
+  const next = existing ? current.map((order) => (order.id === nextOrder.id ? nextOrder : order)) : [nextOrder, ...current];
+  return [...next].sort((left, right) => right.id - left.id);
+}
+
+function mergeNotifications(current: AppNotification[], incoming: AppNotification[]) {
+  const byId = new Map<number, AppNotification>();
+  for (const item of [...incoming, ...current]) {
+    byId.set(item.id, item);
+  }
+  return [...byId.values()].sort((left, right) => (left.created_at < right.created_at ? 1 : -1));
+}
+
 export function DashboardPage() {
   const { token } = useAuthSession();
   const [profile, setProfile] = useState<DeliveryProfile | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [settlement, setSettlement] = useState<DeliverySettlement | null>(null);
-  const [notifications, setNotifications] = useState<Array<{ id: number; title: string; body: string; created_at: string }>>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyOrderId, setBusyOrderId] = useState<number | null>(null);
@@ -56,12 +70,37 @@ export function DashboardPage() {
   }, [token]);
 
   const activeOrder = useMemo(
-    () =>
-      orders.find((order) =>
-        ["assignment_pending", "assigned", "heading_to_store", "picked_up", "near_customer"].includes(order.delivery_status)
-      ) ?? null,
+    () => orders.find((order) => ["assigned", "heading_to_store", "picked_up", "near_customer"].includes(order.delivery_status)) ?? null,
     [orders]
   );
+
+  useEffect(() => {
+    if (!token) return;
+
+    let socket: WebSocket | null = null;
+    try {
+      socket = new WebSocket(buildDeliverySocketUrl(token));
+      socket.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (Array.isArray(payload?.notifications)) {
+            setNotifications((current) => mergeNotifications(current, payload.notifications as AppNotification[]));
+          }
+          if (payload?.order) {
+            setOrders((current) => upsertOrderList(current, payload.order as Order));
+          }
+        } catch {
+          // Keep HTTP state as fallback.
+        }
+      };
+    } catch {
+      return;
+    }
+
+    return () => {
+      socket?.close();
+    };
+  }, [token]);
 
   useEffect(() => {
     if (!token || !activeOrder || !navigator.geolocation) return;
@@ -75,7 +114,7 @@ export function DashboardPage() {
           speed_kmh: position.coords.speed ? position.coords.speed * 3.6 : null,
           accuracy_meters: position.coords.accuracy
         }).then((updated) => {
-          setOrders((current) => current.map((order) => (order.id === updated.id ? updated : order)));
+          setOrders((current) => upsertOrderList(current, updated));
         });
       },
       () => {},
@@ -90,23 +129,12 @@ export function DashboardPage() {
     setProfile(nextProfile);
   }
 
-  async function handleAccept(orderId: number) {
-    if (!token) return;
-    setBusyOrderId(orderId);
-    try {
-      const updated = await acceptDeliveryOrder(token, orderId);
-      setOrders((current) => current.map((order) => (order.id === updated.id ? updated : order)));
-    } finally {
-      setBusyOrderId(null);
-    }
-  }
-
   async function handlePickup(orderId: number) {
     if (!token) return;
     setBusyOrderId(orderId);
     try {
       const updated = await pickupDeliveryOrder(token, orderId);
-      setOrders((current) => current.map((order) => (order.id === updated.id ? updated : order)));
+      setOrders((current) => upsertOrderList(current, updated));
     } finally {
       setBusyOrderId(null);
     }
@@ -117,22 +145,22 @@ export function DashboardPage() {
     setBusyOrderId(orderId);
     try {
       const updated = await deliverDeliveryOrder(token, orderId, otp);
-      setOrders((current) => current.map((order) => (order.id === updated.id ? updated : order)));
+      setOrders((current) => upsertOrderList(current, updated));
     } finally {
       setBusyOrderId(null);
     }
   }
 
-  if (loading) return <LoadingCard label="Cargando operación de rider..." />;
+  if (loading) return <LoadingCard label="Cargando operacion de rider..." />;
   if (error) return <EmptyState title="No se pudo abrir el panel" description={error} />;
-  if (!profile || !settlement) return <EmptyState title="Perfil incompleto" description="Tu alta rider todavía no está disponible." />;
+  if (!profile || !settlement) return <EmptyState title="Perfil incompleto" description="Tu alta rider todavia no esta disponible." />;
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Rider"
-        title="Operación de reparto"
-        description="Disponibilidad, pedidos activos, tracking y resumen de ganancias."
+        title="Operacion de reparto"
+        description="Pedidos asignados, tracking en vivo y resumen de ganancias."
         action={<OnlineToggle value={profile.availability} onChange={changeAvailability} />}
       />
 
@@ -141,13 +169,12 @@ export function DashboardPage() {
       {activeOrder ? (
         <ActiveDelivery
           order={activeOrder}
-          onAccept={() => handleAccept(activeOrder.id)}
           onPickup={() => handlePickup(activeOrder.id)}
           onDeliver={(otp) => handleDeliver(activeOrder.id, otp)}
           loading={busyOrderId === activeOrder.id}
         />
       ) : (
-        <EmptyState title="Sin pedido activo" description="Cuando haya una asignación o viaje en curso aparecerá aquí." />
+        <EmptyState title="Sin pedido activo" description="Cuando el comercio te asigne un pedido aparecera aqui." />
       )}
 
       <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">

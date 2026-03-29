@@ -88,19 +88,24 @@ def checkout(
 
     cart.delivery_mode = payload.delivery_mode
     compute_cart_totals(cart)
+    commercial_discount_total = float(getattr(cart, "commercial_discount_total", 0) or 0)
+    financial_discount_total = float(getattr(cart, "financial_discount_total", 0) or 0)
     try:
+        discounted_subtotal = max(
+            0.0,
+            float(cart.subtotal) - commercial_discount_total - financial_discount_total,
+        )
         delivery_quote = snapshot_delivery_quote(
             db,
             store=store,
             address=address,
             delivery_mode=payload.delivery_mode,
+            discounted_subtotal=discounted_subtotal,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     delivery_fee_customer = float(delivery_quote["delivery_fee_customer"])
     rider_fee = float(delivery_quote["rider_fee"])
-    commercial_discount_total = float(getattr(cart, "commercial_discount_total", 0) or 0)
-    financial_discount_total = float(getattr(cart, "financial_discount_total", 0) or 0)
     total = float(cart.subtotal) - commercial_discount_total - financial_discount_total + delivery_fee_customer + float(cart.service_fee)
     otp_code = str(100000 + (uuid.uuid4().int % 900000)) if delivery_quote["otp_required"] else None
 

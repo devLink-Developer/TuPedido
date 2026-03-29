@@ -1,4 +1,9 @@
 import type {
+  DeliveryProfile,
+  DeliverySettlement,
+  MerchantRiderCreate,
+  MerchantRiderSettlementPaymentCreate,
+  MerchantRiderUpdate,
   MercadoPagoConnectResponse,
   MerchantStore,
   Order,
@@ -217,6 +222,63 @@ export async function updateMerchantOrderStatus(
       method: "PUT",
       token,
       body: JSON.stringify(payload)
+    })
+  );
+}
+
+export async function fetchMerchantRiders(token: string): Promise<DeliveryProfile[]> {
+  return apiRequest<DeliveryProfile[]>("/merchant/riders", { token });
+}
+
+export async function createMerchantRider(token: string, payload: MerchantRiderCreate): Promise<DeliveryProfile> {
+  return apiRequest<DeliveryProfile>("/merchant/riders", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function updateMerchantRider(
+  token: string,
+  riderUserId: number,
+  payload: MerchantRiderUpdate
+): Promise<DeliveryProfile> {
+  return apiRequest<DeliveryProfile>(`/merchant/riders/${riderUserId}`, {
+    method: "PUT",
+    token,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function fetchMerchantRiderSettlements(token: string): Promise<DeliverySettlement[]> {
+  return apiRequest<DeliverySettlement[]>("/merchant/riders/settlements", { token });
+}
+
+export async function createMerchantRiderSettlementPayment(
+  token: string,
+  payload: MerchantRiderSettlementPaymentCreate
+): Promise<{ id: number; rider_user_id: number; store_id: number; amount: number; paid_at: string; reference: string | null; notes: string | null }> {
+  return apiRequest<{
+    id: number;
+    rider_user_id: number;
+    store_id: number;
+    amount: number;
+    paid_at: string;
+    reference: string | null;
+    notes: string | null;
+  }>("/merchant/riders/settlements/payments", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function assignMerchantOrderRider(token: string, orderId: number, riderUserId: number): Promise<Order> {
+  return mapOrder(
+    await apiRequest<RawOrder>(`/merchant/orders/${orderId}/assign-rider`, {
+      method: "POST",
+      token,
+      body: JSON.stringify({ rider_user_id: riderUserId })
     })
   );
 }

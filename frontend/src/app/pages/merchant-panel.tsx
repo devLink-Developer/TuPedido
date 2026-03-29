@@ -94,7 +94,14 @@ export function MerchantDashboardPage() {
   const [storeForm, setStoreForm] = useState(emptyStoreForm);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [hours, setHours] = useState<StoreHourWrite[]>(makeEmptyHours());
-  const [deliveryForm, setDeliveryForm] = useState({ delivery_enabled: true, pickup_enabled: true, delivery_fee: 0, min_order: 0 });
+  const [deliveryForm, setDeliveryForm] = useState({
+    delivery_enabled: true,
+    pickup_enabled: true,
+    delivery_fee: 0,
+    free_delivery_min_order: null as number | null,
+    rider_fee: 0,
+    min_order: 0
+  });
   const [paymentForm, setPaymentForm] = useState({ cash_enabled: true, mercadopago_enabled: true });
   const [connectUrl, setConnectUrl] = useState<string | null>(null);
   const [connectStatus, setConnectStatus] = useState<string | null>(null);
@@ -172,6 +179,8 @@ export function MerchantDashboardPage() {
         delivery_enabled: storeData.delivery_settings.delivery_enabled,
         pickup_enabled: storeData.delivery_settings.pickup_enabled,
         delivery_fee: storeData.delivery_settings.delivery_fee,
+        free_delivery_min_order: storeData.delivery_settings.free_delivery_min_order,
+        rider_fee: storeData.delivery_settings.rider_fee,
         min_order: storeData.delivery_settings.min_order
       });
       setPaymentForm({

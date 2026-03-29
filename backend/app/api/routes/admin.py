@@ -232,6 +232,8 @@ def create_store(
             delivery_enabled=payload.delivery_enabled,
             pickup_enabled=payload.pickup_enabled,
             delivery_fee=payload.delivery_fee,
+            free_delivery_min_order=payload.free_delivery_min_order,
+            rider_fee=payload.rider_fee,
             min_order=payload.min_order,
         )
     )
@@ -315,7 +317,17 @@ def review_application(
             )
             db.add(store)
             db.flush()
-            db.add(StoreDeliverySettings(store_id=store.id, delivery_enabled=True, pickup_enabled=True, delivery_fee=0, min_order=0))
+            db.add(
+                StoreDeliverySettings(
+                    store_id=store.id,
+                    delivery_enabled=True,
+                    pickup_enabled=True,
+                    delivery_fee=0,
+                    free_delivery_min_order=None,
+                    rider_fee=0,
+                    min_order=0,
+                )
+            )
             db.add(StorePaymentSettings(store_id=store.id, cash_enabled=True, mercadopago_enabled=False))
             for hour in default_hours():
                 hour.store_id = store.id

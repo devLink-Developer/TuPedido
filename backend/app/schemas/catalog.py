@@ -67,6 +67,8 @@ class StoreDeliverySettingsRead(BaseModel):
     delivery_enabled: bool
     pickup_enabled: bool
     delivery_fee: float
+    free_delivery_min_order: float | None = None
+    rider_fee: float
     min_order: float
 
 

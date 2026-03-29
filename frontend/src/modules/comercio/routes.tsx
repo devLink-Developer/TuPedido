@@ -4,6 +4,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { ProductsPage } from "./pages/ProductsPage";
 import { PromotionsPage } from "./pages/PromotionsPage";
+import { RidersPage } from "./pages/RidersPage";
 import { SettingsPage } from "./pages/SettingsPage";
 
 export function ComercioModuleLayoutRoute() {
@@ -24,6 +25,10 @@ export function ComercioProductsRoute() {
 
 export function ComercioOrdersRoute() {
   return <OrdersPage />;
+}
+
+export function ComercioRidersRoute() {
+  return <RidersPage />;
 }
 
 export function ComercioPromotionsRoute() {

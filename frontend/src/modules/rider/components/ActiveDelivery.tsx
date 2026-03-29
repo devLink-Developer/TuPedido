@@ -7,13 +7,11 @@ import { LiveMap } from "../../../shared/components";
 
 export function ActiveDelivery({
   order,
-  onAccept,
   onPickup,
   onDeliver,
   loading
 }: {
   order: Order;
-  onAccept: () => Promise<void>;
   onPickup: () => Promise<void>;
   onDeliver: (otp: string) => Promise<void>;
   loading: boolean;
@@ -80,9 +78,6 @@ export function ActiveDelivery({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {order.delivery_status === "assignment_pending" ? (
-          <Button type="button" disabled={loading} onClick={() => void onAccept()}>Aceptar pedido</Button>
-        ) : null}
         {order.delivery_status === "assigned" || order.delivery_status === "heading_to_store" ? (
           <Button type="button" disabled={loading} onClick={() => void onPickup()}>Confirmar retiro</Button>
         ) : null}

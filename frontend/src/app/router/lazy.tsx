@@ -26,10 +26,6 @@ export const LazyMerchantRegistrationRoute = createLazyRoute(
   () => import("../../modules/auth/routes"),
   "MerchantRegistrationRoute"
 );
-export const LazyRiderRegistrationRoute = createLazyRoute(
-  () => import("../../modules/auth/routes"),
-  "RiderRegistrationRoute"
-);
 
 export const LazyClienteModuleLayoutRoute = createLazyRoute(
   () => import("../../modules/cliente/routes"),
@@ -66,6 +62,10 @@ export const LazyComercioProductsRoute = createLazyRoute(
 export const LazyComercioOrdersRoute = createLazyRoute(
   () => import("../../modules/comercio/routes"),
   "ComercioOrdersRoute"
+);
+export const LazyComercioRidersRoute = createLazyRoute(
+  () => import("../../modules/comercio/routes"),
+  "ComercioRidersRoute"
 );
 export const LazyComercioPromotionsRoute = createLazyRoute(
   () => import("../../modules/comercio/routes"),

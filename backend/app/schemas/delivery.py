@@ -32,6 +32,8 @@ class DeliveryApplicationReview(BaseModel):
 class DeliveryApplicationRead(BaseModel):
     id: int
     user_id: int
+    store_id: int | None = None
+    store_name: str | None = None
     user_name: str
     user_email: str
     phone: str
@@ -102,10 +104,20 @@ class DeliveryZoneRead(BaseModel):
 
 class DeliveryProfileRead(BaseModel):
     user_id: int
+    store_id: int | None = None
+    store_name: str | None = None
     full_name: str
     email: str
     phone: str
     vehicle_type: VehicleType
+    photo_url: str | None = None
+    dni_number: str
+    emergency_contact_name: str
+    emergency_contact_phone: str
+    license_number: str | None = None
+    vehicle_plate: str | None = None
+    insurance_policy: str | None = None
+    notes: str | None = None
     availability: DeliveryAvailability
     is_active: bool
     current_zone_id: int | None = None
@@ -133,6 +145,7 @@ class DeliverySettlementRead(BaseModel):
     cash_liability_open: float
     rider_fee_earned_total: float
     rider_fee_paid_total: float
+    pending_amount: float
     merchant_cash_payable_total: float
 
 

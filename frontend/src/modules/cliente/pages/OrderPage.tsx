@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { EmptyState, LoadingCard, PageHeader, StatusPill } from "../../../shared/components";
 import { useAuthSession, useOrderLiveTracking } from "../../../shared/hooks";
@@ -17,6 +17,7 @@ export function OrderPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const orderId = id ? Number(id) : null;
+  const otpFetchRequestedRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     if (!token || !orderId) return;
@@ -59,6 +60,21 @@ export function OrderPage() {
     onOrder: handleOrderUpdate,
     onTracking: handleTrackingUpdate
   });
+
+  useEffect(() => {
+    if (!token || !order || !order.otp_required || !order.assigned_rider_id) {
+      return;
+    }
+    if (tracking?.otp_code || otpFetchRequestedRef.current.has(order.id)) {
+      return;
+    }
+    otpFetchRequestedRef.current.add(order.id);
+    void fetchOrderTracking(token, order.id)
+      .then((value) => setTracking(value))
+      .catch(() => {
+        otpFetchRequestedRef.current.delete(order.id);
+      });
+  }, [order, token, tracking]);
 
   const liveTracking = useMemo(() => {
     if (!order) return null;

@@ -68,6 +68,10 @@ def serialize_store_delivery_settings(store: object) -> StoreDeliverySettingsRea
         delivery_enabled=store_delivery_is_enabled(store),
         pickup_enabled=bool(settings.pickup_enabled) if settings else False,
         delivery_fee=float(settings.delivery_fee) if settings else 0,
+        free_delivery_min_order=float(settings.free_delivery_min_order)
+        if settings and getattr(settings, "free_delivery_min_order", None) is not None
+        else None,
+        rider_fee=float(getattr(settings, "rider_fee", 0) or 0) if settings else 0,
         min_order=float(settings.min_order) if settings else 0,
     )
 
@@ -351,6 +355,7 @@ def serialize_order(order: object) -> OrderRead:
 
 def serialize_tracking(order: object) -> OrderTrackingRead:
     delivery_status = getattr(order, "delivery_status", "unassigned")
+    otp_code = getattr(order, "otp_code", None) if getattr(order, "assigned_rider_id", None) is not None else None
     return OrderTrackingRead(
         order_id=order.id,
         status=order.status,
@@ -375,7 +380,7 @@ def serialize_tracking(order: object) -> OrderTrackingRead:
         tracking_stale=bool(getattr(order, "tracking_stale", False)),
         eta_minutes=getattr(order, "eta_minutes", None),
         otp_required=bool(getattr(order, "otp_required", False)),
-        otp_code=getattr(order, "otp_code", None),
+        otp_code=otp_code,
     )
 
 
@@ -383,6 +388,8 @@ def serialize_delivery_application(application: object) -> DeliveryApplicationRe
     return DeliveryApplicationRead(
         id=application.id,
         user_id=application.user_id,
+        store_id=getattr(application, "store_id", None),
+        store_name=application.store.name if getattr(application, "store", None) else None,
         user_name=application.user.full_name,
         user_email=application.user.email,
         phone=application.phone,
@@ -406,10 +413,20 @@ def serialize_delivery_application(application: object) -> DeliveryApplicationRe
 def serialize_delivery_profile(profile: object) -> DeliveryProfileRead:
     return DeliveryProfileRead(
         user_id=profile.user_id,
+        store_id=getattr(profile, "store_id", None),
+        store_name=profile.store.name if getattr(profile, "store", None) else None,
         full_name=profile.user.full_name,
         email=profile.user.email,
         phone=profile.phone,
         vehicle_type=profile.vehicle_type,
+        photo_url=getattr(profile, "photo_url", None),
+        dni_number=profile.dni_number,
+        emergency_contact_name=profile.emergency_contact_name,
+        emergency_contact_phone=profile.emergency_contact_phone,
+        license_number=getattr(profile, "license_number", None),
+        vehicle_plate=getattr(profile, "vehicle_plate", None),
+        insurance_policy=getattr(profile, "insurance_policy", None),
+        notes=getattr(getattr(profile, "application", None), "notes", None),
         availability=profile.availability,
         is_active=profile.is_active,
         current_zone_id=profile.current_zone_id,

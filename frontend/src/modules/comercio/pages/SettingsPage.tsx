@@ -42,6 +42,15 @@ function toNumber(value: string, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function toOptionalNumber(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 type CategoryFormState = {
   name: string;
   sort_order: string;
@@ -684,6 +693,53 @@ export function SettingsPage() {
                           delivery_settings: {
                             ...current.delivery_settings,
                             delivery_fee: toNumber(event.target.value)
+                          }
+                        }
+                      : current
+                  )
+                }
+                className="mt-2 w-full bg-transparent text-base font-semibold text-ink outline-none"
+              />
+            </label>
+            <label className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+              Envio gratis desde
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={store.delivery_settings.free_delivery_min_order ?? ""}
+                onChange={(event) =>
+                  setStore((current) =>
+                    current
+                      ? {
+                          ...current,
+                          delivery_settings: {
+                            ...current.delivery_settings,
+                            free_delivery_min_order: toOptionalNumber(event.target.value)
+                          }
+                        }
+                      : current
+                  )
+                }
+                placeholder="Opcional"
+                className="mt-2 w-full bg-transparent text-base font-semibold text-ink outline-none"
+              />
+            </label>
+            <label className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+              Pago fijo al rider
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={store.delivery_settings.rider_fee}
+                onChange={(event) =>
+                  setStore((current) =>
+                    current
+                      ? {
+                          ...current,
+                          delivery_settings: {
+                            ...current.delivery_settings,
+                            rider_fee: toNumber(event.target.value)
                           }
                         }
                       : current

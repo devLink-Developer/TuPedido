@@ -30,6 +30,8 @@ export type StoreDeliverySettings = {
   delivery_enabled: boolean;
   pickup_enabled: boolean;
   delivery_fee: number;
+  free_delivery_min_order: number | null;
+  rider_fee: number;
   min_order: number;
 };
 

@@ -6,10 +6,9 @@ from sqlalchemy.orm import Session, object_session, selectinload
 from fastapi import HTTPException, status
 
 from app.core.utils import is_store_open
-from app.models.delivery import DeliveryZone
 from app.models.order import ShoppingCart, ShoppingCartItem
 from app.models.store import Product, Store, StoreCategoryLink
-from app.services.delivery import as_float, haversine_km, select_zone_rate
+from app.services.delivery import customer_delivery_fee_for_store
 from app.services.platform import get_service_fee_amount
 from app.services.product_pricing import compute_discount_amount, compute_final_price
 from app.services.mercadopago import is_store_mercadopago_ready
@@ -86,12 +85,13 @@ def compute_cart_totals(cart: ShoppingCart) -> None:
     cart.subtotal = subtotal
     cart.commercial_discount_total = commercial_discount_total
     cart.financial_discount_total = 0
+    discounted_subtotal = max(0.0, final_items_total - float(cart.financial_discount_total or 0))
     delivery_fee = 0.0
     service_fee = 0.0
     if cart.store and final_items_total > 0 and cart.delivery_mode == "delivery":
         settings = cart.store.delivery_settings
         if settings and store_delivery_is_enabled(cart.store):
-            delivery_fee = estimate_store_delivery_fee(object_session(cart), cart.store) or float(settings.delivery_fee)
+            delivery_fee = customer_delivery_fee_for_store(cart.store, discounted_subtotal=discounted_subtotal)
     if final_items_total > 0:
         service_fee = get_service_fee_amount(object_session(cart))
     cart.delivery_fee = delivery_fee
@@ -186,28 +186,3 @@ def ensure_payment_method_supported(store: Store, payment_method: str) -> None:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Mercado Pago is not available for this store")
         if credentials is None or not is_store_mercadopago_ready(store):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Mercado Pago credentials are not configured")
-
-
-def estimate_store_delivery_fee(db: Session | None, store: Store) -> float | None:
-    if db is None:
-        return None
-    if store.latitude is None or store.longitude is None:
-        return None
-    store_latitude = as_float(store.latitude)
-    store_longitude = as_float(store.longitude)
-    if store_latitude is None or store_longitude is None:
-        return None
-    zones = db.scalars(select(DeliveryZone).where(DeliveryZone.is_active.is_(True))).all()
-    candidates: list[float] = []
-    for zone in zones:
-        zone_latitude = as_float(zone.center_latitude)
-        zone_longitude = as_float(zone.center_longitude)
-        radius_km = as_float(zone.radius_km) or 0
-        if zone_latitude is None or zone_longitude is None:
-            continue
-        if haversine_km(store_latitude, store_longitude, zone_latitude, zone_longitude) > radius_km:
-            continue
-        rate = select_zone_rate(zone)
-        if rate is not None:
-            candidates.append(float(rate.delivery_fee_customer))
-    return min(candidates, default=None)

@@ -29,7 +29,9 @@ router = APIRouter()
 
 PROFILE_OPTIONS = (
     selectinload(DeliveryProfile.user),
+    selectinload(DeliveryProfile.application),
     selectinload(DeliveryProfile.zone),
+    selectinload(DeliveryProfile.store),
 )
 
 ORDER_OPTIONS = (
@@ -191,28 +193,30 @@ def list_notifications(
 @router.get("/me/settlements")
 def get_settlements(user: User = Depends(require_delivery), db: Session = Depends(get_db)) -> dict[str, object]:
     profile = get_delivery_profile(db, user.id)
-    cash_liability_total = db.scalar(
-        select(func.coalesce(func.sum(RiderSettlementCharge.amount), 0)).where(
-            RiderSettlementCharge.rider_user_id == user.id
-        )
-    )
+    store_id = profile.store_id
     rider_fee_earned_total = db.scalar(
         select(func.coalesce(func.sum(StoreOrder.rider_fee), 0)).where(
             StoreOrder.assigned_rider_id == user.id,
+            StoreOrder.store_id == store_id,
             StoreOrder.status == "delivered",
         )
     )
     rider_fee_paid_total = db.scalar(
         select(func.coalesce(func.sum(RiderSettlementPayment.amount), 0)).where(
-            RiderSettlementPayment.rider_user_id == user.id
+            RiderSettlementPayment.rider_user_id == user.id,
+            RiderSettlementPayment.store_id == store_id,
         )
     )
+    earned = float(rider_fee_earned_total or 0)
+    paid = float(rider_fee_paid_total or 0)
     return {
         "rider_user_id": user.id,
         "rider_name": profile.user.full_name,
         "vehicle_type": profile.vehicle_type,
-        "cash_liability_total": float(cash_liability_total or 0),
-        "cash_liability_open": float(cash_liability_total or 0),
-        "rider_fee_earned_total": float(rider_fee_earned_total or 0),
-        "rider_fee_paid_total": float(rider_fee_paid_total or 0),
+        "cash_liability_total": 0.0,
+        "cash_liability_open": 0.0,
+        "rider_fee_earned_total": earned,
+        "rider_fee_paid_total": paid,
+        "pending_amount": max(0.0, earned - paid),
+        "merchant_cash_payable_total": 0.0,
     }

@@ -40,6 +40,8 @@ export type StoreDeliverySettings = {
   delivery_enabled: boolean;
   pickup_enabled: boolean;
   delivery_fee: number;
+  free_delivery_min_order: number | null;
+  rider_fee: number;
   min_order: number;
 };
 
@@ -293,6 +295,8 @@ export type StoreDeliverySettingsUpdate = {
   delivery_enabled: boolean;
   pickup_enabled: boolean;
   delivery_fee: number;
+  free_delivery_min_order: number | null;
+  rider_fee: number;
   min_order: number;
 };
 
@@ -447,6 +451,8 @@ export type DeliveryAvailability = "offline" | "idle" | "reserved" | "delivering
 export type DeliveryApplication = {
   id: number;
   user_id: number;
+  store_id: number | null;
+  store_name: string | null;
   user_name: string;
   user_email: string;
   phone: string;
@@ -481,10 +487,20 @@ export type DeliveryApplicationCreate = {
 
 export type DeliveryProfile = {
   user_id: number;
+  store_id: number | null;
+  store_name: string | null;
   full_name: string;
   email: string;
   phone: string;
   vehicle_type: DeliveryVehicleType;
+  photo_url: string | null;
+  dni_number: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  license_number: string | null;
+  vehicle_plate: string | null;
+  insurance_policy: string | null;
+  notes: string | null;
   availability: DeliveryAvailability;
   is_active: boolean;
   current_zone_id: number | null;
@@ -523,6 +539,7 @@ export type DeliverySettlement = {
   cash_liability_open: number;
   rider_fee_earned_total: number;
   rider_fee_paid_total: number;
+  pending_amount: number;
   merchant_cash_payable_total?: number;
 };
 

@@ -22,6 +22,7 @@ import {
   LazyComercioOrdersRoute,
   LazyComercioProductsRoute,
   LazyComercioPromotionsRoute,
+  LazyComercioRidersRoute,
   LazyComercioSettingsRoute,
   LazyLandingRoute,
   LazyLoginRoute,
@@ -31,8 +32,7 @@ import {
   LazyRiderEarningsRoute,
   LazyRiderHistoryRoute,
   LazyRiderModuleLayoutRoute,
-  LazyRiderOrdersRoute,
-  LazyRiderRegistrationRoute
+  LazyRiderOrdersRoute
 } from "./lazy";
 
 export const router = createBrowserRouter([
@@ -59,7 +59,6 @@ export const router = createBrowserRouter([
         )
       },
       { path: "registro-comercio", element: <LazyMerchantRegistrationRoute /> },
-      { path: "registro-rider", element: <LazyRiderRegistrationRoute /> },
       {
         path: "c",
         element: <LazyClienteModuleLayoutRoute />,
@@ -88,6 +87,7 @@ export const router = createBrowserRouter([
               { path: "dashboard", element: <LazyComercioDashboardRoute /> },
               { path: "productos", element: <LazyComercioProductsRoute /> },
               { path: "pedidos", element: <LazyComercioOrdersRoute /> },
+              { path: "riders", element: <LazyComercioRidersRoute /> },
               { path: "promociones", element: <LazyComercioPromotionsRoute /> },
               { path: "configuracion", element: <LazyComercioSettingsRoute /> }
             ]

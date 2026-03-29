@@ -2,22 +2,28 @@ import { useEffect, useRef, useState } from "react";
 import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
+  assignMerchantOrderRider,
   buildMerchantSocketUrl,
   fetchMerchantOrders,
+  fetchMerchantRiders,
   fetchMerchantStore,
   updateMerchantOrderStatus,
   updateMerchantStore
 } from "../../../shared/services/api";
 import { useUiStore } from "../../../shared/stores";
-import type { MerchantStore, Order, StoreUpdate } from "../../../shared/types";
+import type { DeliveryProfile, MerchantStore, Order, OrderStatusUpdate, StoreUpdate } from "../../../shared/types";
 import { notifyCatalogStoresChanged } from "../../../shared/utils/catalogStores";
-import { orderStatusOptions } from "../../../shared/utils/labels";
 import { playNotificationTone } from "../../../shared/utils/notificationSound";
 import { hasStoreAddressConfiguration, toStoreAddressFormState } from "../components/StoreAddressSection";
 import { OrdersTable } from "../components/OrdersTable";
 
 const LIVE_REFRESH_INTERVAL_MS = 15000;
 const SOCKET_RECONNECT_DELAY_MS = 3000;
+
+type MerchantOrderAction = Extract<
+  OrderStatusUpdate["status"],
+  "preparing" | "ready_for_dispatch" | "ready_for_pickup" | "delivered" | "cancelled"
+>;
 
 function toStoreUpdatePayload(store: MerchantStore): StoreUpdate {
   return {
@@ -48,10 +54,13 @@ export function OrdersPage() {
   const enqueueToast = useUiStore((state) => state.enqueueToast);
   const [store, setStore] = useState<MerchantStore | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [riders, setRiders] = useState<DeliveryProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingToggle, setSavingToggle] = useState(false);
+  const [busyActionKey, setBusyActionKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const ordersRef = useRef<Order[]>([]);
   const knownOrderIdsRef = useRef<Set<number>>(new Set());
   const hasLoadedOrdersRef = useRef(false);
@@ -122,7 +131,20 @@ export function OrdersPage() {
     }
   }
 
-  async function load(options?: { silent?: boolean; notifyNew?: boolean; includeStore?: boolean }) {
+  async function refreshRiders() {
+    if (!token) {
+      return;
+    }
+    const nextRiders = await fetchMerchantRiders(token);
+    setRiders(nextRiders);
+  }
+
+  async function load(options?: {
+    silent?: boolean;
+    notifyNew?: boolean;
+    includeStore?: boolean;
+    includeRiders?: boolean;
+  }) {
     if (!token) return;
 
     const requestId = ++requestIdRef.current;
@@ -133,9 +155,11 @@ export function OrdersPage() {
 
     try {
       const includeStore = options?.includeStore ?? true;
-      const [storeResult, orderResults] = await Promise.all([
+      const includeRiders = options?.includeRiders ?? true;
+      const [storeResult, orderResults, riderResults] = await Promise.all([
         includeStore ? fetchMerchantStore(token) : Promise.resolve(null),
-        fetchMerchantOrders(token)
+        fetchMerchantOrders(token),
+        includeRiders ? fetchMerchantRiders(token) : Promise.resolve(null)
       ]);
 
       if (requestId !== requestIdRef.current) {
@@ -144,6 +168,9 @@ export function OrdersPage() {
 
       if (storeResult) {
         setStore(storeResult);
+      }
+      if (riderResults) {
+        setRiders(riderResults);
       }
       replaceOrders(orderResults, { notifyNew: Boolean(options?.notifyNew && hasLoadedOrdersRef.current) });
       setError(null);
@@ -180,7 +207,7 @@ export function OrdersPage() {
 
       reconnectTimeoutId = window.setTimeout(() => {
         reconnectTimeoutId = null;
-        void load({ silent: true, notifyNew: hasLoadedOrdersRef.current, includeStore: false });
+        void load({ silent: true, notifyNew: hasLoadedOrdersRef.current, includeStore: false, includeRiders: false });
         connect();
       }, SOCKET_RECONNECT_DELAY_MS);
     };
@@ -235,7 +262,7 @@ export function OrdersPage() {
 
     const refreshOrdersSilently = () => {
       if (hasLoadedOrdersRef.current) {
-        void load({ silent: true, notifyNew: true, includeStore: false });
+        void load({ silent: true, notifyNew: true, includeStore: false, includeRiders: false });
       }
     };
 
@@ -264,16 +291,42 @@ export function OrdersPage() {
     };
   }, [token]);
 
-  async function handleUpdateStatus(orderId: number, status: (typeof orderStatusOptions)[number]) {
+  async function handleUpdateStatus(orderId: number, status: MerchantOrderAction) {
     if (!token) return;
-    const updatedOrder = await updateMerchantOrderStatus(token, orderId, { status });
-    upsertOrder(updatedOrder);
+    setBusyActionKey(`${orderId}:${status}`);
+    setActionError(null);
+    try {
+      const updatedOrder = await updateMerchantOrderStatus(token, orderId, { status });
+      upsertOrder(updatedOrder);
+      await refreshRiders();
+    } catch (requestError) {
+      setActionError(requestError instanceof Error ? requestError.message : "No se pudo actualizar el pedido");
+    } finally {
+      setBusyActionKey(null);
+    }
+  }
+
+  async function handleAssignRider(orderId: number, riderUserId: number) {
+    if (!token) return;
+    setBusyActionKey(`${orderId}:assign`);
+    setActionError(null);
+    try {
+      const updatedOrder = await assignMerchantOrderRider(token, orderId, riderUserId);
+      upsertOrder(updatedOrder);
+      await refreshRiders();
+    } catch (requestError) {
+      setActionError(requestError instanceof Error ? requestError.message : "No se pudo asignar el rider");
+    } finally {
+      setBusyActionKey(null);
+    }
   }
 
   async function handleToggleAcceptingOrders() {
     if (!token || !store || !isApproved || savingToggle) return;
     if (!store.accepting_orders && !hasConfiguredAddress) {
-      setToggleError("Configura CP, provincia, localidad, calle, altura y geolocalizacion del local antes de habilitar la venta.");
+      setToggleError(
+        "Configura CP, provincia, localidad, calle, altura y geolocalizacion del local antes de habilitar la venta."
+      );
       return;
     }
 
@@ -306,7 +359,7 @@ export function OrdersPage() {
       <PageHeader
         eyebrow="Comercio"
         title="Pedidos"
-        description="Gestion diaria de estados operativos y control de venta del comercio."
+        description="Acepta pedidos, marca cuando estan listos y asigna riders manualmente desde el comercio."
         action={
           <div className="min-w-[280px] rounded-[26px] border border-white/15 bg-white/10 p-4 backdrop-blur">
             <div className="flex items-start justify-between gap-4">
@@ -358,8 +411,21 @@ export function OrdersPage() {
           </div>
         }
       />
+
+      {actionError ? (
+        <p className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
+          {actionError}
+        </p>
+      ) : null}
+
       {orders.length ? (
-        <OrdersTable orders={orders} onUpdateStatus={handleUpdateStatus} />
+        <OrdersTable
+          orders={orders}
+          riders={riders}
+          busyActionKey={busyActionKey}
+          onAssignRider={handleAssignRider}
+          onUpdateStatus={handleUpdateStatus}
+        />
       ) : (
         <EmptyState title="Sin pedidos" description="Los pedidos del comercio apareceran aqui." />
       )}

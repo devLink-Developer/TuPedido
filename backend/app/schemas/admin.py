@@ -30,6 +30,8 @@ class AdminMerchantCreate(BaseModel):
     delivery_enabled: bool = True
     pickup_enabled: bool = True
     delivery_fee: float = Field(default=0, ge=0)
+    free_delivery_min_order: float | None = Field(default=None, ge=0)
+    rider_fee: float = Field(default=0, ge=0)
     min_order: float = Field(default=0, ge=0)
     cash_enabled: bool = True
     mercadopago_enabled: bool = False

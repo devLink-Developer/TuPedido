@@ -42,11 +42,14 @@ router = APIRouter()
 
 APPLICATION_OPTIONS = (
     selectinload(DeliveryApplication.user),
+    selectinload(DeliveryApplication.store),
     selectinload(DeliveryApplication.profile),
 )
 
 RIDER_OPTIONS = (
     selectinload(DeliveryProfile.user),
+    selectinload(DeliveryProfile.application),
+    selectinload(DeliveryProfile.store),
     selectinload(DeliveryProfile.zone),
 )
 
@@ -364,6 +367,8 @@ def list_delivery_settlements(
             .join(StoreOrder, StoreOrder.id == MerchantCashDeliveryPayable.order_id)
             .where(StoreOrder.assigned_rider_id == rider.user_id)
         )
+        earned = float(rider_fee_earned_total or 0)
+        paid = float(rider_fee_paid_total or 0)
         results.append(
             {
                 "rider_user_id": rider.user_id,
@@ -371,8 +376,9 @@ def list_delivery_settlements(
                 "vehicle_type": rider.vehicle_type,
                 "cash_liability_total": float(cash_liability_total or 0),
                 "cash_liability_open": float(cash_liability_total or 0),
-                "rider_fee_earned_total": float(rider_fee_earned_total or 0),
-                "rider_fee_paid_total": float(rider_fee_paid_total or 0),
+                "rider_fee_earned_total": earned,
+                "rider_fee_paid_total": paid,
+                "pending_amount": max(0.0, earned - paid),
                 "merchant_cash_payable_total": float(merchant_cash_payable_total or 0),
             }
         )
@@ -388,8 +394,10 @@ def create_delivery_settlement_payment(
     rider = db.scalar(select(User).where(User.id == payload.rider_user_id, User.role == "delivery"))
     if rider is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rider not found")
+    rider_profile = db.get(DeliveryProfile, payload.rider_user_id)
     payment = RiderSettlementPayment(
         rider_user_id=payload.rider_user_id,
+        store_id=rider_profile.store_id if rider_profile is not None else None,
         amount=payload.amount,
         paid_at=payload.paid_at,
         reference=payload.reference,

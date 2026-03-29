@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OrdersPage } from "./OrdersPage";
 
 const fetchMerchantOrdersMock = vi.fn();
+const fetchMerchantRidersMock = vi.fn();
 const fetchMerchantStoreMock = vi.fn();
+const assignMerchantOrderRiderMock = vi.fn();
 const updateMerchantOrderStatusMock = vi.fn();
 const updateMerchantStoreMock = vi.fn();
 const buildMerchantSocketUrlMock = vi.fn((_: string) => "ws://merchant.test");
@@ -47,8 +49,11 @@ vi.mock("../../../shared/hooks", () => ({
 }));
 
 vi.mock("../../../shared/services/api", () => ({
+  assignMerchantOrderRider: (token: string, orderId: number, riderUserId: number) =>
+    assignMerchantOrderRiderMock(token, orderId, riderUserId),
   buildMerchantSocketUrl: (token: string) => buildMerchantSocketUrlMock(token),
   fetchMerchantOrders: (token: string) => fetchMerchantOrdersMock(token),
+  fetchMerchantRiders: (token: string) => fetchMerchantRidersMock(token),
   fetchMerchantStore: (token: string) => fetchMerchantStoreMock(token),
   updateMerchantOrderStatus: (token: string, orderId: number, payload: unknown) =>
     updateMerchantOrderStatusMock(token, orderId, payload),
@@ -105,6 +110,8 @@ const approvedStore = {
     delivery_enabled: true,
     pickup_enabled: true,
     delivery_fee: 0,
+    free_delivery_min_order: null,
+    rider_fee: 0,
     min_order: 0
   },
   payment_settings: {
@@ -182,7 +189,9 @@ const baseOrder = {
 describe("OrdersPage", () => {
   beforeEach(() => {
     fetchMerchantOrdersMock.mockReset();
+    fetchMerchantRidersMock.mockReset();
     fetchMerchantStoreMock.mockReset();
+    assignMerchantOrderRiderMock.mockReset();
     updateMerchantOrderStatusMock.mockReset();
     updateMerchantStoreMock.mockReset();
     buildMerchantSocketUrlMock.mockClear();
@@ -192,6 +201,7 @@ describe("OrdersPage", () => {
     MockWebSocket.reset();
     globalThis.WebSocket = MockWebSocket as unknown as typeof WebSocket;
     fetchMerchantOrdersMock.mockResolvedValue([]);
+    fetchMerchantRidersMock.mockResolvedValue([]);
   });
 
   it("permite habilitar y pausar la venta desde la pantalla de pedidos", async () => {

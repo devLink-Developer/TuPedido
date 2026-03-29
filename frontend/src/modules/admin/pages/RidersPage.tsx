@@ -1,132 +1,44 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Button } from "../../../shared/ui/Button";
-import { EmptyState, ImageAssetField, LoadingCard, PageHeader } from "../../../shared/components";
+import { useEffect, useMemo, useState } from "react";
+import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
-  assignAdminDeliveryOrder,
-  createAdminRider,
   fetchAdminDeliveryApplications,
   fetchAdminDeliveryDispatch,
-  fetchAdminDeliveryRiders,
-  fetchAdminDeliveryZones,
-  reviewAdminDeliveryApplication
+  fetchAdminDeliveryRiders
 } from "../../../shared/services/api";
-import type { DeliveryApplication, DeliveryProfile, DeliveryVehicleType, DeliveryZone, Order } from "../../../shared/types";
+import type { DeliveryApplication, DeliveryProfile, Order } from "../../../shared/types";
 import { statusLabels } from "../../../shared/utils/labels";
-
-type RiderFormState = {
-  full_name: string;
-  email: string;
-  password: string;
-  phone: string;
-  vehicle_type: DeliveryVehicleType;
-  dni_number: string;
-  emergency_contact_name: string;
-  emergency_contact_phone: string;
-  photo_url: string;
-  license_number: string;
-  vehicle_plate: string;
-  insurance_policy: string;
-  notes: string;
-  review_notes: string;
-  current_zone_id: string;
-};
-
-const emptyRiderForm: RiderFormState = {
-  full_name: "",
-  email: "",
-  password: "",
-  phone: "",
-  vehicle_type: "motorcycle",
-  dni_number: "",
-  emergency_contact_name: "",
-  emergency_contact_phone: "",
-  photo_url: "",
-  license_number: "",
-  vehicle_plate: "",
-  insurance_policy: "",
-  notes: "",
-  review_notes: "",
-  current_zone_id: ""
-};
 
 export function RidersPage() {
   const { token } = useAuthSession();
   const [applications, setApplications] = useState<DeliveryApplication[]>([]);
   const [riders, setRiders] = useState<DeliveryProfile[]>([]);
-  const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [dispatchOrders, setDispatchOrders] = useState<Order[]>([]);
-  const [form, setForm] = useState<RiderFormState>(emptyRiderForm);
-  const [formOpen, setFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [createError, setCreateError] = useState<string | null>(null);
-
-  async function load() {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const [applicationsResult, ridersResult, dispatchResult, zonesResult] = await Promise.all([
-        fetchAdminDeliveryApplications(token),
-        fetchAdminDeliveryRiders(token),
-        fetchAdminDeliveryDispatch(token),
-        fetchAdminDeliveryZones(token)
-      ]);
-      setApplications(applicationsResult);
-      setRiders(ridersResult);
-      setDispatchOrders(dispatchResult);
-      setZones(zonesResult);
-      setError(null);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No se pudo cargar riders");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   useEffect(() => {
-    void load();
+    if (!token) return;
+    setLoading(true);
+    Promise.all([
+      fetchAdminDeliveryApplications(token),
+      fetchAdminDeliveryRiders(token),
+      fetchAdminDeliveryDispatch(token)
+    ])
+      .then(([applicationsResult, ridersResult, dispatchResult]) => {
+        setApplications(applicationsResult);
+        setRiders(ridersResult);
+        setDispatchOrders(dispatchResult);
+        setError(null);
+      })
+      .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "No se pudo cargar riders"))
+      .finally(() => setLoading(false));
   }, [token]);
 
   const pendingApplications = useMemo(
     () => applications.filter((application) => application.status === "pending_review"),
     [applications]
   );
-
-  async function handleCreate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!token) return;
-
-    setCreating(true);
-    setCreateError(null);
-    try {
-      await createAdminRider(token, {
-        full_name: form.full_name,
-        email: form.email,
-        password: form.password,
-        phone: form.phone,
-        vehicle_type: form.vehicle_type,
-        dni_number: form.dni_number,
-        emergency_contact_name: form.emergency_contact_name,
-        emergency_contact_phone: form.emergency_contact_phone,
-        photo_url: form.photo_url || null,
-        license_number: form.license_number || null,
-        vehicle_plate: form.vehicle_plate || null,
-        insurance_policy: form.insurance_policy || null,
-        notes: form.notes || null,
-        review_notes: form.review_notes || null,
-        current_zone_id: form.current_zone_id ? Number(form.current_zone_id) : null
-      });
-      setForm(emptyRiderForm);
-      setFormOpen(false);
-      await load();
-    } catch (requestError) {
-      setCreateError(requestError instanceof Error ? requestError.message : "No se pudo crear el rider");
-    } finally {
-      setCreating(false);
-    }
-  }
 
   if (loading) return <LoadingCard />;
   if (error) return <EmptyState title="Riders no disponibles" description={error} />;
@@ -136,58 +48,24 @@ export function RidersPage() {
       <PageHeader
         eyebrow="Admin"
         title="Riders"
-        description="Gestiona solicitudes, altas directas y asignaciones operativas."
-        action={
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setCreateError(null);
-                setForm(emptyRiderForm);
-                setFormOpen(true);
-              }}
-              className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
-            >
-              Agregar rider
-            </button>
-            <button type="button" onClick={() => void load()} className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white">
-              Actualizar
-            </button>
-          </div>
-        }
+        description="Vista de solo lectura. El alta, la asignacion y los pagos ahora se gestionan desde cada comercio."
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
-          <h2 className="text-xl font-bold">Solicitudes pendientes</h2>
+          <h2 className="text-xl font-bold">Solicitudes</h2>
           {pendingApplications.map((application) => (
             <article key={application.id} className="rounded-[28px] bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-bold">{application.user_name}</h3>
                   <p className="text-sm text-zinc-600">
-                    {application.vehicle_type} - {application.phone}
+                    {application.vehicle_type} | {application.phone}
                   </p>
                 </div>
                 <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
                   {statusLabels[application.status] ?? application.status}
                 </span>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {(["approved", "rejected", "suspended"] as const).map((status) => (
-                  <button
-                    key={status}
-                    type="button"
-                    onClick={async () => {
-                      if (!token) return;
-                      await reviewAdminDeliveryApplication(token, application.id, { status });
-                      await load();
-                    }}
-                    className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white"
-                  >
-                    {statusLabels[status] ?? status}
-                  </button>
-                ))}
               </div>
             </article>
           ))}
@@ -197,14 +75,14 @@ export function RidersPage() {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-bold">Riders activos</h2>
+          <h2 className="text-xl font-bold">Riders visibles</h2>
           {riders.map((rider) => (
             <article key={rider.user_id} className="rounded-[28px] bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-bold">{rider.full_name}</h3>
                   <p className="text-sm text-zinc-600">
-                    {rider.vehicle_type} - {rider.phone}
+                    {rider.store_name ?? "Sin comercio"} | {rider.vehicle_type}
                   </p>
                 </div>
                 <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
@@ -213,204 +91,29 @@ export function RidersPage() {
               </div>
             </article>
           ))}
-          {!riders.length ? <EmptyState title="Sin riders" description="Todavia no hay riders activos." /> : null}
+          {!riders.length ? <EmptyState title="Sin riders" description="Todavia no hay riders visibles." /> : null}
         </div>
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-xl font-bold">Dispatch</h2>
+        <h2 className="text-xl font-bold">Dispatch visible</h2>
         {dispatchOrders.map((order) => (
           <article key={order.id} className="rounded-[28px] bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold">Pedido #{order.id}</h3>
                 <p className="text-sm text-zinc-600">
-                  {order.store_name} - {order.customer_name}
+                  {order.store_name} | {order.customer_name}
                 </p>
               </div>
               <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
                 {statusLabels[order.delivery_status] ?? order.delivery_status}
               </span>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {riders.map((rider) => (
-                <button
-                  key={rider.user_id}
-                  type="button"
-                  onClick={async () => {
-                    if (!token) return;
-                    await assignAdminDeliveryOrder(token, order.id, rider.user_id);
-                    await load();
-                  }}
-                  className="rounded-full bg-brand-500 px-3 py-2 text-xs font-semibold text-white"
-                >
-                  {rider.full_name}
-                </button>
-              ))}
-            </div>
           </article>
         ))}
         {!dispatchOrders.length ? <EmptyState title="Sin dispatch" description="No hay pedidos esperando asignacion." /> : null}
       </div>
-
-      {formOpen ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(17,24,39,0.48)] p-4 md:items-center">
-          <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[32px] bg-[linear-gradient(180deg,#fcf6ef_0%,#fffdfa_100%)] p-3 shadow-[0_32px_80px_rgba(24,19,18,0.28)] md:p-5">
-            <div className="mb-4 flex items-center justify-between gap-3 px-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Alta directa</p>
-                <h2 className="mt-2 text-2xl font-bold text-ink">Crear rider desde admin</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setFormOpen(false);
-                  setCreateError(null);
-                }}
-                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
-              >
-                Cerrar
-              </button>
-            </div>
-
-            <form onSubmit={(event) => void handleCreate(event)} className="grid gap-4 rounded-[28px] bg-white p-5 shadow-sm lg:grid-cols-2">
-              <input
-                value={form.full_name}
-                onChange={(event) => setForm((current) => ({ ...current, full_name: event.target.value }))}
-                placeholder="Nombre completo"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-                required
-              />
-              <input
-                type="email"
-                value={form.email}
-                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-                placeholder="Email"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-                required
-              />
-              <input
-                type="password"
-                value={form.password}
-                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-                placeholder="Contrasena inicial"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-                minLength={6}
-                required
-              />
-              <input
-                value={form.phone}
-                onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-                placeholder="Telefono"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-                required
-              />
-              <select
-                value={form.vehicle_type}
-                onChange={(event) => setForm((current) => ({ ...current, vehicle_type: event.target.value as DeliveryVehicleType }))}
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              >
-                <option value="bicycle">Bicicleta</option>
-                <option value="motorcycle">Moto</option>
-                <option value="car">Auto</option>
-              </select>
-              <select
-                value={form.current_zone_id}
-                onChange={(event) => setForm((current) => ({ ...current, current_zone_id: event.target.value }))}
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              >
-                <option value="">Sin zona inicial</option>
-                {zones.map((zone) => (
-                  <option key={zone.id} value={zone.id}>
-                    {zone.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                value={form.dni_number}
-                onChange={(event) => setForm((current) => ({ ...current, dni_number: event.target.value }))}
-                placeholder="DNI"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-                required
-              />
-              <div className="lg:col-span-2">
-                <ImageAssetField
-                  label="Foto del rider"
-                  value={form.photo_url}
-                  onChange={(value) => setForm((current) => ({ ...current, photo_url: value }))}
-                  folder="riders"
-                  description="Carga una foto desde el dispositivo o pega una URL."
-                  previewClassName="h-56 w-full object-contain bg-white p-4"
-                />
-              </div>
-              <input
-                value={form.emergency_contact_name}
-                onChange={(event) => setForm((current) => ({ ...current, emergency_contact_name: event.target.value }))}
-                placeholder="Contacto de emergencia"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-                required
-              />
-              <input
-                value={form.emergency_contact_phone}
-                onChange={(event) => setForm((current) => ({ ...current, emergency_contact_phone: event.target.value }))}
-                placeholder="Telefono de emergencia"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-                required
-              />
-              <input
-                value={form.license_number}
-                onChange={(event) => setForm((current) => ({ ...current, license_number: event.target.value }))}
-                placeholder="Licencia"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              />
-              <input
-                value={form.vehicle_plate}
-                onChange={(event) => setForm((current) => ({ ...current, vehicle_plate: event.target.value }))}
-                placeholder="Patente"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              />
-              <input
-                value={form.insurance_policy}
-                onChange={(event) => setForm((current) => ({ ...current, insurance_policy: event.target.value }))}
-                placeholder="Seguro"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 lg:col-span-2"
-              />
-              <textarea
-                value={form.notes}
-                onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-                placeholder="Notas operativas"
-                rows={3}
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 lg:col-span-2"
-              />
-              <textarea
-                value={form.review_notes}
-                onChange={(event) => setForm((current) => ({ ...current, review_notes: event.target.value }))}
-                placeholder="Nota interna opcional"
-                rows={3}
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 lg:col-span-2"
-              />
-
-              {createError ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 lg:col-span-2">{createError}</p> : null}
-
-              <div className="flex flex-wrap gap-2 lg:col-span-2">
-                <Button type="submit" disabled={creating}>
-                  {creating ? "Creando..." : "Crear rider"}
-                </Button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormOpen(false);
-                    setCreateError(null);
-                  }}
-                  className="rounded-full bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

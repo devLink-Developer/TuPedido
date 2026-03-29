@@ -86,6 +86,11 @@ class Store(Base):
     )
     carts: Mapped[list["ShoppingCart"]] = relationship(back_populates="store")
     orders: Mapped[list["StoreOrder"]] = relationship(back_populates="store")
+    delivery_applications: Mapped[list["DeliveryApplication"]] = relationship(back_populates="store")
+    delivery_riders: Mapped[list["DeliveryProfile"]] = relationship(back_populates="store")
+    delivery_rider_settlement_payments: Mapped[list["RiderSettlementPayment"]] = relationship(
+        back_populates="store"
+    )
     service_fee_charges: Mapped[list["MerchantServiceFeeCharge"]] = relationship(
         back_populates="store", cascade="all, delete-orphan"
     )
@@ -137,6 +142,8 @@ class StoreDeliverySettings(Base):
     delivery_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     pickup_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     delivery_fee: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
+    free_delivery_min_order: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    rider_fee: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     min_order: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
 
     store: Mapped[Store] = relationship(back_populates="delivery_settings")
