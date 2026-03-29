@@ -43,7 +43,7 @@ export function OrderTracking({
     <div className="rounded-[28px] bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-bold">Tracking del pedido</h3>
+          <h3 className="text-lg font-bold">Seguimiento del pedido</h3>
           <p className="mt-1 text-sm text-zinc-500">
             {tracking.assigned_rider_name
               ? `${tracking.assigned_rider_name} · ${tracking.assigned_rider_vehicle_type ?? "rider"}`

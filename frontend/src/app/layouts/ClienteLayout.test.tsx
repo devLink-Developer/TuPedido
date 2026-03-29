@@ -141,9 +141,17 @@ describe("ClienteLayout", () => {
 
     expect(await screen.findByText("Pedido en proceso")).toBeInTheDocument();
     expect(screen.getByText("Cafe Central")).toBeInTheDocument();
-    expect(screen.getByText("Tracking abierto")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Ver tracking" })).not.toBeInTheDocument();
+    expect(screen.getByText("Seguimiento activo")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Seguir pedido" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /y 1 mas/i })).toHaveAttribute("href", "/c/pedidos");
+  });
+
+  it("usa Seguir pedido como CTA del acceso rapido al pedido activo", async () => {
+    fetchOrdersMock.mockResolvedValueOnce([createOrder()]);
+
+    renderLayout();
+
+    expect(await screen.findByRole("link", { name: "Seguir pedido" })).toHaveAttribute("href", "/c/pedido/41");
   });
 
   it("no muestra la barra cuando solo hay pedidos terminales", async () => {

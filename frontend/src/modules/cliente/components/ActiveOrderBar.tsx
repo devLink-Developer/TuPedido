@@ -109,13 +109,13 @@ export function ActiveOrderBar() {
 
           <div className="flex flex-wrap items-center gap-2">
             {isViewingFeaturedOrder ? (
-              <span className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white">Tracking abierto</span>
+              <span className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white">Seguimiento activo</span>
             ) : (
               <Link
                 to={`/c/pedido/${featuredOrder.id}`}
                 className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm"
               >
-                Ver tracking
+                Seguir pedido
               </Link>
             )}
             {additionalActiveOrders ? (

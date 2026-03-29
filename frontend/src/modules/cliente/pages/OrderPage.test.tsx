@@ -152,6 +152,11 @@ describe("OrderPage", () => {
 
     renderPage();
 
+    expect(await screen.findByText("Estado del pedido")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Preparando" })).toBeInTheDocument();
+    expect(screen.getByText("El comercio esta preparando tu pedido.")).toBeInTheDocument();
+    expect(screen.getByText("Seguimos mostrando la ubicacion del pedido en tiempo real.")).toBeInTheDocument();
+    expect(screen.getByText("Entrega y pago")).toBeInTheDocument();
     expect(await screen.findByText("tracking-block")).toBeInTheDocument();
     expect(fetchOrderTrackingMock).toHaveBeenCalledWith("token", 41);
     expect(useOrderLiveTrackingMock.mock.calls.some(([options]) => (options as { enabled: boolean }).enabled)).toBe(true);
@@ -162,7 +167,9 @@ describe("OrderPage", () => {
 
     renderPage();
 
-    expect(await screen.findByText("Pedido #41")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Pedido #41" })).toBeInTheDocument();
+    expect(screen.getByText("El pedido ya fue entregado y quedo en tu historial.")).toBeInTheDocument();
+    expect(screen.getByText("El seguimiento en vivo ya no esta disponible para este pedido.")).toBeInTheDocument();
     expect(fetchOrderTrackingMock).not.toHaveBeenCalled();
     expect(screen.queryByText("tracking-block")).not.toBeInTheDocument();
     expect(useOrderLiveTrackingMock.mock.calls.every(([options]) => !(options as { enabled: boolean }).enabled)).toBe(true);
@@ -187,6 +194,7 @@ describe("OrderPage", () => {
 
     await waitFor(() => expect(fetchOrderMock).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.queryByText("tracking-block")).not.toBeInTheDocument());
+    expect(screen.getByText("El pedido ya fue entregado y quedo en tu historial.")).toBeInTheDocument();
     expect(fetchOrderTrackingMock).toHaveBeenCalledTimes(1);
   });
 });
