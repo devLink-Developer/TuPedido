@@ -249,6 +249,8 @@ def serialize_cart(cart: object) -> CartRead:
             delivery_enabled=False,
             pickup_enabled=False,
             delivery_fee=0,
+            free_delivery_min_order=None,
+            rider_fee=0,
             min_order=0,
         ),
         subtotal=float(cart.subtotal),
