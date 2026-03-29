@@ -126,7 +126,7 @@ describe("ClienteLayout", () => {
     expect(await screen.findByText("pedidos page")).toBeInTheDocument();
   });
 
-  it("muestra la barra del pedido activo y evita el self-link en el tracking abierto", async () => {
+  it("no muestra la barra del pedido activo dentro de la pantalla de seguimiento", async () => {
     fetchOrdersMock.mockResolvedValueOnce([
       createOrder(),
       createOrder({
@@ -139,11 +139,9 @@ describe("ClienteLayout", () => {
 
     renderLayout("/c/pedido/41");
 
-    expect(await screen.findByText("Pedido en proceso")).toBeInTheDocument();
-    expect(screen.getByText("Cafe Central")).toBeInTheDocument();
-    expect(screen.getByText("Seguimiento activo")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Seguir pedido" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /y 1 mas/i })).toHaveAttribute("href", "/c/pedidos");
+    expect(screen.getByText("tracking page")).toBeInTheDocument();
+    expect(screen.queryByText("Pedido en proceso")).not.toBeInTheDocument();
+    expect(fetchOrdersMock).not.toHaveBeenCalled();
   });
 
   it("usa Seguir pedido como CTA del acceso rapido al pedido activo", async () => {

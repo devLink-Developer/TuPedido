@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useMatch, useNavigate } from "react-router-dom";
 import { fetchAddresses } from "../../shared/services/api";
 import { useAuthSession, useCart } from "../../shared/hooks";
 import { useClienteStore } from "../../shared/stores";
@@ -10,6 +10,7 @@ import { ActiveOrderBar } from "../../modules/cliente/components/ActiveOrderBar"
 export function ClienteLayout({ children }: PropsWithChildren) {
   const navigate = useNavigate();
   const location = useLocation();
+  const orderTrackingMatch = useMatch("/c/pedido/:id");
   const menuRef = useRef<HTMLDivElement | null>(null);
   const lastScrollYRef = useRef(0);
   const { user, token, isAuthenticated, logout } = useAuthSession();
@@ -22,6 +23,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
   const [addressesLoading, setAddressesLoading] = useState(false);
   const showFloatingCart = location.pathname !== "/c/carrito" && location.pathname !== "/c/checkout" && itemCount > 0;
   const showAddressSelector = isAuthenticated && user?.role === "customer";
+  const showActiveOrderBar = !orderTrackingMatch;
   const selectedAddress = useMemo(
     () => addresses.find((address) => address.id === selectedAddressId) ?? null,
     [addresses, selectedAddressId]
@@ -221,7 +223,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
         </div>
       </header>
       <main className={`mx-auto w-full max-w-6xl px-4 pt-24 md:px-8 ${showFloatingCart ? "pb-28 md:pb-10" : "pb-10"}`}>
-        <ActiveOrderBar />
+        {showActiveOrderBar ? <ActiveOrderBar /> : null}
         {children}
       </main>
       {showFloatingCart ? (

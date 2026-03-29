@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useMatch } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuthSession } from "../../../shared/hooks";
 import { fetchOrders } from "../../../shared/services/api";
 import type { Order } from "../../../shared/types";
@@ -14,8 +14,6 @@ function formatDeliveryModeLabel(order: Order) {
 
 export function ActiveOrderBar() {
   const location = useLocation();
-  const currentOrderMatch = useMatch("/c/pedido/:id");
-  const currentOrderId = currentOrderMatch?.params.id ? Number(currentOrderMatch.params.id) : null;
   const { isAuthenticated, token, user } = useAuthSession();
   const [orders, setOrders] = useState<Order[]>([]);
   const hasLoadedRef = useRef(false);
@@ -80,7 +78,6 @@ export function ActiveOrderBar() {
 
   const featuredOrder = activeOrders[0] ?? null;
   const additionalActiveOrders = activeOrders.length > 1 ? activeOrders.length - 1 : 0;
-  const isViewingFeaturedOrder = featuredOrder ? currentOrderId === featuredOrder.id : false;
 
   if (!featuredOrder) {
     return null;
@@ -108,16 +105,12 @@ export function ActiveOrderBar() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {isViewingFeaturedOrder ? (
-              <span className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white">Seguimiento activo</span>
-            ) : (
-              <Link
-                to={`/c/pedido/${featuredOrder.id}`}
-                className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm"
-              >
-                Seguir pedido
-              </Link>
-            )}
+            <Link
+              to={`/c/pedido/${featuredOrder.id}`}
+              className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm"
+            >
+              Seguir pedido
+            </Link>
             {additionalActiveOrders ? (
               <Link
                 to="/c/pedidos"
