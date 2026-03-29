@@ -372,8 +372,11 @@ def update_store_status(
     store = db.scalar(select(Store).options(*STORE_OPTIONS).where(Store.id == store_id))
     if store is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Store not found")
+    previous_status = store.status
     store.status = payload.status
-    if payload.status != "approved":
+    if payload.status == "suspended":
+        store.accepting_orders = False
+    elif previous_status == "suspended" and payload.status == "approved":
         store.accepting_orders = False
     db.commit()
     db.refresh(store)

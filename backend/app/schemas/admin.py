@@ -6,7 +6,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class StoreStatusUpdate(BaseModel):
-    status: Literal["approved", "rejected", "suspended"]
+    status: Literal["approved", "suspended"]
 
 
 class AdminMerchantCreate(BaseModel):

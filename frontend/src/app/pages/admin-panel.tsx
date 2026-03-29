@@ -43,6 +43,27 @@ import type {
 import { EmptyCard, LoadingCard, PageHeader, formatCurrency, paymentMethodLabels, statusLabels } from "./common";
 
 type TabKey = "categories" | "applications" | "stores" | "orders" | "settings" | "settlements" | "delivery";
+type ManagedStoreStatus = "approved" | "suspended";
+
+function getStoreAction(store: StoreSummary): { nextStatus: ManagedStoreStatus; label: string; className: string } | null {
+  if (store.status === "approved") {
+    return {
+      nextStatus: "suspended",
+      label: "Suspender",
+      className: "rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white"
+    };
+  }
+
+  if (store.status === "suspended") {
+    return {
+      nextStatus: "approved",
+      label: "Reanudar",
+      className: "rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
+    };
+  }
+
+  return null;
+}
 
 export function AdminDashboardPage() {
   const { token } = useSession();
@@ -164,6 +185,10 @@ export function AdminDashboardPage() {
       ] as const,
     []
   );
+  const manageableStores = useMemo(
+    () => stores.filter((store) => store.status === "approved" || store.status === "suspended"),
+    [stores]
+  );
 
   async function handleCategoryCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -204,13 +229,14 @@ export function AdminDashboardPage() {
     }
   }
 
-  async function handleStoreStatus(storeId: number, status: "approved" | "rejected" | "suspended") {
+  async function handleStoreStatus(storeId: number, status: ManagedStoreStatus) {
     if (!token) return;
     setSaving(true);
     setError(null);
     try {
-      await updateAdminStoreStatus(token, storeId, { status });
-      await load();
+      const updatedStore = await updateAdminStoreStatus(token, storeId, { status });
+      setStores((current) => current.map((store) => (store.id === storeId ? updatedStore : store)));
+      void load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo actualizar el comercio");
     } finally {
@@ -747,30 +773,34 @@ export function AdminDashboardPage() {
 
       {activeTab === "stores" ? (
         <div className="space-y-4">
-          {stores.map((store) => (
-            <article key={store.id} className="rounded-[28px] bg-white p-5 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-bold">{store.name}</h3>
-                  <p className="text-sm text-zinc-600">{store.address}</p>
+          {manageableStores.map((store) => {
+            const action = getStoreAction(store);
+            return (
+              <article key={store.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-bold">{store.name}</h3>
+                    <p className="text-sm text-zinc-600">{store.address}</p>
+                  </div>
+                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[store.status] ?? store.status}</span>
                 </div>
-                <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[store.status] ?? store.status}</span>
-              </div>
-              <p className="mt-3 text-sm text-zinc-600">{store.description}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" onClick={() => void handleStoreStatus(store.id, "approved")} className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white" disabled={saving}>
-                  Aprobar
-                </button>
-                <button type="button" onClick={() => void handleStoreStatus(store.id, "rejected")} className="rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white" disabled={saving}>
-                  Rechazar
-                </button>
-                <button type="button" onClick={() => void handleStoreStatus(store.id, "suspended")} className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white" disabled={saving}>
-                  Suspender
-                </button>
-              </div>
-            </article>
-          ))}
-          {!stores.length ? <EmptyCard title="Sin comercios" description="No hay comercios cargados todavia." /> : null}
+                <p className="mt-3 text-sm text-zinc-600">{store.description}</p>
+                {action ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleStoreStatus(store.id, action.nextStatus)}
+                      className={action.className}
+                      disabled={saving}
+                    >
+                      {action.label}
+                    </button>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
+          {!manageableStores.length ? <EmptyCard title="Sin comercios" description="No hay comercios aprobados o suspendidos." /> : null}
         </div>
       ) : null}
 

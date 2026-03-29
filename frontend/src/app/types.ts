@@ -421,7 +421,7 @@ export type ProductWrite = {
 };
 
 export type StoreStatusUpdate = {
-  status: "approved" | "rejected" | "suspended";
+  status: "approved" | "suspended";
 };
 
 export type OrderStatusUpdate = {

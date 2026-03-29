@@ -43,6 +43,29 @@ const emptyStoreForm: StoreFormState = {
 
 const resolvedApplicationStatuses = new Set(["approved", "rejected", "suspended"]);
 const LIVE_REFRESH_INTERVAL_MS = 15000;
+type ManagedStoreStatus = "approved" | "suspended";
+
+function getStoreAction(store: StoreSummary): { nextStatus: ManagedStoreStatus; label: string; busyLabel: string; className: string } | null {
+  if (store.status === "approved") {
+    return {
+      nextStatus: "suspended",
+      label: "Suspender",
+      busyLabel: "Suspendiendo...",
+      className: "rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white disabled:bg-rose-300"
+    };
+  }
+
+  if (store.status === "suspended") {
+    return {
+      nextStatus: "approved",
+      label: "Reanudar",
+      busyLabel: "Reanudando...",
+      className: "rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white disabled:bg-brand-300"
+    };
+  }
+
+  return null;
+}
 
 export function StoresPage() {
   const { token } = useAuthSession();
@@ -53,6 +76,7 @@ export function StoresPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [busyStoreId, setBusyStoreId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const hasLoadedRef = useRef(false);
@@ -140,6 +164,10 @@ export function StoresPage() {
     () => applications.filter((application) => !resolvedApplicationStatuses.has(application.status)),
     [applications]
   );
+  const manageableStores = useMemo(
+    () => stores.filter((store) => store.status === "approved" || store.status === "suspended"),
+    [stores]
+  );
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -168,6 +196,22 @@ export function StoresPage() {
       setCreateError(requestError instanceof Error ? requestError.message : "No se pudo crear el comercio");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleStoreStatus(storeId: number, status: ManagedStoreStatus) {
+    if (!token) return;
+
+    setBusyStoreId(storeId);
+    setError(null);
+    try {
+      const updatedStore = await updateAdminStoreStatus(token, storeId, { status });
+      setStores((current) => current.map((store) => (store.id === storeId ? updatedStore : store)));
+      void load({ silent: true });
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "No se pudo actualizar el comercio");
+    } finally {
+      setBusyStoreId(null);
     }
   }
 
@@ -256,37 +300,41 @@ export function StoresPage() {
 
         <div className="space-y-4">
           <h2 className="text-xl font-bold">Comercios activos</h2>
-          {stores.map((store) => (
-            <article key={store.id} className="rounded-[28px] bg-white p-5 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-bold">{store.name}</h3>
-                  <p className="text-sm text-zinc-600">{store.address}</p>
+          {manageableStores.map((store) => {
+            const action = getStoreAction(store);
+            return (
+              <article key={store.id} aria-busy={busyStoreId === store.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-bold">{store.name}</h3>
+                    <p className="text-sm text-zinc-600">{store.address}</p>
+                  </div>
+                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+                    {statusLabels[store.status] ?? store.status}
+                  </span>
                 </div>
-                <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
-                  {statusLabels[store.status] ?? store.status}
-                </span>
-              </div>
-              <p className="mt-3 text-sm text-zinc-600">{store.description}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {(["approved", "rejected", "suspended"] as const).map((status) => (
-                  <button
-                    key={status}
-                    type="button"
-                    onClick={async () => {
-                      if (!token) return;
-                      await updateAdminStoreStatus(token, store.id, { status });
-                      await load({ silent: true });
-                    }}
-                    className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
-                  >
-                    {statusLabels[status] ?? status}
-                  </button>
-                ))}
-              </div>
-            </article>
-          ))}
-          {!stores.length ? <EmptyState title="Sin comercios" description="Todavia no hay comercios activos." /> : null}
+                <p className="mt-3 text-sm text-zinc-600">{store.description}</p>
+                {action ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleStoreStatus(store.id, action.nextStatus)}
+                      className={action.className}
+                      disabled={busyStoreId === store.id}
+                    >
+                      {busyStoreId === store.id ? action.busyLabel : action.label}
+                    </button>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
+          {!manageableStores.length ? (
+            <EmptyState
+              title="Sin comercios activos"
+              description="Todavia no hay comercios aprobados o suspendidos para gestionar."
+            />
+          ) : null}
         </div>
       </div>
 
