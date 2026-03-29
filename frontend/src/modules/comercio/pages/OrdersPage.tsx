@@ -9,6 +9,7 @@ import {
 } from "../../../shared/services/api";
 import type { MerchantStore, Order, StoreUpdate } from "../../../shared/types";
 import { orderStatusOptions } from "../../../shared/utils/labels";
+import { hasStoreAddressConfiguration, toStoreAddressFormState } from "../components/StoreAddressSection";
 import { OrdersTable } from "../components/OrdersTable";
 
 function toStoreUpdatePayload(store: MerchantStore): StoreUpdate {
@@ -42,10 +43,15 @@ export function OrdersPage() {
 
   const isApproved = store?.status === "approved";
   const acceptingOrders = isApproved ? store?.accepting_orders ?? false : false;
+  const hasConfiguredAddress = store ? hasStoreAddressConfiguration(toStoreAddressFormState(store)) : false;
+  const canEnableOrders = isApproved && hasConfiguredAddress;
+  const canToggleOrders = isApproved && (acceptingOrders || hasConfiguredAddress);
   const toggleDescription = !store
     ? ""
     : !isApproved
       ? "Disponible cuando el comercio quede aprobado."
+      : !acceptingOrders && !hasConfiguredAddress
+        ? "Configura la direccion del comercio antes de habilitar la venta."
       : acceptingOrders
         ? "El comercio figura abierto para tomar pedidos."
         : "Activalo cuando quieras volver a vender.";
@@ -77,6 +83,10 @@ export function OrdersPage() {
 
   async function handleToggleAcceptingOrders() {
     if (!token || !store || !isApproved || savingToggle) return;
+    if (!store.accepting_orders && !hasConfiguredAddress) {
+      setToggleError("Configura CP, provincia, localidad, calle, altura y geolocalizacion del local antes de habilitar la venta.");
+      return;
+    }
 
     const previousStore = store;
     const nextStore = { ...store, accepting_orders: !store.accepting_orders };
@@ -125,12 +135,12 @@ export function OrdersPage() {
                   role="switch"
                   aria-checked={acceptingOrders}
                   aria-label="Recibir pedidos"
-                  disabled={!isApproved || savingToggle}
+                  disabled={!canToggleOrders || savingToggle}
                   onClick={() => void handleToggleAcceptingOrders()}
                   className={[
                     "relative inline-flex h-8 w-14 items-center rounded-full border transition",
                     acceptingOrders ? "border-emerald-200/70 bg-emerald-400" : "border-white/15 bg-white/15",
-                    !isApproved || savingToggle ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                    !canToggleOrders || savingToggle ? "cursor-not-allowed opacity-60" : "cursor-pointer"
                   ].join(" ")}
                 >
                   <span
@@ -141,7 +151,13 @@ export function OrdersPage() {
                   />
                 </button>
                 <span className="text-xs text-white/60">
-                  {savingToggle ? "Guardando..." : isApproved ? "Disponible ahora" : "Pendiente de aprobacion"}
+                  {savingToggle
+                    ? "Guardando..."
+                    : !isApproved
+                      ? "Pendiente de aprobacion"
+                      : !acceptingOrders && !canEnableOrders
+                        ? "Completa la direccion"
+                        : "Disponible ahora"}
                 </span>
               </div>
             </div>

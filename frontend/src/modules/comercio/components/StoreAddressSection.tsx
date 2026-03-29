@@ -36,6 +36,9 @@ function formatCoordinate(value: number | null | undefined) {
 }
 
 function toCoordinate(value: string) {
+  if (!value.trim()) {
+    return null;
+  }
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }

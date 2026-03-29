@@ -71,6 +71,12 @@ const approvedStore = {
   hours: []
 };
 
+const approvedStoreWithAddress = {
+  ...approvedStore,
+  latitude: -31.6333,
+  longitude: -60.7000
+};
+
 describe("OrdersPage", () => {
   beforeEach(() => {
     fetchMerchantOrdersMock.mockReset();
@@ -83,8 +89,8 @@ describe("OrdersPage", () => {
   it("permite habilitar y pausar la venta desde la pantalla de pedidos", async () => {
     const user = userEvent.setup();
 
-    fetchMerchantStoreMock.mockResolvedValueOnce(approvedStore);
-    updateMerchantStoreMock.mockResolvedValueOnce({ ...approvedStore, accepting_orders: false });
+    fetchMerchantStoreMock.mockResolvedValueOnce(approvedStoreWithAddress);
+    updateMerchantStoreMock.mockResolvedValueOnce({ ...approvedStoreWithAddress, accepting_orders: false });
 
     render(<OrdersPage />);
 
@@ -98,8 +104,8 @@ describe("OrdersPage", () => {
         "token",
         expect.objectContaining({
           accepting_orders: false,
-          name: approvedStore.name,
-          address: approvedStore.address
+          name: approvedStoreWithAddress.name,
+          address: approvedStoreWithAddress.address
         })
       )
     );
@@ -117,5 +123,17 @@ describe("OrdersPage", () => {
     await waitFor(() => expect(fetchMerchantStoreMock).toHaveBeenCalledWith("token"));
     expect(screen.getByRole("switch", { name: "Recibir pedidos" })).toBeDisabled();
     expect(screen.getByText("Disponible cuando el comercio quede aprobado.")).toBeInTheDocument();
+  });
+
+  it("no permite habilitar la venta si falta configurar la direccion del comercio", async () => {
+    fetchMerchantStoreMock.mockResolvedValueOnce({ ...approvedStore, accepting_orders: false });
+
+    render(<OrdersPage />);
+
+    await waitFor(() => expect(fetchMerchantStoreMock).toHaveBeenCalledWith("token"));
+    expect(screen.getByRole("switch", { name: "Recibir pedidos" })).toBeDisabled();
+    expect(screen.getByText("Configura la direccion del comercio antes de habilitar la venta.")).toBeInTheDocument();
+    expect(screen.getByText("Completa la direccion")).toBeInTheDocument();
+    expect(updateMerchantStoreMock).not.toHaveBeenCalled();
   });
 });
