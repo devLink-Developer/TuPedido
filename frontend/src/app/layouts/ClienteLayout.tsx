@@ -5,6 +5,7 @@ import { useAuthSession, useCart } from "../../shared/hooks";
 import { useClienteStore } from "../../shared/stores";
 import type { Address } from "../../shared/types";
 import { CUSTOMER_ADDRESSES_CHANGED_EVENT } from "../../shared/utils/customerAddresses";
+import { ActiveOrderBar } from "../../modules/cliente/components/ActiveOrderBar";
 
 export function ClienteLayout({ children }: PropsWithChildren) {
   const navigate = useNavigate();
@@ -191,6 +192,12 @@ export function ClienteLayout({ children }: PropsWithChildren) {
               {menuOpen ? (
                 <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 min-w-[220px] rounded-[24px] border border-black/5 bg-white p-2 shadow-[0_18px_36px_rgba(24,19,18,0.14)]">
                   <Link
+                    to="/c/pedidos"
+                    className="block rounded-[18px] px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 hover:text-ink"
+                  >
+                    Mis pedidos
+                  </Link>
+                  <Link
                     to="/c/perfil"
                     className="block rounded-[18px] px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 hover:text-ink"
                   >
@@ -213,7 +220,10 @@ export function ClienteLayout({ children }: PropsWithChildren) {
           ) : null}
         </div>
       </header>
-      <main className={`mx-auto w-full max-w-6xl px-4 pt-24 md:px-8 ${showFloatingCart ? "pb-28 md:pb-10" : "pb-10"}`}>{children}</main>
+      <main className={`mx-auto w-full max-w-6xl px-4 pt-24 md:px-8 ${showFloatingCart ? "pb-28 md:pb-10" : "pb-10"}`}>
+        <ActiveOrderBar />
+        {children}
+      </main>
       {showFloatingCart ? (
         <Link
           to="/c/carrito"

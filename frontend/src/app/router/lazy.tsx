@@ -42,6 +42,7 @@ export const LazyClienteCheckoutRoute = createLazyRoute(
   "ClienteCheckoutRoute"
 );
 export const LazyClienteOrderRoute = createLazyRoute(() => import("../../modules/cliente/routes"), "ClienteOrderRoute");
+export const LazyClienteOrdersRoute = createLazyRoute(() => import("../../modules/cliente/routes"), "ClienteOrdersRoute");
 export const LazyClienteProfileRoute = createLazyRoute(
   () => import("../../modules/cliente/routes"),
   "ClienteProfileRoute"

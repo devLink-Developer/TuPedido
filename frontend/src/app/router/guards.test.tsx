@@ -1,8 +1,14 @@
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { useAuthStore } from "../../shared/stores";
 import { GuestOnlyRoute, RequireRoles } from "./guards";
+
+function LocationProbe() {
+  const location = useLocation();
+
+  return <div>{`${location.pathname}${location.search}`}</div>;
+}
 
 describe("router guards", () => {
   it("redirects unauthenticated users to /login from protected routes", () => {
@@ -77,5 +83,20 @@ describe("router guards", () => {
     );
 
     expect(screen.getByText("merchant home")).toBeInTheDocument();
+  });
+
+  it("preserves redirectTo when protecting legacy customer routes", () => {
+    render(
+      <MemoryRouter initialEntries={["/orders/99"]}>
+        <Routes>
+          <Route path="/login" element={<LocationProbe />} />
+          <Route element={<RequireRoles roles={["customer"]} />}>
+            <Route path="/orders/:id" element={<div>legacy customer route</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("/login?redirectTo=%2Forders%2F99")).toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "./AppShell";
 import { RequireRoles, GuestOnlyRoute } from "./guards";
+import { LegacyCustomerOrderRedirectRoute, LegacyCustomerOrdersRedirectRoute } from "./legacyCustomerRoutes";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
 import {
   LazyAdminDashboardRoute,
@@ -15,6 +16,7 @@ import {
   LazyClienteCheckoutRoute,
   LazyClienteModuleLayoutRoute,
   LazyClienteOrderRoute,
+  LazyClienteOrdersRoute,
   LazyClienteProfileRoute,
   LazyClienteStoreDetailRoute,
   LazyComercioDashboardRoute,
@@ -71,9 +73,18 @@ export const router = createBrowserRouter([
               { path: "carrito", element: <LazyClienteCartRoute /> },
               { path: "checkout", element: <LazyClienteCheckoutRoute /> },
               { path: "pedido/:id", element: <LazyClienteOrderRoute /> },
+              { path: "pedidos", element: <LazyClienteOrdersRoute /> },
               { path: "perfil", element: <LazyClienteProfileRoute /> }
             ]
           }
+        ]
+      },
+      {
+        path: "orders",
+        element: <RequireRoles roles={["customer"]} />,
+        children: [
+          { index: true, element: <LegacyCustomerOrdersRedirectRoute /> },
+          { path: ":id", element: <LegacyCustomerOrderRedirectRoute /> }
         ]
       },
       {

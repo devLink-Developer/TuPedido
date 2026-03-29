@@ -5,6 +5,7 @@ import { CartPage } from "./pages/CartPage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { CheckoutPage } from "./pages/CheckoutPage";
 import { OrderPage } from "./pages/OrderPage";
+import { OrdersPage } from "./pages/OrdersPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { StoreDetailPage } from "./pages/StoreDetailPage";
 
@@ -35,6 +36,10 @@ export function ClienteCheckoutRoute() {
 
 export function ClienteOrderRoute() {
   return <OrderPage />;
+}
+
+export function ClienteOrdersRoute() {
+  return <OrdersPage />;
 }
 
 export function ClienteProfileRoute() {

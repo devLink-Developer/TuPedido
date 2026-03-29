@@ -267,7 +267,7 @@ def build_notification_url(store_id: int, reference: str) -> str:
 
 
 def build_order_return_url(order_id: int) -> str:
-    return f"{settings.frontend_base_url.rstrip('/')}/orders/{order_id}"
+    return f"{settings.frontend_base_url.rstrip('/')}/c/pedido/{order_id}"
 
 
 def create_checkout_preference(
