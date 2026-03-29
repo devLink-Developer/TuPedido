@@ -1,16 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
+  buildMerchantSocketUrl,
   fetchMerchantOrders,
   fetchMerchantStore,
   updateMerchantOrderStatus,
   updateMerchantStore
 } from "../../../shared/services/api";
+import { useUiStore } from "../../../shared/stores";
 import type { MerchantStore, Order, StoreUpdate } from "../../../shared/types";
+import { notifyCatalogStoresChanged } from "../../../shared/utils/catalogStores";
 import { orderStatusOptions } from "../../../shared/utils/labels";
+import { playNotificationTone } from "../../../shared/utils/notificationSound";
 import { hasStoreAddressConfiguration, toStoreAddressFormState } from "../components/StoreAddressSection";
 import { OrdersTable } from "../components/OrdersTable";
+
+const LIVE_REFRESH_INTERVAL_MS = 15000;
+const SOCKET_RECONNECT_DELAY_MS = 3000;
 
 function toStoreUpdatePayload(store: MerchantStore): StoreUpdate {
   return {
@@ -32,14 +39,23 @@ function toStoreUpdatePayload(store: MerchantStore): StoreUpdate {
   };
 }
 
+function sortOrders(items: Order[]) {
+  return [...items].sort((left, right) => right.id - left.id);
+}
+
 export function OrdersPage() {
   const { token } = useAuthSession();
+  const enqueueToast = useUiStore((state) => state.enqueueToast);
   const [store, setStore] = useState<MerchantStore | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingToggle, setSavingToggle] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
+  const ordersRef = useRef<Order[]>([]);
+  const knownOrderIdsRef = useRef<Set<number>>(new Set());
+  const hasLoadedOrdersRef = useRef(false);
+  const requestIdRef = useRef(0);
 
   const isApproved = store?.status === "approved";
   const acceptingOrders = isApproved ? store?.accepting_orders ?? false : false;
@@ -52,22 +68,97 @@ export function OrdersPage() {
       ? "Disponible cuando el comercio quede aprobado."
       : !acceptingOrders && !hasConfiguredAddress
         ? "Configura la direccion del comercio antes de habilitar la venta."
-      : acceptingOrders
-        ? "El comercio figura abierto para tomar pedidos."
-        : "Activalo cuando quieras volver a vender.";
+        : acceptingOrders
+          ? "El comercio figura abierto para tomar pedidos."
+          : "Activalo cuando quieras volver a vender.";
 
-  async function load() {
+  function notifyNewOrders(newOrders: Order[]) {
+    if (!newOrders.length) {
+      return;
+    }
+
+    const orderedNewOrders = sortOrders(newOrders);
+    if (orderedNewOrders.length === 1) {
+      const order = orderedNewOrders[0];
+      enqueueToast(`Nuevo pedido #${order.id} de ${order.customer_name}`);
+    } else {
+      enqueueToast(`${orderedNewOrders.length} pedidos nuevos`);
+    }
+    void playNotificationTone();
+  }
+
+  function replaceOrders(nextOrders: Order[], options?: { notifyNew?: boolean }) {
+    const sortedOrders = sortOrders(nextOrders);
+    const newOrders = options?.notifyNew
+      ? sortedOrders.filter((order) => !knownOrderIdsRef.current.has(order.id))
+      : [];
+
+    ordersRef.current = sortedOrders;
+    knownOrderIdsRef.current = new Set(sortedOrders.map((order) => order.id));
+    hasLoadedOrdersRef.current = true;
+    setOrders(sortedOrders);
+
+    if (newOrders.length) {
+      notifyNewOrders(newOrders);
+    }
+  }
+
+  function upsertOrder(nextOrder: Order, options?: { notifyNew?: boolean }) {
+    const isNewOrder = !knownOrderIdsRef.current.has(nextOrder.id);
+    const currentOrders = ordersRef.current;
+    const existingIndex = currentOrders.findIndex((order) => order.id === nextOrder.id);
+    const mergedOrders =
+      existingIndex >= 0
+        ? sortOrders(currentOrders.map((order) => (order.id === nextOrder.id ? nextOrder : order)))
+        : sortOrders([nextOrder, ...currentOrders]);
+
+    ordersRef.current = mergedOrders;
+    knownOrderIdsRef.current = new Set(mergedOrders.map((order) => order.id));
+    hasLoadedOrdersRef.current = true;
+    setOrders(mergedOrders);
+
+    if (options?.notifyNew && isNewOrder) {
+      notifyNewOrders([nextOrder]);
+    }
+  }
+
+  async function load(options?: { silent?: boolean; notifyNew?: boolean; includeStore?: boolean }) {
     if (!token) return;
-    setLoading(true);
-    setError(null);
+
+    const requestId = ++requestIdRef.current;
+    if (!options?.silent) {
+      setLoading(true);
+      setError(null);
+    }
+
     try {
-      const [storeResult, orderResults] = await Promise.all([fetchMerchantStore(token), fetchMerchantOrders(token)]);
-      setStore(storeResult);
-      setOrders(orderResults);
+      const includeStore = options?.includeStore ?? true;
+      const [storeResult, orderResults] = await Promise.all([
+        includeStore ? fetchMerchantStore(token) : Promise.resolve(null),
+        fetchMerchantOrders(token)
+      ]);
+
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
+      if (storeResult) {
+        setStore(storeResult);
+      }
+      replaceOrders(orderResults, { notifyNew: Boolean(options?.notifyNew && hasLoadedOrdersRef.current) });
+      setError(null);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No se pudieron cargar los pedidos");
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
+      if (!options?.silent) {
+        setError(requestError instanceof Error ? requestError.message : "No se pudieron cargar los pedidos");
+      }
     } finally {
-      setLoading(false);
+      if (!options?.silent && requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }
 
@@ -75,10 +166,108 @@ export function OrdersPage() {
     void load();
   }, [token]);
 
+  useEffect(() => {
+    if (!token) return;
+
+    let socket: WebSocket | null = null;
+    let reconnectTimeoutId: number | null = null;
+    let closedManually = false;
+
+    const scheduleReconnect = () => {
+      if (closedManually || reconnectTimeoutId !== null) {
+        return;
+      }
+
+      reconnectTimeoutId = window.setTimeout(() => {
+        reconnectTimeoutId = null;
+        void load({ silent: true, notifyNew: hasLoadedOrdersRef.current, includeStore: false });
+        connect();
+      }, SOCKET_RECONNECT_DELAY_MS);
+    };
+
+    const connect = () => {
+      if (closedManually) {
+        return;
+      }
+
+      try {
+        socket = new WebSocket(buildMerchantSocketUrl(token));
+      } catch {
+        scheduleReconnect();
+        return;
+      }
+
+      socket.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (!payload?.order) {
+            return;
+          }
+          upsertOrder(payload.order as Order, { notifyNew: payload.type === "order.created" });
+        } catch {
+          // Ignore malformed realtime payloads and keep HTTP refresh as fallback.
+        }
+      };
+
+      socket.onerror = () => {
+        socket?.close();
+      };
+
+      socket.onclose = () => {
+        socket = null;
+        scheduleReconnect();
+      };
+    };
+
+    connect();
+
+    return () => {
+      closedManually = true;
+      if (reconnectTimeoutId !== null) {
+        window.clearTimeout(reconnectTimeoutId);
+      }
+      socket?.close();
+    };
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const refreshOrdersSilently = () => {
+      if (hasLoadedOrdersRef.current) {
+        void load({ silent: true, notifyNew: true, includeStore: false });
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        refreshOrdersSilently();
+      }
+    }, LIVE_REFRESH_INTERVAL_MS);
+
+    const handleFocus = () => {
+      refreshOrdersSilently();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshOrdersSilently();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [token]);
+
   async function handleUpdateStatus(orderId: number, status: (typeof orderStatusOptions)[number]) {
     if (!token) return;
-    await updateMerchantOrderStatus(token, orderId, { status });
-    await load();
+    const updatedOrder = await updateMerchantOrderStatus(token, orderId, { status });
+    upsertOrder(updatedOrder);
   }
 
   async function handleToggleAcceptingOrders() {
@@ -95,7 +284,9 @@ export function OrdersPage() {
     setToggleError(null);
     setSavingToggle(true);
     try {
-      setStore(await updateMerchantStore(token, toStoreUpdatePayload(nextStore)));
+      const updatedStore = await updateMerchantStore(token, toStoreUpdatePayload(nextStore));
+      setStore(updatedStore);
+      notifyCatalogStoresChanged();
     } catch (requestError) {
       setStore(previousStore);
       setToggleError(requestError instanceof Error ? requestError.message : "No se pudo actualizar la venta");

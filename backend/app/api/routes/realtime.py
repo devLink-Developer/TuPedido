@@ -110,3 +110,22 @@ async def delivery_me_socket(websocket: WebSocket) -> None:
         await realtime_hub.disconnect(websocket)
     finally:
         db.close()
+
+
+@router.websocket("/ws/merchant/me")
+async def merchant_me_socket(websocket: WebSocket) -> None:
+    user = _get_user_from_token(websocket.query_params.get("token"))
+    if user is None or user.role != "merchant":
+        await websocket.close(code=4401)
+        return
+
+    db = SessionLocal()
+    try:
+        await realtime_hub.connect_user(user.id, websocket)
+        await websocket.send_json({"type": "merchant.connected"})
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await realtime_hub.disconnect(websocket)
+    finally:
+        db.close()

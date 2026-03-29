@@ -70,3 +70,11 @@ export function buildDeliverySocketUrl(token: string): string {
   baseUrl.search = `token=${encodeURIComponent(token)}`;
   return baseUrl.toString();
 }
+
+export function buildMerchantSocketUrl(token: string): string {
+  const baseUrl = new URL(API_BASE_URL);
+  baseUrl.protocol = baseUrl.protocol === "https:" ? "wss:" : "ws:";
+  baseUrl.pathname = `${baseUrl.pathname.replace(/\/api\/v1$/, "")}/api/v1/ws/merchant/me`;
+  baseUrl.search = `token=${encodeURIComponent(token)}`;
+  return baseUrl.toString();
+}

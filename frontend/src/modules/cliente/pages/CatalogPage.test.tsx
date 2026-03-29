@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useCategoryStore } from "../../../shared/stores";
+import { CATALOG_STORES_CHANGED_EVENT } from "../../../shared/utils/catalogStores";
 import { CatalogPage } from "./CatalogPage";
 
 const fetchCatalogBannerMock = vi.fn();
@@ -17,6 +18,14 @@ vi.mock("../../../shared/services/api", () => ({
 vi.mock("../components/StoreList", () => ({
   StoreList: ({ stores }: { stores: Array<{ id: number }> }) => <div>{stores.length} comercios</div>
 }));
+
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((resolver) => {
+    resolve = resolver;
+  });
+  return { promise, resolve };
+}
 
 describe("CatalogPage", () => {
   beforeEach(() => {
@@ -65,5 +74,29 @@ describe("CatalogPage", () => {
       })
     );
     expect(screen.getByRole("combobox")).toHaveValue("pickup");
+  });
+
+  it("revalida el listado al cambiar la venta sin mostrar de nuevo el loading", async () => {
+    const refreshRequest = createDeferred<Array<{ id: number }>>();
+    fetchStoresMock.mockResolvedValueOnce([{ id: 1 }]);
+    fetchStoresMock.mockImplementationOnce(() => refreshRequest.promise);
+
+    render(
+      <MemoryRouter initialEntries={["/c"]}>
+        <CatalogPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByText("1 comercios")).toBeInTheDocument());
+
+    window.dispatchEvent(new Event(CATALOG_STORES_CHANGED_EVENT));
+
+    await waitFor(() => expect(fetchStoresMock).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText("Cargando...")).not.toBeInTheDocument();
+    expect(screen.getByText("1 comercios")).toBeInTheDocument();
+
+    refreshRequest.resolve([{ id: 1 }, { id: 2 }]);
+
+    await waitFor(() => expect(screen.getByText("2 comercios")).toBeInTheDocument());
   });
 });

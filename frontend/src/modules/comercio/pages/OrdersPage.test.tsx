@@ -7,6 +7,38 @@ const fetchMerchantOrdersMock = vi.fn();
 const fetchMerchantStoreMock = vi.fn();
 const updateMerchantOrderStatusMock = vi.fn();
 const updateMerchantStoreMock = vi.fn();
+const buildMerchantSocketUrlMock = vi.fn((_: string) => "ws://merchant.test");
+const notifyCatalogStoresChangedMock = vi.fn();
+const enqueueToastMock = vi.fn();
+const playNotificationToneMock = vi.fn();
+
+type MockSocketEvent = {
+  data: string;
+};
+
+class MockWebSocket {
+  static instances: MockWebSocket[] = [];
+
+  onmessage: ((event: MockSocketEvent) => void) | null = null;
+  onerror: (() => void) | null = null;
+  onclose: (() => void) | null = null;
+
+  constructor(public readonly url: string) {
+    MockWebSocket.instances.push(this);
+  }
+
+  emit(payload: unknown) {
+    this.onmessage?.({ data: JSON.stringify(payload) });
+  }
+
+  close() {
+    return undefined;
+  }
+
+  static reset() {
+    MockWebSocket.instances = [];
+  }
+}
 
 vi.mock("../../../shared/hooks", () => ({
   useAuthSession: () => ({
@@ -15,14 +47,31 @@ vi.mock("../../../shared/hooks", () => ({
 }));
 
 vi.mock("../../../shared/services/api", () => ({
-  fetchMerchantOrders: (...args: unknown[]) => fetchMerchantOrdersMock(...args),
-  fetchMerchantStore: (...args: unknown[]) => fetchMerchantStoreMock(...args),
-  updateMerchantOrderStatus: (...args: unknown[]) => updateMerchantOrderStatusMock(...args),
-  updateMerchantStore: (...args: unknown[]) => updateMerchantStoreMock(...args)
+  buildMerchantSocketUrl: (token: string) => buildMerchantSocketUrlMock(token),
+  fetchMerchantOrders: (token: string) => fetchMerchantOrdersMock(token),
+  fetchMerchantStore: (token: string) => fetchMerchantStoreMock(token),
+  updateMerchantOrderStatus: (token: string, orderId: number, payload: unknown) =>
+    updateMerchantOrderStatusMock(token, orderId, payload),
+  updateMerchantStore: (token: string, payload: unknown) => updateMerchantStoreMock(token, payload)
+}));
+
+vi.mock("../../../shared/stores", () => ({
+  useUiStore: (selector: (state: { enqueueToast: typeof enqueueToastMock }) => unknown) =>
+    selector({ enqueueToast: enqueueToastMock })
+}));
+
+vi.mock("../../../shared/utils/catalogStores", () => ({
+  notifyCatalogStoresChanged: () => notifyCatalogStoresChangedMock()
+}));
+
+vi.mock("../../../shared/utils/notificationSound", () => ({
+  playNotificationTone: () => playNotificationToneMock()
 }));
 
 vi.mock("../components/OrdersTable", () => ({
-  OrdersTable: () => <div>Tabla de pedidos</div>
+  OrdersTable: ({ orders }: { orders: Array<{ id: number }> }) => (
+    <div>{orders.map((order) => `Pedido #${order.id}`).join(", ")}</div>
+  )
 }));
 
 const approvedStore = {
@@ -77,12 +126,71 @@ const approvedStoreWithAddress = {
   longitude: -60.7000
 };
 
+const baseOrder = {
+  id: 10,
+  store_id: 1,
+  store_name: "Mi Local",
+  store_slug: "mi-local",
+  customer_name: "Juan Perez",
+  delivery_mode: "delivery" as const,
+  payment_method: "cash" as const,
+  payment_status: "pending",
+  payment_reference: null,
+  status: "created",
+  address_label: "Casa",
+  address_full: "San Martin 123",
+  store_latitude: null,
+  store_longitude: null,
+  address_latitude: null,
+  address_longitude: null,
+  subtotal: 1000,
+  commercial_discount_total: 0,
+  financial_discount_total: 0,
+  delivery_fee: 0,
+  service_fee: 100,
+  delivery_fee_customer: 0,
+  rider_fee: 0,
+  total: 1000,
+  delivery_status: "unassigned",
+  delivery_provider: "store",
+  delivery_zone_id: null,
+  assigned_rider_id: null,
+  assigned_rider_name: null,
+  assigned_rider_phone_masked: null,
+  assigned_rider_vehicle_type: null,
+  tracking_last_latitude: null,
+  tracking_last_longitude: null,
+  tracking_last_at: null,
+  tracking_stale: false,
+  eta_minutes: null,
+  otp_required: false,
+  merchant_ready_at: null,
+  out_for_delivery_at: null,
+  delivered_at: null,
+  updated_at: null,
+  created_at: "2026-03-29T12:00:00Z",
+  items: [],
+  pricing: {
+    subtotal: 1000,
+    deliveryFee: 0,
+    serviceFee: 100,
+    discountTotal: 0,
+    total: 1000
+  }
+};
+
 describe("OrdersPage", () => {
   beforeEach(() => {
     fetchMerchantOrdersMock.mockReset();
     fetchMerchantStoreMock.mockReset();
     updateMerchantOrderStatusMock.mockReset();
     updateMerchantStoreMock.mockReset();
+    buildMerchantSocketUrlMock.mockClear();
+    notifyCatalogStoresChangedMock.mockReset();
+    enqueueToastMock.mockReset();
+    playNotificationToneMock.mockReset();
+    MockWebSocket.reset();
+    globalThis.WebSocket = MockWebSocket as unknown as typeof WebSocket;
     fetchMerchantOrdersMock.mockResolvedValue([]);
   });
 
@@ -113,6 +221,7 @@ describe("OrdersPage", () => {
       expect(screen.getByRole("switch", { name: "Recibir pedidos" })).toHaveAttribute("aria-checked", "false")
     );
     expect(screen.getByText("Venta pausada")).toBeInTheDocument();
+    expect(notifyCatalogStoresChangedMock).toHaveBeenCalledTimes(1);
   });
 
   it("bloquea el toggle hasta que el comercio quede aprobado", async () => {
@@ -135,5 +244,26 @@ describe("OrdersPage", () => {
     expect(screen.getByText("Configura la direccion del comercio antes de habilitar la venta.")).toBeInTheDocument();
     expect(screen.getByText("Completa la direccion")).toBeInTheDocument();
     expect(updateMerchantStoreMock).not.toHaveBeenCalled();
+  });
+
+  it("agrega pedidos nuevos en vivo con toast y sonido sin mostrar loading otra vez", async () => {
+    fetchMerchantStoreMock.mockResolvedValueOnce(approvedStoreWithAddress);
+    fetchMerchantOrdersMock.mockResolvedValueOnce([baseOrder]);
+
+    render(<OrdersPage />);
+
+    await waitFor(() => expect(screen.getByText("Pedido #10")).toBeInTheDocument());
+    expect(buildMerchantSocketUrlMock).toHaveBeenCalledWith("token");
+    expect(MockWebSocket.instances).toHaveLength(1);
+
+    MockWebSocket.instances[0].emit({
+      type: "order.created",
+      order: { ...baseOrder, id: 99, customer_name: "Ana Gomez" }
+    });
+
+    await waitFor(() => expect(screen.getByText(/Pedido #99/)).toBeInTheDocument());
+    expect(enqueueToastMock).toHaveBeenCalledWith("Nuevo pedido #99 de Ana Gomez");
+    expect(playNotificationToneMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Cargando...")).not.toBeInTheDocument();
   });
 });

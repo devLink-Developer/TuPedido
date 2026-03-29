@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CatalogBanner, EmptyState, LoadingCard, RubroChip } from "../../../shared/components";
 import { fetchCatalogBanner, fetchStores } from "../../../shared/services/api";
 import { useCategoryStore, useClienteStore } from "../../../shared/stores";
 import type { CatalogBanner as CatalogBannerData, StoreSummary } from "../../../shared/types";
+import { subscribeCatalogStoresChanged } from "../../../shared/utils/catalogStores";
 import { StoreList } from "../components/StoreList";
 
 export function CatalogPage() {
@@ -21,6 +22,11 @@ export function CatalogPage() {
   const [catalogBanner, setCatalogBanner] = useState<CatalogBannerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const filtersRef = useRef({ categorySlug: "", search: "", deliveryMode: "" as "" | "delivery" | "pickup" });
+  const requestIdRef = useRef(0);
+  const hasLoadedStoresRef = useRef(false);
+
+  filtersRef.current = { categorySlug, search, deliveryMode };
 
   useEffect(() => {
     setCategorySlug(searchParams.get("category") ?? "");
@@ -51,35 +57,74 @@ export function CatalogPage() {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    fetchStores({
-      categorySlug: categorySlug || undefined,
-      search: search || undefined,
-      deliveryMode: deliveryMode || undefined
-    })
-      .then((items) => {
-        if (!cancelled) {
-          setStores(items);
-        }
-      })
-      .catch((requestError) => {
-        if (!cancelled) {
-          setError(requestError instanceof Error ? requestError.message : "No se pudieron cargar los comercios");
-          setStores([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
+  async function loadStores(options?: { silent?: boolean }) {
+    const requestId = ++requestIdRef.current;
+    const { categorySlug: nextCategorySlug, search: nextSearch, deliveryMode: nextDeliveryMode } = filtersRef.current;
+
+    if (!options?.silent) {
+      setLoading(true);
+      setError(null);
+    }
+
+    try {
+      const items = await fetchStores({
+        categorySlug: nextCategorySlug || undefined,
+        search: nextSearch || undefined,
+        deliveryMode: nextDeliveryMode || undefined
       });
-    return () => {
-      cancelled = true;
-    };
+
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
+      hasLoadedStoresRef.current = true;
+      setStores(items);
+      setError(null);
+    } catch (requestError) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
+      if (!options?.silent) {
+        setError(requestError instanceof Error ? requestError.message : "No se pudieron cargar los comercios");
+        setStores([]);
+      }
+    } finally {
+      if (!options?.silent && requestId === requestIdRef.current) {
+        setLoading(false);
+      }
+    }
+  }
+
+  useEffect(() => {
+    void loadStores();
   }, [categorySlug, deliveryMode, search]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeCatalogStoresChanged(() => {
+      void loadStores({ silent: hasLoadedStoresRef.current });
+    });
+
+    const handleFocus = () => {
+      if (hasLoadedStoresRef.current) {
+        void loadStores({ silent: true });
+      }
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && hasLoadedStoresRef.current) {
+        void loadStores({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   function updateQuery(next: { categorySlug?: string; search?: string; deliveryMode?: string }) {
     const params = new URLSearchParams(searchParams);
