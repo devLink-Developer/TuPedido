@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 revision: str = "4a6d8f2c1b30"
-down_revision: Union[str, None] = "f3c1b8a9d204"
+down_revision: Union[str, None] = "a8d4e7c2b951"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -92,7 +92,7 @@ def upgrade() -> None:
             sa.text(
                 """
                 UPDATE delivery_profiles
-                SET is_active = 0,
+                SET is_active = FALSE,
                     availability = 'offline'
                 WHERE store_id IS NULL
                 """
