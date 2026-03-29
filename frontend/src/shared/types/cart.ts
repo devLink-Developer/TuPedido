@@ -1,3 +1,4 @@
+import type { StoreDeliverySettings } from "./catalog";
 import type { PricingSummary } from "./pricing";
 
 export type CartItem = {
@@ -17,6 +18,7 @@ export type Cart = {
   store_name: string | null;
   store_slug: string | null;
   delivery_mode: "delivery" | "pickup";
+  delivery_settings: StoreDeliverySettings;
   subtotal: number;
   commercial_discount_total: number;
   financial_discount_total: number;

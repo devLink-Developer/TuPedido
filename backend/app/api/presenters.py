@@ -239,6 +239,14 @@ def serialize_cart(cart: object) -> CartRead:
         store_name=cart.store.name if cart.store else None,
         store_slug=cart.store.slug if cart.store else None,
         delivery_mode=cart.delivery_mode,
+        delivery_settings=serialize_store_delivery_settings(cart.store)
+        if cart.store
+        else StoreDeliverySettingsRead(
+            delivery_enabled=False,
+            pickup_enabled=False,
+            delivery_fee=0,
+            min_order=0,
+        ),
         subtotal=float(cart.subtotal),
         commercial_discount_total=float(getattr(cart, "commercial_discount_total", 0) or 0),
         financial_discount_total=float(getattr(cart, "financial_discount_total", 0) or 0),

@@ -4,9 +4,17 @@ import { useCart } from "../../../shared/hooks";
 import { formatCurrency } from "../../../shared/utils/format";
 import { CheckoutSummary } from "../components/CheckoutSummary";
 
+const DELIVERY_MODES = [
+  { key: "delivery", label: "Envio" },
+  { key: "pickup", label: "Retiro" }
+] as const;
+
 export function CartPage() {
   const { cart, loading, error, updateItem, removeItem, setDeliveryMode, clear } = useCart();
   const navigate = useNavigate();
+  const availableDeliveryModes = DELIVERY_MODES.filter(({ key }) =>
+    key === "delivery" ? cart?.delivery_settings.delivery_enabled : cart?.delivery_settings.pickup_enabled
+  );
 
   if (loading && !cart) return <LoadingCard />;
   if (error) return <EmptyState title="No se pudo cargar el carrito" description={error} />;
@@ -41,18 +49,22 @@ export function CartPage() {
           <div className="rounded-[28px] bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Entrega</p>
             <div className="mt-3 flex gap-2">
-              {(["delivery", "pickup"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => void setDeliveryMode(mode)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                    cart.delivery_mode === mode ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-600"
-                  }`}
-                >
-                  {mode === "delivery" ? "Envio" : "Retiro"}
-                </button>
-              ))}
+              {availableDeliveryModes.length ? (
+                availableDeliveryModes.map((mode) => (
+                  <button
+                    key={mode.key}
+                    type="button"
+                    onClick={() => void setDeliveryMode(mode.key)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                      cart.delivery_mode === mode.key ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-600"
+                    }`}
+                  >
+                    {mode.label}
+                  </button>
+                ))
+              ) : (
+                <p className="text-sm text-zinc-500">Este comercio no tiene modalidades de entrega disponibles.</p>
+              )}
             </div>
           </div>
 

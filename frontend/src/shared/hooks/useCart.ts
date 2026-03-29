@@ -5,6 +5,7 @@ export function useCart() {
   const loading = useCartStore((state) => state.loading);
   const error = useCartStore((state) => state.error);
   const refreshCart = useCartStore((state) => state.refreshCart);
+  const resetCart = useCartStore((state) => state.reset);
   const setDeliveryMode = useCartStore((state) => state.setDeliveryMode);
   const addItem = useCartStore((state) => state.addItem);
   const updateItem = useCartStore((state) => state.updateItem);
@@ -19,6 +20,7 @@ export function useCart() {
     loading,
     error,
     refreshCart,
+    resetCart,
     setDeliveryMode,
     addItem,
     updateItem,

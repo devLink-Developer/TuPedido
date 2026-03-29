@@ -76,6 +76,8 @@ def reload_cart(db: Session, cart_id: int) -> ShoppingCart:
 
 
 def compute_cart_totals(cart: ShoppingCart) -> None:
+    if cart.store:
+        cart.delivery_mode = resolve_supported_delivery_mode(cart.store, cart.delivery_mode)
     subtotal = sum(float(getattr(item, "base_unit_price_snapshot", item.unit_price_snapshot)) * item.quantity for item in cart.items)
     commercial_discount_total = sum(
         float(getattr(item, "commercial_discount_amount_snapshot", 0) or 0) * item.quantity for item in cart.items
@@ -153,6 +155,22 @@ def ensure_delivery_mode_supported(store: Store, delivery_mode: str) -> None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Delivery is not available for this store")
     if delivery_mode == "pickup" and not settings.pickup_enabled:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Pickup is not available for this store")
+
+
+def resolve_supported_delivery_mode(store: Store, delivery_mode: str) -> str:
+    settings = store.delivery_settings
+    delivery_enabled = store_delivery_is_enabled(store)
+    pickup_enabled = bool(settings.pickup_enabled) if settings else False
+
+    if delivery_mode == "delivery" and delivery_enabled:
+        return "delivery"
+    if delivery_mode == "pickup" and pickup_enabled:
+        return "pickup"
+    if delivery_enabled:
+        return "delivery"
+    if pickup_enabled:
+        return "pickup"
+    return delivery_mode
 
 
 def ensure_payment_method_supported(store: Store, payment_method: str) -> None:

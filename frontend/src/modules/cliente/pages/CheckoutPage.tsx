@@ -35,13 +35,14 @@ function hasMercadoPago(paymentSettings: StoreDetail["payment_settings"]) {
 }
 
 export function CheckoutPage() {
-  const { cart } = useCart();
+  const { cart, resetCart } = useCart();
   const { token } = useAuthSession();
   const navigate = useNavigate();
   const selectedAddressId = useClienteStore((state) => state.selectedAddressId);
   const selectedPaymentMethod = useClienteStore((state) => state.selectedPaymentMethod);
   const setSelectedAddressId = useClienteStore((state) => state.setSelectedAddressId);
   const setSelectedPaymentMethod = useClienteStore((state) => state.setSelectedPaymentMethod);
+  const resetCheckout = useClienteStore((state) => state.resetCheckout);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [store, setStore] = useState<StoreDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -169,6 +170,8 @@ export function CheckoutPage() {
       });
 
       if (result.checkout_url) {
+        resetCart();
+        resetCheckout();
         const path = normalizePath(result.checkout_url);
         if (path.startsWith("/")) {
           navigate(path);
@@ -178,6 +181,8 @@ export function CheckoutPage() {
         return;
       }
 
+      resetCart();
+      resetCheckout();
       navigate(`/c/pedido/${result.order_id}`, { replace: true });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudo completar el checkout");
