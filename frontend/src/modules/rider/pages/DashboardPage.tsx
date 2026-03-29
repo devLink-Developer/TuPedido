@@ -10,6 +10,7 @@ import {
   fetchDeliverySettlements,
   pickupDeliveryOrder,
   pushDeliveryLocation,
+  REALTIME_ENABLED,
   updateDeliveryAvailability
 } from "../../../shared/services/api";
 import type { AppNotification, DeliveryProfile, DeliverySettlement, Order } from "../../../shared/types";
@@ -18,6 +19,8 @@ import { ActiveDelivery } from "../components/ActiveDelivery";
 import { AvailableOrders } from "../components/AvailableOrders";
 import { EarningsSummary } from "../components/EarningsSummary";
 import { OnlineToggle } from "../components/OnlineToggle";
+
+const LIVE_REFRESH_INTERVAL_MS = 15000;
 
 function upsertOrderList(current: Order[], nextOrder: Order) {
   const existing = current.some((order) => order.id === nextOrder.id);
@@ -43,9 +46,11 @@ export function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyOrderId, setBusyOrderId] = useState<number | null>(null);
 
-  async function load() {
+  async function load(options?: { silent?: boolean }) {
     if (!token) return;
-    setLoading(true);
+    if (!options?.silent) {
+      setLoading(true);
+    }
     try {
       const [profileData, orderList, settlementData, notificationList] = await Promise.all([
         fetchDeliveryMe(token),
@@ -59,9 +64,13 @@ export function DashboardPage() {
       setNotifications(notificationList);
       setError(null);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No se pudo cargar el panel rider");
+      if (!options?.silent) {
+        setError(requestError instanceof Error ? requestError.message : "No se pudo cargar el panel rider");
+      }
     } finally {
-      setLoading(false);
+      if (!options?.silent) {
+        setLoading(false);
+      }
     }
   }
 
@@ -75,7 +84,7 @@ export function DashboardPage() {
   );
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !REALTIME_ENABLED) return;
 
     let socket: WebSocket | null = null;
     try {
@@ -99,6 +108,38 @@ export function DashboardPage() {
 
     return () => {
       socket?.close();
+    };
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const refreshSilently = () => {
+      void load({ silent: true });
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        refreshSilently();
+      }
+    }, LIVE_REFRESH_INTERVAL_MS);
+
+    const handleFocus = () => {
+      refreshSilently();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshSilently();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [token]);
 

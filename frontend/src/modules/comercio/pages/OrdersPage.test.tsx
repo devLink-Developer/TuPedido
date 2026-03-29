@@ -55,6 +55,7 @@ vi.mock("../../../shared/services/api", () => ({
   fetchMerchantOrders: (token: string) => fetchMerchantOrdersMock(token),
   fetchMerchantRiders: (token: string) => fetchMerchantRidersMock(token),
   fetchMerchantStore: (token: string) => fetchMerchantStoreMock(token),
+  REALTIME_ENABLED: true,
   updateMerchantOrderStatus: (token: string, orderId: number, payload: unknown) =>
     updateMerchantOrderStatusMock(token, orderId, payload),
   updateMerchantStore: (token: string, payload: unknown) => updateMerchantStoreMock(token, payload)

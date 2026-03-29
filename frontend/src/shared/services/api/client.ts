@@ -1,5 +1,9 @@
 const DEFAULT_API_BASE_URL = "http://localhost:8016/api/v1";
 
+function isLocalHostname(hostname: string): boolean {
+  return ["localhost", "127.0.0.1"].includes(hostname);
+}
+
 function resolveApiBaseUrl(): string {
   const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
   if (configuredBaseUrl) {
@@ -8,7 +12,7 @@ function resolveApiBaseUrl(): string {
 
   if (typeof window !== "undefined") {
     const hostname = window.location.hostname;
-    if (hostname && !["localhost", "127.0.0.1"].includes(hostname)) {
+    if (hostname && !isLocalHostname(hostname)) {
       return "/api/v1";
     }
   }
@@ -17,6 +21,24 @@ function resolveApiBaseUrl(): string {
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
+
+function resolveRealtimeEnabled(): boolean {
+  const configuredValue = import.meta.env.VITE_REALTIME_ENABLED?.trim().toLowerCase();
+  if (configuredValue === "true") {
+    return true;
+  }
+  if (configuredValue === "false") {
+    return false;
+  }
+
+  if (typeof window !== "undefined") {
+    return isLocalHostname(window.location.hostname);
+  }
+
+  return true;
+}
+
+export const REALTIME_ENABLED = resolveRealtimeEnabled();
 
 function resolveUrl(value: string): URL {
   try {

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { buildOrderSocketUrl } from "../services/api";
+import { buildOrderSocketUrl, REALTIME_ENABLED } from "../services/api";
 import type { Order, OrderTracking } from "../types";
 
 export function useOrderLiveTracking({
@@ -18,7 +18,7 @@ export function useOrderLiveTracking({
   onError?: (message: string | null) => void;
 }) {
   useEffect(() => {
-    if (!token || !orderId || !enabled) return;
+    if (!token || !orderId || !enabled || !REALTIME_ENABLED) return;
     let socket: WebSocket | null = null;
     try {
       socket = new WebSocket(buildOrderSocketUrl(token, orderId));

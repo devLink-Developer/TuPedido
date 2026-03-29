@@ -7,6 +7,7 @@ import {
   fetchMerchantOrders,
   fetchMerchantRiders,
   fetchMerchantStore,
+  REALTIME_ENABLED,
   updateMerchantOrderStatus,
   updateMerchantStore
 } from "../../../shared/services/api";
@@ -194,7 +195,7 @@ export function OrdersPage() {
   }, [token]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !REALTIME_ENABLED) return;
 
     let socket: WebSocket | null = null;
     let reconnectTimeoutId: number | null = null;

@@ -9,6 +9,8 @@ import { paymentMethodLabels, statusLabels } from "../../../shared/utils/labels"
 import { CheckoutSummary } from "../components/CheckoutSummary";
 import { OrderTracking } from "../components/OrderTracking";
 
+const LIVE_REFRESH_INTERVAL_MS = 15000;
+
 export function OrderPage() {
   const { id } = useParams();
   const { token } = useAuthSession();
@@ -60,6 +62,49 @@ export function OrderPage() {
     onOrder: handleOrderUpdate,
     onTracking: handleTrackingUpdate
   });
+
+  useEffect(() => {
+    if (!token || !orderId) {
+      return;
+    }
+
+    const refreshSilently = () => {
+      Promise.allSettled([fetchOrder(token, orderId), fetchOrderTracking(token, orderId)]).then(
+        ([orderResult, trackingResult]) => {
+          if (orderResult.status === "fulfilled") {
+            setOrder(orderResult.value);
+          }
+          if (trackingResult.status === "fulfilled") {
+            setTracking(trackingResult.value);
+          }
+        }
+      );
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        refreshSilently();
+      }
+    }, LIVE_REFRESH_INTERVAL_MS);
+
+    const handleFocus = () => {
+      refreshSilently();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshSilently();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [orderId, token]);
 
   useEffect(() => {
     if (!token || !order || !order.otp_required || !order.assigned_rider_id) {
