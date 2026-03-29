@@ -32,7 +32,7 @@ from app.services.category_colors import resolve_category_palette
 from app.services.store_branding import resolve_store_assets
 
 router = APIRouter()
-CUSTOMER_RESET_PASSWORD = "12345678"
+USER_RESET_PASSWORD = "12345678"
 
 STORE_OPTIONS = (
     selectinload(Store.category_links).selectinload(StoreCategoryLink.category),
@@ -397,7 +397,7 @@ def list_users(_: User = Depends(require_admin), db: Session = Depends(get_db)) 
 
 
 @router.post("/users/{user_id}/reset-password", response_model=AdminUserPasswordResetResponse)
-def reset_customer_password(
+def reset_user_password(
     user_id: int,
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
@@ -405,13 +405,8 @@ def reset_customer_password(
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    if user.role != "customer":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password reset from this panel is only available for customers",
-        )
 
-    user.hashed_password = hash_password(CUSTOMER_RESET_PASSWORD)
+    user.hashed_password = hash_password(USER_RESET_PASSWORD)
     user.must_change_password = True
     db.commit()
-    return AdminUserPasswordResetResponse(temporary_password=CUSTOMER_RESET_PASSWORD)
+    return AdminUserPasswordResetResponse(temporary_password=USER_RESET_PASSWORD)

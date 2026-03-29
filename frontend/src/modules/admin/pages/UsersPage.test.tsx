@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { UsersPage } from "./UsersPage";
 
 const fetchAdminUsersMock = vi.fn();
-const resetAdminCustomerPasswordMock = vi.fn();
+const resetAdminUserPasswordMock = vi.fn();
 
 vi.mock("../../../shared/hooks", () => ({
   useAuthSession: () => ({
@@ -14,7 +14,7 @@ vi.mock("../../../shared/hooks", () => ({
 
 vi.mock("../../../shared/services/api", () => ({
   fetchAdminUsers: (...args: unknown[]) => fetchAdminUsersMock(...args),
-  resetAdminCustomerPassword: (...args: unknown[]) => resetAdminCustomerPasswordMock(...args)
+  resetAdminUserPassword: (...args: unknown[]) => resetAdminUserPasswordMock(...args)
 }));
 
 vi.mock("../../../shared/components", () => ({
@@ -57,10 +57,10 @@ function createUser(id: number, overrides?: Partial<Record<string, unknown>>) {
 describe("UsersPage", () => {
   beforeEach(() => {
     fetchAdminUsersMock.mockReset();
-    resetAdminCustomerPasswordMock.mockReset();
+    resetAdminUserPasswordMock.mockReset();
   });
 
-  it("muestra el boton de restablecer solo para clientes", async () => {
+  it("muestra el boton de restablecer para cualquier rol", async () => {
     fetchAdminUsersMock.mockResolvedValueOnce([
       createUser(1, { role: "customer" }),
       createUser(2, { role: "merchant" })
@@ -75,13 +75,13 @@ describe("UsersPage", () => {
     }
 
     expect(within(customerCard).getByRole("button", { name: "Restablecer contrasena" })).toBeInTheDocument();
-    expect(within(merchantCard).queryByRole("button", { name: "Restablecer contrasena" })).not.toBeInTheDocument();
+    expect(within(merchantCard).getByRole("button", { name: "Restablecer contrasena" })).toBeInTheDocument();
   });
 
-  it("restablece la contrasena del cliente y actualiza la card al instante", async () => {
+  it("restablece la contrasena del usuario y actualiza la card al instante", async () => {
     const user = userEvent.setup();
     fetchAdminUsersMock.mockResolvedValueOnce([createUser(7)]);
-    resetAdminCustomerPasswordMock.mockResolvedValueOnce({ temporary_password: "12345678" });
+    resetAdminUserPasswordMock.mockResolvedValueOnce({ temporary_password: "12345678" });
 
     render(<UsersPage />);
 
@@ -92,10 +92,10 @@ describe("UsersPage", () => {
 
     await user.click(within(customerCard).getByRole("button", { name: "Restablecer contrasena" }));
 
-    await waitFor(() => expect(resetAdminCustomerPasswordMock).toHaveBeenCalledWith("token", 7));
+    await waitFor(() => expect(resetAdminUserPasswordMock).toHaveBeenCalledWith("token", 7));
     expect(within(customerCard).getByText("Cambio requerido")).toBeInTheDocument();
     expect(
-      screen.getByText(/Contrasena de Usuario 7 restablecida a 12345678\. El cliente debera cambiarla al ingresar\./i)
+      screen.getByText(/Contrasena de Usuario 7 restablecida a 12345678\. El usuario debera cambiarla al ingresar\./i)
     ).toBeInTheDocument();
   });
 });

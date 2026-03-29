@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState, LoadingCard, PageHeader, StatCard } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
-import { fetchAdminUsers, resetAdminCustomerPassword } from "../../../shared/services/api";
+import { fetchAdminUsers, resetAdminUserPassword } from "../../../shared/services/api";
 import type { AuthUser, Role } from "../../../shared/types";
 import { roleLabels } from "../../../shared/utils/labels";
 
@@ -46,8 +46,8 @@ export function UsersPage() {
     [roleFilter, users]
   );
   const activeUsers = useMemo(() => users.filter((user) => user.is_active).length, [users]);
-  const customersRequiringPasswordChange = useMemo(
-    () => users.filter((user) => user.role === "customer" && user.must_change_password).length,
+  const usersRequiringPasswordChange = useMemo(
+    () => users.filter((user) => user.must_change_password).length,
     [users]
   );
 
@@ -57,7 +57,7 @@ export function UsersPage() {
     setActionError(null);
     setActionMessage(null);
     try {
-      const response = await resetAdminCustomerPassword(token, user.id);
+      const response = await resetAdminUserPassword(token, user.id);
       setUsers((current) =>
         current.map((item) =>
           item.id === user.id
@@ -69,11 +69,11 @@ export function UsersPage() {
         )
       );
       setActionMessage(
-        `Contrasena de ${user.full_name} restablecida a ${response.temporary_password}. El cliente debera cambiarla al ingresar.`
+        `Contrasena de ${user.full_name} restablecida a ${response.temporary_password}. El usuario debera cambiarla al ingresar.`
       );
     } catch (requestError) {
       setActionError(
-        requestError instanceof Error ? requestError.message : "No se pudo restablecer la contrasena del cliente"
+        requestError instanceof Error ? requestError.message : "No se pudo restablecer la contrasena del usuario"
       );
     } finally {
       setBusyUserId(null);
@@ -101,8 +101,8 @@ export function UsersPage() {
         <StatCard label="Usuarios activos" value={String(activeUsers)} description="Cuentas habilitadas actualmente." />
         <StatCard
           label="Cambio requerido"
-          value={String(customersRequiringPasswordChange)}
-          description="Clientes que deben actualizar su contrasena al ingresar."
+          value={String(usersRequiringPasswordChange)}
+          description="Usuarios que deben actualizar su contrasena al ingresar."
         />
       </div>
 
@@ -178,26 +178,24 @@ export function UsersPage() {
                 >
                   {user.is_active ? "Activo" : "Inactivo"}
                 </span>
-                {user.role === "customer" && user.must_change_password ? (
+                {user.must_change_password ? (
                   <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
                     Cambio requerido
                   </span>
                 ) : null}
               </div>
             </div>
-            {user.role === "customer" ? (
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => void handleResetPassword(user)}
-                  disabled={busyUserId === user.id}
-                  className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-zinc-300"
-                >
-                  {busyUserId === user.id ? "Restableciendo..." : "Restablecer contrasena"}
-                </button>
-                <p className="text-sm text-zinc-500">La contrasena temporal se fija en 12345678.</p>
-              </div>
-            ) : null}
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void handleResetPassword(user)}
+                disabled={busyUserId === user.id}
+                className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-zinc-300"
+              >
+                {busyUserId === user.id ? "Restableciendo..." : "Restablecer contrasena"}
+              </button>
+              <p className="text-sm text-zinc-500">La contrasena temporal se fija en 12345678.</p>
+            </div>
           </article>
         ))}
 

@@ -106,7 +106,7 @@ export async function fetchAdminUsers(token: string): Promise<AuthUser[]> {
   return apiRequest<AuthUser[]>("/admin/users", { token });
 }
 
-export async function resetAdminCustomerPassword(
+export async function resetAdminUserPassword(
   token: string,
   userId: number
 ): Promise<{ temporary_password: string }> {
