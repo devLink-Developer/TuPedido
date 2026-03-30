@@ -43,14 +43,24 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
         <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.05] tracking-tight sm:text-4xl">
           {mode === "login" ? "Ingresar a TuPedido" : "Crear cuenta cliente"}
         </h1>
-        <p className="mt-3 text-sm leading-6 text-white/72 sm:leading-7">
-          Ingresa una sola vez y te llevamos a la experiencia correspondiente para tu cuenta.
-        </p>
-        <div className="mt-6 grid gap-3 text-sm leading-6 text-white/78">
-          <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Un solo acceso para clientes, comercios, riders y administradores.</div>
-          <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">El registro desde esta pantalla esta disponible para cuentas cliente.</div>
-          <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Si estabas completando una solicitud, podras retomarla al volver.</div>
-        </div>
+        {mode === "register" ? (
+          <>
+            <p className="mt-3 text-sm leading-6 text-white/72 sm:leading-7">
+              Ingresa una sola vez y te llevamos a la experiencia correspondiente para tu cuenta.
+            </p>
+            <div className="mt-6 grid gap-3 text-sm leading-6 text-white/78">
+              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">
+                Un solo acceso para clientes, comercios, riders y administradores.
+              </div>
+              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">
+                El registro desde esta pantalla esta disponible para cuentas cliente.
+              </div>
+              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">
+                Si estabas completando una solicitud, podras retomarla al volver.
+              </div>
+            </div>
+          </>
+        ) : null}
       </div>
 
       <form onSubmit={(event) => void handleSubmit(event)} className="rounded-[32px] bg-white p-5 shadow-sm sm:p-6">

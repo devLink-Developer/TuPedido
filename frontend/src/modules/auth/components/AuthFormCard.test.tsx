@@ -28,6 +28,9 @@ describe("AuthFormCard", () => {
     expect(secondaryAction).toHaveClass("w-full", "sm:w-auto", "text-center");
     expect(secondaryAction.parentElement).toHaveClass("flex-col", "sm:flex-row");
     expect(screen.getByRole("heading", { name: "Iniciar sesion" })).toHaveClass("text-[1.85rem]", "sm:text-3xl");
+    expect(
+      screen.queryByText("Ingresa una sola vez y te llevamos a la experiencia correspondiente para tu cuenta.")
+    ).not.toBeInTheDocument();
   });
 
   it("redirects to the role home returned by backend login", async () => {
