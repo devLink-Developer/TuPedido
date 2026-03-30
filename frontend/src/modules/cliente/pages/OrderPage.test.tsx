@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Order, OrderTracking } from "../../../shared/types";
+import { ORDER_REVIEW_PROMPT_REFRESH_EVENT } from "../../../shared/utils/orderReviewPrompt";
 import { OrderPage } from "./OrderPage";
 
 const fetchOrderMock = vi.fn();
@@ -181,6 +182,8 @@ describe("OrderPage", () => {
   });
 
   it("oculta el tracking cuando el pedido pasa a entregado en una actualizacion", async () => {
+    const reviewRefreshListener = vi.fn();
+    window.addEventListener(ORDER_REVIEW_PROMPT_REFRESH_EVENT, reviewRefreshListener);
     fetchOrderMock
       .mockResolvedValueOnce(createOrder())
       .mockResolvedValueOnce(createOrder({ status: "delivered", delivered_at: "2026-03-29T12:25:00Z" }));
@@ -196,5 +199,8 @@ describe("OrderPage", () => {
     await waitFor(() => expect(screen.queryByText("tracking-block")).not.toBeInTheDocument());
     expect(screen.getByText("El pedido ya fue entregado y quedo en tu historial.")).toBeInTheDocument();
     expect(fetchOrderTrackingMock).toHaveBeenCalledTimes(1);
+    expect(reviewRefreshListener).toHaveBeenCalledTimes(1);
+
+    window.removeEventListener(ORDER_REVIEW_PROMPT_REFRESH_EVENT, reviewRefreshListener);
   });
 });

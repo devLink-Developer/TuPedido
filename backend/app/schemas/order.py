@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.pricing import PricingSummaryRead
 
@@ -100,6 +100,20 @@ class OrderTrackingRead(BaseModel):
     eta_minutes: int | None = None
     otp_required: bool = False
     otp_code: str | None = None
+
+
+class PendingOrderReviewRead(BaseModel):
+    order_id: int
+    store_name: str
+    delivered_at: datetime | None = None
+    rider_name: str | None = None
+    requires_rider_rating: bool
+
+
+class OrderReviewCreate(BaseModel):
+    store_rating: int = Field(ge=1, le=5)
+    rider_rating: int | None = Field(default=None, ge=1, le=5)
+    review_text: str | None = None
 
 
 class OrderStatusUpdate(BaseModel):

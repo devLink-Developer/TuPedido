@@ -2,11 +2,13 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Order } from "../../shared/types";
+import type { Order, PendingOrderReview } from "../../shared/types";
 import { ClienteLayout } from "./ClienteLayout";
 
 const fetchAddressesMock = vi.fn();
 const fetchOrdersMock = vi.fn();
+const fetchPendingOrderReviewMock = vi.fn();
+const createOrderReviewMock = vi.fn();
 const logoutMock = vi.fn();
 
 vi.mock("../../shared/hooks", () => ({
@@ -29,7 +31,9 @@ vi.mock("../../shared/hooks", () => ({
 
 vi.mock("../../shared/services/api", () => ({
   fetchAddresses: (...args: unknown[]) => fetchAddressesMock(...args),
-  fetchOrders: (...args: unknown[]) => fetchOrdersMock(...args)
+  fetchOrders: (...args: unknown[]) => fetchOrdersMock(...args),
+  fetchPendingOrderReview: (...args: unknown[]) => fetchPendingOrderReviewMock(...args),
+  createOrderReview: (...args: unknown[]) => createOrderReviewMock(...args)
 }));
 
 function createOrder(overrides?: Partial<Order>): Order {
@@ -104,13 +108,28 @@ function renderLayout(initialEntry = "/c") {
   );
 }
 
+function createPendingReview(overrides?: Partial<PendingOrderReview>): PendingOrderReview {
+  return {
+    order_id: 41,
+    store_name: "Cafe Central",
+    delivered_at: "2026-03-29T13:00:00Z",
+    rider_name: "Rider Demo",
+    requires_rider_rating: true,
+    ...overrides
+  };
+}
+
 describe("ClienteLayout", () => {
   beforeEach(() => {
     fetchAddressesMock.mockReset();
     fetchOrdersMock.mockReset();
+    fetchPendingOrderReviewMock.mockReset();
+    createOrderReviewMock.mockReset();
     logoutMock.mockReset();
     fetchAddressesMock.mockResolvedValue([]);
     fetchOrdersMock.mockResolvedValue([]);
+    fetchPendingOrderReviewMock.mockResolvedValue(null);
+    createOrderReviewMock.mockResolvedValue(undefined);
   });
 
   it("muestra Mis pedidos en el menu y navega a la ruta del historial", async () => {
@@ -165,5 +184,78 @@ describe("ClienteLayout", () => {
 
     await waitFor(() => expect(fetchOrdersMock).toHaveBeenCalled());
     expect(screen.queryByText("Pedido en proceso")).not.toBeInTheDocument();
+  });
+
+  it("muestra la calificacion pendiente y permite enviar sin resena", async () => {
+    const user = userEvent.setup();
+    fetchPendingOrderReviewMock
+      .mockResolvedValueOnce(createPendingReview())
+      .mockResolvedValueOnce(null);
+
+    renderLayout();
+
+    expect(await screen.findByText("Contanos como fue el pedido")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: "Comercio 5 estrellas" }));
+    await user.click(screen.getByRole("radio", { name: "Rider 4 estrellas" }));
+    await user.click(screen.getByRole("button", { name: "Enviar calificacion" }));
+
+    await waitFor(() =>
+      expect(createOrderReviewMock).toHaveBeenCalledWith("token", 41, {
+        store_rating: 5,
+        rider_rating: 4,
+        review_text: null
+      })
+    );
+    await waitFor(() => expect(screen.queryByText("Contanos como fue el pedido")).not.toBeInTheDocument());
+  });
+
+  it("despliega el textarea opcional al pulsar Agregar resena", async () => {
+    const user = userEvent.setup();
+    fetchPendingOrderReviewMock.mockResolvedValueOnce(createPendingReview());
+
+    renderLayout();
+
+    expect(await screen.findByText("Contanos como fue el pedido")).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Cuenta brevemente como fue tu experiencia.")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Agregar resena" }));
+
+    expect(screen.getByPlaceholderText("Cuenta brevemente como fue tu experiencia.")).toBeInTheDocument();
+  });
+
+  it("bloquea nuevos prompts durante la sesion cuando el usuario salta la calificacion", async () => {
+    const user = userEvent.setup();
+    fetchPendingOrderReviewMock.mockResolvedValue(createPendingReview());
+
+    renderLayout();
+
+    expect(await screen.findByText("Contanos como fue el pedido")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Saltar por ahora" }));
+
+    expect(window.sessionStorage.getItem("tupedido.order-review.dismissed")).toBe("41");
+    expect(screen.queryByText("Contanos como fue el pedido")).not.toBeInTheDocument();
+
+    window.dispatchEvent(new Event("focus"));
+
+    await waitFor(() => expect(fetchPendingOrderReviewMock).toHaveBeenCalledTimes(1));
+
+    window.sessionStorage.clear();
+    window.dispatchEvent(new Event("focus"));
+
+    expect(await screen.findByText("Contanos como fue el pedido")).toBeInTheDocument();
+  });
+
+  it("renderiza solo la calificacion del comercio cuando no aplica rider", async () => {
+    fetchPendingOrderReviewMock.mockResolvedValueOnce(
+      createPendingReview({ rider_name: null, requires_rider_rating: false })
+    );
+
+    renderLayout();
+
+    expect(await screen.findByText("Contanos como fue el pedido")).toBeInTheDocument();
+    expect(screen.getByText("Comercio")).toBeInTheDocument();
+    expect(screen.queryByText("Rider")).not.toBeInTheDocument();
   });
 });

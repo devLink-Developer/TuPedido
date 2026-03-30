@@ -45,3 +45,10 @@ def require_delivery(user: User = Depends(get_current_user)) -> User:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Delivery role required")
 
     return user
+
+
+def require_customer(user: User = Depends(get_current_user)) -> User:
+    if user.role != "customer":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Customer role required")
+
+    return user

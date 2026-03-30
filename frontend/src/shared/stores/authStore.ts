@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { changePassword as changePasswordRequest, fetchMe, login as loginRequest, register as registerRequest } from "../services/api";
 import type { AuthResponse, AuthUser } from "../types";
+import { clearDismissedOrderReviewPrompt } from "../utils/orderReviewPrompt";
 import { readJsonStorage, removeStorageValue, writeJsonStorage } from "../utils/storage";
 
 const STORAGE_KEY = "tupedido.session";
@@ -68,6 +69,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true });
     try {
       const auth = await loginRequest(email, password);
+      clearDismissedOrderReviewPrompt();
       persistSession(auth);
       set({
         user: auth.user,
@@ -85,6 +87,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true });
     try {
       const auth = await registerRequest(fullName, email, password);
+      clearDismissedOrderReviewPrompt();
       persistSession(auth);
       set({
         user: auth.user,
@@ -139,6 +142,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return user;
   },
   logout() {
+    clearDismissedOrderReviewPrompt();
     persistSession(null);
     set({
       user: null,
@@ -148,6 +152,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
   setSession(auth) {
+    clearDismissedOrderReviewPrompt();
     persistSession(auth);
     set({
       user: auth?.user ?? null,

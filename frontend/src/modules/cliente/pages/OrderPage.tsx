@@ -4,6 +4,7 @@ import { EmptyState, LoadingCard, PageHeader, StatusPill } from "../../../shared
 import { useAuthSession, useOrderLiveTracking } from "../../../shared/hooks";
 import { fetchOrder, fetchOrderTracking } from "../../../shared/services/api";
 import type { Order, OrderTracking as OrderTrackingType } from "../../../shared/types";
+import { dispatchOrderReviewPromptRefresh } from "../../../shared/utils/orderReviewPrompt";
 import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
 import { paymentMethodLabels, statusLabels } from "../../../shared/utils/labels";
 import { CheckoutSummary } from "../components/CheckoutSummary";
@@ -129,6 +130,7 @@ export function OrderPage() {
   const [error, setError] = useState<string | null>(null);
   const orderId = id ? Number(id) : null;
   const otpFetchRequestedRef = useRef<Set<number>>(new Set());
+  const previousOrderStatusRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!token || !orderId) return;
@@ -238,6 +240,20 @@ export function OrderPage() {
         otpFetchRequestedRef.current.delete(order.id);
       });
   }, [order, token, tracking]);
+
+  useEffect(() => {
+    if (!order) {
+      previousOrderStatusRef.current = null;
+      return;
+    }
+
+    const previousStatus = previousOrderStatusRef.current;
+    previousOrderStatusRef.current = order.status;
+
+    if (order.status === "delivered" && previousStatus !== null && previousStatus !== "delivered") {
+      dispatchOrderReviewPromptRefresh();
+    }
+  }, [order]);
 
   const liveTracking = useMemo(() => {
     if (!order || !isActiveCustomerOrder(order)) return null;

@@ -12,7 +12,7 @@ from app.models.delivery import (
     RiderSettlementCharge,
     RiderSettlementPayment,
 )
-from app.models.order import ShoppingCart, ShoppingCartItem, StoreOrder, StoreOrderItem
+from app.models.order import OrderReview, ShoppingCart, ShoppingCartItem, StoreOrder, StoreOrderItem
 from app.models.platform import (
     MerchantServiceFeeCharge,
     MerchantSettlementAllocation,
@@ -50,6 +50,7 @@ __all__ = [
     "MerchantSettlementPayment",
     "MerchantTransferNotice",
     "NotificationEvent",
+    "OrderReview",
     "PlatformSettings",
     "PushSubscription",
     "RiderSettlementAllocation",

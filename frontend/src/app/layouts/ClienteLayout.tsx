@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 import { Link, useLocation, useMatch, useNavigate } from "react-router-dom";
-import { fetchAddresses } from "../../shared/services/api";
+import { createOrderReview, fetchAddresses, fetchPendingOrderReview } from "../../shared/services/api";
 import { useAuthSession, useCart } from "../../shared/hooks";
 import { useClienteStore } from "../../shared/stores";
-import type { Address } from "../../shared/types";
+import type { Address, CreateOrderReviewPayload, PendingOrderReview } from "../../shared/types";
+import {
+  ORDER_REVIEW_PROMPT_REFRESH_EVENT,
+  dismissOrderReviewPrompt,
+  getDismissedOrderReviewId
+} from "../../shared/utils/orderReviewPrompt";
 import { CUSTOMER_ADDRESSES_CHANGED_EVENT } from "../../shared/utils/customerAddresses";
 import { ActiveOrderBar } from "../../modules/cliente/components/ActiveOrderBar";
+import { OrderReviewPrompt } from "../../modules/cliente/components/OrderReviewPrompt";
 
 export function ClienteLayout({ children }: PropsWithChildren) {
   const navigate = useNavigate();
@@ -21,6 +27,9 @@ export function ClienteLayout({ children }: PropsWithChildren) {
   const [navbarVisible, setNavbarVisible] = useState(true);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [addressesLoading, setAddressesLoading] = useState(false);
+  const [pendingReview, setPendingReview] = useState<PendingOrderReview | null>(null);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const showFloatingCart = location.pathname !== "/c/carrito" && location.pathname !== "/c/checkout" && itemCount > 0;
   const showAddressSelector = isAuthenticated && user?.role === "customer";
   const showActiveOrderBar = !orderTrackingMatch;
@@ -130,6 +139,90 @@ export function ClienteLayout({ children }: PropsWithChildren) {
     const defaultAddress = addresses.find((address) => address.is_default) ?? addresses[0];
     setSelectedAddressId(defaultAddress?.id ?? "");
   }, [addresses, selectedAddressId, setSelectedAddressId]);
+
+  const loadPendingReview = useCallback(async () => {
+    if (!isAuthenticated || user?.role !== "customer" || !token) {
+      setPendingReview(null);
+      setReviewError(null);
+      return;
+    }
+
+    if (getDismissedOrderReviewId() !== null) {
+      setPendingReview(null);
+      setReviewError(null);
+      return;
+    }
+
+    try {
+      const nextPendingReview = await fetchPendingOrderReview(token);
+      setPendingReview(nextPendingReview);
+      setReviewError(null);
+    } catch {
+      setPendingReview(null);
+    }
+  }, [isAuthenticated, token, user?.role]);
+
+  useEffect(() => {
+    void loadPendingReview();
+  }, [loadPendingReview]);
+
+  useEffect(() => {
+    if (!showAddressSelector || !token) {
+      return;
+    }
+
+    const handleFocus = () => {
+      void loadPendingReview();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadPendingReview();
+      }
+    };
+    const handleRefreshEvent = () => {
+      void loadPendingReview();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener(ORDER_REVIEW_PROMPT_REFRESH_EVENT, handleRefreshEvent);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener(ORDER_REVIEW_PROMPT_REFRESH_EVENT, handleRefreshEvent);
+    };
+  }, [loadPendingReview, showAddressSelector, token]);
+
+  const handleSkipReview = useCallback(() => {
+    if (!pendingReview) {
+      return;
+    }
+
+    dismissOrderReviewPrompt(pendingReview.order_id);
+    setPendingReview(null);
+    setReviewError(null);
+  }, [pendingReview]);
+
+  const handleSubmitReview = useCallback(
+    async (payload: CreateOrderReviewPayload) => {
+      if (!token || !pendingReview) {
+        return;
+      }
+
+      setReviewSubmitting(true);
+      setReviewError(null);
+      try {
+        await createOrderReview(token, pendingReview.order_id, payload);
+        await loadPendingReview();
+      } catch (submissionError) {
+        setReviewError(submissionError instanceof Error ? submissionError.message : "No se pudo guardar la calificacion");
+      } finally {
+        setReviewSubmitting(false);
+      }
+    },
+    [loadPendingReview, pendingReview, token]
+  );
 
   return (
     <div className="ambient-grid min-h-screen text-ink">
@@ -241,6 +334,15 @@ export function ClienteLayout({ children }: PropsWithChildren) {
             {itemCount}
           </span>
         </Link>
+      ) : null}
+      {pendingReview ? (
+        <OrderReviewPrompt
+          review={pendingReview}
+          submitError={reviewError}
+          submitting={reviewSubmitting}
+          onSkip={handleSkipReview}
+          onSubmit={handleSubmitReview}
+        />
       ) : null}
     </div>
   );

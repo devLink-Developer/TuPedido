@@ -96,6 +96,20 @@ export type OrderTracking = {
   otp_code: string | null;
 };
 
+export type PendingOrderReview = {
+  order_id: number;
+  store_name: string;
+  delivered_at: string | null;
+  rider_name: string | null;
+  requires_rider_rating: boolean;
+};
+
+export type CreateOrderReviewPayload = {
+  store_rating: number;
+  rider_rating?: number | null;
+  review_text?: string | null;
+};
+
 export type OrderStatusUpdate = {
   status:
     | "created"

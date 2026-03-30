@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -107,6 +107,7 @@ class StoreOrder(Base):
     merchant_ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     out_for_delivery_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_prompt_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -135,6 +136,9 @@ class StoreOrder(Base):
     merchant_cash_delivery_payable: Mapped["MerchantCashDeliveryPayable | None"] = relationship(
         back_populates="order", uselist=False
     )
+    order_review: Mapped["OrderReview | None"] = relationship(
+        back_populates="order", uselist=False, cascade="all, delete-orphan"
+    )
 
 
 class StoreOrderItem(Base):
@@ -156,3 +160,26 @@ class StoreOrderItem(Base):
 
     order: Mapped[StoreOrder] = relationship(back_populates="items")
     product: Mapped["Product | None"] = relationship(back_populates="order_items")
+
+
+class OrderReview(Base):
+    __tablename__ = "order_reviews"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    order_id: Mapped[int] = mapped_column(
+        ForeignKey("store_orders.id", ondelete="CASCADE"), unique=True
+    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    store_id: Mapped[int] = mapped_column(ForeignKey("stores.id", ondelete="CASCADE"), index=True)
+    rider_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    store_rating: Mapped[int] = mapped_column(Integer)
+    rider_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    review_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    order: Mapped[StoreOrder] = relationship(back_populates="order_review")
