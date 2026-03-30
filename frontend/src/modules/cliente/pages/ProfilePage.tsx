@@ -185,7 +185,7 @@ export function ProfilePage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Direcciones</p>
-                <h2 className="mt-2 text-2xl font-bold text-ink">Guardadas para checkout</h2>
+                <h2 className="mt-2 text-2xl font-bold text-ink">Direcciones de envio</h2>
               </div>
               <span className="rounded-full bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-600">
                 {addresses.length} registradas
