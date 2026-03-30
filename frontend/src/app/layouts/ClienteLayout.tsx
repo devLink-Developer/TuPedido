@@ -134,11 +134,11 @@ export function ClienteLayout({ children }: PropsWithChildren) {
   return (
     <div className="ambient-grid min-h-screen text-ink">
       <header
-        className={`fixed inset-x-0 top-0 z-30 border-b border-black/5 bg-[rgba(255,251,246,0.88)] px-4 py-3 backdrop-blur transition-transform duration-200 md:px-8 ${
+        className={`fixed inset-x-0 top-0 z-30 border-b border-black/5 bg-[rgba(255,251,246,0.88)] py-3 backdrop-blur transition-transform duration-200 ${
           navbarVisible ? "translate-y-0" : "-translate-y-[calc(100%+0.75rem)]"
         }`}
       >
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 md:px-8">
           <Link to="/c" aria-label="Ir al catalogo" className="shrink-0">
             <img src="/icons/icon-192.svg" alt="TuPedido" className="h-11 w-11 rounded-[1.2rem] shadow-float" />
           </Link>
