@@ -79,6 +79,12 @@ def update_platform_settings(
     settings.service_fee_amount = payload.service_fee_amount
     if "catalog_banner_image_url" in payload.model_fields_set:
         settings.catalog_banner_image_url = (payload.catalog_banner_image_url or "").strip() or None
+    if "platform_logo_url" in payload.model_fields_set:
+        settings.platform_logo_url = (payload.platform_logo_url or "").strip() or None
+    if "platform_favicon_url" in payload.model_fields_set:
+        settings.platform_favicon_url = (payload.platform_favicon_url or "").strip() or None
+    if "platform_use_logo_as_favicon" in payload.model_fields_set and payload.platform_use_logo_as_favicon is not None:
+        settings.platform_use_logo_as_favicon = payload.platform_use_logo_as_favicon
     if "catalog_banner_width" in payload.model_fields_set:
         settings.catalog_banner_width = payload.catalog_banner_width or DEFAULT_CATALOG_BANNER_WIDTH
     if "catalog_banner_height" in payload.model_fields_set:

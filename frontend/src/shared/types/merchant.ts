@@ -172,6 +172,10 @@ export type StorePaymentSettingsUpdate = {
 
 export type PlatformSettings = {
   service_fee_amount: number;
+  platform_logo_url?: string | null;
+  platform_favicon_url?: string | null;
+  platform_use_logo_as_favicon?: boolean;
+  resolved_favicon_url?: string | null;
   catalog_banner_image_url?: string | null;
   catalog_banner_width?: number;
   catalog_banner_height?: number;
@@ -181,6 +185,9 @@ export type PlatformSettings = {
 
 export type PlatformSettingsUpdate = {
   service_fee_amount: number;
+  platform_logo_url?: string | null;
+  platform_favicon_url?: string | null;
+  platform_use_logo_as_favicon?: boolean;
   catalog_banner_image_url?: string | null;
   catalog_banner_width?: number;
   catalog_banner_height?: number;

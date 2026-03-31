@@ -5,11 +5,17 @@ from sqlalchemy.orm import Session, selectinload
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.api.presenters import serialize_catalog_banner, serialize_category, serialize_store_detail, serialize_store_summary
+from app.api.presenters import (
+    serialize_catalog_banner,
+    serialize_category,
+    serialize_platform_branding,
+    serialize_store_detail,
+    serialize_store_summary,
+)
 from app.core.utils import next_store_opening_at
 from app.db.session import get_db
 from app.models.store import Category, Product, ProductCategory, Store, StoreCategoryLink
-from app.schemas.catalog import CatalogBannerRead
+from app.schemas.catalog import CatalogBannerRead, PlatformBrandingRead
 from app.services.mercadopago import get_or_create_mercadopago_provider
 from app.services.platform import get_or_create_platform_settings
 
@@ -38,6 +44,11 @@ def list_categories(db: Session = Depends(get_db)) -> list[dict[str, object]]:
 @router.get("/platform-banner", response_model=CatalogBannerRead)
 def get_platform_banner(db: Session = Depends(get_db)) -> CatalogBannerRead:
     return serialize_catalog_banner(get_or_create_platform_settings(db))
+
+
+@router.get("/platform-branding", response_model=PlatformBrandingRead)
+def get_platform_branding(db: Session = Depends(get_db)) -> PlatformBrandingRead:
+    return serialize_platform_branding(get_or_create_platform_settings(db))
 
 
 @router.get("/stores")

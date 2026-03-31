@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -26,6 +26,7 @@ from app.services.mercadopago import (
     exchange_oauth_code,
     get_or_create_mercadopago_provider,
     mercadopago_connection_status,
+    normalize_frontend_origin,
     oauth_connect_entrypoint,
     store_oauth_credentials,
 )
@@ -56,6 +57,31 @@ def _merchant_redirect_url(status_value: str, detail: str | None = None) -> str:
 
 def _cookie_secure(request: Request) -> bool:
     return request.url.scheme == "https" or settings.frontend_base_url.startswith("https://")
+
+
+def _frontend_origin_from_request(request: Request) -> str:
+    for candidate in (request.headers.get("origin"), request.headers.get("referer")):
+        if not candidate:
+            continue
+        try:
+            parsed = urlsplit(candidate)
+        except ValueError:
+            continue
+        if parsed.scheme in {"http", "https"} and parsed.netloc:
+            return f"{parsed.scheme}://{parsed.netloc}"
+    return settings.frontend_base_url.rstrip("/")
+
+
+def _api_base_url_from_request(request: Request) -> str:
+    return str(request.base_url).rstrip("/")
+
+
+def _merchant_redirect_url_for_origin(origin: str | None, status_value: str, detail: str | None = None) -> str:
+    base = f"{normalize_frontend_origin(origin)}/m/configuracion"
+    query = {"mercadopago_oauth": status_value}
+    if detail:
+        query["detail"] = detail
+    return f"{base}?{urlencode(query)}"
 
 
 def _clear_oauth_cookie(response: Response) -> None:
@@ -90,12 +116,13 @@ def create_mercadopago_oauth_session(
 ) -> MercadoPagoConnectUrlRead:
     store = _get_merchant_store(db, user.id)
     get_or_create_mercadopago_provider(db)
-    token = build_oauth_session_token(store_id=store.id, user_id=user.id)
+    frontend_origin = _frontend_origin_from_request(request)
+    token = build_oauth_session_token(store_id=store.id, user_id=user.id, frontend_origin=frontend_origin)
     _set_oauth_cookie(request, response, token)
     logger.info("mercadopago_oauth_session_created", extra={"store_id": store.id, "user_id": user.id})
     status_value = mercadopago_connection_status(store)
     return MercadoPagoConnectUrlRead(
-        connect_url=oauth_connect_entrypoint(),
+        connect_url=oauth_connect_entrypoint(base_url=_api_base_url_from_request(request)),
         connection_status=status_value,
         status=status_value,
         callback_url=None,
@@ -123,14 +150,22 @@ def connect_mercadopago(
         if store is None:
             raise MercadoPagoAPIError("Merchant store not found")
         provider = get_or_create_mercadopago_provider(db)
-        state = build_oauth_state(store_id=store.id, user_id=int(session_payload["user_id"]))
+        state = build_oauth_state(
+            store_id=store.id,
+            user_id=int(session_payload["user_id"]),
+            frontend_origin=session_payload.get("frontend_origin"),
+        )
         return RedirectResponse(
-            build_oauth_connect_url(provider=provider, state=state),
+            build_oauth_connect_url(
+                provider=provider,
+                state=state,
+                base_url=_api_base_url_from_request(request),
+            ),
             status_code=status.HTTP_302_FOUND,
         )
     except (MercadoPagoAPIError, ValueError) as exc:
         response = RedirectResponse(
-            _merchant_redirect_url("error", str(exc)),
+            _merchant_redirect_url_for_origin(_frontend_origin_from_request(request), "error", str(exc)),
             status_code=status.HTTP_302_FOUND,
         )
         _clear_oauth_cookie(response)
@@ -139,16 +174,26 @@ def connect_mercadopago(
 
 @router.get("/mercadopago/callback")
 def mercadopago_oauth_callback(
-    request: Request,
+    _: Request,
     code: str | None = None,
     state: str | None = None,
     error: str | None = None,
     error_description: str | None = None,
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
+    payload: dict[str, object] | None = None
     if error:
+        if state:
+            try:
+                payload = decode_oauth_state(state)
+            except MercadoPagoAPIError:
+                payload = None
         response = RedirectResponse(
-            _merchant_redirect_url("error", error_description or error),
+            _merchant_redirect_url_for_origin(
+                payload.get("frontend_origin") if payload else None,
+                "error",
+                error_description or error,
+            ),
             status_code=status.HTTP_302_FOUND,
         )
         _clear_oauth_cookie(response)
@@ -181,7 +226,7 @@ def mercadopago_oauth_callback(
             extra={"store_id": store.id, "user_id": int(payload["user_id"])},
         )
         response = RedirectResponse(
-            _merchant_redirect_url("connected"),
+            _merchant_redirect_url_for_origin(payload.get("frontend_origin"), "connected"),
             status_code=status.HTTP_302_FOUND,
         )
         _clear_oauth_cookie(response)
@@ -190,7 +235,7 @@ def mercadopago_oauth_callback(
         db.rollback()
         logger.warning("mercadopago_oauth_callback_failed", extra={"detail": str(exc)})
         response = RedirectResponse(
-            _merchant_redirect_url("error", str(exc)),
+            _merchant_redirect_url_for_origin(payload.get("frontend_origin") if payload else None, "error", str(exc)),
             status_code=status.HTTP_302_FOUND,
         )
         _clear_oauth_cookie(response)

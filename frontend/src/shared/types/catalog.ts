@@ -16,6 +16,13 @@ export type CatalogBanner = {
   catalog_banner_height: number;
 };
 
+export type PlatformBranding = {
+  platform_logo_url: string | null;
+  platform_favicon_url: string | null;
+  platform_use_logo_as_favicon: boolean;
+  resolved_favicon_url: string | null;
+};
+
 export type CategoryWrite = {
   name: string;
   description?: string | null;

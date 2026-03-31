@@ -118,6 +118,9 @@ export function SettingsPage() {
   const [categoryForm, setCategoryForm] = useState<CategoryFormState>(emptyCategoryForm);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [serviceFee, setServiceFee] = useState("0");
+  const [platformLogoUrl, setPlatformLogoUrl] = useState("");
+  const [platformFaviconUrl, setPlatformFaviconUrl] = useState("");
+  const [platformUseLogoAsFavicon, setPlatformUseLogoAsFavicon] = useState(false);
   const [catalogBannerImageUrl, setCatalogBannerImageUrl] = useState("");
   const [catalogBannerWidth, setCatalogBannerWidth] = useState(String(CATALOG_BANNER_RECOMMENDATION.width));
   const [catalogBannerHeight, setCatalogBannerHeight] = useState(String(CATALOG_BANNER_RECOMMENDATION.height));
@@ -127,12 +130,14 @@ export function SettingsPage() {
   const [categorySaving, setCategorySaving] = useState(false);
   const [serviceSaving, setServiceSaving] = useState(false);
   const [providerSaving, setProviderSaving] = useState(false);
+  const [brandingSaving, setBrandingSaving] = useState(false);
   const [bannerSaving, setBannerSaving] = useState(false);
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [serviceError, setServiceError] = useState<string | null>(null);
   const [providerError, setProviderError] = useState<string | null>(null);
+  const [brandingError, setBrandingError] = useState<string | null>(null);
   const [bannerError, setBannerError] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
@@ -173,6 +178,9 @@ export function SettingsPage() {
         mode: paymentProviderResult.mode
       });
       setServiceFee(platformResult.service_fee_amount.toFixed(2));
+      setPlatformLogoUrl(platformResult.platform_logo_url ?? "");
+      setPlatformFaviconUrl(platformResult.platform_favicon_url ?? "");
+      setPlatformUseLogoAsFavicon(Boolean(platformResult.platform_use_logo_as_favicon));
       setCatalogBannerImageUrl(platformResult.catalog_banner_image_url ?? "");
       setCatalogBannerWidth(String(platformResult.catalog_banner_width ?? CATALOG_BANNER_RECOMMENDATION.width));
       setCatalogBannerHeight(String(platformResult.catalog_banner_height ?? CATALOG_BANNER_RECOMMENDATION.height));
@@ -334,6 +342,26 @@ export function SettingsPage() {
       setBannerError(requestError instanceof Error ? requestError.message : "No se pudo guardar el banner");
     } finally {
       setBannerSaving(false);
+    }
+  }
+
+  async function handlePlatformBrandingSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token || !platformSettings) return;
+    setBrandingSaving(true);
+    setBrandingError(null);
+    try {
+      await updatePlatformSettings(token, {
+        service_fee_amount: platformSettings.service_fee_amount,
+        platform_logo_url: platformLogoUrl.trim() || null,
+        platform_favicon_url: platformFaviconUrl.trim() || null,
+        platform_use_logo_as_favicon: platformUseLogoAsFavicon
+      });
+      await load();
+    } catch (requestError) {
+      setBrandingError(requestError instanceof Error ? requestError.message : "No se pudo guardar la identidad");
+    } finally {
+      setBrandingSaving(false);
     }
   }
 
@@ -744,6 +772,92 @@ export function SettingsPage() {
       </form>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <form onSubmit={(event) => void handlePlatformBrandingSave(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
+          <h3 className="text-lg font-bold text-ink">Identidad visual</h3>
+          <p className="mt-2 text-sm text-zinc-600">
+            Configura el logo principal de la app y el favicon del navegador. Si activas el toggle, el favicon se resolvera con el mismo logo.
+          </p>
+          <div className="mt-4 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-4">
+              <ImageAssetField
+                label="Logo de la app"
+                value={platformLogoUrl}
+                onChange={setPlatformLogoUrl}
+                folder="platform-branding"
+                placeholder="https://..."
+                description="Se usa en cabeceras y accesos principales."
+                previewClassName="h-40 w-full object-contain bg-white p-5"
+                emptyLabel="Sin logo configurado"
+              />
+              <ImageAssetField
+                label="Favicon"
+                value={platformFaviconUrl}
+                onChange={setPlatformFaviconUrl}
+                folder="platform-branding"
+                placeholder="https://..."
+                description="Se usa en la pestaña del navegador cuando no reutilizas el logo."
+                previewClassName="h-32 w-full object-contain bg-white p-5"
+                emptyLabel="Sin favicon configurado"
+              />
+              <label className="flex items-center gap-3 rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+                <input
+                  type="checkbox"
+                  checked={platformUseLogoAsFavicon}
+                  onChange={(event) => setPlatformUseLogoAsFavicon(event.target.checked)}
+                />
+                Usar logo como favicon
+              </label>
+            </div>
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Preview</p>
+              <div className="rounded-[24px] border border-black/5 bg-zinc-50 p-5">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[1.2rem] bg-white shadow-sm">
+                    {platformLogoUrl ? (
+                      <img src={platformLogoUrl} alt="Logo de la app" className="h-full w-full object-contain p-2" />
+                    ) : (
+                      <span className="text-xs font-semibold text-zinc-400">Logo</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-ink">Logo principal</p>
+                    <p className="text-sm text-zinc-500">Visible en cabeceras y layouts de la app.</p>
+                  </div>
+                </div>
+                <div className="mt-5 flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm">
+                    {platformUseLogoAsFavicon ? (
+                      platformLogoUrl ? (
+                        <img src={platformLogoUrl} alt="Favicon resuelto" className="h-full w-full object-contain p-1.5" />
+                      ) : (
+                        <span className="text-[10px] font-semibold text-zinc-400">Logo</span>
+                      )
+                    ) : platformFaviconUrl ? (
+                      <img src={platformFaviconUrl} alt="Favicon configurado" className="h-full w-full object-contain p-1.5" />
+                    ) : (
+                      <span className="text-[10px] font-semibold text-zinc-400">Fav</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-ink">Favicon resuelto</p>
+                    <p className="text-sm text-zinc-500">
+                      {platformUseLogoAsFavicon
+                        ? "La app usara el logo principal como favicon."
+                        : "La app usara la imagen dedicada de favicon."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {brandingError ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{brandingError}</p> : null}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button type="submit" disabled={brandingSaving}>
+              {brandingSaving ? "Guardando..." : "Guardar identidad"}
+            </Button>
+          </div>
+        </form>
+
         <form onSubmit={(event) => void handleServiceFeeSave(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
           <h3 className="text-lg font-bold text-ink">Tarifa global de servicio</h3>
           <p className="mt-2 text-sm text-zinc-600">Valor actual: {formatCurrency(platformSettings.service_fee_amount)}</p>

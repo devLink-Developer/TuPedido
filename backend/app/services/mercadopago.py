@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 import httpx
 from jose import JWTError, jwt
@@ -47,6 +47,19 @@ def _now_utc() -> datetime:
 
 def _normalize_provider_mode(value: str | None) -> str:
     return "production" if (value or "").strip().lower() == "production" else "sandbox"
+
+
+def normalize_frontend_origin(value: str | None) -> str:
+    fallback = settings.frontend_base_url.rstrip("/")
+    if not value:
+        return fallback
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return fallback
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return fallback
+    return f"{parsed.scheme}://{parsed.netloc}"
 
 
 def _provider_enabled_from_settings() -> bool:
@@ -243,12 +256,13 @@ def disconnect_store_account(store: object) -> None:
     account.reconnect_required = False
 
 
-def build_oauth_state(*, store_id: int, user_id: int) -> str:
+def build_oauth_state(*, store_id: int, user_id: int, frontend_origin: str | None = None) -> str:
     payload = {
         "kind": "mercadopago_oauth",
         "provider": MERCADOPAGO_PROVIDER,
         "store_id": store_id,
         "user_id": user_id,
+        "frontend_origin": normalize_frontend_origin(frontend_origin),
         "exp": _now_utc() + timedelta(minutes=OAUTH_STATE_EXPIRATION_MINUTES),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
@@ -264,12 +278,13 @@ def decode_oauth_state(state: str) -> dict[str, Any]:
     return payload
 
 
-def build_oauth_session_token(*, store_id: int, user_id: int) -> str:
+def build_oauth_session_token(*, store_id: int, user_id: int, frontend_origin: str | None = None) -> str:
     payload = {
         "kind": "mercadopago_oauth_session",
         "provider": MERCADOPAGO_PROVIDER,
         "store_id": store_id,
         "user_id": user_id,
+        "frontend_origin": normalize_frontend_origin(frontend_origin),
         "exp": _now_utc() + timedelta(minutes=OAUTH_SESSION_EXPIRATION_MINUTES),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
@@ -285,13 +300,14 @@ def decode_oauth_session_token(value: str) -> dict[str, Any]:
     return payload
 
 
-def oauth_connect_entrypoint() -> str:
-    return f"{settings.backend_base_url.rstrip('/')}{settings.api_prefix}/oauth/mercadopago/connect"
+def oauth_connect_entrypoint(*, base_url: str | None = None) -> str:
+    resolved_base_url = (base_url or settings.backend_base_url).rstrip("/")
+    return f"{resolved_base_url}{settings.api_prefix}/oauth/mercadopago/connect"
 
 
-def build_oauth_connect_url(*, provider: PaymentProvider, state: str) -> str:
+def build_oauth_connect_url(*, provider: PaymentProvider, state: str, base_url: str | None = None) -> str:
     if settings.mercadopago_simulated:
-        base = settings.backend_base_url.rstrip("/")
+        base = (base_url or settings.backend_base_url).rstrip("/")
         query = urlencode({"code": "SIMULATED-OAUTH", "state": state})
         return f"{base}{settings.api_prefix}/oauth/mercadopago/callback?{query}"
 

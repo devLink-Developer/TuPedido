@@ -1,4 +1,4 @@
-import type { CatalogBanner, Category, StoreDetail, StoreSummary } from "../../types";
+import type { CatalogBanner, Category, PlatformBranding, StoreDetail, StoreSummary } from "../../types";
 import { apiRequest } from "./client";
 
 export async function fetchCategories(): Promise<Category[]> {
@@ -7,6 +7,10 @@ export async function fetchCategories(): Promise<Category[]> {
 
 export async function fetchCatalogBanner(): Promise<CatalogBanner> {
   return apiRequest<CatalogBanner>("/catalog/platform-banner");
+}
+
+export async function fetchPlatformBranding(): Promise<PlatformBranding> {
+  return apiRequest<PlatformBranding>("/catalog/platform-branding");
 }
 
 export async function fetchStores(params: {

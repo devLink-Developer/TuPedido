@@ -336,6 +336,34 @@ describe("SettingsPage", () => {
     expect(screen.getByText("La cuenta de Mercado Pago quedo conectada correctamente.")).toBeInTheDocument();
   });
 
+  it("redirige al flujo OAuth cuando el comercio conecta Mercado Pago", async () => {
+    const user = userEvent.setup();
+    const assignMock = vi.fn();
+    vi.stubGlobal("location", { assign: assignMock } as Location);
+
+    fetchMerchantStoreMock.mockResolvedValue(buildStore());
+    fetchMerchantMercadoPagoConnectUrlMock.mockResolvedValue({
+      connect_url: "http://localhost:8016/api/v1/oauth/mercadopago/connect",
+      connection_status: "disconnected"
+    });
+
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByText("Configura tu local")).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "Conectar con Mercado Pago" }));
+
+    await waitFor(() => {
+      expect(fetchMerchantMercadoPagoConnectUrlMock).toHaveBeenCalledWith("token");
+      expect(assignMock).toHaveBeenCalledWith("http://localhost:8016/api/v1/oauth/mercadopago/connect");
+    });
+
+    vi.unstubAllGlobals();
+  });
+
   it("permite desconectar una cuenta de Mercado Pago vinculada", async () => {
     const user = userEvent.setup();
 

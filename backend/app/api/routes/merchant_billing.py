@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.api.deps import require_merchant
 from app.api.presenters import (
@@ -54,12 +54,14 @@ def get_merchant_store(db: Session, user_id: int) -> Store:
 
 @router.get("/payments/mercadopago/connect-url", response_model=MercadoPagoConnectUrlRead)
 def get_mercadopago_connect_url(
-    user: User = Depends(require_merchant), db: Session = Depends(get_db)
+    request: Request,
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
 ) -> MercadoPagoConnectUrlRead:
     store = get_merchant_store(db, user.id)
     get_or_create_mercadopago_provider(db)
     return MercadoPagoConnectUrlRead(
-        connect_url=oauth_connect_entrypoint(),
+        connect_url=oauth_connect_entrypoint(base_url=str(request.base_url).rstrip("/")),
         connection_status=mercadopago_connection_status(store),
         status=mercadopago_connection_status(store),
         callback_url=None,

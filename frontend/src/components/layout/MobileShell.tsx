@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../../app/session";
 import { useCart } from "../../features/cart/cart-store";
+import { usePlatformBranding } from "../../shared/providers/PlatformBrandingProvider";
 import { BottomNav } from "./BottomNav";
 
 const titles: Record<string, string> = {
@@ -22,6 +23,7 @@ export function MobileShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useSession();
+  const { brandName, logoUrl } = usePlatformBranding();
   const { itemCount } = useCart();
   const quickLinks = !isAuthenticated
     ? [
@@ -54,7 +56,7 @@ export function MobileShell() {
             { to: "/orders", label: "Pedidos" }
           ];
   const isStoreRoute = location.pathname.startsWith("/stores/") || location.pathname.startsWith("/restaurants/");
-  const title = isStoreRoute ? "Tienda" : titles[location.pathname] ?? "Kepedimos";
+  const title = isStoreRoute ? "Tienda" : titles[location.pathname] ?? brandName;
   const desktopHighlights = [
     "Abiertos primero, cerrados despues por proxima apertura.",
     "Filtros rapidos por rubro, delivery o retiro.",
@@ -68,8 +70,8 @@ export function MobileShell() {
           <div className="space-y-9">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.32),_transparent_60%)]" />
             <Link to="/" className="relative inline-flex items-center gap-3 text-2xl font-display font-bold tracking-tight">
-              <span className="flex h-12 w-12 items-center justify-center rounded-[1.35rem] bg-[linear-gradient(135deg,#fb923c,#c2410c)] text-lg text-white shadow-float">TP</span>
-              Kepedimos
+              <img src={logoUrl} alt={brandName} className="h-12 w-12 rounded-[1.35rem] bg-white object-contain shadow-float" />
+              {brandName}
             </Link>
             <div className="relative space-y-5">
               <p className="text-sm uppercase tracking-[0.28em] text-[#ffcfb7]/70">Pedir ahora</p>
@@ -140,9 +142,7 @@ export function MobileShell() {
                   </button>
                 ) : (
                   <Link to="/" className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.2rem] bg-[linear-gradient(135deg,#fb923c,#c2410c)] text-sm font-bold text-white shadow-float">
-                      TP
-                    </span>
+                    <img src={logoUrl} alt={brandName} className="h-11 w-11 shrink-0 rounded-[1.2rem] bg-white object-contain shadow-float" />
                     <div className="min-w-0">
                       <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Comercios activos</p>
                       <h2 className="truncate font-display text-lg font-bold tracking-tight">{title}</h2>

@@ -1,6 +1,11 @@
 import { RouterProvider } from "react-router-dom";
 import { router } from "./router";
+import { PlatformBrandingProvider } from "../shared/providers/PlatformBrandingProvider";
 
 export default function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <PlatformBrandingProvider>
+      <RouterProvider router={router} />
+    </PlatformBrandingProvider>
+  );
 }

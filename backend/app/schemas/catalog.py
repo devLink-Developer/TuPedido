@@ -56,6 +56,13 @@ class CatalogBannerRead(BaseModel):
     catalog_banner_height: int = DEFAULT_CATALOG_BANNER_HEIGHT
 
 
+class PlatformBrandingRead(BaseModel):
+    platform_logo_url: str | None = None
+    platform_favicon_url: str | None = None
+    platform_use_logo_as_favicon: bool = False
+    resolved_favicon_url: str | None = None
+
+
 class StoreHourRead(BaseModel):
     day_of_week: int
     opens_at: time | None = None

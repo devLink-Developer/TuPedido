@@ -13,6 +13,9 @@ class PlatformSettings(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
     service_fee_amount: Mapped[float] = mapped_column(Numeric(10, 2), default=350)
+    platform_logo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    platform_favicon_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    platform_use_logo_as_favicon: Mapped[bool] = mapped_column(Boolean, default=False)
     catalog_banner_image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     catalog_banner_width: Mapped[int] = mapped_column(Integer, default=1600)
     catalog_banner_height: Mapped[int] = mapped_column(Integer, default=520)

@@ -1,18 +1,19 @@
 import type { PropsWithChildren } from "react";
 import { Link } from "react-router-dom";
+import { usePlatformBranding } from "../../shared/providers/PlatformBrandingProvider";
 
 export function LandingLayout({ children }: PropsWithChildren) {
+  const { brandName, logoUrl } = usePlatformBranding();
+
   return (
     <div className="ambient-grid min-h-screen text-ink">
       <header className="sticky top-0 z-30 border-b border-black/5 bg-[rgba(255,251,246,0.88)] backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-8">
           <Link to="/" className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-[1.2rem] bg-[linear-gradient(135deg,#fb923c,#c2410c)] text-sm font-bold text-white shadow-float">
-              TP
-            </span>
+            <img src={logoUrl} alt={brandName} className="h-11 w-11 rounded-[1.2rem] bg-white object-contain shadow-float" />
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">App</p>
-              <p className="font-display text-lg font-bold tracking-tight">Kepedimos</p>
+              <p className="font-display text-lg font-bold tracking-tight">{brandName}</p>
             </div>
           </Link>
           <div className="flex items-center gap-2">

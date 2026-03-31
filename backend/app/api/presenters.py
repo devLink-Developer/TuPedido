@@ -7,6 +7,7 @@ from app.schemas.catalog import (
     CatalogBannerRead,
     CategoryRead,
     MerchantApplicationRead,
+    PlatformBrandingRead,
     ProductCategoryRead,
     ProductSubcategoryRead,
     ProductRead,
@@ -493,8 +494,16 @@ def serialize_notification(notification: object) -> NotificationRead:
 
 
 def serialize_platform_settings(settings: object) -> PlatformSettingsRead:
+    logo_url = getattr(settings, "platform_logo_url", None)
+    favicon_url = getattr(settings, "platform_favicon_url", None)
+    use_logo_as_favicon = bool(getattr(settings, "platform_use_logo_as_favicon", False))
+    resolved_favicon_url = logo_url if use_logo_as_favicon and logo_url else favicon_url
     return PlatformSettingsRead(
         service_fee_amount=float(settings.service_fee_amount),
+        platform_logo_url=logo_url,
+        platform_favicon_url=favicon_url,
+        platform_use_logo_as_favicon=use_logo_as_favicon,
+        resolved_favicon_url=resolved_favicon_url,
         catalog_banner_image_url=getattr(settings, "catalog_banner_image_url", None),
         catalog_banner_width=getattr(settings, "catalog_banner_width", DEFAULT_CATALOG_BANNER_WIDTH),
         catalog_banner_height=getattr(settings, "catalog_banner_height", DEFAULT_CATALOG_BANNER_HEIGHT),
@@ -520,6 +529,18 @@ def serialize_catalog_banner(settings: object) -> CatalogBannerRead:
         catalog_banner_image_url=getattr(settings, "catalog_banner_image_url", None),
         catalog_banner_width=getattr(settings, "catalog_banner_width", DEFAULT_CATALOG_BANNER_WIDTH),
         catalog_banner_height=getattr(settings, "catalog_banner_height", DEFAULT_CATALOG_BANNER_HEIGHT),
+    )
+
+
+def serialize_platform_branding(settings: object) -> PlatformBrandingRead:
+    logo_url = getattr(settings, "platform_logo_url", None)
+    favicon_url = getattr(settings, "platform_favicon_url", None)
+    use_logo_as_favicon = bool(getattr(settings, "platform_use_logo_as_favicon", False))
+    return PlatformBrandingRead(
+        platform_logo_url=logo_url,
+        platform_favicon_url=favicon_url,
+        platform_use_logo_as_favicon=use_logo_as_favicon,
+        resolved_favicon_url=logo_url if use_logo_as_favicon and logo_url else favicon_url,
     )
 
 

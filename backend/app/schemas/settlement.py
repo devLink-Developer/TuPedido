@@ -10,6 +10,10 @@ from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG
 
 class PlatformSettingsRead(BaseModel):
     service_fee_amount: float
+    platform_logo_url: str | None = None
+    platform_favicon_url: str | None = None
+    platform_use_logo_as_favicon: bool = False
+    resolved_favicon_url: str | None = None
     catalog_banner_image_url: str | None = None
     catalog_banner_width: int = DEFAULT_CATALOG_BANNER_WIDTH
     catalog_banner_height: int = DEFAULT_CATALOG_BANNER_HEIGHT
@@ -19,6 +23,9 @@ class PlatformSettingsRead(BaseModel):
 
 class PlatformSettingsUpdate(BaseModel):
     service_fee_amount: float
+    platform_logo_url: str | None = None
+    platform_favicon_url: str | None = None
+    platform_use_logo_as_favicon: bool | None = None
     catalog_banner_image_url: str | None = None
     catalog_banner_width: int | None = Field(default=None, ge=1)
     catalog_banner_height: int | None = Field(default=None, ge=1)
