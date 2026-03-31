@@ -8,8 +8,8 @@ export function CTAComercio() {
       <h2 className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 font-display text-3xl font-bold tracking-tight">
         <span>Haz crecer tu negocio con</span>
         <PlatformWordmark
-          frameClassName="h-10 w-[8.25rem] overflow-hidden"
-          imageClassName="h-full w-full object-cover object-center"
+          size="title"
+          frameClassName="w-[12.5rem] sm:w-[15rem]"
           textClassName="text-3xl"
         />
       </h2>

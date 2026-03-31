@@ -816,8 +816,8 @@ export function SettingsPage() {
             <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-600">
               <span>El fee de plataforma es global y lo administra</span>
               <PlatformWordmark
-                frameClassName="h-5 w-[6.75rem] overflow-hidden"
-                imageClassName="h-full w-full object-cover object-center"
+                size="inline"
+                frameClassName="w-[8.75rem]"
                 textClassName="text-sm font-semibold text-ink"
               />
               <span>. Aqui solo configuras tiempos, minimo de compra y delivery de tu comercio.</span>

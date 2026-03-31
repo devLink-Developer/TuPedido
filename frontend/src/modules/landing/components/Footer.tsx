@@ -7,7 +7,8 @@ export function Footer() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <PlatformWordmark
-            imageClassName="h-5 w-auto max-w-[7rem] object-contain"
+            size="eyebrow"
+            frameClassName="w-[8.5rem]"
             textClassName="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400"
           />
           <p className="mt-2 text-sm text-zinc-600">Soluciones para clientes y comercios en una misma plataforma.</p>

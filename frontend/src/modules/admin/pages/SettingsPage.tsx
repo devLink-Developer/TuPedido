@@ -830,7 +830,7 @@ export function SettingsPage() {
                       {platformLogoUrl ? (
                         <img src={platformLogoUrl} alt="Logo principal" className="h-10 w-auto max-w-[12rem] object-contain" />
                       ) : (
-                        <BrandWordmark brandName="Marca" wordmarkUrl={platformWordmarkUrl} textClassName="font-display text-2xl font-black tracking-tight text-[#24130e]" />
+                        <BrandWordmark brandName="Marca" wordmarkUrl={platformWordmarkUrl} size="title" textClassName="font-display text-2xl font-black tracking-tight text-[#24130e]" />
                       )}
                     </div>
                     <span className="rounded-full border border-black/10 bg-white/90 px-3 py-2 text-xs font-semibold text-zinc-700">
@@ -843,7 +843,7 @@ export function SettingsPage() {
                     {platformLogoUrl ? (
                       <img src={platformLogoUrl} alt="Logo de la app" className="h-9 w-auto max-w-full object-contain" />
                     ) : (
-                      <BrandWordmark brandName="Marca" wordmarkUrl={platformWordmarkUrl} textClassName="font-display text-xl font-black tracking-tight text-zinc-400" />
+                      <BrandWordmark brandName="Marca" wordmarkUrl={platformWordmarkUrl} size="inline" frameClassName="w-[8.5rem]" textClassName="font-display text-xl font-black tracking-tight text-zinc-400" />
                     )}
                   </div>
                   <div>
@@ -858,9 +858,10 @@ export function SettingsPage() {
                     <BrandWordmark
                       brandName="Marca"
                       wordmarkUrl={platformWordmarkUrl}
+                      size="hero"
                       className="min-w-0"
-                      frameClassName="h-12 w-[8.75rem] overflow-hidden sm:h-14 sm:w-[10.5rem]"
-                      imageClassName="h-full w-full object-cover object-center drop-shadow-[0_12px_24px_rgba(249,115,22,0.28)]"
+                      frameClassName="w-[14rem] sm:w-[18rem]"
+                      imageClassName="drop-shadow-[0_12px_24px_rgba(249,115,22,0.28)]"
                     />
                   </div>
                 </div>

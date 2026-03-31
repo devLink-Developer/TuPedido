@@ -15,8 +15,8 @@ export function PwaInstallBanner() {
       <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-6 text-white/80">
         <span>Instala</span>
         <PlatformWordmark
-          frameClassName="h-5 w-[6.5rem] overflow-hidden"
-          imageClassName="h-full w-full object-cover object-center"
+          size="inline"
+          frameClassName="w-[8.75rem]"
           textClassName="text-sm"
         />
         <span>para abrir la app mas rapido y seguir tus pedidos desde cualquier momento.</span>

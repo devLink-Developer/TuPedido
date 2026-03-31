@@ -52,9 +52,10 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
               <BrandWordmark
                 brandName={brandName}
                 wordmarkUrl={wordmarkUrl}
-                className="min-w-0"
-                frameClassName="h-12 w-[8.75rem] overflow-hidden sm:h-16 sm:w-[12rem]"
-                imageClassName="h-full w-full object-cover object-center drop-shadow-[0_12px_24px_rgba(249,115,22,0.3)]"
+                size="hero"
+                className="min-w-0 shrink-0"
+                frameClassName="w-[14.5rem] sm:w-[18rem]"
+                imageClassName="drop-shadow-[0_12px_24px_rgba(249,115,22,0.3)]"
               />
             </span>
           ) : (

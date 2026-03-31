@@ -553,8 +553,8 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
       <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span>Ingresar a</span>
         <PlatformWordmark
-          frameClassName="h-12 w-[8.5rem] overflow-hidden"
-          imageClassName="h-full w-full object-cover object-center"
+          size="hero"
+          frameClassName="w-[14.5rem] sm:w-[18rem]"
           textClassName="text-3xl"
         />
       </span>

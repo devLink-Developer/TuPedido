@@ -62,8 +62,8 @@ export function MobileShell() {
   ) : (
     titles[location.pathname] ?? (
       <PlatformWordmark
-        frameClassName="h-8 w-[7rem] overflow-hidden"
-        imageClassName="h-full w-full object-cover object-center"
+        size="inline"
+        frameClassName="w-[8rem]"
         textClassName="text-xl"
       />
     )

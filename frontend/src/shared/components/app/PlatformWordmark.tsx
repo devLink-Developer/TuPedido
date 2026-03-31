@@ -2,6 +2,7 @@ import { usePlatformBranding } from "../../providers/PlatformBrandingProvider";
 import { BrandWordmark } from "./BrandWordmark";
 
 type PlatformWordmarkProps = {
+  size?: "eyebrow" | "inline" | "title" | "hero";
   className?: string;
   frameClassName?: string;
   imageClassName?: string;

@@ -222,8 +222,8 @@ export function DashboardPage() {
             <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-7 text-zinc-600">
               <span>Aqui ves el fee de plataforma que cobraste en efectivo al cliente por cuenta de</span>
               <PlatformWordmark
-                frameClassName="h-5 w-[6.75rem] overflow-hidden"
-                imageClassName="h-full w-full object-cover object-center"
+                size="inline"
+                frameClassName="w-[8.75rem]"
                 textClassName="text-sm font-semibold text-ink"
               />
               <span>. El costo de delivery sigue siendo ingreso de tu comercio.</span>

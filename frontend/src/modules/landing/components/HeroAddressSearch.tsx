@@ -15,8 +15,10 @@ export function HeroAddressSearch() {
           <div className="space-y-3">
             <div className="min-w-0">
               <PlatformWordmark
-                imageClassName="h-5 w-auto max-w-[7rem] object-contain opacity-95"
-                textClassName="text-sm font-bold uppercase tracking-[0.22em] text-[#ffd2bd]"
+                size="title"
+                frameClassName="h-8 w-[10.5rem] sm:h-9 sm:w-[12rem]"
+                imageClassName="opacity-95"
+                textClassName="text-base font-bold uppercase tracking-[0.22em] text-[#ffd2bd]"
               />
             </div>
             <h1 className="max-w-3xl font-display text-[2rem] font-bold leading-[1.05] sm:text-4xl md:text-5xl">
@@ -47,7 +49,9 @@ export function HeroAddressSearch() {
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold uppercase tracking-[0.24em] text-[#ffd2bd]/80">
             <span>Por que elegir</span>
             <PlatformWordmark
-              imageClassName="h-4 w-auto max-w-[6rem] object-contain opacity-95"
+              size="eyebrow"
+              frameClassName="w-[8.5rem]"
+              imageClassName="opacity-95"
               textClassName="text-xs font-semibold uppercase tracking-[0.24em] text-[#ffd2bd]/80"
             />
           </p>
