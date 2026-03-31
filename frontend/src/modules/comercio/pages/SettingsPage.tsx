@@ -814,7 +814,7 @@ export function SettingsPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Parametros</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Detalle operativo</h2>
             <p className="mt-2 text-sm text-zinc-600">
-              El fee de plataforma es global y lo administra Tu Pedido. Aqui solo configuras tiempos, minimo de compra y delivery de tu comercio.
+              El fee de plataforma es global y lo administra Kepedimos. Aqui solo configuras tiempos, minimo de compra y delivery de tu comercio.
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">

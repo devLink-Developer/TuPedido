@@ -34,7 +34,7 @@ type UiState = {
   resetForTest: () => void;
 };
 
-const DRAFT_STORAGE_PREFIX = "tupedido.application-draft.";
+const DRAFT_STORAGE_PREFIX = "kepedimos.application-draft.";
 
 function readDraft(kind: ApplicationDraftKind): ApplicationDraftRecord | null {
   if (typeof window === "undefined") return null;

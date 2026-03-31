@@ -44,7 +44,7 @@
 <main class="flex flex-1 items-center justify-center px-4 py-8">
 <section class="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-white/10 shadow-lg p-6 sm:p-8">
 <div class="mb-8">
-<p class="text-primary text-xs font-bold uppercase tracking-[0.28em]">TuPedido</p>
+<p class="text-primary text-xs font-bold uppercase tracking-[0.28em]">Kepedimos</p>
 <h1 class="mt-3 text-3xl font-bold tracking-tight">Inicia sesión</h1>
 <p class="text-slate-500 dark:text-slate-400 mt-2 text-sm">Accede con tu cuenta para gestionar restaurantes o continuar tus pedidos.</p>
 </div>
@@ -72,11 +72,11 @@
     const message = document.getElementById('login_message');
 
     function consumeFlash() {
-        const rawFlash = localStorage.getItem('tupedido.flash');
+        const rawFlash = localStorage.getItem('kepedimos.flash');
         if (!rawFlash) {
             return;
         }
-        localStorage.removeItem('tupedido.flash');
+        localStorage.removeItem('kepedimos.flash');
         try {
             const flash = JSON.parse(rawFlash);
             message.textContent = flash.message;
@@ -115,8 +115,8 @@
                 throw new Error(result.detail || 'No se pudo iniciar sesión');
             }
 
-            localStorage.setItem('tupedido.session', JSON.stringify(result));
-            localStorage.setItem('tupedido.flash', JSON.stringify({ message: `Bienvenido, ${result.user.full_name}.`, tone: 'success' }));
+            localStorage.setItem('kepedimos.session', JSON.stringify(result));
+            localStorage.setItem('kepedimos.flash', JSON.stringify({ message: `Bienvenido, ${result.user.full_name}.`, tone: 'success' }));
             message.textContent = `Sesión iniciada: ${result.user.full_name}`;
             message.className = 'rounded-xl bg-emerald-100 text-emerald-700 px-4 py-3 text-sm';
             window.setTimeout(() => {

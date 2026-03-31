@@ -13,8 +13,8 @@ export default defineConfig(({ mode }) => {
         registerType: "autoUpdate",
         includeAssets: ["icons/icon-192.svg", "icons/icon-512.svg"],
         manifest: {
-          name: "TuPedido",
-          short_name: "TuPedido",
+          name: "Kepedimos",
+          short_name: "Kepedimos",
           description: "PWA mobile-first para pedidos, restaurantes y gestion administrativa.",
           theme_color: "#f97316",
           background_color: "#111111",

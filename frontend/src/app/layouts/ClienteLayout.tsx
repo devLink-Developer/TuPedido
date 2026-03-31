@@ -233,7 +233,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
       >
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 md:px-8">
           <Link to="/c" aria-label="Ir al catalogo" className="shrink-0">
-            <img src="/icons/icon-192.svg" alt="TuPedido" className="h-11 w-11 rounded-[1.2rem] shadow-float" />
+            <img src="/icons/icon-192.svg" alt="Kepedimos" className="h-11 w-11 rounded-[1.2rem] shadow-float" />
           </Link>
           {showAddressSelector ? (
             <div className="min-w-0 flex-1">

@@ -12,7 +12,7 @@ export function PwaInstallBanner() {
     <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-[28px] bg-ink p-4 text-white shadow-[0_26px_60px_rgba(24,19,18,0.32)]">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">App</p>
       <p className="mt-2 text-sm leading-6 text-white/80">
-        Instala TuPedido para abrir la app mas rapido y seguir tus pedidos desde cualquier momento.
+        Instala Kepedimos para abrir la app mas rapido y seguir tus pedidos desde cualquier momento.
       </p>
       <div className="mt-3 flex gap-2">
         <button

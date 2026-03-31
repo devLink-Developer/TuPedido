@@ -95,7 +95,7 @@
 </div>
 
 <script>
-    const session = JSON.parse(localStorage.getItem('tupedido.session') || 'null');
+    const session = JSON.parse(localStorage.getItem('kepedimos.session') || 'null');
     const feedback = document.getElementById('order-detail-feedback');
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get('order_id');
@@ -218,7 +218,7 @@
 
     async function loadOrderDetail() {
         if (!session) {
-            localStorage.setItem('tupedido.flash', JSON.stringify({ message: 'Inicia sesión para ver el detalle de un pedido.', tone: 'info' }));
+            localStorage.setItem('kepedimos.flash', JSON.stringify({ message: 'Inicia sesión para ver el detalle de un pedido.', tone: 'info' }));
             window.location.href = 'login.html';
             return;
         }

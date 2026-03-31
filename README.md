@@ -1,4 +1,4 @@
-# TuPedido
+# Kepedimos
 
 Plataforma multi-comercio tipo delivery, con SPA React como interfaz principal y backend FastAPI + PostgreSQL para clientes, comercios y admin.
 
@@ -16,10 +16,10 @@ docker compose up --build
 
 ## Credenciales demo
 
-- Admin: `admin@tupedido.example.com` / `admin1234`
-- Comercio demo: `merchant@tupedido.example.com` / `merchant123`
-- Cliente demo: `cliente@tupedido.example.com` / `cliente123`
-- Aspirante comercio: `applicant@tupedido.example.com` / `applicant123`
+- Admin: `admin@kepedimos.example.com` / `admin1234`
+- Comercio demo: `merchant@kepedimos.example.com` / `merchant123`
+- Cliente demo: `cliente@kepedimos.example.com` / `cliente123`
+- Aspirante comercio: `applicant@kepedimos.example.com` / `applicant123`
 
 ## Bootstrap admin
 

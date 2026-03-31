@@ -41,7 +41,7 @@ async def lifespan(_: FastAPI):
             pass
 
 app = FastAPI(
-    title="TuPedido API",
+    title="Kepedimos API",
     version="0.1.0",
     openapi_url=f"{settings.api_prefix}/openapi.json",
     lifespan=lifespan,

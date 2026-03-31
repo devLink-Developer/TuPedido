@@ -124,7 +124,7 @@
 </div>
 </div>
 <script>
-        const session = JSON.parse(localStorage.getItem('tupedido.session') || 'null');
+        const session = JSON.parse(localStorage.getItem('kepedimos.session') || 'null');
         const cartFeedback = document.getElementById('cart-feedback');
         const confirmButton = document.getElementById('btn-confirm-order');
 
@@ -147,7 +147,7 @@
 
         function requireSession() {
             if (!session) {
-                localStorage.setItem('tupedido.flash', JSON.stringify({ message: 'Inicia sesión para usar tu carrito persistente.', tone: 'info' }));
+                localStorage.setItem('kepedimos.flash', JSON.stringify({ message: 'Inicia sesión para usar tu carrito persistente.', tone: 'info' }));
                 window.location.href = 'login.html';
                 return false;
             }

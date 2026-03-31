@@ -15,12 +15,12 @@ describe("uiStore application drafts", () => {
       redirectTo: "/registro-comercio",
       pendingSubmit: true
     });
-    expect(window.sessionStorage.getItem("tupedido.application-draft.merchant")).toContain("Cafe Modular");
+    expect(window.sessionStorage.getItem("kepedimos.application-draft.merchant")).toContain("Cafe Modular");
 
     useUiStore.getState().clearApplicationDraft("merchant");
 
     expect(useUiStore.getState().getApplicationDraft("merchant")).toBeNull();
-    expect(window.sessionStorage.getItem("tupedido.application-draft.merchant")).toBeNull();
+    expect(window.sessionStorage.getItem("kepedimos.application-draft.merchant")).toBeNull();
   });
 
   it("keeps auth and cliente stores isolated from UI draft state", () => {

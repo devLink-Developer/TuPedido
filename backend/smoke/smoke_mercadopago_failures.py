@@ -41,7 +41,7 @@ def run_timeout_scenario() -> None:
         with TestClient(app) as client:
             login = client.post(
                 "/api/v1/auth/login",
-                json={"email": "cliente@tupedido.example.com", "password": "cliente123"},
+                json={"email": "cliente@kepedimos.example.com", "password": "cliente123"},
             )
             login.raise_for_status()
             token = login.json()["access_token"]

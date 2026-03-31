@@ -1,6 +1,6 @@
-const DISMISSED_ORDER_REVIEW_KEY = "tupedido.order-review.dismissed";
+const DISMISSED_ORDER_REVIEW_KEY = "kepedimos.order-review.dismissed";
 
-export const ORDER_REVIEW_PROMPT_REFRESH_EVENT = "tupedido.order-review.refresh";
+export const ORDER_REVIEW_PROMPT_REFRESH_EVENT = "kepedimos.order-review.refresh";
 
 export function getDismissedOrderReviewId(): number | null {
   if (typeof window === "undefined") {

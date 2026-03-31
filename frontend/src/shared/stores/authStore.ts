@@ -4,7 +4,7 @@ import type { AuthResponse, AuthUser } from "../types";
 import { clearDismissedOrderReviewPrompt } from "../utils/orderReviewPrompt";
 import { readJsonStorage, removeStorageValue, writeJsonStorage } from "../utils/storage";
 
-const STORAGE_KEY = "tupedido.session";
+const STORAGE_KEY = "kepedimos.session";
 
 type AuthState = {
   user: AuthUser | null;

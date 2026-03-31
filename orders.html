@@ -88,7 +88,7 @@
 </div>
 
 <script>
-    const session = JSON.parse(localStorage.getItem('tupedido.session') || 'null');
+    const session = JSON.parse(localStorage.getItem('kepedimos.session') || 'null');
     const ordersFeedback = document.getElementById('orders-feedback');
     const ordersList = document.getElementById('orders-list');
     const ordersCount = document.getElementById('orders-count');
@@ -129,12 +129,12 @@
     }
 
     function consumeFlash() {
-        const rawFlash = localStorage.getItem('tupedido.flash');
+        const rawFlash = localStorage.getItem('kepedimos.flash');
         if (!rawFlash) {
             return;
         }
 
-        localStorage.removeItem('tupedido.flash');
+        localStorage.removeItem('kepedimos.flash');
         try {
             const flash = JSON.parse(rawFlash);
             showOrdersFeedback(flash.message, flash.tone || 'info');
@@ -189,7 +189,7 @@
 
     async function loadOrders() {
         if (!session) {
-            localStorage.setItem('tupedido.flash', JSON.stringify({ message: 'Inicia sesión para ver tu historial de pedidos.', tone: 'info' }));
+            localStorage.setItem('kepedimos.flash', JSON.stringify({ message: 'Inicia sesión para ver tu historial de pedidos.', tone: 'info' }));
             window.location.href = 'login.html';
             return;
         }

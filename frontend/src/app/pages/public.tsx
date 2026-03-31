@@ -547,7 +547,7 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
     }
   }
 
-  const title = mode === "login" ? "Ingresar a TuPedido" : "Crear cuenta";
+  const title = mode === "login" ? "Ingresar a Kepedimos" : "Crear cuenta";
   const submitLabel = mode === "login" ? "Ingresar" : "Crear cuenta";
 
   return (

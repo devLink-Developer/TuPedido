@@ -497,7 +497,7 @@ def create_checkout_preference(
         "metadata": {
             "order_id": order_id,
             "store_id": getattr(store, "id"),
-            "platform": "tupedido",
+            "platform": "kepedimos",
         },
     }
     response = _request_with_store_token_retry(

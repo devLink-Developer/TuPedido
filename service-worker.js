@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tupedido-shell-v1';
+const CACHE_NAME = 'kepedimos-shell-v1';
 const APP_SHELL = [
   '/index.html',
   '/restaurants.html',

@@ -39,9 +39,9 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
       <div className="rounded-[32px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-5 text-white shadow-lift sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">TuPedido</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">Kepedimos</p>
         <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.05] tracking-tight sm:text-4xl">
-          {mode === "login" ? "Ingresar a TuPedido" : "Crear cuenta cliente"}
+          {mode === "login" ? "Ingresar a Kepedimos" : "Crear cuenta cliente"}
         </h1>
         {mode === "register" ? (
           <>

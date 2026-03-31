@@ -210,28 +210,28 @@ def seed_initial_data() -> None:
             _default_admin_seed(),
             {
                 "full_name": "Cliente Demo",
-                "email": "cliente@tupedido.example.com",
+                "email": "cliente@kepedimos.example.com",
                 "password": "cliente123",
                 "role": "customer",
                 "address": ("Casa", "Av. Cabildo 2450", "Depto 6A, CABA"),
             },
             {
                 "full_name": "Comercio Demo",
-                "email": "merchant@tupedido.example.com",
+                "email": "merchant@kepedimos.example.com",
                 "password": "merchant123",
                 "role": "merchant",
                 "address": ("Local", "Amenabar 1234", "Belgrano, CABA"),
             },
             {
                 "full_name": "Aspirante Comercio",
-                "email": "applicant@tupedido.example.com",
+                "email": "applicant@kepedimos.example.com",
                 "password": "applicant123",
                 "role": "customer",
                 "address": ("Casa", "Conesa 800", "Nunez, CABA"),
             },
             {
                 "full_name": "Rider Demo",
-                "email": "delivery@tupedido.example.com",
+                "email": "delivery@kepedimos.example.com",
                 "password": "delivery123",
                 "role": "delivery",
                 "address": ("Base", "Juramento 1500", "Belgrano, CABA"),
@@ -270,7 +270,7 @@ def seed_initial_data() -> None:
             address.latitude = -34.5620 + (user.id * 0.001)
             address.longitude = -58.4550 - (user.id * 0.001)
 
-        merchant_user = users_by_email["merchant@tupedido.example.com"]
+        merchant_user = users_by_email["merchant@kepedimos.example.com"]
         store = db.scalar(select(Store).where(Store.owner_user_id == merchant_user.id))
         if store is None:
             store = Store(
@@ -513,7 +513,7 @@ def seed_initial_data() -> None:
                 product.is_available = True
                 product.sort_order = index
 
-        applicant_user = users_by_email["applicant@tupedido.example.com"]
+        applicant_user = users_by_email["applicant@kepedimos.example.com"]
         application = db.scalar(select(MerchantApplication).where(MerchantApplication.user_id == applicant_user.id))
         if application is None:
             db.add(
@@ -528,7 +528,7 @@ def seed_initial_data() -> None:
                 )
             )
 
-        rider_user = users_by_email["delivery@tupedido.example.com"]
+        rider_user = users_by_email["delivery@kepedimos.example.com"]
         rider_application = db.scalar(select(DeliveryApplication).where(DeliveryApplication.user_id == rider_user.id))
         if rider_application is None:
             rider_application = DeliveryApplication(

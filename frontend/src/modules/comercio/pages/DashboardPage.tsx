@@ -220,7 +220,7 @@ export function DashboardPage() {
           <article className="rounded-[28px] bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold text-ink">Cuenta corriente</h3>
             <p className="mt-2 text-sm leading-7 text-zinc-600">
-              Aqui ves el fee de plataforma que cobraste en efectivo al cliente por cuenta de Tu Pedido. El costo de delivery sigue siendo ingreso de tu comercio.
+              Aqui ves el fee de plataforma que cobraste en efectivo al cliente por cuenta de Kepedimos. El costo de delivery sigue siendo ingreso de tu comercio.
             </p>
             <div className="mt-4 space-y-2 text-sm text-zinc-600">
               <p>Comercio: {store?.name ?? "-"}</p>

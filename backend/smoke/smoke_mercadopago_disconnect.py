@@ -32,7 +32,7 @@ def main() -> None:
     with TestClient(app) as client:
         login = client.post(
             "/api/v1/auth/login",
-            json={"email": "merchant@tupedido.example.com", "password": "merchant123"},
+            json={"email": "merchant@kepedimos.example.com", "password": "merchant123"},
         )
         login.raise_for_status()
         token = login.json()["access_token"]

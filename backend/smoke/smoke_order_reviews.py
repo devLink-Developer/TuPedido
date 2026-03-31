@@ -28,8 +28,8 @@ def _seed_reviewable_orders() -> tuple[int, int]:
     now = datetime.now(UTC)
     db = SessionLocal()
     try:
-        customer = db.query(User).filter(User.email == "cliente@tupedido.example.com").one()
-        rider = db.query(User).filter(User.email == "delivery@tupedido.example.com").one()
+        customer = db.query(User).filter(User.email == "cliente@kepedimos.example.com").one()
+        rider = db.query(User).filter(User.email == "delivery@kepedimos.example.com").one()
         store = db.query(Store).filter(Store.slug == "comercio-demo").one()
         address = db.query(Address).filter(Address.user_id == customer.id).first()
         if address is None:
@@ -150,7 +150,7 @@ def run_smoke() -> None:
     with TestClient(app) as client:
         login = client.post(
             "/api/v1/auth/login",
-            json={"email": "cliente@tupedido.example.com", "password": "cliente123"},
+            json={"email": "cliente@kepedimos.example.com", "password": "cliente123"},
         )
         login.raise_for_status()
         token = login.json()["access_token"]

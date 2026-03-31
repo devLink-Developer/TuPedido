@@ -12,7 +12,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
             </span>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Acceso</p>
-              <p className="font-display text-lg font-bold tracking-tight">TuPedido</p>
+              <p className="font-display text-lg font-bold tracking-tight">Kepedimos</p>
             </div>
           </Link>
           <Link className="w-full rounded-full border border-black/10 bg-white/80 px-4 py-2 text-center text-sm font-semibold text-zinc-700 sm:w-auto" to="/">

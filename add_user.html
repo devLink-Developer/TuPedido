@@ -42,7 +42,7 @@
 <main class="flex flex-1 items-center justify-center px-4 py-8">
 <section class="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-white/10 shadow-lg p-6 sm:p-8">
 <div class="mb-8">
-<p class="text-primary text-xs font-bold uppercase tracking-[0.28em]">TuPedido</p>
+<p class="text-primary text-xs font-bold uppercase tracking-[0.28em]">Kepedimos</p>
 <h1 class="mt-3 text-3xl font-bold tracking-tight">Registra tu usuario</h1>
 <p class="text-slate-500 dark:text-slate-400 mt-2 text-sm">Crea una cuenta para continuar con tus pedidos.</p>
 </div>
@@ -94,7 +94,7 @@
 				throw new Error(result.detail || 'No se pudo crear la cuenta');
 			}
 
-			localStorage.setItem('tupedido.session', JSON.stringify(result));
+			localStorage.setItem('kepedimos.session', JSON.stringify(result));
 			message.textContent = 'Cuenta creada correctamente';
 			message.className = 'rounded-xl bg-emerald-100 text-emerald-700 px-4 py-3 text-sm';
 			window.setTimeout(() => {

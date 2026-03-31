@@ -32,7 +32,7 @@
             },
         }
     </script>
-<title>Checkout - TuPedido</title>
+<title>Checkout - Kepedimos</title>
 <style>
     body {
       min-height: max(884px, 100dvh);
@@ -194,7 +194,7 @@
     */
     -->
 <script>
-    const session = JSON.parse(localStorage.getItem('tupedido.session') || 'null');
+    const session = JSON.parse(localStorage.getItem('kepedimos.session') || 'null');
     const checkoutFeedback = document.getElementById('checkout-feedback');
     const placeOrderButton = document.getElementById('place-order-button');
     let selectedPaymentMethod = 'card';
@@ -323,7 +323,7 @@
         }
 
         showCheckoutFeedback(`Pedido confirmado. ID ${result.order_id}.`, 'success');
-        localStorage.setItem('tupedido.flash', JSON.stringify({ message: `Pedido #${result.order_id} confirmado correctamente.`, tone: 'success' }));
+        localStorage.setItem('kepedimos.flash', JSON.stringify({ message: `Pedido #${result.order_id} confirmado correctamente.`, tone: 'success' }));
         setTimeout(() => {
         window.location.href = 'orders.html';
         }, 900);

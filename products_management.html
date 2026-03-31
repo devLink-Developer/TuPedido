@@ -115,7 +115,7 @@
 <div class="h-10"></div>
 </div>
 <script>
-    const session = JSON.parse(localStorage.getItem('tupedido.session') || 'null');
+    const session = JSON.parse(localStorage.getItem('kepedimos.session') || 'null');
     if (!session || session.user?.role !== 'admin') {
         window.location.href = 'login.html';
     }
@@ -193,7 +193,7 @@
                 throw new Error(result.detail || 'No se pudo crear el restaurante');
             }
 
-            localStorage.setItem('tupedido.flash', JSON.stringify({ message: `Restaurante creado: ${result.name}`, tone: 'success' }));
+            localStorage.setItem('kepedimos.flash', JSON.stringify({ message: `Restaurante creado: ${result.name}`, tone: 'success' }));
             showFeedback(`Restaurante creado: ${result.name}`, 'success');
             setTimeout(() => {
                 window.location.href = 'restaurant_management.html';

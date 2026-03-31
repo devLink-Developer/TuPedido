@@ -234,7 +234,7 @@ describe("ClienteLayout", () => {
 
     await user.click(screen.getByRole("button", { name: "Saltar por ahora" }));
 
-    expect(window.sessionStorage.getItem("tupedido.order-review.dismissed")).toBe("41");
+    expect(window.sessionStorage.getItem("kepedimos.order-review.dismissed")).toBe("41");
     expect(screen.queryByText("Contanos como fue el pedido")).not.toBeInTheDocument();
 
     window.dispatchEvent(new Event("focus"));

@@ -54,7 +54,7 @@ export function MobileShell() {
             { to: "/orders", label: "Pedidos" }
           ];
   const isStoreRoute = location.pathname.startsWith("/stores/") || location.pathname.startsWith("/restaurants/");
-  const title = isStoreRoute ? "Tienda" : titles[location.pathname] ?? "TuPedido";
+  const title = isStoreRoute ? "Tienda" : titles[location.pathname] ?? "Kepedimos";
   const desktopHighlights = [
     "Abiertos primero, cerrados despues por proxima apertura.",
     "Filtros rapidos por rubro, delivery o retiro.",
@@ -69,7 +69,7 @@ export function MobileShell() {
             <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.32),_transparent_60%)]" />
             <Link to="/" className="relative inline-flex items-center gap-3 text-2xl font-display font-bold tracking-tight">
               <span className="flex h-12 w-12 items-center justify-center rounded-[1.35rem] bg-[linear-gradient(135deg,#fb923c,#c2410c)] text-lg text-white shadow-float">TP</span>
-              TuPedido
+              Kepedimos
             </Link>
             <div className="relative space-y-5">
               <p className="text-sm uppercase tracking-[0.28em] text-[#ffcfb7]/70">Pedir ahora</p>

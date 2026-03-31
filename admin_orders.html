@@ -144,9 +144,9 @@
 </div>
 
 <script>
-    const session = JSON.parse(localStorage.getItem('tupedido.session') || 'null');
+    const session = JSON.parse(localStorage.getItem('kepedimos.session') || 'null');
     if (!session || session.user?.role !== 'admin') {
-        localStorage.setItem('tupedido.flash', JSON.stringify({ message: 'Inicia sesión como administrador para gestionar pedidos.', tone: 'info' }));
+        localStorage.setItem('kepedimos.flash', JSON.stringify({ message: 'Inicia sesión como administrador para gestionar pedidos.', tone: 'info' }));
         window.location.href = 'login.html';
     }
 
@@ -160,8 +160,8 @@
     const autoRefreshInterval = document.getElementById('orders-auto-refresh-interval');
     const visibleCount = document.getElementById('orders-visible-count');
     const statusChoices = ['created', 'preparing', 'on_the_way', 'delivered', 'issue_reported', 'cancelled'];
-    const filterStorageKey = 'tupedido.adminOrders.filters';
-    const refreshStorageKey = 'tupedido.adminOrders.autoRefresh';
+    const filterStorageKey = 'kepedimos.adminOrders.filters';
+    const refreshStorageKey = 'kepedimos.adminOrders.autoRefresh';
     let allOrders = [];
     let autoRefreshTimer = null;
     let latestKnownOrderId = 0;
@@ -180,11 +180,11 @@
     }
 
     function consumeFlash() {
-        const rawFlash = localStorage.getItem('tupedido.flash');
+        const rawFlash = localStorage.getItem('kepedimos.flash');
         if (!rawFlash) {
             return;
         }
-        localStorage.removeItem('tupedido.flash');
+        localStorage.removeItem('kepedimos.flash');
         try {
             const flash = JSON.parse(rawFlash);
             showFeedback(flash.message, flash.tone || 'info');
@@ -496,8 +496,8 @@
     });
 
     document.getElementById('logout_button').addEventListener('click', () => {
-        localStorage.removeItem('tupedido.session');
-        localStorage.setItem('tupedido.flash', JSON.stringify({ message: 'Sesión cerrada correctamente.', tone: 'success' }));
+        localStorage.removeItem('kepedimos.session');
+        localStorage.setItem('kepedimos.flash', JSON.stringify({ message: 'Sesión cerrada correctamente.', tone: 'success' }));
         window.location.href = 'login.html';
     });
 

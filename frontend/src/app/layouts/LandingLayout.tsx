@@ -12,7 +12,7 @@ export function LandingLayout({ children }: PropsWithChildren) {
             </span>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">App</p>
-              <p className="font-display text-lg font-bold tracking-tight">TuPedido</p>
+              <p className="font-display text-lg font-bold tracking-tight">Kepedimos</p>
             </div>
           </Link>
           <div className="flex items-center gap-2">

@@ -5,7 +5,7 @@ export function Footer() {
     <footer className="rounded-[32px] bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">TuPedido</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">Kepedimos</p>
           <p className="mt-2 text-sm text-zinc-600">Soluciones para clientes y comercios en una misma plataforma.</p>
         </div>
         <div className="flex flex-wrap gap-2">
