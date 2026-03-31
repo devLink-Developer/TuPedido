@@ -554,7 +554,8 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
         <span>Ingresar a</span>
         <PlatformWordmark
           size="hero"
-          frameClassName="w-[14.5rem] sm:w-[18rem]"
+          fit="contain"
+          frameClassName="h-[5.25rem] w-[15rem] sm:h-[6.5rem] sm:w-[18rem]"
           textClassName="text-3xl"
         />
       </span>

@@ -3,6 +3,7 @@ import { BrandWordmark } from "./BrandWordmark";
 
 type PlatformWordmarkProps = {
   size?: "eyebrow" | "inline" | "title" | "hero";
+  fit?: "contain" | "cover";
   className?: string;
   frameClassName?: string;
   imageClassName?: string;

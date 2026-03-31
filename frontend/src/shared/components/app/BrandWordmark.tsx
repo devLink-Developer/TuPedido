@@ -2,6 +2,7 @@ type BrandWordmarkProps = {
   brandName: string;
   wordmarkUrl?: string | null;
   size?: "eyebrow" | "inline" | "title" | "hero";
+  fit?: "contain" | "cover";
   className?: string;
   frameClassName?: string;
   imageClassName?: string;
@@ -26,6 +27,7 @@ export function BrandWordmark({
   brandName,
   wordmarkUrl,
   size = "inline",
+  fit = "contain",
   className = "",
   frameClassName = "",
   imageClassName = "",
@@ -47,7 +49,8 @@ export function BrandWordmark({
             src={wordmarkUrl}
             alt={brandName}
             className={[
-              "inline-block h-full w-full max-w-none object-cover object-center",
+              "inline-block h-full w-full max-w-none object-center",
+              fit === "cover" ? "object-cover" : "object-contain",
               imageClassName,
             ]
               .filter(Boolean)
