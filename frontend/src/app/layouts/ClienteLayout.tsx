@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 import { Link, useLocation, useMatch, useNavigate } from "react-router-dom";
+import { BrandMark } from "../../shared/components";
 import { createOrderReview, fetchAddresses, fetchPendingOrderReview } from "../../shared/services/api";
 import { useAuthSession, useCart } from "../../shared/hooks";
 import { usePlatformBranding } from "../../shared/providers/PlatformBrandingProvider";
@@ -21,7 +22,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const lastScrollYRef = useRef(0);
   const { user, token, isAuthenticated, logout } = useAuthSession();
-  const { brandName, logoUrl } = usePlatformBranding();
+  const { brandName, branding } = usePlatformBranding();
   const { itemCount } = useCart();
   const selectedAddressId = useClienteStore((state) => state.selectedAddressId);
   const setSelectedAddressId = useClienteStore((state) => state.setSelectedAddressId);
@@ -234,8 +235,13 @@ export function ClienteLayout({ children }: PropsWithChildren) {
         }`}
       >
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 md:px-8">
-          <Link to="/c" aria-label="Ir al catalogo" className="shrink-0">
-            <img src={logoUrl} alt={brandName} className="h-11 w-11 rounded-[1.2rem] bg-white object-contain shadow-float" />
+          <Link to="/c" aria-label={`Ir al catalogo de ${brandName}`} className="shrink-0">
+            <BrandMark
+              brandName={brandName}
+              logoUrl={branding?.platform_logo_url ?? null}
+              imageClassName="h-9 max-w-[8.75rem] drop-shadow-[0_10px_20px_rgba(173,74,14,0.14)] sm:h-10 sm:max-w-[10rem]"
+              textClassName="text-[1.45rem] text-[#24130e]"
+            />
           </Link>
           {showAddressSelector ? (
             <div className="min-w-0 flex-1">

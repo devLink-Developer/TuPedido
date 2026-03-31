@@ -339,7 +339,7 @@ describe("SettingsPage", () => {
   it("redirige al flujo OAuth cuando el comercio conecta Mercado Pago", async () => {
     const user = userEvent.setup();
     const assignMock = vi.fn();
-    vi.stubGlobal("location", { assign: assignMock } as Location);
+    vi.stubGlobal("location", { assign: assignMock } as unknown as Location);
 
     fetchMerchantStoreMock.mockResolvedValue(buildStore());
     fetchMerchantMercadoPagoConnectUrlMock.mockResolvedValue({

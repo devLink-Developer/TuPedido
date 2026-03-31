@@ -775,19 +775,19 @@ export function SettingsPage() {
         <form onSubmit={(event) => void handlePlatformBrandingSave(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
           <h3 className="text-lg font-bold text-ink">Identidad visual</h3>
           <p className="mt-2 text-sm text-zinc-600">
-            Configura el logo principal de la app y el favicon del navegador. Si activas el toggle, el favicon se resolvera con el mismo logo.
+            Configura el wordmark principal de la app para navbar y accesos, y el favicon del navegador. Si activas el toggle, el favicon se resolvera con el mismo logo.
           </p>
           <div className="mt-4 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-4">
               <ImageAssetField
-                label="Logo de la app"
+                label="Logo principal / navbar"
                 value={platformLogoUrl}
                 onChange={setPlatformLogoUrl}
                 folder="platform-branding"
                 placeholder="https://..."
-                description="Se usa en cabeceras y accesos principales."
-                previewClassName="h-40 w-full object-contain bg-white p-5"
-                emptyLabel="Sin logo configurado"
+                description="Usa un logo horizontal o wordmark, por ejemplo logo_3, para que la marca se vea limpia y grande en el navbar."
+                previewClassName="h-32 w-full object-contain bg-white p-5"
+                emptyLabel="Sin logo configurado para navbar"
               />
               <ImageAssetField
                 label="Favicon"
@@ -811,17 +811,31 @@ export function SettingsPage() {
             <div className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Preview</p>
               <div className="rounded-[24px] border border-black/5 bg-zinc-50 p-5">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[1.2rem] bg-white shadow-sm">
+                <div className="rounded-[22px] border border-black/5 bg-[rgba(255,251,246,0.94)] px-4 py-3 shadow-sm">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      {platformLogoUrl ? (
+                        <img src={platformLogoUrl} alt="Logo principal" className="h-10 w-auto max-w-[12rem] object-contain" />
+                      ) : (
+                        <span className="font-display text-2xl font-black tracking-tight text-[#24130e]">Kepedimos</span>
+                      )}
+                    </div>
+                    <span className="rounded-full border border-black/10 bg-white/90 px-3 py-2 text-xs font-semibold text-zinc-700">
+                      Ingresar
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center gap-4">
+                  <div className="flex h-14 min-w-0 flex-1 items-center overflow-hidden rounded-[1.2rem] bg-white px-4 shadow-sm">
                     {platformLogoUrl ? (
-                      <img src={platformLogoUrl} alt="Logo de la app" className="h-full w-full object-contain p-2" />
+                      <img src={platformLogoUrl} alt="Logo de la app" className="h-9 w-auto max-w-full object-contain" />
                     ) : (
-                      <span className="text-xs font-semibold text-zinc-400">Logo</span>
+                      <span className="font-display text-xl font-black tracking-tight text-zinc-400">Kepedimos</span>
                     )}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-ink">Logo principal</p>
-                    <p className="text-sm text-zinc-500">Visible en cabeceras y layouts de la app.</p>
+                    <p className="text-sm text-zinc-500">Asi se vera en navbar y cabeceras principales.</p>
                   </div>
                 </div>
                 <div className="mt-5 flex items-center gap-4">
