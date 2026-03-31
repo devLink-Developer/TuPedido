@@ -27,6 +27,13 @@ from app.services.store_address import build_store_address
 
 logger = logging.getLogger(__name__)
 
+LEGACY_SEED_EMAILS: dict[str, tuple[str, ...]] = {
+    "cliente@kepedimos.example.com": ("cliente@tupedido.example.com",),
+    "merchant@kepedimos.example.com": ("merchant@tupedido.example.com",),
+    "applicant@kepedimos.example.com": ("applicant@tupedido.example.com",),
+    "delivery@kepedimos.example.com": ("delivery@tupedido.example.com",),
+}
+
 
 def _default_admin_seed() -> dict[str, object]:
     return {
@@ -102,6 +109,19 @@ def ensure_default_admin() -> bool:
         return True
     finally:
         db.close()
+
+
+def _get_seed_user(db, email: str) -> User | None:
+    user = db.scalar(select(User).where(User.email == email))
+    if user is not None:
+        return user
+
+    for legacy_email in LEGACY_SEED_EMAILS.get(email, ()):
+        user = db.scalar(select(User).where(User.email == legacy_email))
+        if user is not None:
+            user.email = email
+            return user
+    return None
 
 
 def seed_initial_data() -> None:
@@ -245,7 +265,7 @@ def seed_initial_data() -> None:
         ]
         users_by_email: dict[str, User] = {}
         for item in users_seed:
-            user = db.scalar(select(User).where(User.email == item["email"]))
+            user = _get_seed_user(db, str(item["email"]))
             if user is None:
                 user = User(
                     full_name=item["full_name"],
@@ -278,6 +298,10 @@ def seed_initial_data() -> None:
 
         merchant_user = users_by_email["merchant@kepedimos.example.com"]
         store = db.scalar(select(Store).where(Store.owner_user_id == merchant_user.id))
+        if store is None:
+            store = db.scalar(select(Store).where(Store.slug == "almacen-belgrano"))
+            if store is not None:
+                store.owner_user_id = merchant_user.id
         if store is None:
             store = Store(
                 owner_user_id=merchant_user.id,
