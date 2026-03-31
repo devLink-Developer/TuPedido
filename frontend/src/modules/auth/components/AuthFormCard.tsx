@@ -6,6 +6,41 @@ import { usePlatformBranding } from "../../../shared/providers/PlatformBrandingP
 import { Button } from "../../../shared/ui/Button";
 import { roleToHomePath } from "../../../shared/utils/routing";
 
+const authMarketingContent = {
+  login: {
+    eyebrow: "Acceso",
+    titlePrefix: "Ingresar a",
+    description: "Entra, retoma tus pedidos en segundos y compra con una experiencia mucho mas directa.",
+    highlights: [
+      "Guarda direcciones y repite compras sin empezar de cero.",
+      "Sigue el estado de cada pedido desde una sola cuenta.",
+      "Accede mas rapido a tus locales y productos favoritos."
+    ],
+    formEyebrow: "Acceso",
+    formTitle: "Iniciar sesion",
+    formDescription: "Accede para revisar pedidos, direcciones y pagos desde un solo lugar.",
+    secondaryPrompt: "No tienes cuenta?",
+    secondaryActionLabel: "Crear cuenta",
+    secondaryActionTo: "/registro"
+  },
+  register: {
+    eyebrow: "Registro cliente",
+    titlePrefix: "Crear cuenta",
+    description: "Crea tu cuenta una vez y deja listo tu acceso para pedir mas rapido cada vez.",
+    highlights: [
+      "Guarda tus datos para completar compras en menos pasos.",
+      "Recibe seguimiento claro desde la compra hasta la entrega.",
+      "Mantiene tu historial y tus direcciones siempre a mano."
+    ],
+    formEyebrow: "Registro",
+    formTitle: "Crear cuenta",
+    formDescription: "Completa tus datos y deja preparado tu acceso para futuras compras.",
+    secondaryPrompt: "Ya tienes cuenta?",
+    secondaryActionLabel: "Iniciar sesion",
+    secondaryActionTo: "/login"
+  }
+} as const;
+
 export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   const { login, register, loading } = useAuthSession();
   const { brandName, wordmarkUrl } = usePlatformBranding();
@@ -18,6 +53,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const content = authMarketingContent[mode];
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,13 +78,11 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
       <div className="rounded-[32px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-5 text-white shadow-lift sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">
-          {mode === "login" ? "Acceso" : "Registro cliente"}
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">{content.eyebrow}</p>
         <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.05] tracking-tight sm:text-4xl">
           {mode === "login" ? (
             <span className="flex flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
-              <span>Ingresar a</span>
+              <span>{content.titlePrefix}</span>
               <BrandWordmark
                 brandName={brandName}
                 wordmarkUrl={wordmarkUrl}
@@ -56,49 +90,31 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
                 fit="contain"
                 className="min-w-0 shrink-0"
                 frameClassName="h-[5.25rem] w-[15rem] sm:h-[6.5rem] sm:w-[18rem]"
-                imageClassName="drop-shadow-[0_12px_24px_rgba(249,115,22,0.3)]"
               />
             </span>
           ) : (
-            "Crear cuenta cliente"
+            content.titlePrefix
           )}
         </h1>
-        {mode === "register" ? (
-          <>
-            <p className="mt-3 text-sm leading-6 text-white/72 sm:leading-7">
-              Ingresa una sola vez y te llevamos a la experiencia correspondiente para tu cuenta.
-            </p>
-            <div className="mt-6 grid gap-3 text-sm leading-6 text-white/78">
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">
-                Un solo acceso para clientes, comercios, riders y administradores.
-              </div>
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">
-                El registro desde esta pantalla esta disponible para cuentas cliente.
-              </div>
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">
-                Si estabas completando una solicitud, podras retomarla al volver.
-              </div>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-white/72 sm:text-[15px] sm:leading-7">
+          {content.description}
+        </p>
+        <div className="mt-6 grid gap-3 text-sm leading-6 text-white/78">
+          {content.highlights.map((item) => (
+            <div key={item} className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">
+              {item}
             </div>
-          </>
-        ) : null}
+          ))}
+        </div>
       </div>
 
       <form onSubmit={(event) => void handleSubmit(event)} className="rounded-[32px] bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
-              {mode === "login" ? "Acceso" : "Registro"}
-            </p>
-            <h2 className="mt-2 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight text-ink sm:text-3xl">
-              {mode === "login" ? "Iniciar sesion" : "Crear cuenta"}
-            </h2>
-          </div>
-          <Link
-            className="w-full rounded-full border border-black/10 bg-zinc-50 px-4 py-2 text-center text-sm font-semibold text-zinc-700 sm:w-auto"
-            to={mode === "login" ? "/registro" : "/login"}
-          >
-            {mode === "login" ? "Crear cuenta" : "Ya tengo cuenta"}
-          </Link>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{content.formEyebrow}</p>
+          <h2 className="mt-2 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight text-ink sm:text-3xl">
+            {content.formTitle}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-zinc-500">{content.formDescription}</p>
         </div>
 
         <div className="mt-6 space-y-4">
@@ -152,6 +168,16 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
         <Button type="submit" className="mt-5 w-full" disabled={submitting || loading}>
           {submitting || loading ? "Procesando..." : mode === "login" ? "Ingresar" : "Crear cuenta"}
         </Button>
+
+        <div className="mt-5 border-t border-black/6 pt-5 text-center">
+          <p className="text-sm text-zinc-500">{content.secondaryPrompt}</p>
+          <Link
+            className="mt-3 inline-flex rounded-full border border-black/10 bg-zinc-50 px-5 py-2.5 text-sm font-semibold text-zinc-700 transition hover:border-brand-200 hover:text-ink"
+            to={content.secondaryActionTo}
+          >
+            {content.secondaryActionLabel}
+          </Link>
+        </div>
       </form>
     </div>
   );

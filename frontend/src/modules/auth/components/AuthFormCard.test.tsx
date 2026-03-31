@@ -17,7 +17,7 @@ describe("AuthFormCard", () => {
     useAuthStore.getState().resetForTest();
   });
 
-  it("apila la accion secundaria debajo del titulo en mobile", () => {
+  it("mueve la accion secundaria al final del formulario", () => {
     useAuthStore.setState({
       loading: false,
       hydrated: true
@@ -32,12 +32,12 @@ describe("AuthFormCard", () => {
     );
 
     const secondaryAction = screen.getByRole("link", { name: "Crear cuenta" });
-    expect(secondaryAction).toHaveClass("w-full", "sm:w-auto", "text-center");
-    expect(secondaryAction.parentElement).toHaveClass("flex-col", "sm:flex-row");
+    const primaryAction = screen.getByRole("button", { name: "Ingresar" });
+    expect(screen.getByText("No tienes cuenta?")).toBeInTheDocument();
+    expect(secondaryAction).toHaveClass("inline-flex", "rounded-full");
+    expect(primaryAction.compareDocumentPosition(secondaryAction)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(screen.getByRole("heading", { name: "Iniciar sesion" })).toHaveClass("text-[1.85rem]", "sm:text-3xl");
-    expect(
-      screen.queryByText("Ingresa una sola vez y te llevamos a la experiencia correspondiente para tu cuenta.")
-    ).not.toBeInTheDocument();
+    expect(screen.getByText("Accede para revisar pedidos, direcciones y pagos desde un solo lugar.")).toBeInTheDocument();
   });
 
   it("redirects to the role home returned by backend login", async () => {
