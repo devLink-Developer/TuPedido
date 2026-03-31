@@ -8,7 +8,7 @@ export function LandingLayout({ children }: PropsWithChildren) {
 
   return (
     <div className="ambient-grid min-h-screen text-ink">
-      <header className="sticky top-0 z-30 border-b border-black/5 bg-[rgba(255,251,246,0.88)] backdrop-blur">
+      <header className="sticky top-0 z-30 border-b bg-[rgba(255,251,246,0.88)] backdrop-blur" style={{ borderColor: "var(--landing-accent-border)" }}>
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-8">
           <Link to="/" aria-label={`Ir al inicio de ${brandName}`} className="inline-flex items-center">
             <BrandMark
@@ -19,10 +19,21 @@ export function LandingLayout({ children }: PropsWithChildren) {
             />
           </Link>
           <div className="flex items-center gap-2">
-            <Link className="rounded-full border border-black/10 bg-white/80 px-4 py-2 text-sm font-semibold text-zinc-700" to="/login">
+            <Link
+              className="rounded-full border bg-white/80 px-4 py-2 text-sm font-semibold text-zinc-700 transition"
+              style={{ borderColor: "var(--landing-accent-border)" }}
+              to="/login"
+            >
               Ingresar
             </Link>
-            <Link className="rounded-full bg-[linear-gradient(135deg,#fb923c,#c2410c)] px-4 py-2 text-sm font-semibold text-white shadow-float" to="/registro">
+            <Link
+              className="rounded-full px-4 py-2 text-sm font-semibold text-white shadow-float"
+              style={{
+                backgroundImage: "linear-gradient(135deg, var(--landing-accent), rgba(0, 0, 0, 0.22))",
+                boxShadow: `0 18px 36px -22px var(--landing-accent-shadow)`
+              }}
+              to="/registro"
+            >
               Crear cuenta
             </Link>
           </div>
