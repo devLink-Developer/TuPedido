@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PlatformWordmark } from "./PlatformWordmark";
 import { useUiStore } from "../../stores";
 
 export function PwaInstallBanner() {
@@ -11,8 +12,14 @@ export function PwaInstallBanner() {
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-[28px] bg-ink p-4 text-white shadow-[0_26px_60px_rgba(24,19,18,0.32)]">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">App</p>
-      <p className="mt-2 text-sm leading-6 text-white/80">
-        Instala Kepedimos para abrir la app mas rapido y seguir tus pedidos desde cualquier momento.
+      <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-6 text-white/80">
+        <span>Instala</span>
+        <PlatformWordmark
+          frameClassName="h-5 w-[6.5rem] overflow-hidden"
+          imageClassName="h-full w-full object-cover object-center"
+          textClassName="text-sm"
+        />
+        <span>para abrir la app mas rapido y seguir tus pedidos desde cualquier momento.</span>
       </p>
       <div className="mt-3 flex gap-2">
         <button

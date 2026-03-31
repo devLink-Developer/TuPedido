@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PlatformWordmark } from "../../../shared/components";
 import { Button } from "../../../shared/ui/Button";
 
 export function HeroAddressSearch() {
@@ -12,7 +13,12 @@ export function HeroAddressSearch() {
       <div className="relative grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-5">
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ffd2bd]/80">Kepedimos</p>
+            <div className="min-w-0">
+              <PlatformWordmark
+                imageClassName="h-5 w-auto max-w-[7rem] object-contain opacity-95"
+                textClassName="text-sm font-bold uppercase tracking-[0.22em] text-[#ffd2bd]"
+              />
+            </div>
             <h1 className="max-w-3xl font-display text-[2rem] font-bold leading-[1.05] sm:text-4xl md:text-5xl">
               Todo lo que necesitas en un solo lugar.
             </h1>
@@ -38,7 +44,13 @@ export function HeroAddressSearch() {
           </form>
         </div>
         <div className="rounded-[32px] border border-white/10 bg-white/10 p-4 backdrop-blur-md sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#ffd2bd]/80">Por que elegir Kepedimos</p>
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold uppercase tracking-[0.24em] text-[#ffd2bd]/80">
+            <span>Por que elegir</span>
+            <PlatformWordmark
+              imageClassName="h-4 w-auto max-w-[6rem] object-contain opacity-95"
+              textClassName="text-xs font-semibold uppercase tracking-[0.24em] text-[#ffd2bd]/80"
+            />
+          </p>
           <div className="mt-4 grid gap-3 text-sm leading-6 text-white/74 sm:leading-7">
             <div className="rounded-[22px] bg-white/10 px-4 py-4">Comercios, farmacias y locales cerca de tu direccion.</div>
             <div className="rounded-[22px] bg-white/10 px-4 py-4">Pedidos faciles de seguir desde la compra hasta la entrega.</div>

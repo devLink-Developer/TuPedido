@@ -798,7 +798,7 @@ export function SettingsPage() {
                 onChange={setPlatformWordmarkUrl}
                 folder="platform-branding"
                 placeholder="https://..."
-                description="Esta imagen reemplaza el texto de marca, por ejemplo el Kepedimos del hero de acceso."
+                description="Esta imagen reemplaza el texto de marca en accesos, titulos y bloques donde la marca aparece inline."
                 previewClassName="h-24 w-full object-contain bg-white p-4"
                 emptyLabel="Sin wordmark configurado"
               />
@@ -830,7 +830,7 @@ export function SettingsPage() {
                       {platformLogoUrl ? (
                         <img src={platformLogoUrl} alt="Logo principal" className="h-10 w-auto max-w-[12rem] object-contain" />
                       ) : (
-                        <span className="font-display text-2xl font-black tracking-tight text-[#24130e]">Kepedimos</span>
+                        <BrandWordmark brandName="Marca" wordmarkUrl={platformWordmarkUrl} textClassName="font-display text-2xl font-black tracking-tight text-[#24130e]" />
                       )}
                     </div>
                     <span className="rounded-full border border-black/10 bg-white/90 px-3 py-2 text-xs font-semibold text-zinc-700">
@@ -843,7 +843,7 @@ export function SettingsPage() {
                     {platformLogoUrl ? (
                       <img src={platformLogoUrl} alt="Logo de la app" className="h-9 w-auto max-w-full object-contain" />
                     ) : (
-                      <span className="font-display text-xl font-black tracking-tight text-zinc-400">Kepedimos</span>
+                      <BrandWordmark brandName="Marca" wordmarkUrl={platformWordmarkUrl} textClassName="font-display text-xl font-black tracking-tight text-zinc-400" />
                     )}
                   </div>
                   <div>
@@ -856,7 +856,7 @@ export function SettingsPage() {
                   <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 font-display text-2xl font-bold leading-tight">
                     <span>Ingresar a</span>
                     <BrandWordmark
-                      brandName="Kepedimos"
+                      brandName="Marca"
                       wordmarkUrl={platformWordmarkUrl}
                       className="min-w-0"
                       frameClassName="h-12 w-[8.75rem] overflow-hidden sm:h-14 sm:w-[10.5rem]"

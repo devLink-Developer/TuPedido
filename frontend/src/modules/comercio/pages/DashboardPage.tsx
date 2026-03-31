@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "../../../shared/ui/Button";
-import { EmptyState, LoadingCard, PageHeader, StatCard, StatusPill } from "../../../shared/components";
+import { EmptyState, LoadingCard, PageHeader, PlatformWordmark, StatCard, StatusPill } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   createMerchantSettlementNotice,
@@ -219,8 +219,14 @@ export function DashboardPage() {
         <section className="space-y-4">
           <article className="rounded-[28px] bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold text-ink">Cuenta corriente</h3>
-            <p className="mt-2 text-sm leading-7 text-zinc-600">
-              Aqui ves el fee de plataforma que cobraste en efectivo al cliente por cuenta de Kepedimos. El costo de delivery sigue siendo ingreso de tu comercio.
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-7 text-zinc-600">
+              <span>Aqui ves el fee de plataforma que cobraste en efectivo al cliente por cuenta de</span>
+              <PlatformWordmark
+                frameClassName="h-5 w-[6.75rem] overflow-hidden"
+                imageClassName="h-full w-full object-cover object-center"
+                textClassName="text-sm font-semibold text-ink"
+              />
+              <span>. El costo de delivery sigue siendo ingreso de tu comercio.</span>
             </p>
             <div className="mt-4 space-y-2 text-sm text-zinc-600">
               <p>Comercio: {store?.name ?? "-"}</p>

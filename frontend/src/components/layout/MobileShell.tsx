@@ -1,7 +1,7 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../../app/session";
 import { useCart } from "../../features/cart/cart-store";
-import { BrandMark } from "../../shared/components";
+import { BrandMark, PlatformWordmark } from "../../shared/components";
 import { usePlatformBranding } from "../../shared/providers/PlatformBrandingProvider";
 import { BottomNav } from "./BottomNav";
 
@@ -57,7 +57,17 @@ export function MobileShell() {
             { to: "/orders", label: "Pedidos" }
           ];
   const isStoreRoute = location.pathname.startsWith("/stores/") || location.pathname.startsWith("/restaurants/");
-  const title = isStoreRoute ? "Tienda" : titles[location.pathname] ?? brandName;
+  const title = isStoreRoute ? (
+    "Tienda"
+  ) : (
+    titles[location.pathname] ?? (
+      <PlatformWordmark
+        frameClassName="h-8 w-[7rem] overflow-hidden"
+        imageClassName="h-full w-full object-cover object-center"
+        textClassName="text-xl"
+      />
+    )
+  );
   const desktopHighlights = [
     "Abiertos primero, cerrados despues por proxima apertura.",
     "Filtros rapidos por rubro, delivery o retiro.",

@@ -3,7 +3,7 @@ import type { StyleSpecification } from "maplibre-gl";
 function buildFallbackMapStyle(): StyleSpecification {
   return {
     version: 8,
-    name: "Kepedimos Map",
+    name: "Marketplace Map",
     sources: {
       osm: {
         type: "raster",

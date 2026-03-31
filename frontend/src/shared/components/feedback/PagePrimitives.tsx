@@ -58,7 +58,7 @@ export function PageHeader({
   backgroundImageUrl
 }: {
   eyebrow: string;
-  title: string;
+  title: ReactNode;
   description?: string;
   action?: ReactNode;
   backgroundImageUrl?: string | null;

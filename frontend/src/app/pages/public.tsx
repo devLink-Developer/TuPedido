@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } 
 import { checkout, fetchCategories, fetchStore, fetchStores, submitMercadoPagoWebhook } from "../api";
 import { useCart } from "../../features/cart/cart-store";
 import { useSession } from "../session";
+import { PlatformWordmark } from "../../shared/components";
 import type { Category, Product, StoreDetail, StoreSummary } from "../types";
 import {
   EmptyCard,
@@ -547,7 +548,19 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
     }
   }
 
-  const title = mode === "login" ? "Ingresar a Kepedimos" : "Crear cuenta";
+  const title =
+    mode === "login" ? (
+      <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span>Ingresar a</span>
+        <PlatformWordmark
+          frameClassName="h-12 w-[8.5rem] overflow-hidden"
+          imageClassName="h-full w-full object-cover object-center"
+          textClassName="text-3xl"
+        />
+      </span>
+    ) : (
+      "Crear cuenta"
+    );
   const submitLabel = mode === "login" ? "Ingresar" : "Crear cuenta";
 
   return (

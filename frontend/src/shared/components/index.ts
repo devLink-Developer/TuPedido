@@ -2,6 +2,7 @@ export * from "./app/PwaInstallBanner";
 export * from "./app/ToastViewport";
 export * from "./app/BrandMark";
 export * from "./app/BrandWordmark";
+export * from "./app/PlatformWordmark";
 export * from "./category/RubroChip";
 export * from "./feedback/PagePrimitives";
 export * from "./forms/ImageAssetField";

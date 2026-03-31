@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
-import { EmptyState, ImageAssetField, LoadingCard, PageHeader, RubroChip, StatusPill } from "../../../shared/components";
+import { EmptyState, ImageAssetField, LoadingCard, PageHeader, PlatformWordmark, RubroChip, StatusPill } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   createMerchantProductCategory,
@@ -813,8 +813,14 @@ export function SettingsPage() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Parametros</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Detalle operativo</h2>
-            <p className="mt-2 text-sm text-zinc-600">
-              El fee de plataforma es global y lo administra Kepedimos. Aqui solo configuras tiempos, minimo de compra y delivery de tu comercio.
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-600">
+              <span>El fee de plataforma es global y lo administra</span>
+              <PlatformWordmark
+                frameClassName="h-5 w-[6.75rem] overflow-hidden"
+                imageClassName="h-full w-full object-cover object-center"
+                textClassName="text-sm font-semibold text-ink"
+              />
+              <span>. Aqui solo configuras tiempos, minimo de compra y delivery de tu comercio.</span>
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">

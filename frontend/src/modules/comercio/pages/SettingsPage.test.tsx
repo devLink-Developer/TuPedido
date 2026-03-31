@@ -64,6 +64,7 @@ vi.mock("../../../shared/components", () => ({
       {description ? <p>{description}</p> : null}
     </div>
   ),
+  PlatformWordmark: () => <span>Marca</span>,
   RubroChip: ({ label }: { label: string }) => <button type="button">{label}</button>,
   StatusPill: ({ value }: { value: string }) => <span>{value}</span>
 }));
