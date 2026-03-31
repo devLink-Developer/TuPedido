@@ -5,6 +5,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthStore } from "../../../shared/stores";
 import { AuthFormCard } from "./AuthFormCard";
 
+vi.mock("../../../shared/providers/PlatformBrandingProvider", () => ({
+  usePlatformBranding: () => ({
+    brandName: "Kepedimos",
+    wordmarkUrl: null
+  })
+}));
+
 describe("AuthFormCard", () => {
   beforeEach(() => {
     useAuthStore.getState().resetForTest();

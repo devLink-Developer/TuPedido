@@ -20,6 +20,7 @@ def get_or_create_platform_settings(db: Session) -> PlatformSettings:
             id=PLATFORM_SETTINGS_SINGLETON_ID,
             service_fee_amount=DEFAULT_SERVICE_FEE_AMOUNT,
             platform_logo_url=None,
+            platform_wordmark_url=None,
             platform_favicon_url=None,
             platform_use_logo_as_favicon=DEFAULT_PLATFORM_USE_LOGO_AS_FAVICON,
             catalog_banner_image_url=None,

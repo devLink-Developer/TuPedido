@@ -495,12 +495,14 @@ def serialize_notification(notification: object) -> NotificationRead:
 
 def serialize_platform_settings(settings: object) -> PlatformSettingsRead:
     logo_url = getattr(settings, "platform_logo_url", None)
+    wordmark_url = getattr(settings, "platform_wordmark_url", None)
     favicon_url = getattr(settings, "platform_favicon_url", None)
     use_logo_as_favicon = bool(getattr(settings, "platform_use_logo_as_favicon", False))
     resolved_favicon_url = logo_url if use_logo_as_favicon and logo_url else favicon_url
     return PlatformSettingsRead(
         service_fee_amount=float(settings.service_fee_amount),
         platform_logo_url=logo_url,
+        platform_wordmark_url=wordmark_url,
         platform_favicon_url=favicon_url,
         platform_use_logo_as_favicon=use_logo_as_favicon,
         resolved_favicon_url=resolved_favicon_url,
@@ -534,10 +536,12 @@ def serialize_catalog_banner(settings: object) -> CatalogBannerRead:
 
 def serialize_platform_branding(settings: object) -> PlatformBrandingRead:
     logo_url = getattr(settings, "platform_logo_url", None)
+    wordmark_url = getattr(settings, "platform_wordmark_url", None)
     favicon_url = getattr(settings, "platform_favicon_url", None)
     use_logo_as_favicon = bool(getattr(settings, "platform_use_logo_as_favicon", False))
     return PlatformBrandingRead(
         platform_logo_url=logo_url,
+        platform_wordmark_url=wordmark_url,
         platform_favicon_url=favicon_url,
         platform_use_logo_as_favicon=use_logo_as_favicon,
         resolved_favicon_url=logo_url if use_logo_as_favicon and logo_url else favicon_url,

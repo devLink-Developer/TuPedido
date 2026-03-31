@@ -1,11 +1,14 @@
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { BrandWordmark } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
+import { usePlatformBranding } from "../../../shared/providers/PlatformBrandingProvider";
 import { Button } from "../../../shared/ui/Button";
 import { roleToHomePath } from "../../../shared/utils/routing";
 
 export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   const { login, register, loading } = useAuthSession();
+  const { brandName, wordmarkUrl } = usePlatformBranding();
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = new URLSearchParams(location.search).get("redirectTo");
@@ -39,9 +42,22 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
       <div className="rounded-[32px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-5 text-white shadow-lift sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">Kepedimos</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">
+          {mode === "login" ? "Acceso" : "Registro cliente"}
+        </p>
         <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.05] tracking-tight sm:text-4xl">
-          {mode === "login" ? "Ingresar a Kepedimos" : "Crear cuenta cliente"}
+          {mode === "login" ? (
+            <>
+              Ingresar a{" "}
+              <BrandWordmark
+                brandName={brandName}
+                wordmarkUrl={wordmarkUrl}
+                imageClassName="h-[0.95em] align-[-0.12em] drop-shadow-[0_10px_18px_rgba(249,115,22,0.26)]"
+              />
+            </>
+          ) : (
+            "Crear cuenta cliente"
+          )}
         </h1>
         {mode === "register" ? (
           <>

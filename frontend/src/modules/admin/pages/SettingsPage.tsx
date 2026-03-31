@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { CatalogBanner, EmptyState, ImageAssetField, LoadingCard, PageHeader } from "../../../shared/components";
+import { BrandWordmark, CatalogBanner, EmptyState, ImageAssetField, LoadingCard, PageHeader } from "../../../shared/components";
 import { CATALOG_BANNER_RECOMMENDATION, formatCatalogBannerRatio, resolveCatalogBannerDimensions } from "../../../shared/config/catalogBanner";
 import { useAuthSession } from "../../../shared/hooks";
 import { useCategoryStore } from "../../../shared/stores";
@@ -119,6 +119,7 @@ export function SettingsPage() {
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [serviceFee, setServiceFee] = useState("0");
   const [platformLogoUrl, setPlatformLogoUrl] = useState("");
+  const [platformWordmarkUrl, setPlatformWordmarkUrl] = useState("");
   const [platformFaviconUrl, setPlatformFaviconUrl] = useState("");
   const [platformUseLogoAsFavicon, setPlatformUseLogoAsFavicon] = useState(false);
   const [catalogBannerImageUrl, setCatalogBannerImageUrl] = useState("");
@@ -179,6 +180,7 @@ export function SettingsPage() {
       });
       setServiceFee(platformResult.service_fee_amount.toFixed(2));
       setPlatformLogoUrl(platformResult.platform_logo_url ?? "");
+      setPlatformWordmarkUrl(platformResult.platform_wordmark_url ?? "");
       setPlatformFaviconUrl(platformResult.platform_favicon_url ?? "");
       setPlatformUseLogoAsFavicon(Boolean(platformResult.platform_use_logo_as_favicon));
       setCatalogBannerImageUrl(platformResult.catalog_banner_image_url ?? "");
@@ -354,6 +356,7 @@ export function SettingsPage() {
       await updatePlatformSettings(token, {
         service_fee_amount: platformSettings.service_fee_amount,
         platform_logo_url: platformLogoUrl.trim() || null,
+        platform_wordmark_url: platformWordmarkUrl.trim() || null,
         platform_favicon_url: platformFaviconUrl.trim() || null,
         platform_use_logo_as_favicon: platformUseLogoAsFavicon
       });
@@ -775,7 +778,7 @@ export function SettingsPage() {
         <form onSubmit={(event) => void handlePlatformBrandingSave(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
           <h3 className="text-lg font-bold text-ink">Identidad visual</h3>
           <p className="mt-2 text-sm text-zinc-600">
-            Configura el wordmark principal de la app para navbar y accesos, y el favicon del navegador. Si activas el toggle, el favicon se resolvera con el mismo logo.
+            Configura los assets de marca por separado: logo de navbar, wordmark para reemplazar el texto de marca y favicon del navegador.
           </p>
           <div className="mt-4 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-4">
@@ -788,6 +791,16 @@ export function SettingsPage() {
                 description="Usa un logo horizontal o wordmark, por ejemplo logo_3, para que la marca se vea limpia y grande en el navbar."
                 previewClassName="h-32 w-full object-contain bg-white p-5"
                 emptyLabel="Sin logo configurado para navbar"
+              />
+              <ImageAssetField
+                label="Wordmark / logo_3"
+                value={platformWordmarkUrl}
+                onChange={setPlatformWordmarkUrl}
+                folder="platform-branding"
+                placeholder="https://..."
+                description="Esta imagen reemplaza el texto de marca, por ejemplo el Kepedimos del hero de acceso."
+                previewClassName="h-24 w-full object-contain bg-white p-4"
+                emptyLabel="Sin wordmark configurado"
               />
               <ImageAssetField
                 label="Favicon"
@@ -837,6 +850,17 @@ export function SettingsPage() {
                     <p className="text-sm font-semibold text-ink">Logo principal</p>
                     <p className="text-sm text-zinc-500">Asi se vera en navbar y cabeceras principales.</p>
                   </div>
+                </div>
+                <div className="mt-5 rounded-[22px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] px-4 py-4 text-white">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-200">Acceso</p>
+                  <p className="mt-3 font-display text-2xl font-bold leading-tight">
+                    Ingresar a{" "}
+                    <BrandWordmark
+                      brandName="Kepedimos"
+                      wordmarkUrl={platformWordmarkUrl}
+                      imageClassName="h-[0.95em] align-[-0.12em] drop-shadow-[0_10px_18px_rgba(249,115,22,0.24)]"
+                    />
+                  </p>
                 </div>
                 <div className="mt-5 flex items-center gap-4">
                   <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm">

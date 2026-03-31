@@ -17,6 +17,7 @@ type PlatformBrandingContextValue = {
   branding: PlatformBranding | null;
   brandName: string;
   logoUrl: string;
+  wordmarkUrl: string | null;
   faviconUrl: string;
 };
 
@@ -24,6 +25,7 @@ const PlatformBrandingContext = createContext<PlatformBrandingContextValue>({
   branding: null,
   brandName: DEFAULT_BRAND_NAME,
   logoUrl: DEFAULT_LOGO_URL,
+  wordmarkUrl: null,
   faviconUrl: DEFAULT_FAVICON_URL
 });
 
@@ -76,6 +78,7 @@ export function PlatformBrandingProvider({ children }: PropsWithChildren) {
       branding,
       brandName: DEFAULT_BRAND_NAME,
       logoUrl: branding?.platform_logo_url || DEFAULT_LOGO_URL,
+      wordmarkUrl: branding?.platform_wordmark_url || null,
       faviconUrl
     }),
     [branding, faviconUrl]

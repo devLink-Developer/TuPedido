@@ -18,6 +18,7 @@ export type CatalogBanner = {
 
 export type PlatformBranding = {
   platform_logo_url: string | null;
+  platform_wordmark_url: string | null;
   platform_favicon_url: string | null;
   platform_use_logo_as_favicon: boolean;
   resolved_favicon_url: string | null;

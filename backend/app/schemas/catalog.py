@@ -58,6 +58,7 @@ class CatalogBannerRead(BaseModel):
 
 class PlatformBrandingRead(BaseModel):
     platform_logo_url: str | None = None
+    platform_wordmark_url: str | None = None
     platform_favicon_url: str | None = None
     platform_use_logo_as_favicon: bool = False
     resolved_favicon_url: str | None = None

@@ -134,6 +134,7 @@ def seed_initial_data() -> None:
                     id=1,
                     service_fee_amount=350,
                     platform_logo_url=None,
+                    platform_wordmark_url=None,
                     platform_favicon_url=None,
                     platform_use_logo_as_favicon=False,
                     catalog_banner_image_url=None,
@@ -143,6 +144,7 @@ def seed_initial_data() -> None:
             )
         else:
             platform_settings.platform_logo_url = platform_settings.platform_logo_url or None
+            platform_settings.platform_wordmark_url = platform_settings.platform_wordmark_url or None
             platform_settings.platform_favicon_url = platform_settings.platform_favicon_url or None
             platform_settings.platform_use_logo_as_favicon = bool(platform_settings.platform_use_logo_as_favicon)
             platform_settings.catalog_banner_image_url = platform_settings.catalog_banner_image_url or None

@@ -81,6 +81,8 @@ def update_platform_settings(
         settings.catalog_banner_image_url = (payload.catalog_banner_image_url or "").strip() or None
     if "platform_logo_url" in payload.model_fields_set:
         settings.platform_logo_url = (payload.platform_logo_url or "").strip() or None
+    if "platform_wordmark_url" in payload.model_fields_set:
+        settings.platform_wordmark_url = (payload.platform_wordmark_url or "").strip() or None
     if "platform_favicon_url" in payload.model_fields_set:
         settings.platform_favicon_url = (payload.platform_favicon_url or "").strip() or None
     if "platform_use_logo_as_favicon" in payload.model_fields_set and payload.platform_use_logo_as_favicon is not None:
