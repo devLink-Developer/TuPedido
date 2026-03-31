@@ -10,31 +10,31 @@ const authMarketingContent = {
   login: {
     eyebrow: "Acceso",
     titlePrefix: "Ingresar a",
-    description: "Entra, retoma tus pedidos en segundos y compra con una experiencia mucho mas directa.",
+    description: "Entra y pide mas rapido en los comercios que ya conoces.",
     highlights: [
-      "Guarda direcciones y repite compras sin empezar de cero.",
-      "Sigue el estado de cada pedido desde una sola cuenta.",
-      "Accede mas rapido a tus locales y productos favoritos."
+      "Guarda tu direccion y evita cargar lo mismo en cada pedido.",
+      "Vuelve a comprar tus favoritos sin empezar de cero.",
+      "Sigue tus pedidos desde un solo lugar."
     ],
     formEyebrow: "Acceso",
     formTitle: "Iniciar sesion",
-    formDescription: "Accede para revisar pedidos, direcciones y pagos desde un solo lugar.",
+    formDescription: "Entra para ver tus pedidos y comprar sin vueltas.",
     secondaryPrompt: "No tienes cuenta?",
     secondaryActionLabel: "Crear cuenta",
     secondaryActionTo: "/registro"
   },
   register: {
     eyebrow: "Registro cliente",
-    titlePrefix: "Crear cuenta",
-    description: "Crea tu cuenta una vez y deja listo tu acceso para pedir mas rapido cada vez.",
+    titlePrefix: "Tu proximo pedido empieza aqui",
+    description: "Crea tu cuenta y deja todo listo para pedir mas rapido la proxima vez.",
     highlights: [
-      "Guarda tus datos para completar compras en menos pasos.",
-      "Recibe seguimiento claro desde la compra hasta la entrega.",
-      "Mantiene tu historial y tus direcciones siempre a mano."
+      "Guarda tu direccion una sola vez.",
+      "Haz seguimiento de tus pedidos cuando quieras.",
+      "Vuelve a comprar sin perder tiempo."
     ],
     formEyebrow: "Registro",
     formTitle: "Crear cuenta",
-    formDescription: "Completa tus datos y deja preparado tu acceso para futuras compras.",
+    formDescription: "Completa tus datos y empieza a pedir en minutos.",
     secondaryPrompt: "Ya tienes cuenta?",
     secondaryActionLabel: "Iniciar sesion",
     secondaryActionTo: "/login"

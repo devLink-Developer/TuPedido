@@ -37,7 +37,7 @@ describe("AuthFormCard", () => {
     expect(secondaryAction).toHaveClass("inline-flex", "rounded-full");
     expect(primaryAction.compareDocumentPosition(secondaryAction)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(screen.getByRole("heading", { name: "Iniciar sesion" })).toHaveClass("text-[1.85rem]", "sm:text-3xl");
-    expect(screen.getByText("Accede para revisar pedidos, direcciones y pagos desde un solo lugar.")).toBeInTheDocument();
+    expect(screen.getByText("Entra para ver tus pedidos y comprar sin vueltas.")).toBeInTheDocument();
   });
 
   it("redirects to the role home returned by backend login", async () => {
