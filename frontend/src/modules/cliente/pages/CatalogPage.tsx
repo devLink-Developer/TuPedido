@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CatalogBanner, EmptyState, LoadingCard, RubroChip } from "../../../shared/components";
 import { fetchCatalogBanner, fetchStores } from "../../../shared/services/api";
@@ -6,6 +6,7 @@ import { useCategoryStore, useClienteStore } from "../../../shared/stores";
 import type { CatalogBanner as CatalogBannerData, StoreSummary } from "../../../shared/types";
 import { subscribeCatalogStoresChanged } from "../../../shared/utils/catalogStores";
 import { StoreList } from "../components/StoreList";
+import { buildCatalogTheme } from "../utils/catalogTheme";
 
 const LIVE_REFRESH_INTERVAL_MS = 5000;
 
@@ -27,6 +28,11 @@ export function CatalogPage() {
   const filtersRef = useRef({ categorySlug: "", search: "", deliveryMode: "" as "" | "delivery" | "pickup" });
   const requestIdRef = useRef(0);
   const hasLoadedStoresRef = useRef(false);
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.slug === categorySlug) ?? null,
+    [categories, categorySlug]
+  );
+  const catalogTheme = useMemo(() => buildCatalogTheme(selectedCategory), [selectedCategory]);
 
   filtersRef.current = { categorySlug, search, deliveryMode };
 
@@ -103,6 +109,26 @@ export function CatalogPage() {
   }, [categorySlug, deliveryMode, search]);
 
   useEffect(() => {
+    const root = document.documentElement;
+
+    root.style.setProperty("--catalog-accent", catalogTheme.accent);
+    root.style.setProperty("--catalog-accent-light", catalogTheme.accentLight);
+    root.style.setProperty("--catalog-accent-soft", catalogTheme.accentSoft);
+    root.style.setProperty("--catalog-accent-border", catalogTheme.accentBorder);
+    root.style.setProperty("--catalog-accent-shadow", catalogTheme.accentShadow);
+    root.style.setProperty("--page-glow", catalogTheme.pageGlow);
+
+    return () => {
+      root.style.removeProperty("--catalog-accent");
+      root.style.removeProperty("--catalog-accent-light");
+      root.style.removeProperty("--catalog-accent-soft");
+      root.style.removeProperty("--catalog-accent-border");
+      root.style.removeProperty("--catalog-accent-shadow");
+      root.style.removeProperty("--page-glow");
+    };
+  }, [catalogTheme]);
+
+  useEffect(() => {
     const unsubscribe = subscribeCatalogStoresChanged(() => {
       void loadStores({ silent: hasLoadedStoresRef.current });
     });
@@ -153,14 +179,30 @@ export function CatalogPage() {
 
   return (
     <div className="space-y-6">
-      <CatalogBanner
-        imageUrl={catalogBanner?.catalog_banner_image_url}
-        width={catalogBanner?.catalog_banner_width}
-        height={catalogBanner?.catalog_banner_height}
-        alt="Banner principal del catalogo"
-      />
+      <section
+        className="rounded-[38px] border p-3 transition-[border-color,box-shadow,background] duration-300"
+        style={{
+          borderColor: catalogTheme.accentBorder,
+          backgroundImage: catalogTheme.bannerFrame,
+          boxShadow: `0 24px 52px -38px ${catalogTheme.accentShadowStrong}`
+        }}
+      >
+        <CatalogBanner
+          imageUrl={catalogBanner?.catalog_banner_image_url}
+          width={catalogBanner?.catalog_banner_width}
+          height={catalogBanner?.catalog_banner_height}
+          alt="Banner principal del catalogo"
+        />
+      </section>
 
-      <div className="grid gap-4 rounded-[28px] bg-white p-5 shadow-sm md:grid-cols-[1.3fr_0.7fr]">
+      <div
+        className="grid gap-4 rounded-[30px] border p-5 transition-[border-color,box-shadow,background] duration-300 md:grid-cols-[1.3fr_0.7fr]"
+        style={{
+          borderColor: catalogTheme.accentBorder,
+          backgroundImage: catalogTheme.filterPanel,
+          boxShadow: `0 20px 44px -34px ${catalogTheme.accentShadow}`
+        }}
+      >
         <label className="space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Buscar</span>
           <input
@@ -170,7 +212,8 @@ export function CatalogPage() {
               updateQuery({ search: event.target.value });
             }}
             placeholder="Despensa, farmacia, parrilla..."
-            className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 outline-none transition focus:border-brand-500"
+            className="w-full rounded-2xl border bg-white/88 px-4 py-3 outline-none transition focus:border-[var(--catalog-accent)] focus:ring-4 focus:ring-[var(--catalog-accent-soft)]"
+            style={{ borderColor: catalogTheme.accentBorder }}
           />
         </label>
         <label className="space-y-2">
@@ -181,7 +224,8 @@ export function CatalogPage() {
               setDeliveryMode(event.target.value as "" | "delivery" | "pickup");
               updateQuery({ deliveryMode: event.target.value });
             }}
-            className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 outline-none transition focus:border-brand-500"
+            className="w-full rounded-2xl border bg-white/88 px-4 py-3 outline-none transition focus:border-[var(--catalog-accent)] focus:ring-4 focus:ring-[var(--catalog-accent-soft)]"
+            style={{ borderColor: catalogTheme.accentBorder }}
           >
             <option value="">Todos</option>
             <option value="delivery">Envio</option>
@@ -190,44 +234,66 @@ export function CatalogPage() {
         </label>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            setCategorySlug("");
-            updateQuery({ categorySlug: "" });
-          }}
-          className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-            !categorySlug ? "bg-ink text-white" : "bg-white text-zinc-600 shadow-sm"
-          }`}
-        >
-          Todos los rubros
-        </button>
-        {categories.map((category) => {
-          const selected = categorySlug === category.slug;
-          return (
-            <RubroChip
-              key={category.id}
-              label={category.name}
-              color={category.color}
-              colorLight={category.color_light}
-              icon={category.icon}
-              selected={selected}
-              onClick={() => {
-                setCategorySlug(category.slug);
-                updateQuery({ categorySlug: category.slug });
-              }}
-            />
-          );
-        })}
-      </div>
+      <section
+        className="rounded-[30px] border p-4 transition-[border-color,box-shadow,background] duration-300"
+        style={{
+          borderColor: catalogTheme.accentBorder,
+          backgroundImage: catalogTheme.chipPanel,
+          boxShadow: `0 18px 40px -34px ${catalogTheme.accentShadow}`
+        }}
+      >
+        <div className="space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Rubros destacados</p>
+          <h2 className="text-xl font-black tracking-tight text-ink">
+            {selectedCategory ? `Estas viendo ${selectedCategory.name}` : "Elige tu rubro"}
+          </h2>
+          <p className="text-sm text-zinc-600">
+            {selectedCategory
+              ? "El catálogo toma el tono del rubro para que encuentres opciones más rápido."
+              : "Toca un rubro y deja el catálogo más enfocado para ese tipo de compra."}
+          </p>
+        </div>
+
+        <div className="hide-scrollbar mt-4 flex flex-wrap gap-2 overflow-x-auto pb-1 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setCategorySlug("");
+              updateQuery({ categorySlug: "" });
+            }}
+            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+              !categorySlug ? "bg-ink text-white" : "bg-white/92 text-zinc-600"
+            }`}
+            style={!categorySlug ? undefined : { borderColor: catalogTheme.accentBorder }}
+          >
+            Todos los rubros
+          </button>
+          {categories.map((category) => {
+            const selected = categorySlug === category.slug;
+            return (
+              <RubroChip
+                key={category.id}
+                label={category.name}
+                color={category.color}
+                colorLight={category.color_light}
+                icon={category.icon}
+                selected={selected}
+                onClick={() => {
+                  setCategorySlug(category.slug);
+                  updateQuery({ categorySlug: category.slug });
+                }}
+              />
+            );
+          })}
+        </div>
+      </section>
 
       {loading || categoryLoading ? <LoadingCard /> : null}
       {error ? <EmptyState title="No se pudo cargar el listado" description={error} /> : null}
 
       {!loading && !categoryLoading && !error ? (
         stores.length ? (
-          <StoreList stores={stores} />
+          <StoreList stores={stores} selectedCategoryId={selectedCategory?.id ?? null} theme={catalogTheme} />
         ) : (
           <EmptyState
             title="No hay comercios para ese filtro"

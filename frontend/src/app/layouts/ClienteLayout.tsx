@@ -36,6 +36,8 @@ export function ClienteLayout({ children }: PropsWithChildren) {
   const showFloatingCart = location.pathname !== "/c/carrito" && location.pathname !== "/c/checkout" && itemCount > 0;
   const showAddressSelector = isAuthenticated && user?.role === "customer";
   const showActiveOrderBar = !orderTrackingMatch;
+  const themedFieldClassName =
+    "w-full rounded-2xl border bg-white/92 px-4 py-3 text-sm font-semibold text-ink shadow-sm outline-none transition focus:border-[var(--catalog-accent)] focus:ring-4 focus:ring-[var(--catalog-accent-soft)]";
   const selectedAddress = useMemo(
     () => addresses.find((address) => address.id === selectedAddressId) ?? null,
     [addresses, selectedAddressId]
@@ -233,6 +235,10 @@ export function ClienteLayout({ children }: PropsWithChildren) {
         className={`fixed inset-x-0 top-0 z-30 border-b border-black/5 bg-[rgba(255,251,246,0.88)] py-3 backdrop-blur transition-transform duration-200 ${
           navbarVisible ? "translate-y-0" : "-translate-y-[calc(100%+0.75rem)]"
         }`}
+        style={{
+          borderColor: "var(--catalog-accent-border)",
+          boxShadow: "0 18px 36px -34px var(--catalog-accent-shadow)"
+        }}
       >
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 md:px-8">
           <Link to="/c" aria-label={`Ir al catalogo de ${brandName}`} className="shrink-0">
@@ -252,7 +258,8 @@ export function ClienteLayout({ children }: PropsWithChildren) {
                   value={selectedAddress?.id ?? ""}
                   onChange={(event) => setSelectedAddressId(event.target.value ? Number(event.target.value) : "")}
                   aria-label="Define tu direccion de entrega"
-                  className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-ink shadow-sm outline-none transition focus:border-brand-500"
+                  className={themedFieldClassName}
+                  style={{ borderColor: "var(--catalog-accent-border)" }}
                 >
                   {addresses.map((address) => (
                     <option key={address.id} value={address.id}>
@@ -263,7 +270,8 @@ export function ClienteLayout({ children }: PropsWithChildren) {
               ) : (
                 <Link
                   to="/c/perfil"
-                  className="block rounded-2xl border border-black/10 bg-white px-4 py-3 shadow-sm transition hover:border-brand-200"
+                  className="block rounded-2xl border bg-white/92 px-4 py-3 shadow-sm transition"
+                  style={{ borderColor: "var(--catalog-accent-border)" }}
                 >
                   <span className="hidden">
                     {selectedAddress?.label ?? ""}
@@ -282,9 +290,13 @@ export function ClienteLayout({ children }: PropsWithChildren) {
               <button
                 type="button"
                 onClick={() => setMenuOpen((current) => !current)}
-                className="flex items-center gap-3 rounded-full border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm"
+                className="flex items-center gap-3 rounded-full border bg-white/92 px-3 py-2 text-sm font-semibold text-ink shadow-sm"
+                style={{ borderColor: "var(--catalog-accent-border)" }}
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-xs font-bold text-white">
+                <span
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white"
+                  style={{ backgroundColor: "var(--catalog-accent)" }}
+                >
                   {user?.full_name?.trim().charAt(0).toUpperCase() || "P"}
                 </span>
                 <span className="hidden text-left md:block">
@@ -293,7 +305,10 @@ export function ClienteLayout({ children }: PropsWithChildren) {
                 </span>
               </button>
               {menuOpen ? (
-                <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 min-w-[220px] rounded-[24px] border border-black/5 bg-white p-2 shadow-[0_18px_36px_rgba(24,19,18,0.14)]">
+                <div
+                  className="absolute right-0 top-[calc(100%+0.75rem)] z-40 min-w-[220px] rounded-[24px] border bg-white p-2 shadow-[0_18px_36px_rgba(24,19,18,0.14)]"
+                  style={{ borderColor: "var(--catalog-accent-border)" }}
+                >
                   <Link
                     to="/c/pedidos"
                     className="block rounded-[18px] px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 hover:text-ink"
@@ -331,7 +346,11 @@ export function ClienteLayout({ children }: PropsWithChildren) {
         <Link
           to="/c/carrito"
           aria-label={`Abrir carrito con ${itemCount} productos`}
-          className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 w-16 items-center justify-center rounded-full bg-brand-500 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(255,61,0,0.34)] transition hover:opacity-95 md:hidden"
+          className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 w-16 items-center justify-center rounded-full text-sm font-semibold text-white transition hover:opacity-95 md:hidden"
+          style={{
+            backgroundColor: "var(--catalog-accent)",
+            boxShadow: "0 18px 40px -18px var(--catalog-accent-shadow)"
+          }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
             <path d="M4.5 6h1.25l1.1 7.05a1 1 0 0 0 .98.8h8.77a1 1 0 0 0 .97-.76L19 8.25H7.2" />

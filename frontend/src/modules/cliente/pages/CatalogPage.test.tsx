@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useCategoryStore } from "../../../shared/stores";
+import { useCategoryStore, useClienteStore } from "../../../shared/stores";
 import { CATALOG_STORES_CHANGED_EVENT } from "../../../shared/utils/catalogStores";
 import { CatalogPage } from "./CatalogPage";
 
@@ -33,7 +33,14 @@ describe("CatalogPage", () => {
     fetchCatalogBannerMock.mockReset();
     fetchStoresMock.mockReset();
     fetchCategoriesMock.mockReset();
-    useCategoryStore.getState().setCategories([]);
+    useCategoryStore.getState().resetForTest();
+    useClienteStore.getState().resetCatalog();
+    document.documentElement.style.removeProperty("--catalog-accent");
+    document.documentElement.style.removeProperty("--catalog-accent-light");
+    document.documentElement.style.removeProperty("--catalog-accent-soft");
+    document.documentElement.style.removeProperty("--catalog-accent-border");
+    document.documentElement.style.removeProperty("--catalog-accent-shadow");
+    document.documentElement.style.removeProperty("--page-glow");
     fetchCatalogBannerMock.mockResolvedValue({
       catalog_banner_image_url: null,
       catalog_banner_width: 1600,
@@ -75,6 +82,31 @@ describe("CatalogPage", () => {
       })
     );
     expect(screen.getByRole("combobox")).toHaveValue("pickup");
+  });
+
+  it("aplica el color del rubro seleccionado al contexto del catalogo", async () => {
+    useCategoryStore.getState().setCategories([
+      {
+        id: 7,
+        name: "Farmacia",
+        slug: "farmacia",
+        description: null,
+        color: "#22C55E",
+        color_light: "#DCFCE7",
+        icon: "FX",
+        is_active: true,
+        sort_order: 1
+      }
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={["/c?category=farmacia"]}>
+        <CatalogPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(document.documentElement.style.getPropertyValue("--catalog-accent")).toBe("#22C55E"));
+    expect(screen.getByText("Estas viendo Farmacia")).toBeInTheDocument();
   });
 
   it("revalida el listado al cambiar la venta sin mostrar de nuevo el loading", async () => {

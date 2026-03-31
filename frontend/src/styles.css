@@ -20,6 +20,11 @@
   --page-cream: var(--color-background-primary);
   --page-sand: #f4e5d6;
   --page-glow: rgba(255, 61, 0, 0.14);
+  --catalog-accent: #ff6a1a;
+  --catalog-accent-light: #fff2e8;
+  --catalog-accent-soft: rgba(255, 106, 26, 0.08);
+  --catalog-accent-border: rgba(255, 106, 26, 0.18);
+  --catalog-accent-shadow: rgba(255, 106, 26, 0.18);
   --landing-accent: #f97316;
   --landing-accent-light: #fff1e8;
   --landing-accent-border: rgba(249, 115, 22, 0.18);
@@ -52,7 +57,7 @@ body {
   padding-bottom: var(--safe-bottom);
   background:
     radial-gradient(circle at top left, var(--page-glow), transparent 26%),
-    radial-gradient(circle at 85% 12%, rgba(237, 224, 212, 0.65), transparent 18%),
+    radial-gradient(circle at 82% 10%, var(--catalog-accent-soft), transparent 18%),
     linear-gradient(180deg, #fff2e8 0%, var(--color-background-primary) 38%, #fffaf5 100%);
   transition: background 280ms ease;
 }
