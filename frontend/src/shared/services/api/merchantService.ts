@@ -5,6 +5,7 @@ import type {
   MerchantRiderSettlementPaymentCreate,
   MerchantRiderUpdate,
   MercadoPagoConnectResponse,
+  MercadoPagoDisconnectResponse,
   MerchantStore,
   Order,
   OrderStatusUpdate,
@@ -97,7 +98,18 @@ export async function updateMerchantPaymentSettings(
 }
 
 export async function fetchMerchantMercadoPagoConnectUrl(token: string): Promise<MercadoPagoConnectResponse> {
-  return apiRequest<MercadoPagoConnectResponse>("/merchant/payments/mercadopago/connect-url", { token });
+  return apiRequest<MercadoPagoConnectResponse>("/oauth/mercadopago/session", {
+    method: "POST",
+    token,
+    credentials: "include"
+  });
+}
+
+export async function disconnectMerchantMercadoPago(token: string): Promise<MercadoPagoDisconnectResponse> {
+  return apiRequest<MercadoPagoDisconnectResponse>("/oauth/mercadopago/disconnect", {
+    method: "POST",
+    token
+  });
 }
 
 export async function fetchMerchantSettlementOverview(token: string): Promise<SettlementOverview> {

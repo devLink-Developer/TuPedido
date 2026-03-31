@@ -8,10 +8,10 @@ from app.core.security import hash_password
 from app.core.utils import encrypt_sensitive_value, slugify
 from app.db.session import SessionLocal
 from app.models.delivery import DeliveryApplication, DeliveryProfile, DeliveryZone, DeliveryZoneRate
-from app.models.platform import PlatformSettings
+from app.models.platform import PaymentProvider, PlatformSettings
 from app.models.store import (
     Category,
-    MercadoPagoCredential,
+    MerchantPaymentAccount,
     Product,
     ProductCategory,
     ProductSubcategory,
@@ -122,6 +122,28 @@ def seed_initial_data() -> None:
             platform_settings.catalog_banner_image_url = platform_settings.catalog_banner_image_url or None
             platform_settings.catalog_banner_width = platform_settings.catalog_banner_width or DEFAULT_CATALOG_BANNER_WIDTH
             platform_settings.catalog_banner_height = platform_settings.catalog_banner_height or DEFAULT_CATALOG_BANNER_HEIGHT
+
+        redirect_uri = settings.mercadopago_redirect_uri or (
+            f"{settings.backend_base_url.rstrip('/')}{settings.api_prefix}/oauth/mercadopago/callback"
+        )
+        payment_provider = db.scalar(
+            select(PaymentProvider).where(PaymentProvider.provider == "mercadopago")
+        )
+        if payment_provider is None:
+            payment_provider = PaymentProvider(provider="mercadopago")
+            db.add(payment_provider)
+            db.flush()
+        payment_provider.client_id = settings.mercadopago_client_id or "SIMULATED-CLIENT-ID"
+        payment_provider.client_secret_encrypted = encrypt_sensitive_value(
+            settings.mercadopago_client_secret or "SIMULATED-CLIENT-SECRET"
+        )
+        payment_provider.redirect_uri = redirect_uri
+        payment_provider.enabled = bool(settings.mercadopago_simulated) or bool(
+            settings.mercadopago_client_id
+            and settings.mercadopago_client_secret
+            and settings.mercadopago_redirect_uri
+        )
+        payment_provider.mode = "sandbox"
 
         base_categories = [
             {
@@ -333,32 +355,28 @@ def seed_initial_data() -> None:
             store.payment_settings.cash_enabled = True
             store.payment_settings.mercadopago_enabled = True
 
-        if store.mercadopago_credentials is None:
-            db.add(
-                MercadoPagoCredential(
-                    store_id=store.id,
-                    public_key="APP_USR-TEST-1234",
-                    access_token_encrypted=encrypt_sensitive_value("TEST-ACCESS-TOKEN-1234"),
-                    refresh_token_encrypted=encrypt_sensitive_value("TEST-REFRESH-TOKEN-1234"),
-                    collector_id="123456789",
-                    scope="offline_access payments write",
-                    live_mode=False,
-                    token_expires_at=datetime(2099, 1, 1, tzinfo=UTC),
-                    oauth_connected_at=datetime.now(UTC),
-                    is_configured=True,
-                )
+        merchant_payment_account = db.scalar(
+            select(MerchantPaymentAccount).where(
+                MerchantPaymentAccount.store_id == store.id,
+                MerchantPaymentAccount.provider == "mercadopago",
             )
-        else:
-            store.mercadopago_credentials.public_key = "APP_USR-TEST-1234"
-            store.mercadopago_credentials.access_token_encrypted = encrypt_sensitive_value("TEST-ACCESS-TOKEN-1234")
-            store.mercadopago_credentials.refresh_token_encrypted = encrypt_sensitive_value("TEST-REFRESH-TOKEN-1234")
-            store.mercadopago_credentials.collector_id = "123456789"
-            store.mercadopago_credentials.scope = "offline_access payments write"
-            store.mercadopago_credentials.live_mode = False
-            store.mercadopago_credentials.token_expires_at = datetime(2099, 1, 1, tzinfo=UTC)
-            store.mercadopago_credentials.oauth_connected_at = datetime.now(UTC)
-            store.mercadopago_credentials.reconnect_required = False
-            store.mercadopago_credentials.is_configured = True
+        )
+        if merchant_payment_account is None:
+            merchant_payment_account = MerchantPaymentAccount(
+                store_id=store.id,
+                provider="mercadopago",
+            )
+            db.add(merchant_payment_account)
+            db.flush()
+        merchant_payment_account.public_key = "APP_USR-TEST-1234"
+        merchant_payment_account.access_token_encrypted = encrypt_sensitive_value("TEST-ACCESS-TOKEN-1234")
+        merchant_payment_account.refresh_token_encrypted = encrypt_sensitive_value("TEST-REFRESH-TOKEN-1234")
+        merchant_payment_account.mp_user_id = "123456789"
+        merchant_payment_account.expires_in = 15552000
+        merchant_payment_account.token_expires_at = datetime(2099, 1, 1, tzinfo=UTC)
+        merchant_payment_account.connected = True
+        merchant_payment_account.onboarding_completed = True
+        merchant_payment_account.reconnect_required = False
 
         zone = db.scalar(select(DeliveryZone).where(DeliveryZone.name == "CABA Norte"))
         if zone is None:

@@ -59,6 +59,7 @@ from app.services.delivery import (
     publish_order_snapshot,
     rider_has_active_order,
 )
+from app.services.mercadopago import get_or_create_mercadopago_provider, is_store_mercadopago_ready
 from app.services.settlements import create_cash_service_fee_charge
 from app.services.store_address import store_has_configured_delivery_address
 
@@ -69,7 +70,7 @@ STORE_OPTIONS = (
     selectinload(Store.hours),
     selectinload(Store.delivery_settings),
     selectinload(Store.payment_settings),
-    selectinload(Store.mercadopago_credentials),
+    selectinload(Store.payment_accounts),
     selectinload(Store.product_categories).selectinload(ProductCategory.subcategories),
     selectinload(Store.products).selectinload(Product.product_category),
     selectinload(Store.products).selectinload(Product.product_subcategory),
@@ -110,7 +111,8 @@ def get_merchant_rider(db: Session, *, store_id: int, rider_user_id: int) -> Del
 @router.get("/store")
 def get_store(user: User = Depends(require_merchant), db: Session = Depends(get_db)) -> dict[str, object]:
     store = get_merchant_store(db, user.id)
-    return serialize_store_detail(store).model_dump()
+    mercadopago_provider = get_or_create_mercadopago_provider(db)
+    return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
 
 
 @router.put("/store")
@@ -139,7 +141,8 @@ def update_store(
         store.delivery_settings.delivery_enabled = False
     db.commit()
     db.refresh(store)
-    return serialize_store_detail(store).model_dump()
+    mercadopago_provider = get_or_create_mercadopago_provider(db)
+    return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
 
 
 @router.put("/store/categories")
@@ -160,7 +163,8 @@ def update_store_categories(
     ]
     db.commit()
     db.refresh(store)
-    return serialize_store_detail(store).model_dump()
+    mercadopago_provider = get_or_create_mercadopago_provider(db)
+    return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
 
 
 @router.put("/store/hours")
@@ -182,7 +186,8 @@ def update_store_hours(
     ]
     db.commit()
     db.refresh(store)
-    return serialize_store_detail(store).model_dump()
+    mercadopago_provider = get_or_create_mercadopago_provider(db)
+    return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
 
 
 @router.put("/store/delivery-settings")
@@ -209,7 +214,8 @@ def update_delivery_settings(
     settings.min_order = payload.min_order
     db.commit()
     db.refresh(store)
-    return serialize_store_detail(store).model_dump()
+    mercadopago_provider = get_or_create_mercadopago_provider(db)
+    return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
 
 
 @router.put("/store/payment-settings")
@@ -219,15 +225,27 @@ def update_payment_settings(
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     store = get_merchant_store(db, user.id)
+    mercadopago_provider = get_or_create_mercadopago_provider(db)
     settings = store.payment_settings
     if settings is None:
         settings = StorePaymentSettings(store_id=store.id)
         db.add(settings)
+    if payload.mercadopago_enabled:
+        if not mercadopago_provider.enabled:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Mercado Pago is disabled by the platform configuration",
+            )
+        if not is_store_mercadopago_ready(store, provider=mercadopago_provider):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Connect your Mercado Pago account before enabling this payment method",
+            )
     settings.cash_enabled = payload.cash_enabled
     settings.mercadopago_enabled = payload.mercadopago_enabled
     db.commit()
     db.refresh(store)
-    return serialize_store_detail(store).model_dump()
+    return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
 
 
 @router.get("/riders")

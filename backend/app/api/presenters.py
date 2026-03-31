@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.core.utils import is_store_open, mask_secret
+from app.schemas.admin import PaymentProviderRead
 from app.schemas.cart import CartItemRead, CartRead
 from app.schemas.catalog import (
     CatalogBannerRead,
@@ -32,7 +33,11 @@ from app.schemas.settlement import (
     SettlementAllocationRead,
 )
 from app.services.category_colors import resolve_category_palette
-from app.services.mercadopago import is_store_mercadopago_ready, mercadopago_connection_status
+from app.services.mercadopago import (
+    get_store_payment_account,
+    is_store_mercadopago_ready,
+    mercadopago_connection_status,
+)
 from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
 from app.services.product_pricing import serialize_product_pricing
 from app.services.store_address import store_delivery_is_enabled
@@ -76,20 +81,27 @@ def serialize_store_delivery_settings(store: object) -> StoreDeliverySettingsRea
     )
 
 
-def serialize_store_payment_settings(store: object) -> StorePaymentSettingsRead:
+def serialize_store_payment_settings(
+    store: object, *, mercadopago_provider: object | None = None
+) -> StorePaymentSettingsRead:
     settings = getattr(store, "payment_settings", None)
-    credentials = getattr(store, "mercadopago_credentials", None)
-    public_key = credentials.public_key if credentials else None
+    account = get_store_payment_account(store)
+    public_key = account.public_key if account else None
     connection_status = mercadopago_connection_status(store)
     return StorePaymentSettingsRead(
         cash_enabled=bool(settings.cash_enabled) if settings else False,
         mercadopago_enabled=bool(settings.mercadopago_enabled) if settings else False,
-        mercadopago_configured=is_store_mercadopago_ready(store),
+        mercadopago_configured=is_store_mercadopago_ready(store, provider=mercadopago_provider),
+        mercadopago_provider_enabled=bool(getattr(mercadopago_provider, "enabled", False)),
+        mercadopago_provider_mode=str(getattr(mercadopago_provider, "mode", "sandbox") or "sandbox"),
         mercadopago_public_key_masked=mask_secret(public_key) if public_key else None,
         mercadopago_connection_status=connection_status,
         mercadopago_reconnect_required=connection_status == "reconnect_required",
-        mercadopago_oauth_connected_at=credentials.oauth_connected_at if credentials else None,
-        mercadopago_collector_id=credentials.collector_id if credentials else None,
+        mercadopago_onboarding_completed=bool(getattr(account, "onboarding_completed", False)),
+        mercadopago_oauth_connected_at=getattr(account, "updated_at", None)
+        if account and bool(getattr(account, "connected", False))
+        else None,
+        mercadopago_mp_user_id=getattr(account, "mp_user_id", None) if account else None,
     )
 
 
@@ -161,7 +173,9 @@ def serialize_product(product: object) -> ProductRead:
     )
 
 
-def serialize_store_summary(store: object) -> StoreSummaryRead:
+def serialize_store_summary(
+    store: object, *, mercadopago_provider: object | None = None
+) -> StoreSummaryRead:
     primary_category_id, primary_category, primary_category_slug, categories = _category_metadata(store)
     category_ids = [link.category_id for link in getattr(store, "category_links", []) or []]
     return StoreSummaryRead(
@@ -192,12 +206,14 @@ def serialize_store_summary(store: object) -> StoreSummaryRead:
         primary_category_slug=primary_category_slug,
         categories=categories,
         delivery_settings=serialize_store_delivery_settings(store),
-        payment_settings=serialize_store_payment_settings(store),
+        payment_settings=serialize_store_payment_settings(store, mercadopago_provider=mercadopago_provider),
     )
 
 
-def serialize_store_detail(store: object) -> StoreDetailRead:
-    summary = serialize_store_summary(store)
+def serialize_store_detail(
+    store: object, *, mercadopago_provider: object | None = None
+) -> StoreDetailRead:
+    summary = serialize_store_summary(store, mercadopago_provider=mercadopago_provider)
     return StoreDetailRead(
         **summary.model_dump(),
         product_categories=[serialize_product_category(item) for item in store.product_categories],
@@ -484,6 +500,18 @@ def serialize_platform_settings(settings: object) -> PlatformSettingsRead:
         catalog_banner_height=getattr(settings, "catalog_banner_height", DEFAULT_CATALOG_BANNER_HEIGHT),
         updated_at=getattr(settings, "updated_at", None),
         updated_by=None,
+    )
+
+
+def serialize_payment_provider(provider: object) -> PaymentProviderRead:
+    return PaymentProviderRead(
+        provider=getattr(provider, "provider", "mercadopago"),
+        client_id=getattr(provider, "client_id", None),
+        client_secret_masked="********" if getattr(provider, "client_secret_encrypted", None) else None,
+        redirect_uri=getattr(provider, "redirect_uri", None),
+        enabled=bool(getattr(provider, "enabled", False)),
+        mode=str(getattr(provider, "mode", "sandbox") or "sandbox"),
+        updated_at=getattr(provider, "updated_at", None),
     )
 
 

@@ -19,7 +19,7 @@ STORE_OPTIONS = (
     selectinload(Store.hours),
     selectinload(Store.delivery_settings),
     selectinload(Store.payment_settings),
-    selectinload(Store.mercadopago_credentials),
+    selectinload(Store.payment_accounts),
 )
 
 CART_OPTIONS = (
@@ -27,7 +27,7 @@ CART_OPTIONS = (
     selectinload(ShoppingCart.store).selectinload(Store.hours),
     selectinload(ShoppingCart.store).selectinload(Store.delivery_settings),
     selectinload(ShoppingCart.store).selectinload(Store.payment_settings),
-    selectinload(ShoppingCart.store).selectinload(Store.mercadopago_credentials),
+    selectinload(ShoppingCart.store).selectinload(Store.payment_accounts),
     selectinload(ShoppingCart.items).selectinload(ShoppingCartItem.product),
 )
 
@@ -175,7 +175,6 @@ def resolve_supported_delivery_mode(store: Store, delivery_mode: str) -> str:
 
 def ensure_payment_method_supported(store: Store, payment_method: str) -> None:
     settings = store.payment_settings
-    credentials = store.mercadopago_credentials
     if settings is None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Store payment settings are not configured")
 
@@ -184,5 +183,5 @@ def ensure_payment_method_supported(store: Store, payment_method: str) -> None:
     if payment_method == "mercadopago":
         if not settings.mercadopago_enabled:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Mercado Pago is not available for this store")
-        if credentials is None or not is_store_mercadopago_ready(store):
+        if not is_store_mercadopago_ready(store):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Mercado Pago credentials are not configured")

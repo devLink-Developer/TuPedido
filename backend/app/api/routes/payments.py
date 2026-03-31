@@ -2,27 +2,21 @@ from __future__ import annotations
 
 import json
 from typing import Any
-from urllib.parse import urlencode
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import RedirectResponse
 
 from app.api.presenters import serialize_order
-from app.core.config import settings
 from app.db.session import get_db
 from app.models.order import StoreOrder
-from app.models.store import MercadoPagoCredential, Store
+from app.models.store import Store
 from app.services.delivery import publish_order_snapshot
 from app.services.mercadopago import (
     MercadoPagoAPIError,
-    decode_oauth_state,
-    exchange_oauth_code,
     fetch_payment,
     normalize_payment_status,
-    store_oauth_credentials,
 )
 
 router = APIRouter()
@@ -53,17 +47,9 @@ def _load_order(db: Session, reference: str) -> StoreOrder | None:
 def _load_store(db: Session, store_id: int) -> Store | None:
     return db.scalar(
         select(Store)
-        .options(selectinload(Store.mercadopago_credentials), selectinload(Store.payment_settings))
+        .options(selectinload(Store.payment_accounts), selectinload(Store.payment_settings))
         .where(Store.id == store_id)
     )
-
-
-def _merchant_redirect_url(status_value: str, detail: str | None = None) -> str:
-    base = f"{settings.frontend_base_url.rstrip('/')}/merchant"
-    query = {"mercadopago_oauth": status_value}
-    if detail:
-        query["detail"] = detail
-    return f"{base}?{urlencode(query)}"
 
 
 def _apply_payment_status(order: StoreOrder, status_value: str) -> None:
@@ -74,53 +60,6 @@ def _apply_payment_status(order: StoreOrder, status_value: str) -> None:
     order.payment_status = status_value
     if status_value in {"cancelled", "rejected"}:
         order.status = "cancelled"
-
-
-@router.get("/mercadopago/oauth/callback")
-def mercadopago_oauth_callback(
-    code: str | None = None,
-    state: str | None = None,
-    error: str | None = None,
-    error_description: str | None = None,
-    db: Session = Depends(get_db),
-) -> RedirectResponse:
-    if error:
-        return RedirectResponse(
-            _merchant_redirect_url("error", error_description or error),
-            status_code=status.HTTP_302_FOUND,
-        )
-    if not code or not state:
-        return RedirectResponse(
-            _merchant_redirect_url("error", "Missing OAuth callback parameters"),
-            status_code=status.HTTP_302_FOUND,
-        )
-    try:
-        payload = decode_oauth_state(state)
-        store = db.scalar(
-            select(Store)
-            .options(selectinload(Store.mercadopago_credentials), selectinload(Store.payment_settings))
-            .where(Store.id == int(payload["store_id"]), Store.owner_user_id == int(payload["user_id"]))
-        )
-        if store is None:
-            raise MercadoPagoAPIError("Merchant store not found for OAuth callback")
-        if store.mercadopago_credentials is None:
-            credentials = MercadoPagoCredential(store_id=store.id)
-            db.add(credentials)
-            db.flush()
-            store.mercadopago_credentials = credentials
-        token_payload = exchange_oauth_code(code)
-        store_oauth_credentials(store, token_payload)
-        db.commit()
-        return RedirectResponse(
-            _merchant_redirect_url("connected"),
-            status_code=status.HTTP_302_FOUND,
-        )
-    except (MercadoPagoAPIError, ValueError) as exc:
-        db.rollback()
-        return RedirectResponse(
-            _merchant_redirect_url("error", str(exc)),
-            status_code=status.HTTP_302_FOUND,
-        )
 
 
 @router.post("/mercadopago/webhook")

@@ -6,6 +6,8 @@ import { SettingsPage } from "./SettingsPage";
 
 const fetchMerchantStoreMock = vi.fn();
 const fetchMerchantProductCategoriesMock = vi.fn();
+const fetchMerchantMercadoPagoConnectUrlMock = vi.fn();
+const disconnectMerchantMercadoPagoMock = vi.fn();
 const updateMerchantStoreMock = vi.fn();
 const updateMerchantStoreCategoriesMock = vi.fn();
 const updateMerchantDeliverySettingsMock = vi.fn();
@@ -34,6 +36,8 @@ vi.mock("../../../shared/services/api", () => ({
   createMerchantProductSubcategory: vi.fn(),
   deleteMerchantProductCategory: vi.fn(),
   deleteMerchantProductSubcategory: vi.fn(),
+  disconnectMerchantMercadoPago: (...args: unknown[]) => disconnectMerchantMercadoPagoMock(...args),
+  fetchMerchantMercadoPagoConnectUrl: (...args: unknown[]) => fetchMerchantMercadoPagoConnectUrlMock(...args),
   fetchMerchantProductCategories: (...args: unknown[]) => fetchMerchantProductCategoriesMock(...args),
   fetchMerchantStore: (...args: unknown[]) => fetchMerchantStoreMock(...args),
   geocodeAddress: vi.fn(),
@@ -183,9 +187,14 @@ function buildStore(overrides: Partial<Record<string, unknown>> = {}) {
       cash_enabled: true,
       mercadopago_enabled: false,
       mercadopago_configured: false,
+      mercadopago_provider_enabled: true,
+      mercadopago_provider_mode: "sandbox",
       mercadopago_public_key_masked: null,
-      mercadopago_connection_status: null,
-      mercadopago_reconnect_required: false
+      mercadopago_connection_status: "disconnected",
+      mercadopago_reconnect_required: false,
+      mercadopago_onboarding_completed: false,
+      mercadopago_oauth_connected_at: null,
+      mercadopago_mp_user_id: null
     },
     product_categories: [],
     products: [],
@@ -198,6 +207,8 @@ describe("SettingsPage", () => {
   beforeEach(() => {
     fetchMerchantStoreMock.mockReset();
     fetchMerchantProductCategoriesMock.mockReset();
+    fetchMerchantMercadoPagoConnectUrlMock.mockReset();
+    disconnectMerchantMercadoPagoMock.mockReset();
     updateMerchantStoreMock.mockReset();
     updateMerchantStoreCategoriesMock.mockReset();
     updateMerchantDeliverySettingsMock.mockReset();
@@ -207,6 +218,11 @@ describe("SettingsPage", () => {
 
     loadCategoriesMock.mockResolvedValue(undefined);
     fetchMerchantProductCategoriesMock.mockResolvedValue([]);
+    fetchMerchantMercadoPagoConnectUrlMock.mockResolvedValue({
+      connect_url: "http://example.com/connect",
+      connection_status: "disconnected"
+    });
+    disconnectMerchantMercadoPagoMock.mockResolvedValue({ status: "disconnected" });
     updateMerchantStoreMock.mockResolvedValue(undefined);
     updateMerchantStoreCategoriesMock.mockResolvedValue(undefined);
     updateMerchantDeliverySettingsMock.mockResolvedValue(undefined);
@@ -305,5 +321,51 @@ describe("SettingsPage", () => {
         delivery_enabled: false
       })
     );
+  });
+
+  it("muestra el banner de conexion exitosa de Mercado Pago", async () => {
+    fetchMerchantStoreMock.mockResolvedValue(buildStore());
+
+    render(
+      <MemoryRouter initialEntries={["/m/configuracion?mercadopago_oauth=connected"]}>
+        <SettingsPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByText("Configura tu local")).toBeInTheDocument());
+    expect(screen.getByText("La cuenta de Mercado Pago quedo conectada correctamente.")).toBeInTheDocument();
+  });
+
+  it("permite desconectar una cuenta de Mercado Pago vinculada", async () => {
+    const user = userEvent.setup();
+
+    fetchMerchantStoreMock.mockResolvedValue(
+      buildStore({
+        payment_settings: {
+          cash_enabled: true,
+          mercadopago_enabled: true,
+          mercadopago_configured: true,
+          mercadopago_provider_enabled: true,
+          mercadopago_provider_mode: "production",
+          mercadopago_public_key_masked: "APP_USR-****",
+          mercadopago_connection_status: "connected",
+          mercadopago_reconnect_required: false,
+          mercadopago_onboarding_completed: true,
+          mercadopago_oauth_connected_at: "2026-03-31T10:00:00Z",
+          mercadopago_mp_user_id: "123456789"
+        }
+      })
+    );
+
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByText("Cuenta vinculada:")).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "Desconectar" }));
+
+    await waitFor(() => expect(disconnectMerchantMercadoPagoMock).toHaveBeenCalledWith("token"));
   });
 });

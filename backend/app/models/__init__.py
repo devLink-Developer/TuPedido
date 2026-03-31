@@ -18,10 +18,12 @@ from app.models.platform import (
     MerchantSettlementAllocation,
     MerchantSettlementPayment,
     MerchantTransferNotice,
+    PaymentProvider,
     PlatformSettings,
 )
 from app.models.store import (
     Category,
+    MerchantPaymentAccount,
     MercadoPagoCredential,
     Product,
     ProductCategory,
@@ -43,6 +45,7 @@ __all__ = [
     "DeliveryZone",
     "DeliveryZoneRate",
     "MerchantApplication",
+    "MerchantPaymentAccount",
     "MerchantCashDeliveryPayable",
     "MerchantServiceFeeCharge",
     "MercadoPagoCredential",
@@ -51,6 +54,7 @@ __all__ = [
     "MerchantTransferNotice",
     "NotificationEvent",
     "OrderReview",
+    "PaymentProvider",
     "PlatformSettings",
     "PushSubscription",
     "RiderSettlementAllocation",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, time
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -74,6 +74,9 @@ class Store(Base):
     )
     payment_settings: Mapped["StorePaymentSettings | None"] = relationship(
         back_populates="store", uselist=False, cascade="all, delete-orphan"
+    )
+    payment_accounts: Mapped[list["MerchantPaymentAccount"]] = relationship(
+        back_populates="store", cascade="all, delete-orphan"
     )
     mercadopago_credentials: Mapped["MercadoPagoCredential | None"] = relationship(
         back_populates="store", uselist=False, cascade="all, delete-orphan"
@@ -182,6 +185,30 @@ class MercadoPagoCredential(Base):
     )
 
     store: Mapped[Store] = relationship(back_populates="mercadopago_credentials")
+
+
+class MerchantPaymentAccount(Base):
+    __tablename__ = "merchant_payment_accounts"
+    __table_args__ = (UniqueConstraint("store_id", "provider", name="uq_merchant_payment_accounts_store_provider"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    store_id: Mapped[int] = mapped_column(ForeignKey("stores.id", ondelete="CASCADE"), index=True)
+    provider: Mapped[str] = mapped_column(String(60), index=True)
+    mp_user_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    public_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    access_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    refresh_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    expires_in: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    connected: Mapped[bool] = mapped_column(Boolean, default=False)
+    onboarding_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    reconnect_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    store: Mapped[Store] = relationship(back_populates="payment_accounts")
 
 
 class ProductCategory(Base):

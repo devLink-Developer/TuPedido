@@ -23,9 +23,9 @@ from app.schemas.settlement import (
     MerchantTransferNoticeRead,
 )
 from app.services.mercadopago import (
-    MercadoPagoAPIError,
-    build_oauth_connect_url,
+    get_or_create_mercadopago_provider,
     mercadopago_connection_status,
+    oauth_connect_entrypoint,
 )
 from app.services.platform import get_service_fee_amount
 from app.services.settlements import (
@@ -41,7 +41,7 @@ router = APIRouter()
 STORE_OPTIONS = (
     selectinload(Store.category_links).selectinload(StoreCategoryLink.category),
     selectinload(Store.payment_settings),
-    selectinload(Store.mercadopago_credentials),
+    selectinload(Store.payment_accounts),
 )
 
 
@@ -57,12 +57,9 @@ def get_mercadopago_connect_url(
     user: User = Depends(require_merchant), db: Session = Depends(get_db)
 ) -> MercadoPagoConnectUrlRead:
     store = get_merchant_store(db, user.id)
-    try:
-        connect_url = build_oauth_connect_url(store_id=store.id, user_id=user.id)
-    except MercadoPagoAPIError as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    get_or_create_mercadopago_provider(db)
     return MercadoPagoConnectUrlRead(
-        connect_url=connect_url,
+        connect_url=oauth_connect_entrypoint(),
         connection_status=mercadopago_connection_status(store),
         status=mercadopago_connection_status(store),
         callback_url=None,

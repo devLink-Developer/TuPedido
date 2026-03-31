@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlencode
@@ -7,11 +8,19 @@ from urllib.parse import urlencode
 import httpx
 from jose import JWTError, jwt
 from sqlalchemy import select
+from sqlalchemy.orm import Session, object_session
 
 from app.core.config import settings
 from app.core.utils import decrypt_sensitive_value, encrypt_sensitive_value
 from app.db.session import SessionLocal
-from app.models.store import MercadoPagoCredential
+from app.models.platform import PaymentProvider
+from app.models.store import MerchantPaymentAccount
+
+logger = logging.getLogger(__name__)
+
+MERCADOPAGO_PROVIDER = "mercadopago"
+OAUTH_STATE_EXPIRATION_MINUTES = 15
+OAUTH_SESSION_EXPIRATION_MINUTES = 10
 
 
 class MercadoPagoAPIError(RuntimeError):
@@ -36,52 +45,138 @@ def _now_utc() -> datetime:
     return datetime.now(UTC)
 
 
+def _normalize_provider_mode(value: str | None) -> str:
+    return "production" if (value or "").strip().lower() == "production" else "sandbox"
+
+
+def _provider_enabled_from_settings() -> bool:
+    return bool(
+        settings.mercadopago_client_id
+        and settings.mercadopago_client_secret
+        and settings.mercadopago_redirect_uri
+    )
+
+
+def get_or_create_mercadopago_provider(db: Session) -> PaymentProvider:
+    provider = db.scalar(
+        select(PaymentProvider).where(PaymentProvider.provider == MERCADOPAGO_PROVIDER)
+    )
+    if provider is not None:
+        return provider
+
+    provider = PaymentProvider(
+        provider=MERCADOPAGO_PROVIDER,
+        client_id=settings.mercadopago_client_id,
+        client_secret_encrypted=encrypt_sensitive_value(settings.mercadopago_client_secret)
+        if settings.mercadopago_client_secret
+        else None,
+        redirect_uri=settings.mercadopago_redirect_uri,
+        enabled=_provider_enabled_from_settings(),
+        mode="sandbox",
+    )
+    db.add(provider)
+    db.flush()
+    return provider
+
+
+def get_store_payment_account(store: object, provider: str = MERCADOPAGO_PROVIDER) -> MerchantPaymentAccount | None:
+    for account in list(getattr(store, "payment_accounts", []) or []):
+        if getattr(account, "provider", None) == provider:
+            return account
+    session = object_session(store)
+    if session is None or getattr(store, "id", None) is None:
+        return None
+    return session.scalar(
+        select(MerchantPaymentAccount).where(
+            MerchantPaymentAccount.store_id == getattr(store, "id"),
+            MerchantPaymentAccount.provider == provider,
+        )
+    )
+
+
+def ensure_store_payment_account(
+    store: object, provider: str = MERCADOPAGO_PROVIDER
+) -> MerchantPaymentAccount:
+    account = get_store_payment_account(store, provider=provider)
+    if account is not None:
+        return account
+
+    session = object_session(store)
+    if session is None or getattr(store, "id", None) is None:
+        raise MercadoPagoAPIError("Store payment account record is not available")
+
+    account = MerchantPaymentAccount(store_id=getattr(store, "id"), provider=provider)
+    session.add(account)
+    session.flush()
+    payment_accounts = getattr(store, "payment_accounts", None)
+    if isinstance(payment_accounts, list):
+        payment_accounts.append(account)
+    return account
+
+
 def mercadopago_connection_status(store: object) -> str:
-    credentials = getattr(store, "mercadopago_credentials", None)
-    if credentials is None:
+    account = get_store_payment_account(store)
+    if account is None:
         return "disconnected"
-    if getattr(credentials, "reconnect_required", False):
+    if bool(getattr(account, "reconnect_required", False)):
         return "reconnect_required"
     if (
-        getattr(credentials, "is_configured", False)
-        and getattr(credentials, "oauth_connected_at", None) is not None
-        and getattr(credentials, "refresh_token_encrypted", None)
-        and getattr(credentials, "access_token_encrypted", None)
+        bool(getattr(account, "connected", False))
+        and getattr(account, "access_token_encrypted", None)
+        and getattr(account, "refresh_token_encrypted", None)
     ):
         return "connected"
     return "disconnected"
 
 
-def is_store_mercadopago_ready(store: object) -> bool:
+def is_store_mercadopago_ready(
+    store: object, provider: PaymentProvider | None = None
+) -> bool:
     payment_settings = getattr(store, "payment_settings", None)
-    credentials = getattr(store, "mercadopago_credentials", None)
+    account = get_store_payment_account(store)
+    resolved_provider = provider
+    if resolved_provider is None:
+        session = object_session(store)
+        if session is not None:
+            resolved_provider = get_or_create_mercadopago_provider(session)
     return bool(
         payment_settings
         and payment_settings.mercadopago_enabled
-        and credentials
-        and credentials.public_key
+        and resolved_provider
+        and resolved_provider.enabled
+        and account
+        and account.public_key
         and mercadopago_connection_status(store) == "connected"
     )
 
 
 def get_store_access_token(store: object) -> str:
-    credentials = getattr(store, "mercadopago_credentials", None)
-    if credentials is None or not credentials.is_configured or not credentials.access_token_encrypted:
+    account = get_store_payment_account(store)
+    if account is None or not account.access_token_encrypted:
         raise MercadoPagoAPIError("Mercado Pago credentials are not configured for this store")
     try:
-        return decrypt_sensitive_value(credentials.access_token_encrypted)
+        return decrypt_sensitive_value(account.access_token_encrypted)
     except Exception as exc:  # pragma: no cover - defensive path
         raise MercadoPagoAPIError("Mercado Pago access token could not be decrypted") from exc
 
 
 def get_store_refresh_token(store: object) -> str:
-    credentials = getattr(store, "mercadopago_credentials", None)
-    if credentials is None or not credentials.refresh_token_encrypted:
+    account = get_store_payment_account(store)
+    if account is None or not account.refresh_token_encrypted:
         raise MercadoPagoAPIError("Mercado Pago refresh token is not configured for this store")
     try:
-        return decrypt_sensitive_value(credentials.refresh_token_encrypted)
+        return decrypt_sensitive_value(account.refresh_token_encrypted)
     except Exception as exc:  # pragma: no cover - defensive path
         raise MercadoPagoAPIError("Mercado Pago refresh token could not be decrypted") from exc
+
+
+def get_provider_client_secret(provider: PaymentProvider) -> str:
+    if not provider.client_secret_encrypted:
+        raise MercadoPagoAPIError("Mercado Pago OAuth client secret is not configured")
+    try:
+        return decrypt_sensitive_value(provider.client_secret_encrypted)
+    except Exception as exc:  # pragma: no cover - defensive path
+        raise MercadoPagoAPIError("Mercado Pago OAuth client secret could not be decrypted") from exc
 
 
 def _oauth_token_payload(data: dict[str, Any]) -> dict[str, Any]:
@@ -91,9 +186,8 @@ def _oauth_token_payload(data: dict[str, Any]) -> dict[str, Any]:
         "public_key": data.get("public_key"),
         "access_token": data.get("access_token"),
         "refresh_token": data.get("refresh_token"),
-        "collector_id": str(data.get("user_id")) if data.get("user_id") is not None else None,
-        "scope": data.get("scope"),
-        "live_mode": bool(data.get("live_mode")),
+        "mp_user_id": str(data.get("user_id")) if data.get("user_id") is not None else None,
+        "expires_in": expires_in or None,
         "token_expires_at": expires_at,
     }
 
@@ -101,42 +195,61 @@ def _oauth_token_payload(data: dict[str, Any]) -> dict[str, Any]:
 def _persist_reconnect_required(store_id: int) -> None:
     db = SessionLocal()
     try:
-        credentials = db.scalar(
-            select(MercadoPagoCredential).where(MercadoPagoCredential.store_id == store_id)
+        account = db.scalar(
+            select(MerchantPaymentAccount).where(
+                MerchantPaymentAccount.store_id == store_id,
+                MerchantPaymentAccount.provider == MERCADOPAGO_PROVIDER,
+            )
         )
-        if credentials is None:
+        if account is None:
             return
-        credentials.reconnect_required = True
-        credentials.is_configured = False
+        account.reconnect_required = True
+        account.connected = False
         db.commit()
+        logger.warning("mercadopago_reconnect_required", extra={"store_id": store_id})
     finally:
         db.close()
 
 
 def store_oauth_credentials(store: object, data: dict[str, Any]) -> None:
-    credentials = getattr(store, "mercadopago_credentials", None)
-    if credentials is None:
-        raise MercadoPagoAPIError("Mercado Pago credentials record is not available for this store")
+    account = ensure_store_payment_account(store)
     payload = _oauth_token_payload(data)
-    credentials.public_key = payload["public_key"]
-    credentials.access_token_encrypted = encrypt_sensitive_value(str(payload["access_token"] or ""))
-    refresh_token = payload["refresh_token"] or get_store_refresh_token(store)
-    credentials.refresh_token_encrypted = encrypt_sensitive_value(str(refresh_token))
-    credentials.collector_id = payload["collector_id"]
-    credentials.scope = payload["scope"]
-    credentials.live_mode = bool(payload["live_mode"])
-    credentials.token_expires_at = payload["token_expires_at"]
-    credentials.oauth_connected_at = credentials.oauth_connected_at or _now_utc()
-    credentials.reconnect_required = False
-    credentials.is_configured = True
+
+    refresh_token = payload["refresh_token"]
+    if not refresh_token and account.refresh_token_encrypted:
+        refresh_token = decrypt_sensitive_value(account.refresh_token_encrypted)
+
+    account.public_key = payload["public_key"]
+    account.access_token_encrypted = encrypt_sensitive_value(str(payload["access_token"] or ""))
+    account.refresh_token_encrypted = encrypt_sensitive_value(str(refresh_token or ""))
+    account.mp_user_id = payload["mp_user_id"]
+    account.expires_in = payload["expires_in"]
+    account.token_expires_at = payload["token_expires_at"]
+    account.connected = True
+    account.onboarding_completed = True
+    account.reconnect_required = False
+
+
+def disconnect_store_account(store: object) -> None:
+    account = ensure_store_payment_account(store)
+    account.public_key = None
+    account.access_token_encrypted = None
+    account.refresh_token_encrypted = None
+    account.mp_user_id = None
+    account.expires_in = None
+    account.token_expires_at = None
+    account.connected = False
+    account.onboarding_completed = False
+    account.reconnect_required = False
 
 
 def build_oauth_state(*, store_id: int, user_id: int) -> str:
     payload = {
         "kind": "mercadopago_oauth",
+        "provider": MERCADOPAGO_PROVIDER,
         "store_id": store_id,
         "user_id": user_id,
-        "exp": _now_utc() + timedelta(minutes=15),
+        "exp": _now_utc() + timedelta(minutes=OAUTH_STATE_EXPIRATION_MINUTES),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
@@ -146,32 +259,60 @@ def decode_oauth_state(state: str) -> dict[str, Any]:
         payload = jwt.decode(state, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
     except JWTError as exc:
         raise MercadoPagoAPIError("Mercado Pago OAuth state is invalid") from exc
-    if payload.get("kind") != "mercadopago_oauth":
+    if payload.get("kind") != "mercadopago_oauth" or payload.get("provider") != MERCADOPAGO_PROVIDER:
         raise MercadoPagoAPIError("Mercado Pago OAuth state is invalid")
     return payload
 
 
-def build_oauth_connect_url(*, store_id: int, user_id: int) -> str:
-    state = build_oauth_state(store_id=store_id, user_id=user_id)
+def build_oauth_session_token(*, store_id: int, user_id: int) -> str:
+    payload = {
+        "kind": "mercadopago_oauth_session",
+        "provider": MERCADOPAGO_PROVIDER,
+        "store_id": store_id,
+        "user_id": user_id,
+        "exp": _now_utc() + timedelta(minutes=OAUTH_SESSION_EXPIRATION_MINUTES),
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def decode_oauth_session_token(value: str) -> dict[str, Any]:
+    try:
+        payload = jwt.decode(value, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    except JWTError as exc:
+        raise MercadoPagoAPIError("Mercado Pago OAuth session is invalid") from exc
+    if payload.get("kind") != "mercadopago_oauth_session" or payload.get("provider") != MERCADOPAGO_PROVIDER:
+        raise MercadoPagoAPIError("Mercado Pago OAuth session is invalid")
+    return payload
+
+
+def oauth_connect_entrypoint() -> str:
+    return f"{settings.backend_base_url.rstrip('/')}{settings.api_prefix}/oauth/mercadopago/connect"
+
+
+def build_oauth_connect_url(*, provider: PaymentProvider, state: str) -> str:
     if settings.mercadopago_simulated:
         base = settings.backend_base_url.rstrip("/")
         query = urlencode({"code": "SIMULATED-OAUTH", "state": state})
-        return f"{base}{settings.api_prefix}/payments/mercadopago/oauth/callback?{query}"
-    if not settings.mercadopago_client_id or not settings.mercadopago_redirect_uri:
-        raise MercadoPagoAPIError("Mercado Pago OAuth is not configured for this environment")
+        return f"{base}{settings.api_prefix}/oauth/mercadopago/callback?{query}"
+
+    if not provider.enabled:
+        raise MercadoPagoAPIError("Mercado Pago OAuth is disabled")
+    if not provider.client_id or not provider.redirect_uri:
+        raise MercadoPagoAPIError("Mercado Pago OAuth is not configured")
+
     query = urlencode(
         {
-            "client_id": settings.mercadopago_client_id,
+            "client_id": provider.client_id,
             "response_type": "code",
             "platform_id": "mp",
-            "redirect_uri": settings.mercadopago_redirect_uri,
+            "redirect_uri": provider.redirect_uri,
             "state": state,
         }
     )
     return f"{settings.mercadopago_auth_base_url.rstrip('/')}/authorization?{query}"
 
 
-def exchange_oauth_code(code: str) -> dict[str, Any]:
+def exchange_oauth_code(code: str, provider: PaymentProvider) -> dict[str, Any]:
     if settings.mercadopago_simulated and code == "SIMULATED-OAUTH":
         return {
             "access_token": "SIMULATED-SELLER-ACCESS-TOKEN",
@@ -183,27 +324,26 @@ def exchange_oauth_code(code: str) -> dict[str, Any]:
             "expires_in": 15552000,
             "scope": "offline_access payments write",
         }
-    if (
-        not settings.mercadopago_client_id
-        or not settings.mercadopago_client_secret
-        or not settings.mercadopago_redirect_uri
-    ):
-        raise MercadoPagoAPIError("Mercado Pago OAuth is not configured for this environment")
+
+    if not provider.client_id or not provider.redirect_uri:
+        raise MercadoPagoAPIError("Mercado Pago OAuth is not configured")
+
     try:
         response = httpx.post(
             f"{settings.mercadopago_api_base_url.rstrip('/')}/oauth/token",
             headers=_oauth_form_headers(),
             data={
-                "client_id": settings.mercadopago_client_id,
-                "client_secret": settings.mercadopago_client_secret,
+                "client_id": provider.client_id,
+                "client_secret": get_provider_client_secret(provider),
                 "grant_type": "authorization_code",
                 "code": code,
-                "redirect_uri": settings.mercadopago_redirect_uri,
+                "redirect_uri": provider.redirect_uri,
             },
             timeout=settings.mercadopago_timeout_seconds,
         )
     except httpx.HTTPError as exc:
         raise MercadoPagoAPIError(f"Mercado Pago OAuth exchange failed: {exc}") from exc
+
     if response.status_code != 200:
         raise MercadoPagoAPIError(
             f"Mercado Pago OAuth exchange failed ({response.status_code}): {response.text}"
@@ -212,12 +352,13 @@ def exchange_oauth_code(code: str) -> dict[str, Any]:
 
 
 def refresh_store_access_token(store: object) -> str:
-    if (
-        not settings.mercadopago_client_id
-        or not settings.mercadopago_client_secret
-        or not settings.mercadopago_redirect_uri
-    ):
-        raise MercadoPagoAPIError("Mercado Pago OAuth is not configured for this environment")
+    session = object_session(store)
+    if session is None:
+        raise MercadoPagoAPIError("Mercado Pago OAuth is not configured for this store")
+    provider = get_or_create_mercadopago_provider(session)
+    if not provider.client_id or not provider.redirect_uri:
+        raise MercadoPagoAPIError("Mercado Pago OAuth is not configured")
+
     store_id = getattr(store, "id")
     refresh_token = get_store_refresh_token(store)
     try:
@@ -225,39 +366,93 @@ def refresh_store_access_token(store: object) -> str:
             f"{settings.mercadopago_api_base_url.rstrip('/')}/oauth/token",
             headers=_oauth_form_headers(),
             data={
-                "client_id": settings.mercadopago_client_id,
-                "client_secret": settings.mercadopago_client_secret,
+                "client_id": provider.client_id,
+                "client_secret": get_provider_client_secret(provider),
                 "grant_type": "refresh_token",
                 "refresh_token": refresh_token,
-                "redirect_uri": settings.mercadopago_redirect_uri,
+                "redirect_uri": provider.redirect_uri,
             },
             timeout=settings.mercadopago_timeout_seconds,
         )
     except httpx.HTTPError as exc:
         _persist_reconnect_required(store_id)
+        logger.exception("mercadopago_refresh_failed", extra={"store_id": store_id})
         raise MercadoPagoAPIError(f"Mercado Pago token refresh failed: {exc}") from exc
+
     if response.status_code != 200:
         _persist_reconnect_required(store_id)
+        logger.warning(
+            "mercadopago_refresh_rejected",
+            extra={"store_id": store_id, "status_code": response.status_code},
+        )
         raise MercadoPagoAPIError(
             f"Mercado Pago token refresh failed ({response.status_code}): {response.text}"
         )
-    data = response.json()
-    store_oauth_credentials(store, data)
+
+    store_oauth_credentials(store, response.json())
     return get_store_access_token(store)
 
 
 def ensure_valid_store_access_token(store: object) -> str:
     if mercadopago_connection_status(store) != "connected":
         raise MercadoPagoAPIError("Mercado Pago OAuth connection is not active for this store")
-    credentials = getattr(store, "mercadopago_credentials", None)
-    if credentials is None:
+
+    account = get_store_payment_account(store)
+    if account is None:
         raise MercadoPagoAPIError("Mercado Pago credentials are not configured for this store")
-    token_expires_at = getattr(credentials, "token_expires_at", None)
+
+    token_expires_at = getattr(account, "token_expires_at", None)
     if token_expires_at is None:
         return get_store_access_token(store)
     if token_expires_at <= (_now_utc() + timedelta(minutes=5)):
         return refresh_store_access_token(store)
     return get_store_access_token(store)
+
+
+def _request_with_store_token_retry(
+    *,
+    store: object,
+    method: str,
+    url: str,
+    expected_statuses: set[int],
+    json_payload: dict[str, Any] | None = None,
+) -> httpx.Response:
+    access_token = ensure_valid_store_access_token(store)
+    try:
+        response = httpx.request(
+            method,
+            url,
+            headers=_build_headers(access_token),
+            json=json_payload,
+            timeout=settings.mercadopago_timeout_seconds,
+        )
+    except httpx.HTTPError as exc:
+        raise MercadoPagoAPIError(f"Mercado Pago request failed: {exc}") from exc
+
+    if response.status_code == 401:
+        logger.warning(
+            "mercadopago_request_unauthorized",
+            extra={"store_id": getattr(store, "id", None), "url": url},
+        )
+        refreshed_token = refresh_store_access_token(store)
+        try:
+            response = httpx.request(
+                method,
+                url,
+                headers=_build_headers(refreshed_token),
+                json=json_payload,
+                timeout=settings.mercadopago_timeout_seconds,
+            )
+        except httpx.HTTPError as exc:
+            raise MercadoPagoAPIError(f"Mercado Pago request failed after token refresh: {exc}") from exc
+        if response.status_code == 401:
+            _persist_reconnect_required(getattr(store, "id"))
+
+    if response.status_code not in expected_statuses:
+        raise MercadoPagoAPIError(
+            f"Mercado Pago request failed ({response.status_code}): {response.text}"
+        )
+    return response
 
 
 def build_notification_url(store_id: int, reference: str) -> str:
@@ -279,7 +474,13 @@ def create_checkout_preference(
     items: list[dict[str, Any]],
     marketplace_fee: float,
 ) -> dict[str, Any]:
-    access_token = ensure_valid_store_access_token(store)
+    session = object_session(store)
+    if session is None:
+        raise MercadoPagoAPIError("Mercado Pago provider configuration is unavailable")
+    provider = get_or_create_mercadopago_provider(session)
+    if not provider.enabled:
+        raise MercadoPagoAPIError("Mercado Pago is disabled for this environment")
+
     return_url = build_order_return_url(order_id)
     payload = {
         "items": items,
@@ -299,21 +500,19 @@ def create_checkout_preference(
             "platform": "tupedido",
         },
     }
-    try:
-        response = httpx.post(
-            f"{settings.mercadopago_api_base_url.rstrip('/')}/checkout/preferences",
-            headers=_build_headers(access_token),
-            json=payload,
-            timeout=settings.mercadopago_timeout_seconds,
-        )
-    except httpx.HTTPError as exc:
-        raise MercadoPagoAPIError(f"Mercado Pago preference creation failed: {exc}") from exc
-    if response.status_code not in {200, 201}:
-        raise MercadoPagoAPIError(
-            f"Mercado Pago preference creation failed ({response.status_code}): {response.text}"
-        )
+    response = _request_with_store_token_retry(
+        store=store,
+        method="POST",
+        url=f"{settings.mercadopago_api_base_url.rstrip('/')}/checkout/preferences",
+        expected_statuses={200, 201},
+        json_payload=payload,
+    )
     data = response.json()
-    checkout_url = data.get("init_point") or data.get("sandbox_init_point")
+    checkout_url = (
+        data.get("sandbox_init_point")
+        if _normalize_provider_mode(provider.mode) == "sandbox"
+        else data.get("init_point")
+    ) or data.get("init_point") or data.get("sandbox_init_point")
     if not checkout_url:
         raise MercadoPagoAPIError("Mercado Pago preference response did not include a checkout URL")
     return {
@@ -324,19 +523,12 @@ def create_checkout_preference(
 
 
 def fetch_payment(payment_id: str | int, store: object) -> dict[str, Any]:
-    access_token = ensure_valid_store_access_token(store)
-    try:
-        response = httpx.get(
-            f"{settings.mercadopago_api_base_url.rstrip('/')}/v1/payments/{payment_id}",
-            headers=_build_headers(access_token),
-            timeout=settings.mercadopago_timeout_seconds,
-        )
-    except httpx.HTTPError as exc:
-        raise MercadoPagoAPIError(f"Mercado Pago payment fetch failed: {exc}") from exc
-    if response.status_code != 200:
-        raise MercadoPagoAPIError(
-            f"Mercado Pago payment fetch failed ({response.status_code}): {response.text}"
-        )
+    response = _request_with_store_token_retry(
+        store=store,
+        method="GET",
+        url=f"{settings.mercadopago_api_base_url.rstrip('/')}/v1/payments/{payment_id}",
+        expected_statuses={200},
+    )
     return response.json()
 
 

@@ -16,6 +16,7 @@ from app.api.routes import (
     merchant_applications,
     media,
     notifications,
+    oauth,
     orders,
     payments,
     realtime,
@@ -36,6 +37,7 @@ router.include_router(media.router, prefix="/media", tags=["media"])
 router.include_router(delivery.router, prefix="/delivery", tags=["delivery"])
 router.include_router(cart.router, prefix="/cart", tags=["cart"])
 router.include_router(checkout.router, prefix="/checkout", tags=["checkout"])
+router.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
 router.include_router(orders.router, prefix="/orders", tags=["orders"])
 router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 router.include_router(payments.router, prefix="/payments", tags=["payments"])

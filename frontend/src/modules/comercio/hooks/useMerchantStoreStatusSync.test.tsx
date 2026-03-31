@@ -59,9 +59,14 @@ function buildStore(overrides: Partial<MerchantStore> = {}): MerchantStore {
       cash_enabled: true,
       mercadopago_enabled: false,
       mercadopago_configured: false,
+      mercadopago_provider_enabled: true,
+      mercadopago_provider_mode: "sandbox",
       mercadopago_public_key_masked: null,
-      mercadopago_connection_status: null,
-      mercadopago_reconnect_required: false
+      mercadopago_connection_status: "disconnected",
+      mercadopago_reconnect_required: false,
+      mercadopago_onboarding_completed: false,
+      mercadopago_oauth_connected_at: null,
+      mercadopago_mp_user_id: null
     },
     product_categories: [],
     products: [],

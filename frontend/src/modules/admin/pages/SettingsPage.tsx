@@ -8,18 +8,21 @@ import {
   createAdminSettlementPayment,
   deleteAdminCategory,
   fetchAdminCategories,
+  fetchAdminMercadoPagoProvider,
   fetchAdminSettlementNotices,
   fetchAdminSettlementPayments,
   fetchAdminSettlementStores,
   fetchPlatformSettings,
   reviewAdminSettlementNotice,
   updateAdminCategory,
+  updateAdminMercadoPagoProvider,
   updatePlatformSettings
 } from "../../../shared/services/api";
 import type {
   AdminSettlementStore,
   Category,
   CategoryWrite,
+  PaymentProviderConfig,
   PlatformSettings,
   SettlementNotice,
   SettlementPayment
@@ -39,6 +42,14 @@ type CategoryFormState = {
   is_active: boolean;
 };
 
+type MercadoPagoProviderFormState = {
+  client_id: string;
+  client_secret: string;
+  redirect_uri: string;
+  enabled: boolean;
+  mode: "sandbox" | "production";
+};
+
 const emptyCategoryForm: CategoryFormState = {
   name: "",
   description: "",
@@ -47,6 +58,14 @@ const emptyCategoryForm: CategoryFormState = {
   icon: "",
   sort_order: "0",
   is_active: true
+};
+
+const emptyMercadoPagoProviderForm: MercadoPagoProviderFormState = {
+  client_id: "",
+  client_secret: "",
+  redirect_uri: "",
+  enabled: false,
+  mode: "sandbox"
 };
 
 const suggestedColors = ["#FF7043", "#29B6F6", "#66BB6A", "#AB47BC", "#EF5350", "#FFCA28", "#8D6E63", "#26A69A"];
@@ -91,6 +110,8 @@ export function SettingsPage() {
   const syncPublicCategories = useCategoryStore((state) => state.setCategories);
   const [categories, setCategories] = useState<Category[]>([]);
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
+  const [paymentProvider, setPaymentProvider] = useState<PaymentProviderConfig | null>(null);
+  const [mercadoPagoForm, setMercadoPagoForm] = useState<MercadoPagoProviderFormState>(emptyMercadoPagoProviderForm);
   const [settlementStores, setSettlementStores] = useState<AdminSettlementStore[]>([]);
   const [settlementNotices, setSettlementNotices] = useState<SettlementNotice[]>([]);
   const [settlementPayments, setSettlementPayments] = useState<SettlementPayment[]>([]);
@@ -105,11 +126,13 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [categorySaving, setCategorySaving] = useState(false);
   const [serviceSaving, setServiceSaving] = useState(false);
+  const [providerSaving, setProviderSaving] = useState(false);
   const [bannerSaving, setBannerSaving] = useState(false);
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [serviceError, setServiceError] = useState<string | null>(null);
+  const [providerError, setProviderError] = useState<string | null>(null);
   const [bannerError, setBannerError] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
@@ -130,16 +153,25 @@ export function SettingsPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const [noticeResult, paymentResult, categoriesResult, platformResult, storesWithBalanceResult] = await Promise.all([
+      const [noticeResult, paymentResult, categoriesResult, platformResult, paymentProviderResult, storesWithBalanceResult] = await Promise.all([
         fetchAdminSettlementNotices(token),
         fetchAdminSettlementPayments(token),
         fetchAdminCategories(token),
         fetchPlatformSettings(token),
+        fetchAdminMercadoPagoProvider(token),
         fetchAdminSettlementStores(token)
       ]);
       setCategories(categoriesResult);
       syncPublicCategories(categoriesResult.filter((category) => category.is_active));
       setPlatformSettings(platformResult);
+      setPaymentProvider(paymentProviderResult);
+      setMercadoPagoForm({
+        client_id: paymentProviderResult.client_id ?? "",
+        client_secret: "",
+        redirect_uri: paymentProviderResult.redirect_uri ?? "",
+        enabled: paymentProviderResult.enabled,
+        mode: paymentProviderResult.mode
+      });
       setServiceFee(platformResult.service_fee_amount.toFixed(2));
       setCatalogBannerImageUrl(platformResult.catalog_banner_image_url ?? "");
       setCatalogBannerWidth(String(platformResult.catalog_banner_width ?? CATALOG_BANNER_RECOMMENDATION.width));
@@ -254,6 +286,27 @@ export function SettingsPage() {
     }
   }
 
+  async function handleMercadoPagoProviderSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token) return;
+    setProviderSaving(true);
+    setProviderError(null);
+    try {
+      await updateAdminMercadoPagoProvider(token, {
+        client_id: mercadoPagoForm.client_id.trim() || null,
+        client_secret: mercadoPagoForm.client_secret.trim() || null,
+        redirect_uri: mercadoPagoForm.redirect_uri.trim() || null,
+        enabled: mercadoPagoForm.enabled,
+        mode: mercadoPagoForm.mode
+      });
+      await load();
+    } catch (requestError) {
+      setProviderError(requestError instanceof Error ? requestError.message : "No se pudo guardar Mercado Pago");
+    } finally {
+      setProviderSaving(false);
+    }
+  }
+
   async function handleCatalogBannerSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!token || !platformSettings) return;
@@ -323,7 +376,9 @@ export function SettingsPage() {
   }
 
   if (loading) return <LoadingCard />;
-  if (error || !platformSettings) return <EmptyState title="Configuracion no disponible" description={error ?? "Sin datos"} />;
+  if (error || !platformSettings || !paymentProvider) {
+    return <EmptyState title="Configuracion no disponible" description={error ?? "Sin datos"} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -587,6 +642,106 @@ export function SettingsPage() {
           </div>
         </div>
       </section>
+
+      <form onSubmit={(event) => void handleMercadoPagoProviderSave(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pagos</p>
+            <h3 className="mt-2 text-lg font-bold text-ink">Mercado Pago</h3>
+            <p className="mt-2 max-w-2xl text-sm text-zinc-600">
+              Configura una sola vez la app OAuth de Mercado Pago para que cada comercio conecte su cuenta.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+            <p className="font-semibold text-ink">{paymentProvider.enabled ? "Provider activo" : "Provider inactivo"}</p>
+            <p className="mt-1">Modo actual: {paymentProvider.mode === "production" ? "Produccion" : "Sandbox"}</p>
+            <p className="mt-1">Secret configurado: {paymentProvider.client_secret_masked ? "Si" : "No"}</p>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <label className="space-y-2 text-sm font-semibold text-zinc-600">
+            Client ID
+            <input
+              value={mercadoPagoForm.client_id}
+              onChange={(event) =>
+                setMercadoPagoForm((current) => ({
+                  ...current,
+                  client_id: event.target.value
+                }))
+              }
+              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              placeholder="APP_USR-..."
+            />
+          </label>
+          <label className="space-y-2 text-sm font-semibold text-zinc-600">
+            Client Secret
+            <input
+              type="password"
+              value={mercadoPagoForm.client_secret}
+              onChange={(event) =>
+                setMercadoPagoForm((current) => ({
+                  ...current,
+                  client_secret: event.target.value
+                }))
+              }
+              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              placeholder={paymentProvider.client_secret_masked ? "Dejar vacio para conservar el actual" : "Ingresa el secret"}
+            />
+            {paymentProvider.client_secret_masked ? (
+              <p className="text-xs font-normal text-zinc-500">Valor actual enmascarado: {paymentProvider.client_secret_masked}</p>
+            ) : null}
+          </label>
+          <label className="space-y-2 text-sm font-semibold text-zinc-600 md:col-span-2">
+            Redirect URI
+            <input
+              value={mercadoPagoForm.redirect_uri}
+              onChange={(event) =>
+                setMercadoPagoForm((current) => ({
+                  ...current,
+                  redirect_uri: event.target.value
+                }))
+              }
+              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              placeholder="https://.../api/v1/oauth/mercadopago/callback"
+            />
+          </label>
+          <label className="space-y-2 text-sm font-semibold text-zinc-600">
+            Modo
+            <select
+              value={mercadoPagoForm.mode}
+              onChange={(event) =>
+                setMercadoPagoForm((current) => ({
+                  ...current,
+                  mode: event.target.value as "sandbox" | "production"
+                }))
+              }
+              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            >
+              <option value="sandbox">Sandbox</option>
+              <option value="production">Produccion</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-3 rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+            <input
+              type="checkbox"
+              checked={mercadoPagoForm.enabled}
+              onChange={(event) =>
+                setMercadoPagoForm((current) => ({
+                  ...current,
+                  enabled: event.target.checked
+                }))
+              }
+            />
+            Activar Mercado Pago
+          </label>
+        </div>
+        {providerError ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{providerError}</p> : null}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button type="submit" disabled={providerSaving}>
+            {providerSaving ? "Guardando..." : "Guardar Mercado Pago"}
+          </Button>
+        </div>
+      </form>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <form onSubmit={(event) => void handleServiceFeeSave(event)} className="rounded-[28px] bg-white p-5 shadow-sm">

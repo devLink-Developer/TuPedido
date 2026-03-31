@@ -10,6 +10,7 @@ from app.core.utils import next_store_opening_at
 from app.db.session import get_db
 from app.models.store import Category, Product, ProductCategory, Store, StoreCategoryLink
 from app.schemas.catalog import CatalogBannerRead
+from app.services.mercadopago import get_or_create_mercadopago_provider
 from app.services.platform import get_or_create_platform_settings
 
 router = APIRouter()
@@ -19,7 +20,7 @@ STORE_LOAD_OPTIONS = (
     selectinload(Store.hours),
     selectinload(Store.delivery_settings),
     selectinload(Store.payment_settings),
-    selectinload(Store.mercadopago_credentials),
+    selectinload(Store.payment_accounts),
     selectinload(Store.product_categories).selectinload(ProductCategory.subcategories),
     selectinload(Store.products).selectinload(Product.product_category),
     selectinload(Store.products).selectinload(Product.product_subcategory),
@@ -63,7 +64,14 @@ def list_stores(
         query = query.join(Store.category_links).join(StoreCategoryLink.category).where(Category.slug == category_slug)
 
     stores = db.execute(query.order_by(Store.name)).scalars().unique().all()
-    paired_results = [(store, serialize_store_summary(store)) for store in stores]
+    mercadopago_provider = get_or_create_mercadopago_provider(db)
+    paired_results = [
+        (
+            store,
+            serialize_store_summary(store, mercadopago_provider=mercadopago_provider),
+        )
+        for store in stores
+    ]
     if delivery_mode:
         if delivery_mode == "delivery":
             paired_results = [
@@ -97,4 +105,5 @@ def get_store(slug: str, db: Session = Depends(get_db)) -> dict[str, object]:
     store = db.scalar(select(Store).options(*STORE_LOAD_OPTIONS).where(Store.slug == slug, Store.status == "approved"))
     if store is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Store not found")
-    return serialize_store_detail(store).model_dump()
+    mercadopago_provider = get_or_create_mercadopago_provider(db)
+    return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()

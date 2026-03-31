@@ -8,7 +8,13 @@ from sqlalchemy.orm import Session, selectinload
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.deps import require_admin
-from app.api.presenters import serialize_application, serialize_category, serialize_order, serialize_store_detail, serialize_store_summary
+from app.api.presenters import (
+    serialize_application,
+    serialize_category,
+    serialize_order,
+    serialize_store_detail,
+    serialize_store_summary,
+)
 from app.core.security import hash_password
 from app.core.utils import slugify
 from app.db.session import get_db
@@ -29,6 +35,7 @@ from app.schemas.auth import UserRead
 from app.schemas.catalog import CategoryCreate, CategoryUpdate
 from app.schemas.merchant import MerchantApplicationReviewUpdate
 from app.services.category_colors import resolve_category_palette
+from app.services.mercadopago import get_or_create_mercadopago_provider
 from app.services.store_branding import resolve_store_assets
 
 router = APIRouter()
@@ -39,7 +46,7 @@ STORE_OPTIONS = (
     selectinload(Store.hours),
     selectinload(Store.delivery_settings),
     selectinload(Store.payment_settings),
-    selectinload(Store.mercadopago_credentials),
+    selectinload(Store.payment_accounts),
     selectinload(Store.product_categories).selectinload(ProductCategory.subcategories),
     selectinload(Store.products).selectinload(Product.product_category),
     selectinload(Store.products).selectinload(Product.product_subcategory),
@@ -257,7 +264,11 @@ def create_store(
     db.commit()
     created_store = db.scalar(select(Store).options(*STORE_OPTIONS).where(Store.id == store.id))
     assert created_store is not None
-    return serialize_store_detail(created_store).model_dump()
+    mercadopago_provider = get_or_create_mercadopago_provider(db)
+    return serialize_store_detail(
+        created_store,
+        mercadopago_provider=mercadopago_provider,
+    ).model_dump()
 
 
 @router.get("/stores/applications")
@@ -360,7 +371,11 @@ def review_application(
 @router.get("/stores")
 def list_stores(_: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict[str, object]]:
     stores = db.scalars(select(Store).options(*STORE_OPTIONS).order_by(Store.name)).all()
-    return [serialize_store_summary(store).model_dump() for store in stores]
+    mercadopago_provider = get_or_create_mercadopago_provider(db)
+    return [
+        serialize_store_summary(store, mercadopago_provider=mercadopago_provider).model_dump()
+        for store in stores
+    ]
 
 
 @router.put("/stores/{store_id}/status")
@@ -381,7 +396,8 @@ def update_store_status(
         store.accepting_orders = False
     db.commit()
     db.refresh(store)
-    return serialize_store_detail(store).model_dump()
+    mercadopago_provider = get_or_create_mercadopago_provider(db)
+    return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
 
 
 @router.get("/orders")

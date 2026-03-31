@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field
@@ -39,6 +40,24 @@ class AdminMerchantCreate(BaseModel):
     min_order: float = Field(default=0, ge=0)
     cash_enabled: bool = True
     mercadopago_enabled: bool = False
+
+
+class PaymentProviderRead(BaseModel):
+    provider: Literal["mercadopago"]
+    client_id: str | None = None
+    client_secret_masked: str | None = None
+    redirect_uri: str | None = None
+    enabled: bool = False
+    mode: Literal["sandbox", "production"] = "sandbox"
+    updated_at: datetime | None = None
+
+
+class PaymentProviderUpdate(BaseModel):
+    client_id: str | None = None
+    client_secret: str | None = None
+    redirect_uri: str | None = None
+    enabled: bool = False
+    mode: Literal["sandbox", "production"] = "sandbox"
 
 
 class AdminRiderCreate(BaseModel):

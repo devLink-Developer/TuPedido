@@ -35,6 +35,10 @@ def _has_index(table_name: str, index_name: str) -> bool:
     return index_name in {index["name"] for index in _inspector().get_indexes(table_name)}
 
 
+def _is_sqlite() -> bool:
+    return op.get_bind().dialect.name == "sqlite"
+
+
 def upgrade() -> None:
     if not _has_column("shopping_carts", "service_fee"):
         op.add_column(
@@ -243,14 +247,15 @@ def upgrade() -> None:
             unique=False,
         )
 
-    if _has_column("shopping_carts", "service_fee"):
-        op.alter_column("shopping_carts", "service_fee", server_default=None)
-    if _has_column("store_orders", "service_fee"):
-        op.alter_column("store_orders", "service_fee", server_default=None)
-    if _has_column("mercadopago_credentials", "live_mode"):
-        op.alter_column("mercadopago_credentials", "live_mode", server_default=None)
-    if _has_column("mercadopago_credentials", "reconnect_required"):
-        op.alter_column("mercadopago_credentials", "reconnect_required", server_default=None)
+    if not _is_sqlite():
+        if _has_column("shopping_carts", "service_fee"):
+            op.alter_column("shopping_carts", "service_fee", server_default=None)
+        if _has_column("store_orders", "service_fee"):
+            op.alter_column("store_orders", "service_fee", server_default=None)
+        if _has_column("mercadopago_credentials", "live_mode"):
+            op.alter_column("mercadopago_credentials", "live_mode", server_default=None)
+        if _has_column("mercadopago_credentials", "reconnect_required"):
+            op.alter_column("mercadopago_credentials", "reconnect_required", server_default=None)
 
 
 def downgrade() -> None:

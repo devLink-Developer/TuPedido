@@ -11,6 +11,8 @@ import type {
   DeliveryZone,
   MerchantApplication,
   Order,
+  PaymentProviderConfig,
+  PaymentProviderUpdate,
   PlatformSettings,
   PlatformSettingsUpdate,
   SettlementNotice,
@@ -123,6 +125,21 @@ export async function fetchPlatformSettings(token: string): Promise<PlatformSett
 export async function updatePlatformSettings(token: string, payload: PlatformSettingsUpdate): Promise<PlatformSettings> {
   return apiRequest<PlatformSettings>("/admin/platform-settings", {
     method: "PUT",
+    token,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function fetchAdminMercadoPagoProvider(token: string): Promise<PaymentProviderConfig> {
+  return apiRequest<PaymentProviderConfig>("/admin/payment-providers/mercadopago", { token });
+}
+
+export async function updateAdminMercadoPagoProvider(
+  token: string,
+  payload: PaymentProviderUpdate
+): Promise<PaymentProviderConfig> {
+  return apiRequest<PaymentProviderConfig>("/admin/payment-providers/mercadopago", {
+    method: "POST",
     token,
     body: JSON.stringify(payload)
   });

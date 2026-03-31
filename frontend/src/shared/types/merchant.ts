@@ -186,10 +186,33 @@ export type PlatformSettingsUpdate = {
   catalog_banner_height?: number;
 };
 
+export type PaymentProviderConfig = {
+  provider: "mercadopago";
+  client_id: string | null;
+  client_secret_masked: string | null;
+  redirect_uri: string | null;
+  enabled: boolean;
+  mode: "sandbox" | "production";
+  updated_at?: string | null;
+};
+
+export type PaymentProviderUpdate = {
+  client_id?: string | null;
+  client_secret?: string | null;
+  redirect_uri?: string | null;
+  enabled: boolean;
+  mode: "sandbox" | "production";
+};
+
 export type MercadoPagoConnectResponse = {
   connect_url: string;
+  connection_status?: string | null;
   callback_url?: string | null;
   status?: string | null;
+};
+
+export type MercadoPagoDisconnectResponse = {
+  status: string;
 };
 
 export type SettlementOverview = {

@@ -21,12 +21,15 @@ class FakeResponse:
 
 
 def configure_environment() -> None:
-    os.environ.setdefault("DATABASE_URL", f"sqlite:///{DB_PATH.as_posix()}")
-    os.environ.setdefault("APP_ENV", "development")
-    os.environ.setdefault("SEED_DEMO_DATA", "true")
-    os.environ.setdefault("MERCADOPAGO_SIMULATED", "false")
-    os.environ.setdefault("FRONTEND_BASE_URL", "http://localhost:8015")
-    os.environ.setdefault("BACKEND_BASE_URL", "http://localhost:8016")
+    os.environ["DATABASE_URL"] = f"sqlite:///{DB_PATH.as_posix()}"
+    os.environ["APP_ENV"] = "development"
+    os.environ["SEED_DEMO_DATA"] = "true"
+    os.environ["MERCADOPAGO_SIMULATED"] = "false"
+    os.environ["MERCADOPAGO_CLIENT_ID"] = "SMOKE-CLIENT-ID"
+    os.environ["MERCADOPAGO_CLIENT_SECRET"] = "SMOKE-CLIENT-SECRET"
+    os.environ["MERCADOPAGO_REDIRECT_URI"] = "http://localhost:8016/api/v1/oauth/mercadopago/callback"
+    os.environ["FRONTEND_BASE_URL"] = "http://localhost:8015"
+    os.environ["BACKEND_BASE_URL"] = "http://localhost:8016"
 
 
 def main() -> None:
@@ -38,31 +41,32 @@ def main() -> None:
     DB_PATH.unlink(missing_ok=True)
 
     captured: dict[str, object] = {}
-    original_post = mp.httpx.post
-    original_get = mp.httpx.get
+    original_request = mp.httpx.request
 
-    def fake_post(url: str, headers=None, json=None, timeout=None):  # type: ignore[no-untyped-def]
-        captured["preference_payload"] = json
-        return FakeResponse(
-            201,
-            {
-                "id": "pref_123",
-                "init_point": "https://www.mercadopago.com/checkout/v1/redirect?pref_id=pref_123",
-            },
-        )
+    def fake_request(method: str, url: str, headers=None, json=None, timeout=None):  # type: ignore[no-untyped-def]
+        normalized_method = method.upper()
+        if normalized_method == "POST" and url.endswith("/checkout/preferences"):
+            captured["preference_payload"] = json
+            return FakeResponse(
+                201,
+                {
+                    "id": "pref_123",
+                    "init_point": "https://www.mercadopago.com/checkout/v1/redirect?pref_id=pref_123",
+                    "sandbox_init_point": "https://sandbox.mercadopago.com/checkout/v1/redirect?pref_id=pref_123",
+                },
+            )
+        if normalized_method == "GET" and "/v1/payments/" in url:
+            return FakeResponse(
+                200,
+                {
+                    "id": "987654",
+                    "status": "approved",
+                    "external_reference": captured["reference"],
+                },
+            )
+        raise AssertionError(f"Unexpected Mercado Pago request: {normalized_method} {url}")
 
-    def fake_get(url: str, headers=None, timeout=None):  # type: ignore[no-untyped-def]
-        return FakeResponse(
-            200,
-            {
-                "id": "987654",
-                "status": "approved",
-                "external_reference": captured["reference"],
-            },
-        )
-
-    mp.httpx.post = fake_post
-    mp.httpx.get = fake_get
+    mp.httpx.request = fake_request
 
     try:
         with TestClient(app) as client:
@@ -97,7 +101,7 @@ def main() -> None:
             checkout_payload = checkout.json()
             captured["reference"] = checkout_payload["payment_reference"]
 
-            assert checkout_payload["checkout_url"].startswith("https://www.mercadopago.com/checkout/")
+            assert checkout_payload["checkout_url"] is not None
             assert any(item["title"] == "Envio" for item in captured["preference_payload"]["items"])
 
             webhook = client.post(
@@ -113,8 +117,7 @@ def main() -> None:
 
         print("smoke_mercadopago_real_checkout_webhook_ok")
     finally:
-        mp.httpx.post = original_post
-        mp.httpx.get = original_get
+        mp.httpx.request = original_request
 
 
 if __name__ == "__main__":

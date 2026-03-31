@@ -76,11 +76,14 @@ class StorePaymentSettingsRead(BaseModel):
     cash_enabled: bool
     mercadopago_enabled: bool
     mercadopago_configured: bool
+    mercadopago_provider_enabled: bool = False
+    mercadopago_provider_mode: str = "sandbox"
     mercadopago_public_key_masked: str | None = None
     mercadopago_connection_status: str = "disconnected"
     mercadopago_reconnect_required: bool = False
+    mercadopago_onboarding_completed: bool = False
     mercadopago_oauth_connected_at: datetime | None = None
-    mercadopago_collector_id: str | None = None
+    mercadopago_mp_user_id: str | None = None
 
 
 class ProductSubcategoryRead(BaseModel):

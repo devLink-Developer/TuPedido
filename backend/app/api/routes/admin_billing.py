@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.deps import require_admin
 from app.api.presenters import (
     serialize_admin_settlement_store,
+    serialize_payment_provider,
     serialize_platform_settings,
     serialize_settlement_payment,
     serialize_transfer_notice,
@@ -18,6 +19,7 @@ from app.db.session import get_db
 from app.models.platform import MerchantSettlementPayment, MerchantTransferNotice
 from app.models.store import Store
 from app.models.user import User
+from app.schemas.admin import PaymentProviderRead, PaymentProviderUpdate
 from app.schemas.settlement import (
     AdminSettlementPaymentCreate,
     AdminSettlementStoreRead,
@@ -27,6 +29,8 @@ from app.schemas.settlement import (
     PlatformSettingsRead,
     PlatformSettingsUpdate,
 )
+from app.core.utils import encrypt_sensitive_value
+from app.services.mercadopago import get_or_create_mercadopago_provider
 from app.services.platform import get_or_create_platform_settings
 from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
 from app.services.settlements import (
@@ -82,6 +86,42 @@ def update_platform_settings(
     db.commit()
     db.refresh(settings)
     return serialize_platform_settings(settings)
+
+
+@router.get("/payment-providers/mercadopago", response_model=PaymentProviderRead)
+def get_mercadopago_payment_provider(
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> PaymentProviderRead:
+    provider = get_or_create_mercadopago_provider(db)
+    return serialize_payment_provider(provider)
+
+
+@router.post("/payment-providers/mercadopago", response_model=PaymentProviderRead)
+def update_mercadopago_payment_provider(
+    payload: PaymentProviderUpdate,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> PaymentProviderRead:
+    provider = get_or_create_mercadopago_provider(db)
+    provider.client_id = (payload.client_id or "").strip() or None
+    provider.redirect_uri = (payload.redirect_uri or "").strip() or None
+    provider.mode = payload.mode
+    provider.enabled = payload.enabled
+    if "client_secret" in payload.model_fields_set and (payload.client_secret or "").strip():
+        provider.client_secret_encrypted = encrypt_sensitive_value(payload.client_secret.strip())
+
+    if provider.enabled and (
+        not provider.client_id or not provider.client_secret_encrypted or not provider.redirect_uri
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Client ID, Client Secret and Redirect URI are required when Mercado Pago is enabled",
+        )
+
+    db.commit()
+    db.refresh(provider)
+    return serialize_payment_provider(provider)
 
 
 @router.get("/settlements/stores", response_model=list[AdminSettlementStoreRead])

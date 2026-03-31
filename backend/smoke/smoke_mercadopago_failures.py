@@ -13,12 +13,15 @@ if str(BACKEND_DIR) not in sys.path:
 
 
 def configure_environment() -> None:
-    os.environ.setdefault("DATABASE_URL", f"sqlite:///{DB_PATH.as_posix()}")
-    os.environ.setdefault("APP_ENV", "development")
-    os.environ.setdefault("SEED_DEMO_DATA", "true")
-    os.environ.setdefault("MERCADOPAGO_SIMULATED", "false")
-    os.environ.setdefault("FRONTEND_BASE_URL", "http://localhost:8015")
-    os.environ.setdefault("BACKEND_BASE_URL", "http://localhost:8016")
+    os.environ["DATABASE_URL"] = f"sqlite:///{DB_PATH.as_posix()}"
+    os.environ["APP_ENV"] = "development"
+    os.environ["SEED_DEMO_DATA"] = "true"
+    os.environ["MERCADOPAGO_SIMULATED"] = "false"
+    os.environ["MERCADOPAGO_CLIENT_ID"] = "SMOKE-CLIENT-ID"
+    os.environ["MERCADOPAGO_CLIENT_SECRET"] = "SMOKE-CLIENT-SECRET"
+    os.environ["MERCADOPAGO_REDIRECT_URI"] = "http://localhost:8016/api/v1/oauth/mercadopago/callback"
+    os.environ["FRONTEND_BASE_URL"] = "http://localhost:8015"
+    os.environ["BACKEND_BASE_URL"] = "http://localhost:8016"
 
 
 def run_timeout_scenario() -> None:
@@ -28,12 +31,12 @@ def run_timeout_scenario() -> None:
     from app.services import mercadopago as mp
 
     DB_PATH.unlink(missing_ok=True)
-    original_post = mp.httpx.post
+    original_request = mp.httpx.request
 
-    def fake_post(url: str, headers=None, json=None, timeout=None):  # type: ignore[no-untyped-def]
-        raise httpx.ReadTimeout("Mercado Pago timeout", request=httpx.Request("POST", url))
+    def fake_request(method: str, url: str, headers=None, json=None, timeout=None):  # type: ignore[no-untyped-def]
+        raise httpx.ReadTimeout("Mercado Pago timeout", request=httpx.Request(method.upper(), url))
 
-    mp.httpx.post = fake_post
+    mp.httpx.request = fake_request
     try:
         with TestClient(app) as client:
             login = client.post(
@@ -73,7 +76,7 @@ def run_timeout_scenario() -> None:
             orders.raise_for_status()
             assert orders.json() == [], orders.text
     finally:
-        mp.httpx.post = original_post
+        mp.httpx.request = original_request
 
 
 if __name__ == "__main__":
