@@ -853,14 +853,16 @@ export function SettingsPage() {
                 </div>
                 <div className="mt-5 rounded-[22px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] px-4 py-4 text-white">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-200">Acceso</p>
-                  <p className="mt-3 font-display text-2xl font-bold leading-tight">
-                    Ingresar a{" "}
+                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 font-display text-2xl font-bold leading-tight">
+                    <span>Ingresar a</span>
                     <BrandWordmark
                       brandName="Kepedimos"
                       wordmarkUrl={platformWordmarkUrl}
-                      imageClassName="h-[0.95em] align-[-0.12em] drop-shadow-[0_10px_18px_rgba(249,115,22,0.24)]"
+                      className="min-w-0"
+                      frameClassName="h-12 w-[8.75rem] overflow-hidden sm:h-14 sm:w-[10.5rem]"
+                      imageClassName="h-full w-full object-cover object-center drop-shadow-[0_12px_24px_rgba(249,115,22,0.28)]"
                     />
-                  </p>
+                  </div>
                 </div>
                 <div className="mt-5 flex items-center gap-4">
                   <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm">

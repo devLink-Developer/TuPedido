@@ -47,14 +47,16 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
         </p>
         <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.05] tracking-tight sm:text-4xl">
           {mode === "login" ? (
-            <>
-              Ingresar a{" "}
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
+              <span>Ingresar a</span>
               <BrandWordmark
                 brandName={brandName}
                 wordmarkUrl={wordmarkUrl}
-                imageClassName="h-[0.95em] align-[-0.12em] drop-shadow-[0_10px_18px_rgba(249,115,22,0.26)]"
+                className="min-w-0"
+                frameClassName="h-12 w-[8.75rem] overflow-hidden sm:h-16 sm:w-[12rem]"
+                imageClassName="h-full w-full object-cover object-center drop-shadow-[0_12px_24px_rgba(249,115,22,0.3)]"
               />
-            </>
+            </span>
           ) : (
             "Crear cuenta cliente"
           )}

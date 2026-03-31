@@ -2,6 +2,7 @@ type BrandWordmarkProps = {
   brandName: string;
   wordmarkUrl?: string | null;
   className?: string;
+  frameClassName?: string;
   imageClassName?: string;
   textClassName?: string;
 };
@@ -10,22 +11,32 @@ export function BrandWordmark({
   brandName,
   wordmarkUrl,
   className = "",
+  frameClassName = "",
   imageClassName = "",
   textClassName = "",
 }: BrandWordmarkProps) {
   if (wordmarkUrl) {
     return (
       <span className={className}>
-        <img
-          src={wordmarkUrl}
-          alt={brandName}
+        <span
           className={[
-            "inline-block h-[1.15em] w-auto max-w-full align-[-0.18em] object-contain",
-            imageClassName,
+            "inline-flex items-center",
+            frameClassName,
           ]
             .filter(Boolean)
             .join(" ")}
-        />
+        >
+          <img
+            src={wordmarkUrl}
+            alt={brandName}
+            className={[
+              "inline-block h-[1.15em] w-auto max-w-full align-[-0.18em] object-contain",
+              imageClassName,
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          />
+        </span>
       </span>
     );
   }
