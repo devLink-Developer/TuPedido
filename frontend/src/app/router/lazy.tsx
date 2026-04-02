@@ -19,6 +19,10 @@ function createLazyRoute(loadModule: () => Promise<ModuleExports>, exportName: s
 }
 
 export const LazyLandingRoute = createLazyRoute(() => import("../../modules/landing/routes"), "LandingRoute");
+export const LazyMercadoPagoSimulatedRoute = createLazyRoute(
+  () => import("../../app/pages/public"),
+  "MercadoPagoSimulatedPage"
+);
 
 export const LazyForcePasswordChangeRoute = createLazyRoute(
   () => import("../../modules/auth/routes"),
