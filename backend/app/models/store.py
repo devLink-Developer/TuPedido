@@ -87,6 +87,9 @@ class Store(Base):
     products: Mapped[list["Product"]] = relationship(
         back_populates="store", cascade="all, delete-orphan", order_by="Product.sort_order"
     )
+    promotions: Mapped[list["StorePromotion"]] = relationship(
+        back_populates="store", cascade="all, delete-orphan", order_by="StorePromotion.sort_order"
+    )
     carts: Mapped[list["ShoppingCart"]] = relationship(back_populates="store")
     orders: Mapped[list["StoreOrder"]] = relationship(back_populates="store")
     delivery_applications: Mapped[list["DeliveryApplication"]] = relationship(back_populates="store")
@@ -274,3 +277,40 @@ class Product(Base):
     product_subcategory: Mapped["ProductSubcategory | None"] = relationship(back_populates="products")
     cart_items: Mapped[list["ShoppingCartItem"]] = relationship(back_populates="product")
     order_items: Mapped[list["StoreOrderItem"]] = relationship(back_populates="product")
+    promotion_items: Mapped[list["StorePromotionItem"]] = relationship(back_populates="product")
+
+
+class StorePromotion(Base):
+    __tablename__ = "store_promotions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    store_id: Mapped[int] = mapped_column(ForeignKey("stores.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(180))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sale_price: Mapped[float] = mapped_column(Numeric(10, 2))
+    max_per_customer_per_day: Mapped[int] = mapped_column(Integer, default=1)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    store: Mapped["Store"] = relationship(back_populates="promotions")
+    items: Mapped[list["StorePromotionItem"]] = relationship(
+        back_populates="promotion", cascade="all, delete-orphan", order_by="StorePromotionItem.sort_order"
+    )
+
+
+class StorePromotionItem(Base):
+    __tablename__ = "store_promotion_items"
+    __table_args__ = (UniqueConstraint("promotion_id", "product_id", name="uq_store_promotion_items_promotion_product"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    promotion_id: Mapped[int] = mapped_column(ForeignKey("store_promotions.id", ondelete="CASCADE"), index=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("store_products.id", ondelete="CASCADE"), index=True)
+    quantity: Mapped[int] = mapped_column(Integer, default=1)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+    promotion: Mapped["StorePromotion"] = relationship(back_populates="items")
+    product: Mapped["Product"] = relationship(back_populates="promotion_items")

@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { AdminLayout } from "../../app/layouts/AdminLayout";
 import { DashboardPage } from "./pages/DashboardPage";
+import { LiquidationsPage } from "./pages/LiquidationsPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { RidersPage } from "./pages/RidersPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -21,6 +22,10 @@ export function AdminDashboardRoute() {
 
 export function AdminUsersRoute() {
   return <UsersPage />;
+}
+
+export function AdminLiquidationsRoute() {
+  return <LiquidationsPage />;
 }
 
 export function AdminStoresRoute() {

@@ -128,6 +128,7 @@ export function SettingsPage() {
   const [categoryForm, setCategoryForm] = useState<CategoryFormState>(emptyCategoryForm);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [subcategoryDrafts, setSubcategoryDrafts] = useState<Record<number, SubcategoryDraftState>>({});
+  const [showIdentityEditor, setShowIdentityEditor] = useState(false);
   const [showAddressEditor, setShowAddressEditor] = useState(false);
   const [mercadoPagoAction, setMercadoPagoAction] = useState<"connect" | "disconnect" | null>(null);
   const [mercadoPagoActionError, setMercadoPagoActionError] = useState<string | null>(null);
@@ -504,33 +505,58 @@ export function SettingsPage() {
 
       <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5 rounded-[28px] bg-white p-5 shadow-sm">
         <section className="space-y-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Datos del local</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Identidad comercial</h2>
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Datos del local</p>
+              <h2 className="mt-2 text-xl font-bold text-ink">Identidad comercial</h2>
+              <p className="mt-2 text-sm text-zinc-600">
+                Abre este bloque solo cuando necesites editar nombre, telefono o descripcion visible del comercio.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                onClick={() => setShowIdentityEditor((current) => !current)}
+                className={showIdentityEditor ? "bg-zinc-900 shadow-none" : "shadow-none"}
+              >
+                {showIdentityEditor ? "Cerrar identidad" : "Editar identidad"}
+              </Button>
+            </div>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <input
-              value={store.name}
-              onChange={(event) => setStore((current) => (current ? { ...current, name: event.target.value } : current))}
-              placeholder="Nombre del local"
-              className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-            />
-            <input
-              value={store.phone}
-              onChange={(event) => setStore((current) => (current ? { ...current, phone: event.target.value } : current))}
-              placeholder="Telefono de contacto"
-              className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-            />
-            <textarea
-              value={store.description}
-              onChange={(event) =>
-                setStore((current) => (current ? { ...current, description: event.target.value } : current))
-              }
-              rows={4}
-              placeholder="Cuenta que hace especial a tu negocio"
-              className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
-            />
+
+          <div className="rounded-[24px] bg-zinc-50 p-4 text-sm text-zinc-600">
+            <p className="font-semibold text-ink">{store.name}</p>
+            <p className="mt-1">{store.phone || "Sin telefono cargado"}</p>
+            <p className="mt-2">
+              {store.description?.trim() || "Agrega una descripcion breve para explicar que hace especial a tu negocio."}
+            </p>
           </div>
+
+          {showIdentityEditor ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              <input
+                value={store.name}
+                onChange={(event) => setStore((current) => (current ? { ...current, name: event.target.value } : current))}
+                placeholder="Nombre del local"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              />
+              <input
+                value={store.phone}
+                onChange={(event) => setStore((current) => (current ? { ...current, phone: event.target.value } : current))}
+                placeholder="Telefono de contacto"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              />
+              <textarea
+                value={store.description}
+                onChange={(event) =>
+                  setStore((current) => (current ? { ...current, description: event.target.value } : current))
+                }
+                rows={4}
+                placeholder="Cuenta que hace especial a tu negocio"
+                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+              />
+            </div>
+          ) : null}
         </section>
 
         <section className="space-y-4">

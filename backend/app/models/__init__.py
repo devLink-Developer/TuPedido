@@ -12,7 +12,14 @@ from app.models.delivery import (
     RiderSettlementCharge,
     RiderSettlementPayment,
 )
-from app.models.order import OrderReview, ShoppingCart, ShoppingCartItem, StoreOrder, StoreOrderItem
+from app.models.order import (
+    OrderPromotionApplication,
+    OrderReview,
+    ShoppingCart,
+    ShoppingCartItem,
+    StoreOrder,
+    StoreOrderItem,
+)
 from app.models.platform import (
     MerchantServiceFeeCharge,
     MerchantSettlementAllocation,
@@ -27,6 +34,8 @@ from app.models.store import (
     MercadoPagoCredential,
     Product,
     ProductCategory,
+    StorePromotion,
+    StorePromotionItem,
     Store,
     StoreCategoryLink,
     StoreDeliverySettings,
@@ -53,6 +62,7 @@ __all__ = [
     "MerchantSettlementPayment",
     "MerchantTransferNotice",
     "NotificationEvent",
+    "OrderPromotionApplication",
     "OrderReview",
     "PaymentProvider",
     "PlatformSettings",
@@ -62,6 +72,8 @@ __all__ = [
     "RiderSettlementPayment",
     "Product",
     "ProductCategory",
+    "StorePromotion",
+    "StorePromotionItem",
     "ShoppingCart",
     "ShoppingCartItem",
     "Store",

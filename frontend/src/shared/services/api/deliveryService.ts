@@ -2,6 +2,8 @@ import type {
   AppNotification,
   DeliveryProfile,
   DeliverySettlement,
+  DeliverySettlementPayment,
+  DeliverySettlementPaymentAction,
   DeliverySettlementPaymentCreate,
   DeliveryZone,
   DeliveryZoneWrite,
@@ -85,6 +87,34 @@ export async function fetchDeliveryNotifications(token: string): Promise<AppNoti
 
 export async function fetchDeliverySettlements(token: string): Promise<DeliverySettlement> {
   return apiRequest<DeliverySettlement>("/delivery/me/settlements", { token });
+}
+
+export async function fetchDeliverySettlementPayments(token: string): Promise<DeliverySettlementPayment[]> {
+  return apiRequest<DeliverySettlementPayment[]>("/delivery/me/settlement-payments", { token });
+}
+
+export async function confirmDeliverySettlementPayment(
+  token: string,
+  paymentId: number,
+  payload: DeliverySettlementPaymentAction
+): Promise<DeliverySettlementPayment> {
+  return apiRequest<DeliverySettlementPayment>(`/delivery/me/settlement-payments/${paymentId}/confirm`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function disputeDeliverySettlementPayment(
+  token: string,
+  paymentId: number,
+  payload: DeliverySettlementPaymentAction
+): Promise<DeliverySettlementPayment> {
+  return apiRequest<DeliverySettlementPayment>(`/delivery/me/settlement-payments/${paymentId}/dispute`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload)
+  });
 }
 
 export async function createAdminDeliverySettlementPayment(

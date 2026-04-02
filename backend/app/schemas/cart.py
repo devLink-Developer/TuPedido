@@ -2,6 +2,7 @@ from pydantic import BaseModel
 
 from app.schemas.catalog import StoreDeliverySettingsRead
 from app.schemas.pricing import PricingSummaryRead
+from app.schemas.promotion import AppliedPromotionSummaryRead
 
 
 class CartItemCreate(BaseModel):
@@ -48,3 +49,4 @@ class CartRead(BaseModel):
     financial_discount_total: float
     pricing: PricingSummaryRead
     items: list[CartItemRead]
+    applied_promotions: list[AppliedPromotionSummaryRead] = []

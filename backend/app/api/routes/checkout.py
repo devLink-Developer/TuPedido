@@ -23,6 +23,7 @@ from app.services.cart_ops import (
 )
 from app.services.delivery import bootstrap_delivery_order, publish_order_snapshot, snapshot_delivery_quote
 from app.services.mercadopago import MercadoPagoAPIError, create_checkout_preference
+from app.services.promotions import persist_order_promotions
 
 router = APIRouter()
 
@@ -43,6 +44,15 @@ def build_payment_items(cart: object, *, delivery_fee: float) -> list[dict[str, 
                 "title": "Envio",
                 "quantity": 1,
                 "unit_price": float(delivery_fee),
+                "currency_id": "ARS",
+            }
+        )
+    if float(getattr(cart, "financial_discount_total", 0) or 0) > 0:
+        items.append(
+            {
+                "title": "Promociones",
+                "quantity": 1,
+                "unit_price": -float(cart.financial_discount_total),
                 "currency_id": "ARS",
             }
         )
@@ -153,6 +163,11 @@ def checkout(
                 note=item.note,
             )
         )
+    persist_order_promotions(
+        db,
+        order=order,
+        applied_promotions=list(getattr(cart, "applied_promotions", []) or []),
+    )
 
     checkout_url = None
     payment_reference = None

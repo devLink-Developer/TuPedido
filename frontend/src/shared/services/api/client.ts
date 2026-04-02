@@ -102,3 +102,11 @@ export function buildMerchantSocketUrl(token: string): string {
   baseUrl.search = `token=${encodeURIComponent(token)}`;
   return baseUrl.toString();
 }
+
+export function buildNotificationsSocketUrl(token: string): string {
+  const baseUrl = resolveUrl(API_BASE_URL);
+  baseUrl.protocol = baseUrl.protocol === "https:" ? "wss:" : "ws:";
+  baseUrl.pathname = `${baseUrl.pathname.replace(/\/api\/v1$/, "")}/api/v1/ws/notifications/me`;
+  baseUrl.search = `token=${encodeURIComponent(token)}`;
+  return baseUrl.toString();
+}

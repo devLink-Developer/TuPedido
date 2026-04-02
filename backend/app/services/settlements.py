@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.models.delivery import RiderSettlementPayment
 from app.models.order import StoreOrder
 from app.models.platform import (
     MerchantServiceFeeCharge,
@@ -30,6 +31,11 @@ PAYMENT_OPTIONS = (
 NOTICE_OPTIONS = (
     selectinload(MerchantTransferNotice.store),
     selectinload(MerchantTransferNotice.settlement_payment).selectinload(MerchantSettlementPayment.allocations),
+)
+
+RIDER_PAYMENT_OPTIONS = (
+    selectinload(RiderSettlementPayment.store),
+    selectinload(RiderSettlementPayment.rider),
 )
 
 
@@ -97,6 +103,32 @@ def get_store_payments(db: Session, store_id: int) -> list[MerchantSettlementPay
 def get_outstanding_balance(db: Session, store_id: int) -> float:
     charges = get_store_charges(db, store_id)
     return sum(charge_outstanding_amount(charge) for charge in charges)
+
+
+def get_store_rider_payments(db: Session, store_id: int) -> list[RiderSettlementPayment]:
+    return db.scalars(
+        select(RiderSettlementPayment)
+        .options(*RIDER_PAYMENT_OPTIONS)
+        .where(RiderSettlementPayment.store_id == store_id)
+        .order_by(RiderSettlementPayment.paid_at.desc(), RiderSettlementPayment.id.desc())
+    ).all()
+
+
+def get_rider_payments(
+    db: Session,
+    *,
+    rider_user_id: int,
+    store_id: int | None = None,
+) -> list[RiderSettlementPayment]:
+    query = (
+        select(RiderSettlementPayment)
+        .options(*RIDER_PAYMENT_OPTIONS)
+        .where(RiderSettlementPayment.rider_user_id == rider_user_id)
+        .order_by(RiderSettlementPayment.paid_at.desc(), RiderSettlementPayment.id.desc())
+    )
+    if store_id is not None:
+        query = query.where(RiderSettlementPayment.store_id == store_id)
+    return db.scalars(query).all()
 
 
 def create_cash_service_fee_charge(db: Session, order: StoreOrder) -> MerchantServiceFeeCharge | None:

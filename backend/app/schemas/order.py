@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.schemas.pricing import PricingSummaryRead
+from app.schemas.promotion import AppliedPromotionSummaryRead
 
 
 class CheckoutRequest(BaseModel):
@@ -77,6 +78,7 @@ class OrderRead(BaseModel):
     created_at: datetime
     items: list[OrderItemRead]
     pricing: PricingSummaryRead
+    applied_promotions: list[AppliedPromotionSummaryRead] = []
 
 
 class OrderTrackingRead(BaseModel):

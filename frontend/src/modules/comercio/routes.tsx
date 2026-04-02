@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { MerchantDashboardLayout } from "../../app/layouts/MerchantDashboardLayout";
 import { DashboardPage } from "./pages/DashboardPage";
+import { LiquidationsPage } from "./pages/LiquidationsPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { ProductsPage } from "./pages/ProductsPage";
 import { PromotionsPage } from "./pages/PromotionsPage";
@@ -21,6 +22,10 @@ export function ComercioDashboardRoute() {
 
 export function ComercioProductsRoute() {
   return <ProductsPage />;
+}
+
+export function ComercioLiquidationsRoute() {
+  return <LiquidationsPage />;
 }
 
 export function ComercioOrdersRoute() {

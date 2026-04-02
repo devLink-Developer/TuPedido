@@ -31,14 +31,17 @@ from app.schemas.settlement import (
     MerchantSettlementPaymentRead,
     MerchantTransferNoticeRead,
     PlatformSettingsRead,
+    RiderSettlementPaymentRead,
     SettlementAllocationRead,
 )
+from app.schemas.promotion import AppliedPromotionSummaryRead, PromotionItemRead, PromotionRead
 from app.services.category_colors import resolve_category_palette
 from app.services.mercadopago import (
     get_store_payment_account,
     is_store_mercadopago_ready,
     mercadopago_connection_status,
 )
+from app.services.promotions import deserialize_items_snapshot
 from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
 from app.services.product_pricing import serialize_product_pricing
 from app.services.store_address import store_delivery_is_enabled
@@ -174,6 +177,55 @@ def serialize_product(product: object) -> ProductRead:
     )
 
 
+def serialize_applied_promotion(application: object) -> AppliedPromotionSummaryRead:
+    items = getattr(application, "items", None)
+    if items is None:
+        items = deserialize_items_snapshot(getattr(application, "items_snapshot_json", None))
+    return AppliedPromotionSummaryRead(
+        promotion_id=getattr(application, "promotion_id", None),
+        promotion_name=getattr(application, "promotion_name", getattr(application, "promotion_name_snapshot", "Promocion")),
+        combo_count=int(getattr(application, "combo_count", 0) or 0),
+        sale_price=float(getattr(application, "sale_price", getattr(application, "sale_price_snapshot", 0)) or 0),
+        base_total=float(getattr(application, "base_total", getattr(application, "base_total_snapshot", 0)) or 0),
+        discount_total=float(getattr(application, "discount_total", getattr(application, "discount_total_snapshot", 0)) or 0),
+        items=[
+            PromotionItemRead(
+                id=int(item.get("id") or 0),
+                product_id=int(item.get("product_id") or 0),
+                product_name=str(item.get("product_name") or f"Producto #{item.get('product_id')}"),
+                quantity=int(item.get("quantity") or 0),
+                sort_order=int(item.get("sort_order") or 0),
+            )
+            for item in items
+        ],
+    )
+
+
+def serialize_promotion(promotion: object) -> PromotionRead:
+    return PromotionRead(
+        id=promotion.id,
+        store_id=promotion.store_id,
+        name=promotion.name,
+        description=getattr(promotion, "description", None),
+        sale_price=float(promotion.sale_price),
+        max_per_customer_per_day=int(getattr(promotion, "max_per_customer_per_day", 1) or 1),
+        is_active=bool(getattr(promotion, "is_active", True)),
+        sort_order=int(getattr(promotion, "sort_order", 0) or 0),
+        created_at=promotion.created_at,
+        updated_at=promotion.updated_at,
+        items=[
+            PromotionItemRead(
+                id=item.id,
+                product_id=item.product_id,
+                product_name=item.product.name if getattr(item, "product", None) is not None else f"Producto #{item.product_id}",
+                quantity=int(item.quantity),
+                sort_order=int(getattr(item, "sort_order", 0) or 0),
+            )
+            for item in getattr(promotion, "items", []) or []
+        ],
+    )
+
+
 def serialize_store_summary(
     store: object, *, mercadopago_provider: object | None = None
 ) -> StoreSummaryRead:
@@ -297,6 +349,10 @@ def serialize_cart(cart: object) -> CartRead:
             )
             for item in cart.items
         ],
+        applied_promotions=[
+            serialize_applied_promotion(application)
+            for application in getattr(cart, "applied_promotions", []) or []
+        ],
     )
 
 
@@ -369,6 +425,10 @@ def serialize_order(order: object) -> OrderRead:
             "service_fee": float(order.service_fee),
             "total": float(order.total),
         },
+        applied_promotions=[
+            serialize_applied_promotion(application)
+            for application in getattr(order, "promotion_applications", []) or []
+        ],
     )
 
 
@@ -490,6 +550,27 @@ def serialize_notification(notification: object) -> NotificationRead:
         is_read=notification.is_read,
         push_status=notification.push_status,
         created_at=notification.created_at,
+    )
+
+
+def serialize_rider_settlement_payment(payment: object) -> RiderSettlementPaymentRead:
+    rider = getattr(payment, "rider", None)
+    store = getattr(payment, "store", None)
+    return RiderSettlementPaymentRead(
+        id=payment.id,
+        rider_user_id=payment.rider_user_id,
+        rider_name=getattr(rider, "full_name", None),
+        store_id=getattr(payment, "store_id", None),
+        store_name=getattr(store, "name", None),
+        source=str(getattr(payment, "source", "merchant_manual") or "merchant_manual"),
+        amount=float(payment.amount),
+        paid_at=payment.paid_at,
+        reference=getattr(payment, "reference", None),
+        notes=getattr(payment, "notes", None),
+        receiver_status=str(getattr(payment, "receiver_status", "pending_confirmation") or "pending_confirmation"),
+        receiver_response_notes=getattr(payment, "receiver_response_notes", None),
+        receiver_responded_at=getattr(payment, "receiver_responded_at", None),
+        created_at=payment.created_at,
     )
 
 

@@ -22,7 +22,7 @@ export function LandingPage() {
 
   useEffect(() => {
     if (!loaded && !loading) {
-      void loadCategories();
+      void loadCategories().catch(() => {});
     }
   }, [loaded, loading, loadCategories]);
 
@@ -72,4 +72,3 @@ export function LandingPage() {
     </div>
   );
 }
-

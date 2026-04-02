@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { EmptyState, LoadingCard, PageHeader, StatCard } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   assignMerchantOrderRider,
@@ -14,10 +14,17 @@ import {
 import { useUiStore } from "../../../shared/stores";
 import type { DeliveryProfile, MerchantStore, Order, OrderStatusUpdate, StoreUpdate } from "../../../shared/types";
 import { notifyCatalogStoresChanged } from "../../../shared/utils/catalogStores";
+import { formatCurrency } from "../../../shared/utils/format";
+import {
+  buildNamedPeriodStats,
+  groupOrdersByDate,
+  isHiddenOrderByDefault
+} from "../../../shared/utils/orderAnalytics";
 import { playNotificationTone } from "../../../shared/utils/notificationSound";
+import { statusLabels } from "../../../shared/utils/labels";
 import { hasStoreAddressConfiguration, toStoreAddressFormState } from "../components/StoreAddressSection";
-import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync";
 import { OrdersTable } from "../components/OrdersTable";
+import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync";
 
 const LIVE_REFRESH_INTERVAL_MS = 15000;
 const SOCKET_RECONNECT_DELAY_MS = 3000;
@@ -60,6 +67,9 @@ export function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [savingToggle, setSavingToggle] = useState(false);
   const [busyActionKey, setBusyActionKey] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [showDelivered, setShowDelivered] = useState(false);
+  const [showCancelled, setShowCancelled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -352,6 +362,35 @@ export function OrdersPage() {
     }
   }
 
+  const statusCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const order of orders) {
+      counts.set(order.status, (counts.get(order.status) ?? 0) + 1);
+    }
+    return counts;
+  }, [orders]);
+
+  const openOrders = useMemo(() => orders.filter((order) => !isHiddenOrderByDefault(order)), [orders]);
+  const filteredOrders = useMemo(
+    () =>
+      orders.filter((order) => {
+        if (!showDelivered && order.status === "delivered") {
+          return false;
+        }
+        if (!showCancelled && order.status === "cancelled") {
+          return false;
+        }
+        if (statusFilter && order.status !== statusFilter) {
+          return false;
+        }
+        return true;
+      }),
+    [orders, showCancelled, showDelivered, statusFilter]
+  );
+  const groups = useMemo(() => groupOrdersByDate(filteredOrders), [filteredOrders]);
+  const periodStats = useMemo(() => buildNamedPeriodStats(filteredOrders), [filteredOrders]);
+  const todayStats = periodStats.find((item) => item.key === "today")?.stats;
+
   if (loading) return <LoadingCard />;
   if (error) return <EmptyState title="Pedidos no disponibles" description={error} />;
   if (!store) {
@@ -363,7 +402,7 @@ export function OrdersPage() {
       <PageHeader
         eyebrow="Comercio"
         title="Pedidos"
-        description="Acepta pedidos, marca cuando estan listos y asigna riders manualmente desde el comercio."
+        description="Los pedidos se ordenan por fecha y prioridad operativa. Cancelados y entregados quedan ocultos hasta que los filtres."
         action={
           <div className="min-w-[280px] rounded-[26px] border border-white/15 bg-white/10 p-4 backdrop-blur">
             <div className="flex items-start justify-between gap-4">
@@ -398,15 +437,6 @@ export function OrdersPage() {
                     ].join(" ")}
                   />
                 </button>
-                <span className="text-xs text-white/60">
-                  {savingToggle
-                    ? "Guardando..."
-                    : !isApproved
-                      ? "Pendiente de aprobacion"
-                      : !acceptingOrders && !canEnableOrders
-                        ? "Completa la direccion"
-                        : "Disponible ahora"}
-                </span>
               </div>
             </div>
             {toggleError ? (
@@ -416,22 +446,105 @@ export function OrdersPage() {
         }
       />
 
+      <section className="rounded-[28px] border border-[#ffe6d7] bg-[#fff8f3] p-5 text-sm text-[#6d4f43] shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#a36e58]">Ayuda</p>
+        <p className="mt-2 leading-7">
+          Por defecto solo ves pedidos abiertos. Si necesitas revisar historicos, habilita los filtros de entregados o
+          cancelados. El orden prioriza primero los creados, despues los demas estados operativos.
+        </p>
+      </section>
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <StatCard label="Abiertos" value={String(openOrders.length)} description="Pedidos visibles para operar ahora." />
+        <StatCard
+          label="Hoy"
+          value={formatCurrency(todayStats?.sales ?? 0)}
+          description={`${todayStats?.orderCount ?? 0} pedidos dentro del filtro actual.`}
+        />
+        <StatCard
+          label="Entregados"
+          value={String(statusCounts.get("delivered") ?? 0)}
+          description="Solo aparecen si activas el filtro correspondiente."
+        />
+        <StatCard
+          label="Cancelados"
+          value={String(statusCounts.get("cancelled") ?? 0)}
+          description="Tambien quedan ocultos hasta que los filtres."
+        />
+      </div>
+
       {actionError ? (
         <p className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
           {actionError}
         </p>
       ) : null}
 
-      {orders.length ? (
+      <section className="rounded-[28px] bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Filtros</p>
+            <h2 className="mt-2 text-xl font-bold text-ink">Prioridad operativa</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setShowDelivered((current) => !current)}
+              className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                showDelivered ? "bg-emerald-600 text-white" : "bg-zinc-100 text-zinc-700"
+              }`}
+            >
+              {showDelivered ? "Ocultar entregados" : `Ver entregados (${statusCounts.get("delivered") ?? 0})`}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCancelled((current) => !current)}
+              className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                showCancelled ? "bg-rose-600 text-white" : "bg-zinc-100 text-zinc-700"
+              }`}
+            >
+              {showCancelled ? "Ocultar cancelados" : `Ver cancelados (${statusCounts.get("cancelled") ?? 0})`}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setStatusFilter("")}
+            className={`rounded-full px-4 py-2 text-sm font-semibold ${
+              statusFilter === "" ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
+            }`}
+          >
+            Todos abiertos
+          </button>
+          {["created", "preparing", "ready_for_dispatch", "ready_for_pickup", "out_for_delivery"].map((status) => (
+            <button
+              key={status}
+              type="button"
+              onClick={() => setStatusFilter(status)}
+              className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                statusFilter === status ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
+              }`}
+            >
+              {(statusLabels[status] ?? status)} ({statusCounts.get(status) ?? 0})
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {groups.length ? (
         <OrdersTable
-          orders={orders}
+          groups={groups}
           riders={riders}
           busyActionKey={busyActionKey}
           onAssignRider={handleAssignRider}
           onUpdateStatus={handleUpdateStatus}
         />
       ) : (
-        <EmptyState title="Sin pedidos" description="Los pedidos del comercio apareceran aqui." />
+        <EmptyState
+          title="No hay pedidos para este filtro"
+          description="Ajusta el estado o habilita entregados/cancelados para revisar otros movimientos."
+        />
       )}
     </div>
   );

@@ -20,7 +20,9 @@ import type {
   SettlementPaymentCreate,
   StoreDetail,
   StoreStatusUpdate,
-  StoreSummary
+  StoreSummary,
+  SettlementHistoryEntry,
+  RiderSettlementPayment
 } from "../../types";
 import { buildPricingSummary } from "../../utils/pricing";
 import { apiRequest } from "./client";
@@ -169,6 +171,10 @@ export async function fetchAdminSettlementPayments(token: string): Promise<Settl
   return apiRequest<SettlementPayment[]>("/admin/settlements/payments", { token });
 }
 
+export async function fetchAdminSettlementHistory(token: string): Promise<SettlementHistoryEntry[]> {
+  return apiRequest<SettlementHistoryEntry[]>("/admin/settlements/history", { token });
+}
+
 export async function createAdminSettlementPayment(
   token: string,
   payload: SettlementPaymentCreate
@@ -229,4 +235,8 @@ export async function assignAdminDeliveryOrder(token: string, orderId: number, r
 
 export async function fetchAdminDeliverySettlements(token: string): Promise<DeliverySettlement[]> {
   return apiRequest<DeliverySettlement[]>("/admin/delivery/settlements", { token });
+}
+
+export async function fetchAdminDeliverySettlementPayments(token: string): Promise<RiderSettlementPayment[]> {
+  return apiRequest<RiderSettlementPayment[]>("/admin/delivery/settlements/payments", { token });
 }

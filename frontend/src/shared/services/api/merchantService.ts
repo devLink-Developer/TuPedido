@@ -3,11 +3,14 @@ import type {
   DeliverySettlement,
   MerchantRiderCreate,
   MerchantRiderSettlementPaymentCreate,
+  MerchantPromotion,
   MerchantRiderUpdate,
   MercadoPagoConnectResponse,
   MercadoPagoDisconnectResponse,
   MerchantStore,
   Order,
+  PromotionWrite,
+  RiderSettlementPayment,
   OrderStatusUpdate,
   Product,
   ProductCategory,
@@ -18,6 +21,7 @@ import type {
   ProductSubcategoryUpdate,
   ProductWrite,
   SettlementCharge,
+  SettlementHistoryEntry,
   SettlementNoticeCreate,
   SettlementNotice,
   SettlementOverview,
@@ -132,6 +136,41 @@ export async function createMerchantSettlementNotice(
     method: "POST",
     token,
     body: JSON.stringify(payload)
+  });
+}
+
+export async function fetchMerchantSettlementHistory(token: string): Promise<SettlementHistoryEntry[]> {
+  return apiRequest<SettlementHistoryEntry[]>("/merchant/settlements/history", { token });
+}
+
+export async function fetchMerchantPromotions(token: string): Promise<MerchantPromotion[]> {
+  return apiRequest<MerchantPromotion[]>("/merchant/promotions", { token });
+}
+
+export async function createMerchantPromotion(token: string, payload: PromotionWrite): Promise<MerchantPromotion> {
+  return apiRequest<MerchantPromotion>("/merchant/promotions", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function updateMerchantPromotion(
+  token: string,
+  promotionId: number,
+  payload: PromotionWrite
+): Promise<MerchantPromotion> {
+  return apiRequest<MerchantPromotion>(`/merchant/promotions/${promotionId}`, {
+    method: "PUT",
+    token,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function deleteMerchantPromotion(token: string, promotionId: number): Promise<void> {
+  await apiRequest<void>(`/merchant/promotions/${promotionId}`, {
+    method: "DELETE",
+    token
   });
 }
 
@@ -269,20 +308,16 @@ export async function fetchMerchantRiderSettlements(token: string): Promise<Deli
 export async function createMerchantRiderSettlementPayment(
   token: string,
   payload: MerchantRiderSettlementPaymentCreate
-): Promise<{ id: number; rider_user_id: number; store_id: number; amount: number; paid_at: string; reference: string | null; notes: string | null }> {
-  return apiRequest<{
-    id: number;
-    rider_user_id: number;
-    store_id: number;
-    amount: number;
-    paid_at: string;
-    reference: string | null;
-    notes: string | null;
-  }>("/merchant/riders/settlements/payments", {
+): Promise<RiderSettlementPayment> {
+  return apiRequest<RiderSettlementPayment>("/merchant/riders/settlements/payments", {
     method: "POST",
     token,
     body: JSON.stringify(payload)
   });
+}
+
+export async function fetchMerchantRiderSettlementPayments(token: string): Promise<RiderSettlementPayment[]> {
+  return apiRequest<RiderSettlementPayment[]>("/merchant/riders/settlements/payments", { token });
 }
 
 export async function assignMerchantOrderRider(token: string, orderId: number, riderUserId: number): Promise<Order> {

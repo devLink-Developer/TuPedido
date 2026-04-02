@@ -13,6 +13,7 @@ from app.api.presenters import (
     serialize_delivery_profile,
     serialize_delivery_zone,
     serialize_order,
+    serialize_rider_settlement_payment,
 )
 from app.core.security import hash_password
 from app.db.session import get_db
@@ -35,6 +36,7 @@ from app.schemas.delivery import (
     DeliverySettlementPaymentCreate,
     DeliveryZoneWrite,
 )
+from app.schemas.settlement import RiderSettlementPaymentRead
 from app.services.delivery import create_notifications, ensure_assignment, mask_phone, publish_order_snapshot
 
 router = APIRouter()
@@ -59,6 +61,12 @@ ORDER_OPTIONS = (
     selectinload(StoreOrder.items),
     selectinload(StoreOrder.store),
     selectinload(StoreOrder.address),
+    selectinload(StoreOrder.promotion_applications),
+)
+
+PAYMENT_OPTIONS = (
+    selectinload(RiderSettlementPayment.store),
+    selectinload(RiderSettlementPayment.rider),
 )
 
 
@@ -385,6 +393,19 @@ def list_delivery_settlements(
     return results
 
 
+@router.get("/delivery/settlements/payments", response_model=list[RiderSettlementPaymentRead])
+def list_delivery_settlement_payments(
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[RiderSettlementPaymentRead]:
+    payments = db.scalars(
+        select(RiderSettlementPayment)
+        .options(*PAYMENT_OPTIONS)
+        .order_by(RiderSettlementPayment.paid_at.desc(), RiderSettlementPayment.id.desc())
+    ).all()
+    return [serialize_rider_settlement_payment(payment) for payment in payments]
+
+
 @router.post("/delivery/settlements/payments", status_code=status.HTTP_201_CREATED)
 def create_delivery_settlement_payment(
     payload: DeliverySettlementPaymentCreate,
@@ -405,6 +426,7 @@ def create_delivery_settlement_payment(
         created_by_user_id=admin.id,
     )
     db.add(payment)
+    db.flush()
     create_notifications(
         db,
         user_ids=[payload.rider_user_id],
@@ -412,7 +434,11 @@ def create_delivery_settlement_payment(
         event_type="delivery.settlement_paid",
         title="Liquidacion registrada",
         body=f"Se registro un pago por ${payload.amount:.2f}.",
-        payload={"amount": payload.amount},
+        payload={
+            "amount": payload.amount,
+            "payment_id": payment.id,
+            "store_id": rider_profile.store_id if rider_profile is not None else None,
+        },
     )
     db.commit()
     db.refresh(payment)

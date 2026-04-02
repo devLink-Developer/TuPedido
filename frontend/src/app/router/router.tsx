@@ -5,6 +5,7 @@ import { LegacyCustomerOrderRedirectRoute, LegacyCustomerOrdersRedirectRoute } f
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
 import {
   LazyAdminDashboardRoute,
+  LazyAdminLiquidationsRoute,
   LazyAdminModuleLayoutRoute,
   LazyAdminOrdersRoute,
   LazyAdminRidersRoute,
@@ -20,6 +21,7 @@ import {
   LazyClienteProfileRoute,
   LazyClienteStoreDetailRoute,
   LazyComercioDashboardRoute,
+  LazyComercioLiquidationsRoute,
   LazyComercioModuleLayoutRoute,
   LazyComercioOrdersRoute,
   LazyComercioProductsRoute,
@@ -107,6 +109,7 @@ export const router = createBrowserRouter([
             children: [
               { index: true, element: <Navigate to="pedidos" replace /> },
               { path: "dashboard", element: <LazyComercioDashboardRoute /> },
+              { path: "liquidaciones", element: <LazyComercioLiquidationsRoute /> },
               { path: "productos", element: <LazyComercioProductsRoute /> },
               { path: "pedidos", element: <LazyComercioOrdersRoute /> },
               { path: "riders", element: <LazyComercioRidersRoute /> },
@@ -139,6 +142,7 @@ export const router = createBrowserRouter([
             element: <LazyAdminModuleLayoutRoute />,
             children: [
               { index: true, element: <LazyAdminDashboardRoute /> },
+              { path: "liquidaciones", element: <LazyAdminLiquidationsRoute /> },
               { path: "usuarios", element: <LazyAdminUsersRoute /> },
               { path: "comercios", element: <LazyAdminStoresRoute /> },
               { path: "riders", element: <LazyAdminRidersRoute /> },

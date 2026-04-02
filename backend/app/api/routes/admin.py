@@ -60,6 +60,7 @@ APPLICATION_OPTIONS = (
 ORDER_OPTIONS = (
     selectinload(StoreOrder.items),
     selectinload(StoreOrder.store),
+    selectinload(StoreOrder.promotion_applications),
 )
 
 

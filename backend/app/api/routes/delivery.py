@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -10,19 +12,24 @@ from app.api.presenters import serialize_delivery_profile, serialize_notificatio
 from app.db.session import get_db
 from app.models.delivery import DeliveryProfile, NotificationEvent, RiderSettlementCharge, RiderSettlementPayment
 from app.models.order import StoreOrder
+from app.models.store import Store
 from app.models.user import User
 from app.schemas.delivery import (
     DeliveryAvailabilityUpdate,
     DeliveryDeliverRequest,
     DeliveryLocationUpdate,
+    DeliverySettlementPaymentAction,
+    DeliverySettlementPaymentRead,
 )
 from app.services.delivery import (
     accept_delivery_offer,
+    create_notifications,
     publish_order_snapshot,
     rider_deliver_order,
     rider_pick_up_order,
     sync_delivery_location,
 )
+from app.services.settlements import get_rider_payments
 
 router = APIRouter()
 
@@ -39,6 +46,11 @@ ORDER_OPTIONS = (
     selectinload(StoreOrder.store),
     selectinload(StoreOrder.address),
     selectinload(StoreOrder.delivery_assignment),
+    selectinload(StoreOrder.promotion_applications),
+)
+
+PAYMENT_OPTIONS = (
+    selectinload(RiderSettlementPayment.store),
 )
 
 
@@ -47,6 +59,39 @@ def get_delivery_profile(db: Session, user_id: int) -> DeliveryProfile:
     if profile is None or not profile.is_active:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Delivery profile not found")
     return profile
+
+
+def _admin_user_ids(db: Session) -> list[int]:
+    return list(db.scalars(select(User.id).where(User.role == "admin", User.is_active.is_(True))))
+
+
+def _serialize_delivery_payment(payment: RiderSettlementPayment) -> DeliverySettlementPaymentRead:
+    store = payment.store
+    return DeliverySettlementPaymentRead(
+        id=payment.id,
+        rider_user_id=payment.rider_user_id,
+        store_id=payment.store_id,
+        store_name=store.name if store is not None else None,
+        amount=float(payment.amount),
+        paid_at=payment.paid_at,
+        reference=payment.reference,
+        notes=payment.notes,
+        receiver_status=str(payment.receiver_status or "pending_confirmation"),
+        receiver_response_notes=payment.receiver_response_notes,
+        receiver_responded_at=payment.receiver_responded_at,
+        created_at=payment.created_at,
+    )
+
+
+def _get_rider_payment(db: Session, *, rider_user_id: int, payment_id: int) -> RiderSettlementPayment:
+    payment = db.scalar(
+        select(RiderSettlementPayment)
+        .options(*PAYMENT_OPTIONS)
+        .where(RiderSettlementPayment.id == payment_id, RiderSettlementPayment.rider_user_id == rider_user_id)
+    )
+    if payment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Settlement payment not found")
+    return payment
 
 
 def get_rider_order(db: Session, rider_id: int, order_id: int) -> StoreOrder:
@@ -220,3 +265,86 @@ def get_settlements(user: User = Depends(require_delivery), db: Session = Depend
         "pending_amount": max(0.0, earned - paid),
         "merchant_cash_payable_total": 0.0,
     }
+
+
+@router.get("/me/settlement-payments", response_model=list[DeliverySettlementPaymentRead])
+def list_settlement_payments(
+    user: User = Depends(require_delivery),
+    db: Session = Depends(get_db),
+) -> list[DeliverySettlementPaymentRead]:
+    profile = get_delivery_profile(db, user.id)
+    return [
+        _serialize_delivery_payment(payment)
+        for payment in get_rider_payments(db, rider_user_id=user.id, store_id=profile.store_id)
+    ]
+
+
+@router.post("/me/settlement-payments/{payment_id}/confirm", response_model=DeliverySettlementPaymentRead)
+def confirm_settlement_payment(
+    payment_id: int,
+    payload: DeliverySettlementPaymentAction,
+    user: User = Depends(require_delivery),
+    db: Session = Depends(get_db),
+) -> DeliverySettlementPaymentRead:
+    payment = _get_rider_payment(db, rider_user_id=user.id, payment_id=payment_id)
+    payment.receiver_status = "confirmed"
+    payment.receiver_response_notes = (payload.notes or "").strip() or None
+    payment.receiver_responded_at = datetime.now(UTC)
+    notification_user_ids: list[int] = []
+    if payment.store_id is not None:
+        store = db.scalar(select(Store).where(Store.id == payment.store_id))
+        if store is not None and store.owner_user_id is not None:
+            notification_user_ids.append(store.owner_user_id)
+    if payment.created_by_user_id is not None:
+        notification_user_ids.append(payment.created_by_user_id)
+    notification_user_ids.extend(_admin_user_ids(db))
+    create_notifications(
+        db,
+        user_ids=notification_user_ids,
+        order_id=None,
+        event_type="delivery.settlement_confirmed",
+        title="Pago confirmado por rider",
+        body=f"{user.full_name} confirmo la recepcion del pago.",
+        payload={"payment_id": payment.id, "rider_user_id": user.id, "status": payment.receiver_status},
+    )
+    db.commit()
+    refreshed = _get_rider_payment(db, rider_user_id=user.id, payment_id=payment_id)
+    return _serialize_delivery_payment(refreshed)
+
+
+@router.post("/me/settlement-payments/{payment_id}/dispute", response_model=DeliverySettlementPaymentRead)
+def dispute_settlement_payment(
+    payment_id: int,
+    payload: DeliverySettlementPaymentAction,
+    user: User = Depends(require_delivery),
+    db: Session = Depends(get_db),
+) -> DeliverySettlementPaymentRead:
+    payment = _get_rider_payment(db, rider_user_id=user.id, payment_id=payment_id)
+    payment.receiver_status = "disputed"
+    payment.receiver_response_notes = (payload.notes or "").strip() or None
+    payment.receiver_responded_at = datetime.now(UTC)
+    notification_user_ids: list[int] = []
+    if payment.store_id is not None:
+        store = db.scalar(select(Store).where(Store.id == payment.store_id))
+        if store is not None and store.owner_user_id is not None:
+            notification_user_ids.append(store.owner_user_id)
+    if payment.created_by_user_id is not None:
+        notification_user_ids.append(payment.created_by_user_id)
+    notification_user_ids.extend(_admin_user_ids(db))
+    create_notifications(
+        db,
+        user_ids=notification_user_ids,
+        order_id=None,
+        event_type="delivery.settlement_disputed",
+        title="Pago observado por rider",
+        body=f"{user.full_name} marco una diferencia en la recepcion del pago.",
+        payload={
+            "payment_id": payment.id,
+            "rider_user_id": user.id,
+            "status": payment.receiver_status,
+            "notes": payment.receiver_response_notes,
+        },
+    )
+    db.commit()
+    refreshed = _get_rider_payment(db, rider_user_id=user.id, payment_id=payment_id)
+    return _serialize_delivery_payment(refreshed)

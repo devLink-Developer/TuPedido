@@ -37,7 +37,7 @@ export function AppShell() {
   }, [hydrate]);
 
   useEffect(() => {
-    void loadCategories();
+    void loadCategories().catch(() => {});
   }, [loadCategories]);
 
   useEffect(() => {

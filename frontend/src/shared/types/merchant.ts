@@ -1,5 +1,6 @@
 import type { StoreDetail } from "./catalog";
 import type { Order } from "./order";
+import type { Promotion } from "./promotion";
 
 export type Address = {
   id: number;
@@ -238,17 +239,25 @@ export type SettlementOverview = {
   paid_total?: number;
   last_charge_at: string | null;
   last_payment_at: string | null;
+  payments?: SettlementPayment[];
 };
 
 export type SettlementCharge = {
   id: number;
+  store_id?: number;
   order_id: number;
+  order_status?: string;
+  customer_name?: string;
   order_total: number;
+  amount?: number;
   service_fee: number;
+  allocated_amount?: number;
+  outstanding_amount?: number;
   payment_method: "cash" | "mercadopago";
   delivery_mode: "delivery" | "pickup";
   status: string;
   created_at: string;
+  order_created_at?: string;
   settled_at: string | null;
 };
 
@@ -256,6 +265,7 @@ export type SettlementNotice = {
   id: number;
   store_id?: number;
   store_name?: string | null;
+  store_slug?: string | null;
   amount: number;
   transfer_date: string;
   bank: string;
@@ -268,12 +278,22 @@ export type SettlementNotice = {
   created_at: string;
   reviewed_at?: string | null;
   reviewed_notes?: string | null;
+  settlement_payment_id?: number | null;
+};
+
+export type SettlementAllocation = {
+  charge_id: number;
+  order_id: number;
+  amount: number;
 };
 
 export type SettlementPayment = {
   id: number;
   store_id?: number;
   store_name?: string | null;
+  store_slug?: string | null;
+  notice_id?: number | null;
+  source?: string;
   amount: number;
   applied_amount: number;
   method: string;
@@ -281,15 +301,22 @@ export type SettlementPayment = {
   reference: string | null;
   notes: string | null;
   created_at: string;
+  allocations?: SettlementAllocation[];
 };
 
 export type AdminSettlementStore = {
   id: number;
+  store_id?: number;
+  store_slug?: string;
   store_name: string;
   owner_name: string;
   pending_balance: number;
   pending_charges_count: number;
+  open_charges_count?: number;
   pending_notices_count: number;
+  charged_total?: number;
+  paid_total?: number;
+  last_charge_at?: string | null;
   last_activity_at: string | null;
   status?: string;
 };
@@ -308,8 +335,42 @@ export type SettlementNoticeCreate = {
 export type SettlementPaymentCreate = {
   store_id: number;
   amount: number;
+  paid_at?: string | null;
   reference?: string | null;
   notes?: string | null;
+};
+
+export type RiderSettlementPayment = {
+  id: number;
+  rider_user_id: number;
+  rider_name?: string | null;
+  store_id: number | null;
+  store_name?: string | null;
+  source: string;
+  amount: number;
+  paid_at: string;
+  reference: string | null;
+  notes: string | null;
+  receiver_status: "pending_confirmation" | "confirmed" | "disputed" | string;
+  receiver_response_notes: string | null;
+  receiver_responded_at: string | null;
+  created_at: string;
+};
+
+export type SettlementHistoryEntry = {
+  id: string;
+  kind: "platform_charge" | "platform_notice" | "platform_payment" | "rider_payment" | string;
+  store_id: number | null;
+  store_name: string | null;
+  rider_user_id: number | null;
+  rider_name: string | null;
+  title: string;
+  status: string;
+  amount: number;
+  reference: string | null;
+  notes: string | null;
+  created_at: string;
+  reviewed_at: string | null;
 };
 
 export type ProductCategoryCreate = {
@@ -353,3 +414,4 @@ export type StoreStatusUpdate = {
 
 export type MerchantStore = StoreDetail;
 export type MerchantOrder = Order;
+export type MerchantPromotion = Promotion;

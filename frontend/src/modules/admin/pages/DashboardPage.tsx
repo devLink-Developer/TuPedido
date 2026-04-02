@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState, LoadingCard, PageHeader, StatCard } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
@@ -10,6 +10,10 @@ import {
 } from "../../../shared/services/api";
 import type { DeliveryApplication, DeliveryProfile, MerchantApplication, Order, StoreSummary } from "../../../shared/types";
 import { formatCurrency } from "../../../shared/utils/format";
+import { buildNamedPeriodStats } from "../../../shared/utils/orderAnalytics";
+
+const LIVE_REFRESH_INTERVAL_MS = 15000;
+const resolvedMerchantStatuses = new Set(["approved", "rejected", "suspended"]);
 
 type DashboardData = {
   merchantApplications: MerchantApplication[];
@@ -17,13 +21,6 @@ type DashboardData = {
   riders: DeliveryProfile[];
   stores: StoreSummary[];
   orders: Order[];
-};
-
-type PeriodMetrics = {
-  label: string;
-  orderCount: number;
-  totalAmount: number;
-  serviceFeeAmount: number;
 };
 
 const emptyDashboardData: DashboardData = {
@@ -34,7 +31,25 @@ const emptyDashboardData: DashboardData = {
   orders: []
 };
 
-const resolvedMerchantStatuses = new Set(["approved", "rejected", "suspended"]);
+function buildStoreStats(orders: Order[]) {
+  const sales = orders.reduce((sum, order) => sum + order.total, 0);
+  const delivered = orders.filter((order) => order.status === "delivered").length;
+  const cancelled = orders.filter((order) => order.status === "cancelled").length;
+  return {
+    orderCount: orders.length,
+    delivered,
+    cancelled,
+    sales,
+    averageTicket: orders.length ? sales / orders.length : 0
+  };
+}
+
+function dateRangeFilter(orders: Order[], start: Date, end: Date) {
+  return orders.filter((order) => {
+    const createdAt = new Date(order.created_at);
+    return createdAt >= start && createdAt < end;
+  });
+}
 
 function startOfDay(date: Date) {
   const next = new Date(date);
@@ -54,10 +69,6 @@ function startOfMonth(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
-function startOfYear(date: Date) {
-  return new Date(date.getFullYear(), 0, 1);
-}
-
 function addDays(date: Date, days: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
@@ -68,101 +79,82 @@ function addMonths(date: Date, months: number) {
   return new Date(date.getFullYear(), date.getMonth() + months, 1);
 }
 
-function addYears(date: Date, years: number) {
-  return new Date(date.getFullYear() + years, 0, 1);
-}
-
-function average(values: number[]) {
-  if (!values.length) return null;
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function diffMinutes(startValue: string | null | undefined, endValue: string | null | undefined) {
-  if (!startValue || !endValue) return null;
-  const startMs = new Date(startValue).getTime();
-  const endMs = new Date(endValue).getTime();
-  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) return null;
-  return (endMs - startMs) / 60_000;
-}
-
-function formatDuration(minutes: number | null) {
-  if (minutes === null) return "-";
-  const rounded = Math.round(minutes);
-  const hours = Math.floor(rounded / 60);
-  const remainingMinutes = rounded % 60;
-  if (hours && remainingMinutes) return `${hours}h ${remainingMinutes}m`;
-  if (hours) return `${hours}h`;
-  if (!remainingMinutes) return "0m";
-  return `${remainingMinutes}m`;
-}
-
-function formatPercent(value: number | null) {
-  if (value === null) return "-";
-  return `${new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 }).format(value)}%`;
-}
-
-function orderCreatedAt(order: Order) {
-  return new Date(order.created_at);
-}
-
-function buildPeriodMetrics(label: string, orders: Order[], start: Date, end: Date): PeriodMetrics {
-  const filteredOrders = orders.filter((order) => {
-    const createdAt = orderCreatedAt(order);
-    return createdAt >= start && createdAt < end;
-  });
-
-  return {
-    label,
-    orderCount: filteredOrders.length,
-    totalAmount: filteredOrders.reduce((sum, order) => sum + order.total, 0),
-    serviceFeeAmount: filteredOrders.reduce((sum, order) => sum + order.service_fee, 0)
-  };
-}
-
-function PeriodCard({ metrics }: { metrics: PeriodMetrics }) {
-  return (
-    <article className="rounded-[28px] bg-white p-5 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">{metrics.label}</p>
-      <p className="mt-3 font-display text-3xl font-bold tracking-tight text-ink">{formatCurrency(metrics.totalAmount)}</p>
-      <div className="mt-3 space-y-1 text-sm text-zinc-600">
-        <p>Pedidos: {metrics.orderCount}</p>
-        <p>Servicio: {formatCurrency(metrics.serviceFeeAmount)}</p>
-      </div>
-    </article>
-  );
-}
-
 export function DashboardPage() {
   const { token } = useAuthSession();
   const [data, setData] = useState<DashboardData>(emptyDashboardData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
+
+  async function load(options?: { silent?: boolean }) {
+    if (!token) return;
+    const requestId = ++requestIdRef.current;
+    if (!options?.silent) {
+      setLoading(true);
+    }
+    try {
+      const [merchantApplications, stores, riderApplications, riders, orders] = await Promise.all([
+        fetchAdminApplications(token),
+        fetchAdminStores(token),
+        fetchAdminDeliveryApplications(token),
+        fetchAdminDeliveryRiders(token),
+        fetchAdminOrders(token)
+      ]);
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+      setData({
+        merchantApplications,
+        riderApplications,
+        riders,
+        stores,
+        orders
+      });
+      setError(null);
+    } catch (requestError) {
+      if (!options?.silent) {
+        setError(requestError instanceof Error ? requestError.message : "No se pudo cargar el dashboard");
+      }
+    } finally {
+      if (!options?.silent && requestId === requestIdRef.current) {
+        setLoading(false);
+      }
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, [token]);
 
   useEffect(() => {
     if (!token) return;
-    setLoading(true);
-    Promise.all([
-      fetchAdminApplications(token),
-      fetchAdminStores(token),
-      fetchAdminDeliveryApplications(token),
-      fetchAdminDeliveryRiders(token),
-      fetchAdminOrders(token)
-    ])
-      .then(([merchantApplications, stores, riderApplications, riders, orders]) => {
-        setData({
-          merchantApplications,
-          riderApplications,
-          riders,
-          stores,
-          orders
-        });
-        setError(null);
-      })
-      .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "No se pudo cargar el dashboard"))
-      .finally(() => setLoading(false));
-  }, [token]);
 
-  const now = useMemo(() => new Date(), []);
+    const refreshSilently = () => {
+      void load({ silent: true });
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        refreshSilently();
+      }
+    }, LIVE_REFRESH_INTERVAL_MS);
+
+    const handleFocus = () => refreshSilently();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshSilently();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [token]);
 
   const overview = useMemo(() => {
     const pendingMerchantApplications = data.merchantApplications.filter(
@@ -180,110 +172,122 @@ export function DashboardPage() {
     };
   }, [data]);
 
-  const periodMetrics = useMemo(() => {
+  const periodStats = useMemo(() => buildNamedPeriodStats(data.orders), [data.orders]);
+  const now = useMemo(() => new Date(), [data.orders]);
+  const storeRanking = useMemo(() => {
     const dayStart = startOfDay(now);
     const weekStart = startOfWeek(now);
     const monthStart = startOfMonth(now);
-    const yearStart = startOfYear(now);
-
-    return [
-      buildPeriodMetrics("Ano actual", data.orders, yearStart, addYears(yearStart, 1)),
-      buildPeriodMetrics("Mes actual", data.orders, monthStart, addMonths(monthStart, 1)),
-      buildPeriodMetrics("Semana actual", data.orders, weekStart, addDays(weekStart, 7)),
-      buildPeriodMetrics("Dia actual", data.orders, dayStart, addDays(dayStart, 1))
-    ];
-  }, [data.orders, now]);
-
-  const operationalKpis = useMemo(() => {
-    const totalAmount = data.orders.reduce((sum, order) => sum + order.total, 0);
-    const approvedPayments = data.orders.filter((order) => order.payment_status === "approved").length;
-    const deliveredOrders = data.orders.filter((order) => order.status === "delivered").length;
-    const deliveryOrders = data.orders.filter((order) => order.delivery_mode === "delivery").length;
-    const dispatchPending = data.orders.filter((order) => order.delivery_status === "assignment_pending").length;
-
-    return {
-      averageTicket: data.orders.length ? totalAmount / data.orders.length : 0,
-      approvedPaymentRate: data.orders.length ? (approvedPayments / data.orders.length) * 100 : null,
-      deliveredRate: data.orders.length ? (deliveredOrders / data.orders.length) * 100 : null,
-      deliveryShare: data.orders.length ? (deliveryOrders / data.orders.length) * 100 : null,
-      dispatchPending
-    };
-  }, [data.orders]);
-
-  const deliveryTimeKpis = useMemo(() => {
-    const completedOrders = data.orders.filter((order) => order.delivered_at);
-    const totalCycleTimes = completedOrders
-      .map((order) => diffMinutes(order.created_at, order.delivered_at))
-      .filter((value): value is number => value !== null);
-    const prepTimes = data.orders
-      .map((order) => diffMinutes(order.created_at, order.merchant_ready_at))
-      .filter((value): value is number => value !== null);
-    const readyToDispatchTimes = data.orders
-      .map((order) => diffMinutes(order.merchant_ready_at, order.out_for_delivery_at))
-      .filter((value): value is number => value !== null);
-    const deliveryLegTimes = completedOrders
-      .map((order) => diffMinutes(order.out_for_delivery_at, order.delivered_at))
-      .filter((value): value is number => value !== null);
-
-    return {
-      averageTotalCycle: average(totalCycleTimes),
-      averagePreparation: average(prepTimes),
-      averageReadyToDispatch: average(readyToDispatchTimes),
-      averageDeliveryLeg: average(deliveryLegTimes)
-    };
-  }, [data.orders]);
+    return data.stores
+      .map((store) => {
+        const storeOrders = data.orders.filter((order) => order.store_id === store.id);
+        return {
+          store,
+          today: buildStoreStats(dateRangeFilter(storeOrders, dayStart, addDays(dayStart, 1))),
+          week: buildStoreStats(dateRangeFilter(storeOrders, weekStart, addDays(weekStart, 7))),
+          month: buildStoreStats(dateRangeFilter(storeOrders, monthStart, addMonths(monthStart, 1)))
+        };
+      })
+      .sort((left, right) => right.month.sales - left.month.sales)
+      .slice(0, 10);
+  }, [data.orders, data.stores, now]);
 
   if (loading) return <LoadingCard />;
   if (error) return <EmptyState title="Dashboard no disponible" description={error} />;
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Admin" title="Dashboard" description="Resumen central de operacion, performance y tiempos de entrega." />
+      <PageHeader
+        eyebrow="Admin"
+        title="Dashboard"
+        description="Refresco silencioso activo para seguir postulaciones, operacion y rendimiento por comercio sin recargar la pantalla."
+      />
 
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard label="Postulaciones pendientes" value={String(overview.pendingApplications)} description="Comercios y riders pendientes de revision." />
-        <StatCard label="Comercios aprobados" value={String(overview.approvedStores)} description="Locales ya habilitados para operar." />
-        <StatCard label="Riders activos" value={String(overview.activeRiders)} description="Perfiles de reparto habilitados." />
-        <StatCard label="Pedidos totales" value={String(overview.totalOrders)} description="Volumen acumulado de pedidos." />
+        <StatCard label="Comercios aprobados" value={String(overview.approvedStores)} description="Locales habilitados para operar." />
+        <StatCard label="Riders activos" value={String(overview.activeRiders)} description="Perfiles de reparto en operacion." />
+        <StatCard label="Pedidos totales" value={String(overview.totalOrders)} description="Base acumulada de pedidos." />
       </div>
 
-      <section className="space-y-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Performance por periodo</p>
-          <h2 className="mt-2 text-2xl font-bold text-ink">Pedidos, facturacion y servicio</h2>
-        </div>
-        <div className="grid gap-4 xl:grid-cols-4">
-          {periodMetrics.map((metrics) => (
-            <PeriodCard key={metrics.label} metrics={metrics} />
-          ))}
-        </div>
+      <section className="rounded-[28px] border border-[#d9e6ff] bg-[#f6f9ff] p-5 text-sm text-[#38558a] shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#6a88bf]">Ayuda</p>
+        <p className="mt-2 leading-7">
+          Las metricas se recalculan en frontend desde los pedidos existentes. El objetivo es detectar rapido que
+          comercio vende mas, cual esta cancelando de mas y donde el ticket promedio se esta desviando.
+        </p>
       </section>
 
-      <section className="space-y-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">KPIs operativos</p>
-          <h2 className="mt-2 text-2xl font-bold text-ink">Calidad de negocio y mix de operacion</h2>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <StatCard label="Ticket promedio" value={formatCurrency(operationalKpis.averageTicket)} description="Promedio de pesos por pedido." />
-          <StatCard label="Pago aprobado" value={formatPercent(operationalKpis.approvedPaymentRate)} description="Porcentaje de pedidos con cobro aprobado." />
-          <StatCard label="Entrega exitosa" value={formatPercent(operationalKpis.deliveredRate)} description="Pedidos cerrados como entregados." />
-          <StatCard label="Mix delivery" value={formatPercent(operationalKpis.deliveryShare)} description="Participacion de pedidos con envio." />
-          <StatCard label="Dispatch pendiente" value={String(operationalKpis.dispatchPending)} description="Pedidos esperando asignacion de rider." />
-        </div>
-      </section>
+      <div className="grid gap-4 xl:grid-cols-3">
+        {periodStats.map((period) => (
+          <article key={period.key} className="rounded-[28px] bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{period.label}</p>
+            <p className="mt-3 font-display text-3xl font-bold tracking-tight text-ink">
+              {formatCurrency(period.stats.sales)}
+            </p>
+            <div className="mt-4 grid gap-2 text-sm text-zinc-600 sm:grid-cols-2">
+              <p>Pedidos: {period.stats.orderCount}</p>
+              <p>Entregados: {period.stats.deliveredCount}</p>
+              <p>Ticket promedio: {formatCurrency(period.stats.averageTicket)}</p>
+              <p>Cancelados: {period.stats.cancellationCount}</p>
+            </div>
+          </article>
+        ))}
+      </div>
 
-      <section className="space-y-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">KPIs de tiempo</p>
-          <h2 className="mt-2 text-2xl font-bold text-ink">Velocidad real de preparacion y entrega</h2>
+      <section className="rounded-[28px] bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Ranking por comercio</p>
+            <h2 className="mt-2 text-xl font-bold text-ink">Ventas y salud operativa</h2>
+          </div>
+          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+            top {storeRanking.length}
+          </span>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Ciclo total medio" value={formatDuration(deliveryTimeKpis.averageTotalCycle)} description="Desde creacion hasta entrega efectiva." />
-          <StatCard label="Preparacion media" value={formatDuration(deliveryTimeKpis.averagePreparation)} description="Desde creacion hasta pedido listo." />
-          <StatCard label="Espera a salida" value={formatDuration(deliveryTimeKpis.averageReadyToDispatch)} description="Desde listo hasta salida a reparto." />
-          <StatCard label="Viaje medio" value={formatDuration(deliveryTimeKpis.averageDeliveryLeg)} description="Desde salida a reparto hasta entrega." />
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="text-left text-zinc-500">
+              <tr>
+                <th className="pb-3 pr-4 font-semibold">Comercio</th>
+                <th className="pb-3 pr-4 font-semibold">Hoy</th>
+                <th className="pb-3 pr-4 font-semibold">Semana</th>
+                <th className="pb-3 pr-4 font-semibold">Mes</th>
+                <th className="pb-3 pr-4 font-semibold">Ticket mes</th>
+                <th className="pb-3 font-semibold">Cancelados mes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {storeRanking.map((row) => (
+                <tr key={row.store.id} className="border-t border-black/5 align-top">
+                  <td className="py-4 pr-4">
+                    <p className="font-semibold text-ink">{row.store.name}</p>
+                    <p className="mt-1 text-zinc-500">{row.store.primary_category ?? "Sin rubro"}</p>
+                  </td>
+                  <td className="py-4 pr-4 text-zinc-600">
+                    <p>{formatCurrency(row.today.sales)}</p>
+                    <p>{row.today.orderCount} pedidos</p>
+                  </td>
+                  <td className="py-4 pr-4 text-zinc-600">
+                    <p>{formatCurrency(row.week.sales)}</p>
+                    <p>{row.week.delivered} entregados</p>
+                  </td>
+                  <td className="py-4 pr-4 text-zinc-600">
+                    <p>{formatCurrency(row.month.sales)}</p>
+                    <p>{row.month.orderCount} pedidos</p>
+                  </td>
+                  <td className="py-4 pr-4 text-zinc-600">{formatCurrency(row.month.averageTicket)}</td>
+                  <td className="py-4 text-zinc-600">{row.month.cancelled}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+
+        {!storeRanking.length ? (
+          <EmptyState title="Sin comercios para rankear" description="Cuando existan pedidos se armara el ranking automaticamente." />
+        ) : null}
       </section>
     </div>
   );

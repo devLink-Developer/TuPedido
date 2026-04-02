@@ -126,6 +126,25 @@ export type DeliverySettlementPaymentCreate = {
   notes?: string | null;
 };
 
+export type DeliverySettlementPayment = {
+  id: number;
+  rider_user_id: number;
+  store_id: number | null;
+  store_name: string | null;
+  amount: number;
+  paid_at: string;
+  reference: string | null;
+  notes: string | null;
+  receiver_status: "pending_confirmation" | "confirmed" | "disputed" | string;
+  receiver_response_notes: string | null;
+  receiver_responded_at: string | null;
+  created_at: string;
+};
+
+export type DeliverySettlementPaymentAction = {
+  notes?: string | null;
+};
+
 export type DeliveryOrder = Order;
 
 export type MerchantRiderCreate = {

@@ -270,6 +270,9 @@ class RiderSettlementPayment(Base):
     paid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     reference: Mapped[str | None] = mapped_column(String(180), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    receiver_status: Mapped[str] = mapped_column(String(40), default="pending_confirmation", index=True)
+    receiver_response_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    receiver_responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_by_user_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )

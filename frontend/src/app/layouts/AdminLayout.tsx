@@ -4,6 +4,7 @@ import { useAuthSession, useRouteBoundDrawer } from "../../shared/hooks";
 
 const navItems = [
   { to: "/a", label: "Dashboard" },
+  { to: "/a/liquidaciones", label: "Liquidaciones" },
   { to: "/a/usuarios", label: "Usuarios" },
   { to: "/a/comercios", label: "Comercios" },
   { to: "/a/riders", label: "Riders" },

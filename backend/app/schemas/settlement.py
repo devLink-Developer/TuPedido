@@ -152,3 +152,36 @@ class AdminSettlementPaymentCreate(BaseModel):
     paid_at: datetime | None = None
     reference: str | None = None
     notes: str | None = None
+
+
+class RiderSettlementPaymentRead(BaseModel):
+    id: int
+    rider_user_id: int
+    rider_name: str | None = None
+    store_id: int | None = None
+    store_name: str | None = None
+    source: str
+    amount: float
+    paid_at: datetime
+    reference: str | None = None
+    notes: str | None = None
+    receiver_status: str
+    receiver_response_notes: str | None = None
+    receiver_responded_at: datetime | None = None
+    created_at: datetime
+
+
+class SettlementHistoryEntryRead(BaseModel):
+    id: str
+    kind: str
+    store_id: int | None = None
+    store_name: str | None = None
+    rider_user_id: int | None = None
+    rider_name: str | None = None
+    title: str
+    status: str
+    amount: float
+    reference: str | None = None
+    notes: str | None = None
+    created_at: datetime
+    reviewed_at: datetime | None = None

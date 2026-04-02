@@ -136,6 +136,9 @@ class StoreOrder(Base):
     merchant_cash_delivery_payable: Mapped["MerchantCashDeliveryPayable | None"] = relationship(
         back_populates="order", uselist=False
     )
+    promotion_applications: Mapped[list["OrderPromotionApplication"]] = relationship(
+        back_populates="order", cascade="all, delete-orphan"
+    )
     order_review: Mapped["OrderReview | None"] = relationship(
         back_populates="order", uselist=False, cascade="all, delete-orphan"
     )
@@ -160,6 +163,26 @@ class StoreOrderItem(Base):
 
     order: Mapped[StoreOrder] = relationship(back_populates="items")
     product: Mapped["Product | None"] = relationship(back_populates="order_items")
+
+
+class OrderPromotionApplication(Base):
+    __tablename__ = "order_promotion_applications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("store_orders.id", ondelete="CASCADE"), index=True)
+    promotion_id: Mapped[int | None] = mapped_column(
+        ForeignKey("store_promotions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    promotion_name_snapshot: Mapped[str] = mapped_column(String(180))
+    sale_price_snapshot: Mapped[float] = mapped_column(Numeric(10, 2))
+    combo_count: Mapped[int] = mapped_column(Integer, default=1)
+    base_total_snapshot: Mapped[float] = mapped_column(Numeric(10, 2))
+    discount_total_snapshot: Mapped[float] = mapped_column(Numeric(10, 2))
+    items_snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    order: Mapped[StoreOrder] = relationship(back_populates="promotion_applications")
+    promotion: Mapped["StorePromotion | None"] = relationship()
 
 
 class OrderReview(Base):

@@ -39,6 +39,7 @@ def _load_order(db: Session, reference: str) -> StoreOrder | None:
             selectinload(StoreOrder.store),
             selectinload(StoreOrder.address),
             selectinload(StoreOrder.delivery_assignment),
+            selectinload(StoreOrder.promotion_applications),
         )
         .where(StoreOrder.payment_reference == reference)
     )

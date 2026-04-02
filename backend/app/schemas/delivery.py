@@ -149,6 +149,25 @@ class DeliverySettlementRead(BaseModel):
     merchant_cash_payable_total: float
 
 
+class DeliverySettlementPaymentRead(BaseModel):
+    id: int
+    rider_user_id: int
+    store_id: int | None = None
+    store_name: str | None = None
+    amount: float
+    paid_at: datetime
+    reference: str | None = None
+    notes: str | None = None
+    receiver_status: str
+    receiver_response_notes: str | None = None
+    receiver_responded_at: datetime | None = None
+    created_at: datetime
+
+
+class DeliverySettlementPaymentAction(BaseModel):
+    notes: str | None = None
+
+
 class NotificationRead(BaseModel):
     id: int
     order_id: int | None = None

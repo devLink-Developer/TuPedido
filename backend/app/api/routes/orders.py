@@ -27,6 +27,7 @@ ORDER_OPTIONS = (
     selectinload(StoreOrder.store),
     selectinload(StoreOrder.address),
     selectinload(StoreOrder.delivery_assignment),
+    selectinload(StoreOrder.promotion_applications),
 )
 
 

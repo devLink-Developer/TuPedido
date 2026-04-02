@@ -1,4 +1,5 @@
 import type { PricingSummary } from "./pricing";
+import type { AppliedPromotionSummary } from "./promotion";
 
 export type OrderItem = {
   id: number;
@@ -70,6 +71,7 @@ export type Order = {
   updated_at: string | null;
   created_at: string;
   items: OrderItem[];
+  applied_promotions?: AppliedPromotionSummary[];
   pricing: PricingSummary;
 };
 

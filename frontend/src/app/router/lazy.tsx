@@ -64,6 +64,10 @@ export const LazyComercioDashboardRoute = createLazyRoute(
   () => import("../../modules/comercio/routes"),
   "ComercioDashboardRoute"
 );
+export const LazyComercioLiquidationsRoute = createLazyRoute(
+  () => import("../../modules/comercio/routes"),
+  "ComercioLiquidationsRoute"
+);
 export const LazyComercioProductsRoute = createLazyRoute(
   () => import("../../modules/comercio/routes"),
   "ComercioProductsRoute"
@@ -93,6 +97,10 @@ export const LazyRiderEarningsRoute = createLazyRoute(() => import("../../module
 
 export const LazyAdminModuleLayoutRoute = createLazyRoute(() => import("../../modules/admin/routes"), "AdminModuleLayoutRoute");
 export const LazyAdminDashboardRoute = createLazyRoute(() => import("../../modules/admin/routes"), "AdminDashboardRoute");
+export const LazyAdminLiquidationsRoute = createLazyRoute(
+  () => import("../../modules/admin/routes"),
+  "AdminLiquidationsRoute"
+);
 export const LazyAdminUsersRoute = createLazyRoute(() => import("../../modules/admin/routes"), "AdminUsersRoute");
 export const LazyAdminStoresRoute = createLazyRoute(() => import("../../modules/admin/routes"), "AdminStoresRoute");
 export const LazyAdminRidersRoute = createLazyRoute(() => import("../../modules/admin/routes"), "AdminRidersRoute");

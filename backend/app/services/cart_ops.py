@@ -10,6 +10,7 @@ from app.models.order import ShoppingCart, ShoppingCartItem
 from app.models.store import Product, Store, StoreCategoryLink
 from app.services.delivery import customer_delivery_fee_for_store
 from app.services.platform import get_service_fee_amount
+from app.services.promotions import applied_promotions_discount_total, calculate_applied_promotions
 from app.services.product_pricing import compute_discount_amount, compute_final_price
 from app.services.mercadopago import is_store_mercadopago_ready
 from app.services.store_address import store_delivery_is_enabled
@@ -82,9 +83,10 @@ def compute_cart_totals(cart: ShoppingCart) -> None:
         float(getattr(item, "commercial_discount_amount_snapshot", 0) or 0) * item.quantity for item in cart.items
     )
     final_items_total = sum(float(item.unit_price_snapshot) * item.quantity for item in cart.items)
+    applied_promotions = calculate_applied_promotions(object_session(cart), cart) if object_session(cart) is not None else []
     cart.subtotal = subtotal
     cart.commercial_discount_total = commercial_discount_total
-    cart.financial_discount_total = 0
+    cart.financial_discount_total = applied_promotions_discount_total(applied_promotions)
     discounted_subtotal = max(0.0, final_items_total - float(cart.financial_discount_total or 0))
     delivery_fee = 0.0
     service_fee = 0.0
@@ -96,7 +98,8 @@ def compute_cart_totals(cart: ShoppingCart) -> None:
         service_fee = get_service_fee_amount(object_session(cart))
     cart.delivery_fee = delivery_fee
     cart.service_fee = service_fee
-    cart.total = final_items_total + delivery_fee + service_fee
+    cart.total = max(0.0, final_items_total - float(cart.financial_discount_total or 0)) + delivery_fee + service_fee
+    setattr(cart, "applied_promotions", applied_promotions)
 
 
 def build_product_pricing_snapshot(product: Product) -> dict[str, float]:

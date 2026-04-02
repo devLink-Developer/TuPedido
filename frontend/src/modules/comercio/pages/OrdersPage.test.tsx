@@ -78,8 +78,8 @@ vi.mock("../../../shared/utils/notificationSound", () => ({
 }));
 
 vi.mock("../components/OrdersTable", () => ({
-  OrdersTable: ({ orders }: { orders: Array<{ id: number }> }) => (
-    <div>{orders.map((order) => `Pedido #${order.id}`).join(", ")}</div>
+  OrdersTable: ({ groups }: { groups?: Array<{ orders: Array<{ id: number }> }> }) => (
+    <div>{(groups ?? []).flatMap((group) => group.orders).map((order) => `Pedido #${order.id}`).join(", ")}</div>
   )
 }));
 
@@ -274,7 +274,6 @@ describe("OrdersPage", () => {
     await waitFor(() => expect(fetchMerchantStoreMock).toHaveBeenCalledWith("token"));
     expect(screen.getByRole("switch", { name: "Recibir pedidos" })).toBeDisabled();
     expect(screen.getByText("Configura la direccion del comercio antes de habilitar la venta.")).toBeInTheDocument();
-    expect(screen.getByText("Completa la direccion")).toBeInTheDocument();
     expect(updateMerchantStoreMock).not.toHaveBeenCalled();
   });
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import Session, selectinload
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -22,7 +22,18 @@ ORDER_OPTIONS = (
     selectinload(StoreOrder.store),
     selectinload(StoreOrder.address),
     selectinload(StoreOrder.delivery_assignment),
+    selectinload(StoreOrder.promotion_applications),
 )
+
+
+def _latest_notifications(db: Session, user_id: int, *, limit: int = 20) -> list[dict[str, object]]:
+    notifications = db.scalars(
+        select(NotificationEvent)
+        .where(NotificationEvent.user_id == user_id)
+        .order_by(NotificationEvent.created_at.desc(), NotificationEvent.id.desc())
+        .limit(limit)
+    ).all()
+    return [serialize_notification(item).model_dump() for item in notifications]
 
 
 def _can_access_order(user: User, order: StoreOrder) -> bool:
@@ -52,6 +63,31 @@ def _get_user_from_token(token: str | None) -> User | None:
     db = SessionLocal()
     try:
         return db.scalar(select(User).where(User.email == subject, User.is_active.is_(True)))
+    finally:
+        db.close()
+
+
+@router.websocket("/ws/notifications/me")
+async def notifications_me_socket(websocket: WebSocket) -> None:
+    user = _get_user_from_token(websocket.query_params.get("token"))
+    if user is None:
+        await websocket.close(code=4401)
+        return
+
+    db = SessionLocal()
+    try:
+        await realtime_hub.connect_user(user.id, websocket)
+        await websocket.send_json(
+            {
+                "type": "notifications.snapshot",
+                "role": user.role,
+                "notifications": _latest_notifications(db, user.id),
+            }
+        )
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await realtime_hub.disconnect(websocket)
     finally:
         db.close()
 
@@ -101,16 +137,10 @@ async def delivery_me_socket(websocket: WebSocket) -> None:
     db = SessionLocal()
     try:
         await realtime_hub.connect_user(user.id, websocket)
-        notifications = db.scalars(
-            select(NotificationEvent)
-            .where(NotificationEvent.user_id == user.id)
-            .order_by(NotificationEvent.created_at.desc(), NotificationEvent.id.desc())
-            .limit(10)
-        ).all()
         await websocket.send_json(
             {
                 "type": "delivery.snapshot",
-                "notifications": [serialize_notification(item).model_dump() for item in notifications],
+                "notifications": _latest_notifications(db, user.id, limit=10),
             }
         )
         while True:
@@ -131,7 +161,12 @@ async def merchant_me_socket(websocket: WebSocket) -> None:
     db = SessionLocal()
     try:
         await realtime_hub.connect_user(user.id, websocket)
-        await websocket.send_json({"type": "merchant.connected"})
+        await websocket.send_json(
+            {
+                "type": "merchant.connected",
+                "notifications": _latest_notifications(db, user.id, limit=10),
+            }
+        )
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:

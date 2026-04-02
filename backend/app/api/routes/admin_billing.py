@@ -16,6 +16,7 @@ from app.api.presenters import (
     serialize_transfer_notice,
 )
 from app.db.session import get_db
+from app.models.delivery import RiderSettlementPayment
 from app.models.platform import MerchantSettlementPayment, MerchantTransferNotice
 from app.models.store import Store
 from app.models.user import User
@@ -28,9 +29,11 @@ from app.schemas.settlement import (
     MerchantTransferNoticeReviewUpdate,
     PlatformSettingsRead,
     PlatformSettingsUpdate,
+    SettlementHistoryEntryRead,
 )
 from app.core.utils import encrypt_sensitive_value
 from app.services.mercadopago import get_or_create_mercadopago_provider
+from app.services.delivery import create_notifications
 from app.services.platform import get_or_create_platform_settings
 from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
 from app.services.settlements import (
@@ -40,6 +43,7 @@ from app.services.settlements import (
     get_store_charges,
     get_store_notices,
     get_store_payments,
+    get_store_rider_payments,
     reject_notice,
 )
 
@@ -55,6 +59,94 @@ PAYMENT_OPTIONS = (
     selectinload(MerchantSettlementPayment.notice),
     selectinload(MerchantSettlementPayment.allocations),
 )
+
+RIDER_PAYMENT_OPTIONS = (
+    selectinload(RiderSettlementPayment.store),
+    selectinload(RiderSettlementPayment.rider),
+)
+
+
+def _build_admin_settlement_history(db: Session) -> list[dict[str, object]]:
+    notices = db.scalars(
+        select(MerchantTransferNotice)
+        .options(*NOTICE_OPTIONS)
+        .order_by(MerchantTransferNotice.created_at.desc(), MerchantTransferNotice.id.desc())
+    ).all()
+    payments = db.scalars(
+        select(MerchantSettlementPayment)
+        .options(*PAYMENT_OPTIONS)
+        .order_by(MerchantSettlementPayment.paid_at.desc(), MerchantSettlementPayment.id.desc())
+    ).all()
+    rider_payments = db.scalars(
+        select(RiderSettlementPayment)
+        .options(*RIDER_PAYMENT_OPTIONS)
+        .order_by(RiderSettlementPayment.paid_at.desc(), RiderSettlementPayment.id.desc())
+    ).all()
+
+    entries: list[dict[str, object]] = []
+    for notice in notices:
+        entries.append(
+            {
+                "id": f"platform-notice-{notice.id}",
+                "kind": "platform_notice",
+                "store_id": notice.store_id,
+                "store_name": notice.store.name if notice.store is not None else None,
+                "rider_user_id": None,
+                "rider_name": None,
+                "title": "Aviso de transferencia recibido",
+                "status": str(notice.status),
+                "amount": float(notice.amount),
+                "reference": notice.reference,
+                "notes": notice.review_notes or notice.notes,
+                "created_at": notice.created_at,
+                "reviewed_at": notice.reviewed_at,
+            }
+        )
+    for payment in payments:
+        entries.append(
+            {
+                "id": f"platform-payment-{payment.id}",
+                "kind": "platform_payment",
+                "store_id": payment.store_id,
+                "store_name": payment.store.name if payment.store is not None else None,
+                "rider_user_id": None,
+                "rider_name": None,
+                "title": "Pago aplicado a cuenta corriente",
+                "status": "applied",
+                "amount": float(payment.amount),
+                "reference": payment.reference,
+                "notes": payment.notes,
+                "created_at": payment.created_at,
+                "reviewed_at": payment.paid_at,
+            }
+        )
+    for payment in rider_payments:
+        entries.append(
+            {
+                "id": f"rider-payment-{payment.id}",
+                "kind": "rider_payment",
+                "store_id": payment.store_id,
+                "store_name": payment.store.name if payment.store is not None else None,
+                "rider_user_id": payment.rider_user_id,
+                "rider_name": payment.rider.full_name if payment.rider is not None else None,
+                "title": "Pago a rider registrado",
+                "status": str(payment.receiver_status or "pending_confirmation"),
+                "amount": float(payment.amount),
+                "reference": payment.reference,
+                "notes": payment.receiver_response_notes or payment.notes,
+                "created_at": payment.created_at,
+                "reviewed_at": payment.receiver_responded_at or payment.paid_at,
+            }
+        )
+    return sorted(
+        entries,
+        key=lambda entry: (
+            entry["reviewed_at"] or entry["created_at"],
+            entry["created_at"],
+            entry["id"],
+        ),
+        reverse=True,
+    )
 
 
 @router.get("/platform-settings", response_model=PlatformSettingsRead)
@@ -188,6 +280,9 @@ def review_settlement_notice(
     if notice.status != "pending_review":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Transfer notice is already reviewed")
 
+    notification_title = "Aviso de transferencia revisado"
+    notification_body = "Tu aviso de transferencia fue revisado."
+    notification_event_type = "merchant.transfer_notice_reviewed"
     try:
         if payload.status == "pending":
             notice.review_notes = payload.review_notes
@@ -204,11 +299,27 @@ def review_settlement_notice(
                 created_by_user_id=user.id,
                 review_notes=payload.review_notes,
             )
+            notification_title = "Liquidacion aprobada"
+            notification_body = "El aviso de transferencia fue aprobado y aplicado."
+            notification_event_type = "merchant.transfer_notice_approved"
         else:
             reject_notice(
                 notice,
                 reviewed_by_user_id=user.id,
                 review_notes=payload.review_notes,
+            )
+            notification_title = "Liquidacion rechazada"
+            notification_body = "El aviso de transferencia fue rechazado. Revisa las notas del admin."
+            notification_event_type = "merchant.transfer_notice_rejected"
+        if notice.store is not None and notice.store.owner_user_id is not None:
+            create_notifications(
+                db,
+                user_ids=[notice.store.owner_user_id],
+                order_id=None,
+                event_type=notification_event_type,
+                title=notification_title,
+                body=notification_body,
+                payload={"store_id": notice.store_id, "notice_id": notice.id, "status": payload.status},
             )
         db.commit()
     except ValueError as exc:
@@ -229,6 +340,14 @@ def list_settlement_payments(
         .order_by(MerchantSettlementPayment.paid_at.desc(), MerchantSettlementPayment.id.desc())
     ).all()
     return [serialize_settlement_payment(payment) for payment in payments]
+
+
+@router.get("/settlements/history", response_model=list[SettlementHistoryEntryRead])
+def list_settlement_history(
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[SettlementHistoryEntryRead]:
+    return [SettlementHistoryEntryRead(**item) for item in _build_admin_settlement_history(db)]
 
 
 @router.post("/settlements/payments", response_model=MerchantSettlementPaymentRead, status_code=status.HTTP_201_CREATED)
@@ -265,6 +384,16 @@ def create_settlement_payment(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Payment amount exceeds outstanding store balance",
+        )
+    if store.owner_user_id is not None:
+        create_notifications(
+            db,
+            user_ids=[store.owner_user_id],
+            order_id=None,
+            event_type="merchant.settlement_payment_recorded",
+            title="Pago manual aplicado",
+            body=f"Se aplico un pago manual por ${float(payload.amount):.2f}.",
+            payload={"store_id": store.id, "payment_id": payment.id, "amount": float(payload.amount)},
         )
     db.commit()
     payment = db.scalar(

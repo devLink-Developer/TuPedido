@@ -11,8 +11,10 @@ from app.api.deps import require_merchant
 from app.api.presenters import (
     serialize_delivery_profile,
     serialize_order,
+    serialize_promotion,
     serialize_product,
     serialize_product_category,
+    serialize_rider_settlement_payment,
     serialize_store_detail,
 )
 from app.core.security import hash_password
@@ -25,6 +27,8 @@ from app.models.store import (
     Product,
     ProductCategory,
     ProductSubcategory,
+    StorePromotion,
+    StorePromotionItem,
     Store,
     StoreCategoryLink,
     StoreDeliverySettings,
@@ -51,6 +55,8 @@ from app.schemas.merchant import (
     StoreUpdate,
 )
 from app.schemas.order import OrderStatusUpdate
+from app.schemas.promotion import PromotionRead, PromotionWrite
+from app.schemas.settlement import RiderSettlementPaymentRead, SettlementHistoryEntryRead
 from app.services.delivery import (
     assign_order_to_rider,
     cancel_delivery_order,
@@ -60,7 +66,15 @@ from app.services.delivery import (
     rider_has_active_order,
 )
 from app.services.mercadopago import get_or_create_mercadopago_provider, is_store_mercadopago_ready
+from app.services.promotions import get_store_promotion, get_store_promotions
 from app.services.settlements import create_cash_service_fee_charge
+from app.services.settlements import (
+    charge_status,
+    get_store_charges,
+    get_store_notices,
+    get_store_payments,
+    get_store_rider_payments,
+)
 from app.services.store_address import store_has_configured_delivery_address
 
 router = APIRouter()
@@ -81,6 +95,7 @@ ORDER_OPTIONS = (
     selectinload(StoreOrder.store),
     selectinload(StoreOrder.address),
     selectinload(StoreOrder.delivery_assignment),
+    selectinload(StoreOrder.promotion_applications),
 )
 
 RIDER_OPTIONS = (
@@ -106,6 +121,133 @@ def get_merchant_rider(db: Session, *, store_id: int, rider_user_id: int) -> Del
     if profile is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rider not found")
     return profile
+
+
+def _admin_user_ids(db: Session) -> list[int]:
+    return list(
+        db.scalars(select(User.id).where(User.role == "admin", User.is_active.is_(True)))
+    )
+
+
+def _products_for_promotion(db: Session, *, store_id: int, product_ids: list[int]) -> dict[int, Product]:
+    unique_product_ids = list(dict.fromkeys(product_ids))
+    products = db.scalars(
+        select(Product)
+        .where(Product.store_id == store_id, Product.id.in_(unique_product_ids))
+        .order_by(Product.id.asc())
+    ).all()
+    if len(products) != len(unique_product_ids):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid product ids in promotion")
+    return {product.id: product for product in products}
+
+
+def _apply_promotion_payload(promotion: StorePromotion, payload: PromotionWrite) -> None:
+    promotion.name = payload.name.strip()
+    promotion.description = (payload.description or "").strip() or None
+    promotion.sale_price = payload.sale_price
+    promotion.max_per_customer_per_day = payload.max_per_customer_per_day
+    promotion.is_active = payload.is_active
+    promotion.sort_order = payload.sort_order
+    promotion.items = [
+        StorePromotionItem(
+            product_id=item.product_id,
+            quantity=item.quantity,
+            sort_order=item.sort_order,
+        )
+        for item in payload.items
+    ]
+
+
+def _build_settlement_history(
+    *,
+    store: Store,
+    charges: list[object],
+    notices: list[object],
+    payments: list[object],
+    rider_payments: list[RiderSettlementPayment],
+) -> list[SettlementHistoryEntryRead]:
+    entries: list[SettlementHistoryEntryRead] = []
+    for charge in charges:
+        entries.append(
+            SettlementHistoryEntryRead(
+                id=f"platform-charge-{charge.id}",
+                kind="platform_charge",
+                store_id=store.id,
+                store_name=store.name,
+                rider_user_id=None,
+                rider_name=None,
+                title=f"Fee generado por pedido #{charge.order_id}",
+                status=charge_status(charge),
+                amount=float(charge.amount),
+                reference=f"order:{charge.order_id}",
+                notes=f"Cliente {charge.order.customer_name_snapshot}",
+                created_at=charge.created_at,
+                reviewed_at=getattr(charge, "settled_at", None),
+            )
+        )
+    for notice in notices:
+        entries.append(
+            SettlementHistoryEntryRead(
+                id=f"platform-notice-{notice.id}",
+                kind="platform_notice",
+                store_id=store.id,
+                store_name=store.name,
+                rider_user_id=None,
+                rider_name=None,
+                title="Aviso de transferencia enviado",
+                status=str(notice.status),
+                amount=float(notice.amount),
+                reference=notice.reference,
+                notes=notice.review_notes or notice.notes,
+                created_at=notice.created_at,
+                reviewed_at=notice.reviewed_at,
+            )
+        )
+    for payment in payments:
+        entries.append(
+            SettlementHistoryEntryRead(
+                id=f"platform-payment-{payment.id}",
+                kind="platform_payment",
+                store_id=store.id,
+                store_name=store.name,
+                rider_user_id=None,
+                rider_name=None,
+                title="Pago aplicado a cuenta corriente",
+                status="applied",
+                amount=float(payment.amount),
+                reference=payment.reference,
+                notes=payment.notes,
+                created_at=payment.created_at,
+                reviewed_at=payment.paid_at,
+            )
+        )
+    for payment in rider_payments:
+        entries.append(
+            SettlementHistoryEntryRead(
+                id=f"rider-payment-{payment.id}",
+                kind="rider_payment",
+                store_id=store.id,
+                store_name=store.name,
+                rider_user_id=payment.rider_user_id,
+                rider_name=getattr(getattr(payment, "rider", None), "full_name", None),
+                title="Pago a rider registrado",
+                status=str(payment.receiver_status or "pending_confirmation"),
+                amount=float(payment.amount),
+                reference=payment.reference,
+                notes=payment.receiver_response_notes or payment.notes,
+                created_at=payment.created_at,
+                reviewed_at=payment.receiver_responded_at or payment.paid_at,
+            )
+        )
+    return sorted(
+        entries,
+        key=lambda entry: (
+            entry.reviewed_at or entry.created_at,
+            entry.created_at,
+            entry.id,
+        ),
+        reverse=True,
+    )
 
 
 @router.get("/store")
@@ -248,6 +390,68 @@ def update_payment_settings(
     return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
 
 
+@router.get("/promotions", response_model=list[PromotionRead])
+def list_promotions(
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> list[PromotionRead]:
+    store = get_merchant_store(db, user.id)
+    return [serialize_promotion(item) for item in get_store_promotions(db, store.id)]
+
+
+@router.post("/promotions", response_model=PromotionRead, status_code=status.HTTP_201_CREATED)
+def create_promotion(
+    payload: PromotionWrite,
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> PromotionRead:
+    store = get_merchant_store(db, user.id)
+    _products_for_promotion(db, store_id=store.id, product_ids=[item.product_id for item in payload.items])
+    promotion = StorePromotion(store_id=store.id)
+    _apply_promotion_payload(promotion, payload)
+    db.add(promotion)
+    db.commit()
+    created = get_store_promotion(db, store.id, promotion.id)
+    if created is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Promotion was not persisted")
+    return serialize_promotion(created)
+
+
+@router.put("/promotions/{promotion_id}", response_model=PromotionRead)
+def update_promotion(
+    promotion_id: int,
+    payload: PromotionWrite,
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> PromotionRead:
+    store = get_merchant_store(db, user.id)
+    promotion = get_store_promotion(db, store.id, promotion_id)
+    if promotion is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Promotion not found")
+    _products_for_promotion(db, store_id=store.id, product_ids=[item.product_id for item in payload.items])
+    _apply_promotion_payload(promotion, payload)
+    db.commit()
+    refreshed = get_store_promotion(db, store.id, promotion_id)
+    if refreshed is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Promotion was not persisted")
+    return serialize_promotion(refreshed)
+
+
+@router.delete("/promotions/{promotion_id}")
+def delete_promotion(
+    promotion_id: int,
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    store = get_merchant_store(db, user.id)
+    promotion = get_store_promotion(db, store.id, promotion_id)
+    if promotion is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Promotion not found")
+    db.delete(promotion)
+    db.commit()
+    return {"status": "deleted"}
+
+
 @router.get("/riders")
 def list_riders(user: User = Depends(require_merchant), db: Session = Depends(get_db)) -> list[dict[str, object]]:
     store = get_merchant_store(db, user.id)
@@ -381,12 +585,21 @@ def list_rider_settlements(
     return results
 
 
-@router.post("/riders/settlements/payments", status_code=status.HTTP_201_CREATED)
+@router.get("/riders/settlements/payments", response_model=list[RiderSettlementPaymentRead])
+def list_rider_settlement_payments(
+    merchant: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> list[RiderSettlementPaymentRead]:
+    store = get_merchant_store(db, merchant.id)
+    return [serialize_rider_settlement_payment(item) for item in get_store_rider_payments(db, store.id)]
+
+
+@router.post("/riders/settlements/payments", response_model=RiderSettlementPaymentRead, status_code=status.HTTP_201_CREATED)
 def create_rider_settlement_payment(
     payload: MerchantRiderSettlementPaymentCreate,
     merchant: User = Depends(require_merchant),
     db: Session = Depends(get_db),
-) -> dict[str, object]:
+) -> RiderSettlementPaymentRead:
     store = get_merchant_store(db, merchant.id)
     rider = get_merchant_rider(db, store_id=store.id, rider_user_id=payload.rider_user_id)
     payment = RiderSettlementPayment(
@@ -400,27 +613,40 @@ def create_rider_settlement_payment(
         created_by_user_id=merchant.id,
     )
     db.add(payment)
+    db.flush()
     create_notifications(
         db,
         user_ids=[rider.user_id],
         order_id=None,
         event_type="delivery.settlement_paid",
         title="Pago registrado",
-        body=f"{store.name} registró un pago por ${payload.amount:.2f}.",
-        payload={"amount": payload.amount},
+        body=f"{store.name} registro un pago por ${payload.amount:.2f}.",
+        payload={"amount": payload.amount, "payment_id": payment.id, "store_id": store.id},
     )
-    db.flush()
     db.commit()
-    db.refresh(payment)
-    return {
-        "id": payment.id,
-        "rider_user_id": payment.rider_user_id,
-        "store_id": payment.store_id,
-        "amount": float(payment.amount),
-        "paid_at": payment.paid_at.isoformat(),
-        "reference": payment.reference,
-        "notes": payment.notes,
-    }
+    refreshed = db.scalar(
+        select(RiderSettlementPayment)
+        .options(selectinload(RiderSettlementPayment.store), selectinload(RiderSettlementPayment.rider))
+        .where(RiderSettlementPayment.id == payment.id)
+    )
+    if refreshed is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Payment was not persisted")
+    return serialize_rider_settlement_payment(refreshed)
+
+
+@router.get("/settlements/history", response_model=list[SettlementHistoryEntryRead])
+def list_settlement_history(
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> list[SettlementHistoryEntryRead]:
+    store = get_merchant_store(db, user.id)
+    return _build_settlement_history(
+        store=store,
+        charges=get_store_charges(db, store.id),
+        notices=get_store_notices(db, store.id),
+        payments=get_store_payments(db, store.id),
+        rider_payments=get_store_rider_payments(db, store.id),
+    )
 
 
 @router.put("/riders/{rider_user_id}")

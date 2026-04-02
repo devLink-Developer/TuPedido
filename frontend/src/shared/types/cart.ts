@@ -1,5 +1,6 @@
 import type { StoreDeliverySettings } from "./catalog";
 import type { PricingSummary } from "./pricing";
+import type { AppliedPromotionSummary } from "./promotion";
 
 export type CartItem = {
   id: number;
@@ -26,5 +27,6 @@ export type Cart = {
   service_fee: number;
   total: number;
   items: CartItem[];
+  applied_promotions?: AppliedPromotionSummary[];
   pricing: PricingSummary;
 };

@@ -44,7 +44,7 @@ export function CatalogPage() {
   }, [searchParams, setCategorySlug, setDeliveryMode, setSearch]);
 
   useEffect(() => {
-    void loadCategories();
+    void loadCategories().catch(() => {});
   }, [loadCategories]);
 
   useEffect(() => {

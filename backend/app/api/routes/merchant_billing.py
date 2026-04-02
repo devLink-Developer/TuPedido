@@ -22,6 +22,7 @@ from app.schemas.settlement import (
     MerchantTransferNoticeCreate,
     MerchantTransferNoticeRead,
 )
+from app.services.delivery import create_notifications
 from app.services.mercadopago import (
     get_or_create_mercadopago_provider,
     mercadopago_connection_status,
@@ -51,6 +52,10 @@ def get_merchant_store(db: Session, user_id: int) -> Store:
     if store is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Merchant store not found")
     return store
+
+
+def _admin_user_ids(db: Session) -> list[int]:
+    return list(db.scalars(select(User.id).where(User.role == "admin", User.is_active.is_(True))))
 
 
 @router.get("/payments/mercadopago/connect-url", response_model=MercadoPagoConnectUrlRead)
@@ -131,6 +136,18 @@ def create_transfer_notice(
         )
     notice = MerchantTransferNotice(store_id=store.id, **payload.model_dump())
     db.add(notice)
+    db.flush()
+    admin_user_ids = _admin_user_ids(db)
+    if admin_user_ids:
+        create_notifications(
+            db,
+            user_ids=admin_user_ids,
+            order_id=None,
+            event_type="merchant.transfer_notice_created",
+            title="Nuevo aviso de transferencia",
+            body=f"{store.name} envio un aviso por ${float(payload.amount):.2f}.",
+            payload={"store_id": store.id, "notice_id": notice.id, "amount": float(payload.amount)},
+        )
     db.commit()
     db.refresh(notice)
     return serialize_transfer_notice(notice)

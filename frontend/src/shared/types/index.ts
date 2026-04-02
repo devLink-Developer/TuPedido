@@ -5,4 +5,5 @@ export * from "./common";
 export * from "./delivery";
 export * from "./merchant";
 export * from "./order";
+export * from "./promotion";
 export * from "./pricing";
