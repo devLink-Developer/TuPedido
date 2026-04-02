@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from sqlalchemy import or_, select
+from types import SimpleNamespace
+
+from sqlalchemy import or_, select, text
 from sqlalchemy.orm import Session, selectinload
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -17,7 +19,7 @@ from app.db.session import get_db
 from app.models.store import Category, Product, ProductCategory, Store, StoreCategoryLink
 from app.schemas.catalog import CatalogBannerRead, PlatformBrandingRead
 from app.services.mercadopago import get_or_create_mercadopago_provider
-from app.services.platform import get_or_create_platform_settings
+from app.services.platform import get_platform_settings_snapshot, get_table_columns
 
 router = APIRouter()
 
@@ -32,23 +34,48 @@ STORE_LOAD_OPTIONS = (
     selectinload(Store.products).selectinload(Product.product_subcategory),
 )
 
+CATEGORY_PUBLIC_COLUMNS = (
+    "id",
+    "name",
+    "slug",
+    "description",
+    "color",
+    "color_light",
+    "icon",
+    "is_active",
+    "sort_order",
+)
+
 
 @router.get("/categories")
 def list_categories(db: Session = Depends(get_db)) -> list[dict[str, object]]:
-    categories = db.scalars(
-        select(Category).where(Category.is_active.is_(True)).order_by(Category.sort_order, Category.name)
-    ).all()
-    return [serialize_category(category).model_dump() for category in categories]
+    columns = get_table_columns(db, "categories")
+    if not {"id", "name", "slug"}.issubset(columns):
+        return []
+
+    selected_columns = [column for column in CATEGORY_PUBLIC_COLUMNS if column in columns]
+    filters = ["is_active = true"] if "is_active" in columns else []
+    order_by = ["sort_order"] if "sort_order" in columns else []
+    order_by.append("name")
+
+    where_clause = f" WHERE {' AND '.join(filters)}" if filters else ""
+    query = text(
+        f"SELECT {', '.join(selected_columns)} "
+        f"FROM categories{where_clause} "
+        f"ORDER BY {', '.join(order_by)}"
+    )
+    rows = db.execute(query).mappings().all()
+    return [serialize_category(SimpleNamespace(**dict(row))).model_dump() for row in rows]
 
 
 @router.get("/platform-banner", response_model=CatalogBannerRead)
 def get_platform_banner(db: Session = Depends(get_db)) -> CatalogBannerRead:
-    return serialize_catalog_banner(get_or_create_platform_settings(db))
+    return serialize_catalog_banner(get_platform_settings_snapshot(db))
 
 
 @router.get("/platform-branding", response_model=PlatformBrandingRead)
 def get_platform_branding(db: Session = Depends(get_db)) -> PlatformBrandingRead:
-    return serialize_platform_branding(get_or_create_platform_settings(db))
+    return serialize_platform_branding(get_platform_settings_snapshot(db))
 
 
 @router.get("/stores")

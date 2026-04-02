@@ -34,7 +34,7 @@ from app.schemas.settlement import (
 from app.core.utils import encrypt_sensitive_value
 from app.services.mercadopago import get_or_create_mercadopago_provider
 from app.services.delivery import create_notifications
-from app.services.platform import get_or_create_platform_settings
+from app.services.platform import get_or_create_platform_settings, get_platform_settings_snapshot
 from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
 from app.services.settlements import (
     approve_notice_to_payment,
@@ -153,7 +153,7 @@ def _build_admin_settlement_history(db: Session) -> list[dict[str, object]]:
 def get_platform_settings(
     _: User = Depends(require_admin), db: Session = Depends(get_db)
 ) -> PlatformSettingsRead:
-    return serialize_platform_settings(get_or_create_platform_settings(db))
+    return serialize_platform_settings(get_platform_settings_snapshot(db))
 
 
 @router.put("/platform-settings", response_model=PlatformSettingsRead)
