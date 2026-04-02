@@ -28,6 +28,7 @@ from app.services.mercadopago import (
     mercadopago_connection_status,
     normalize_frontend_origin,
     oauth_connect_entrypoint,
+    resolve_public_backend_base_url,
     store_oauth_credentials,
 )
 
@@ -73,7 +74,7 @@ def _frontend_origin_from_request(request: Request) -> str:
 
 
 def _api_base_url_from_request(request: Request) -> str:
-    return str(request.base_url).rstrip("/")
+    return resolve_public_backend_base_url(str(request.base_url))
 
 
 def _merchant_redirect_url_for_origin(origin: str | None, status_value: str, detail: str | None = None) -> str:

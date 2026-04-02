@@ -56,12 +56,12 @@ export default defineConfig(function (_a) {
             proxy: {
                 "/api/v1": {
                     target: proxyTarget,
-                    changeOrigin: true,
+                    changeOrigin: false,
                     ws: true
                 },
                 "/media": {
                     target: proxyTarget,
-                    changeOrigin: true
+                    changeOrigin: false
                 }
             }
         }

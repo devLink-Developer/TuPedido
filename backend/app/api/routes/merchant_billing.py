@@ -26,6 +26,7 @@ from app.services.mercadopago import (
     get_or_create_mercadopago_provider,
     mercadopago_connection_status,
     oauth_connect_entrypoint,
+    resolve_public_backend_base_url,
 )
 from app.services.platform import get_service_fee_amount
 from app.services.settlements import (
@@ -61,7 +62,7 @@ def get_mercadopago_connect_url(
     store = get_merchant_store(db, user.id)
     get_or_create_mercadopago_provider(db)
     return MercadoPagoConnectUrlRead(
-        connect_url=oauth_connect_entrypoint(base_url=str(request.base_url).rstrip("/")),
+        connect_url=oauth_connect_entrypoint(base_url=resolve_public_backend_base_url(str(request.base_url))),
         connection_status=mercadopago_connection_status(store),
         status=mercadopago_connection_status(store),
         callback_url=None,

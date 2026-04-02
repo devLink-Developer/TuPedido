@@ -57,12 +57,12 @@ export default defineConfig(({ mode }) => {
       proxy: {
         "/api/v1": {
           target: proxyTarget,
-          changeOrigin: true,
+          changeOrigin: false,
           ws: true
         },
         "/media": {
           target: proxyTarget,
-          changeOrigin: true
+          changeOrigin: false
         }
       }
     }

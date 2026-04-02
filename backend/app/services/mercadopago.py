@@ -62,6 +62,39 @@ def normalize_frontend_origin(value: str | None) -> str:
     return f"{parsed.scheme}://{parsed.netloc}"
 
 
+def _normalize_http_base_url(value: str | None) -> str | None:
+    if not value:
+        return None
+    try:
+        parsed = urlsplit(value.strip())
+    except ValueError:
+        return None
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return None
+    return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+
+
+def _is_internal_hostname(hostname: str | None) -> bool:
+    if not hostname:
+        return True
+    normalized = hostname.rstrip(".").lower()
+    if normalized in {"localhost", "127.0.0.1", "0.0.0.0", "::1", "backend", "frontend", "db", "redis", "worker"}:
+        return True
+    return "." not in normalized
+
+
+def resolve_public_backend_base_url(base_url: str | None = None) -> str:
+    configured_base_url = _normalize_http_base_url(settings.backend_base_url)
+    if configured_base_url and not _is_internal_hostname(urlsplit(configured_base_url).hostname):
+        return configured_base_url
+
+    request_base_url = _normalize_http_base_url(base_url)
+    if request_base_url and not _is_internal_hostname(urlsplit(request_base_url).hostname):
+        return request_base_url
+
+    return configured_base_url or request_base_url or settings.backend_base_url.rstrip("/")
+
+
 def _provider_enabled_from_settings() -> bool:
     return bool(
         settings.mercadopago_client_id
@@ -301,13 +334,13 @@ def decode_oauth_session_token(value: str) -> dict[str, Any]:
 
 
 def oauth_connect_entrypoint(*, base_url: str | None = None) -> str:
-    resolved_base_url = (base_url or settings.backend_base_url).rstrip("/")
+    resolved_base_url = resolve_public_backend_base_url(base_url)
     return f"{resolved_base_url}{settings.api_prefix}/oauth/mercadopago/connect"
 
 
 def build_oauth_connect_url(*, provider: PaymentProvider, state: str, base_url: str | None = None) -> str:
     if settings.mercadopago_simulated:
-        base = (base_url or settings.backend_base_url).rstrip("/")
+        base = resolve_public_backend_base_url(base_url)
         query = urlencode({"code": "SIMULATED-OAUTH", "state": state})
         return f"{base}{settings.api_prefix}/oauth/mercadopago/callback?{query}"
 
