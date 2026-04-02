@@ -10,6 +10,9 @@ const fetchOrdersMock = vi.fn();
 const fetchPendingOrderReviewMock = vi.fn();
 const createOrderReviewMock = vi.fn();
 const logoutMock = vi.fn();
+let cartItemCountMock = 0;
+let cartStoreNameMock = "Cafe Central";
+let cartTotalMock = 12900;
 
 vi.mock("../../shared/hooks", () => ({
   useAuthSession: () => ({
@@ -25,7 +28,9 @@ vi.mock("../../shared/hooks", () => ({
     logout: logoutMock
   }),
   useCart: () => ({
-    itemCount: 0
+    itemCount: cartItemCountMock,
+    storeName: cartStoreNameMock,
+    total: cartTotalMock
   })
 }));
 
@@ -126,6 +131,9 @@ describe("ClienteLayout", () => {
     fetchPendingOrderReviewMock.mockReset();
     createOrderReviewMock.mockReset();
     logoutMock.mockReset();
+    cartItemCountMock = 0;
+    cartStoreNameMock = "Cafe Central";
+    cartTotalMock = 12900;
     fetchAddressesMock.mockResolvedValue([]);
     fetchOrdersMock.mockResolvedValue([]);
     fetchPendingOrderReviewMock.mockResolvedValue(null);
@@ -169,6 +177,18 @@ describe("ClienteLayout", () => {
     renderLayout();
 
     expect(await screen.findByRole("link", { name: "Seguir pedido" })).toHaveAttribute("href", "/c/pedido/41");
+  });
+
+  it("mantiene visible el acceso al carrito cuando hay items activos", async () => {
+    cartItemCountMock = 3;
+    cartStoreNameMock = "Despensa Norte";
+    cartTotalMock = 18450;
+
+    renderLayout();
+
+    expect(screen.getAllByRole("link", { name: "Abrir carrito con 3 productos" })).toHaveLength(2);
+    expect(screen.getAllByText(/carrito activo/i).length).toBeGreaterThan(0);
+    expect(screen.getByText("3 productos en Despensa Norte")).toBeInTheDocument();
   });
 
   it("no muestra la barra cuando solo hay pedidos terminales", async () => {

@@ -6,6 +6,7 @@ import { useAuthSession, useCart } from "../../shared/hooks";
 import { usePlatformBranding } from "../../shared/providers/PlatformBrandingProvider";
 import { useClienteStore } from "../../shared/stores";
 import type { Address, CreateOrderReviewPayload, PendingOrderReview } from "../../shared/types";
+import { formatCurrency } from "../../shared/utils/format";
 import {
   ORDER_REVIEW_PROMPT_REFRESH_EVENT,
   dismissOrderReviewPrompt,
@@ -23,7 +24,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
   const lastScrollYRef = useRef(0);
   const { user, token, isAuthenticated, logout } = useAuthSession();
   const { brandName, branding } = usePlatformBranding();
-  const { itemCount } = useCart();
+  const { itemCount, storeName, total } = useCart();
   const selectedAddressId = useClienteStore((state) => state.selectedAddressId);
   const setSelectedAddressId = useClienteStore((state) => state.setSelectedAddressId);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -338,29 +339,65 @@ export function ClienteLayout({ children }: PropsWithChildren) {
           ) : null}
         </div>
       </header>
-      <main className={`mx-auto w-full max-w-6xl px-4 pt-24 md:px-8 ${showFloatingCart ? "pb-28 md:pb-10" : "pb-10"}`}>
+      <main className={`mx-auto w-full max-w-6xl px-4 pt-24 md:px-8 ${showFloatingCart ? "pb-28 md:pb-24" : "pb-10"}`}>
         {showActiveOrderBar ? <ActiveOrderBar /> : null}
         {children}
       </main>
       {showFloatingCart ? (
-        <Link
-          to="/c/carrito"
-          aria-label={`Abrir carrito con ${itemCount} productos`}
-          className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 w-16 items-center justify-center rounded-full text-sm font-semibold text-white transition hover:opacity-95 md:hidden"
-          style={{
-            backgroundColor: "var(--catalog-accent)",
-            boxShadow: "0 18px 40px -18px var(--catalog-accent-shadow)"
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
-            <path d="M4.5 6h1.25l1.1 7.05a1 1 0 0 0 .98.8h8.77a1 1 0 0 0 .97-.76L19 8.25H7.2" />
-            <circle cx="9.25" cy="18.25" r="1.35" />
-            <circle cx="16.75" cy="18.25" r="1.35" />
-          </svg>
-          <span className="absolute -right-1 -top-1 inline-flex min-w-6 items-center justify-center rounded-full bg-ink px-2 py-1 text-xs font-bold text-white">
-            {itemCount}
-          </span>
-        </Link>
+        <>
+          <Link
+            to="/c/carrito"
+            aria-label={`Abrir carrito con ${itemCount} productos`}
+            className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 w-16 items-center justify-center rounded-full text-sm font-semibold text-white transition hover:opacity-95 md:hidden"
+            style={{
+              backgroundColor: "var(--catalog-accent)",
+              boxShadow: "0 18px 40px -18px var(--catalog-accent-shadow)"
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+              <path d="M4.5 6h1.25l1.1 7.05a1 1 0 0 0 .98.8h8.77a1 1 0 0 0 .97-.76L19 8.25H7.2" />
+              <circle cx="9.25" cy="18.25" r="1.35" />
+              <circle cx="16.75" cy="18.25" r="1.35" />
+            </svg>
+            <span className="absolute -right-1 -top-1 inline-flex min-w-6 items-center justify-center rounded-full bg-ink px-2 py-1 text-xs font-bold text-white">
+              {itemCount}
+            </span>
+          </Link>
+          <Link
+            to="/c/carrito"
+            aria-label={`Abrir carrito con ${itemCount} productos`}
+            className="fixed bottom-6 right-6 z-40 hidden min-w-[320px] max-w-[360px] items-center justify-between gap-4 rounded-[28px] border bg-white/96 px-5 py-4 text-ink backdrop-blur transition hover:-translate-y-0.5 md:flex"
+            style={{
+              borderColor: "var(--catalog-accent-border)",
+              boxShadow: "0 22px 44px -24px var(--catalog-accent-shadow)"
+            }}
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <span
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white"
+                style={{ backgroundColor: "var(--catalog-accent)" }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                  <path d="M4.5 6h1.25l1.1 7.05a1 1 0 0 0 .98.8h8.77a1 1 0 0 0 .97-.76L19 8.25H7.2" />
+                  <circle cx="9.25" cy="18.25" r="1.35" />
+                  <circle cx="16.75" cy="18.25" r="1.35" />
+                </svg>
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Carrito activo</p>
+                <p className="mt-1 truncate text-sm font-semibold text-ink">
+                  {itemCount} productos en {storeName ?? "tu pedido"}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-black text-ink">{formatCurrency(total)}</p>
+              <p className="text-xs font-semibold" style={{ color: "var(--catalog-accent)" }}>
+                Ver carrito
+              </p>
+            </div>
+          </Link>
+        </>
       ) : null}
       {pendingReview ? (
         <OrderReviewPrompt
