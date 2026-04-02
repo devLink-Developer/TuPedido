@@ -11,19 +11,21 @@ from app.db.session import SessionLocal
 from app.models.delivery import NotificationEvent
 from app.models.order import StoreOrder
 from app.models.user import User
+from app.services.order_runtime import build_order_options
 from app.services.realtime import realtime_hub
 
 router = APIRouter()
 
 TERMINAL_ORDER_STATUSES = {"delivered", "cancelled", "delivery_failed"}
 
-ORDER_OPTIONS = (
-    selectinload(StoreOrder.items),
-    selectinload(StoreOrder.store),
-    selectinload(StoreOrder.address),
-    selectinload(StoreOrder.delivery_assignment),
-    selectinload(StoreOrder.promotion_applications),
-)
+def _order_options(db: Session) -> tuple[object, ...]:
+    return build_order_options(
+        db,
+        selectinload(StoreOrder.items),
+        selectinload(StoreOrder.store),
+        selectinload(StoreOrder.address),
+        selectinload(StoreOrder.delivery_assignment),
+    )
 
 
 def _latest_notifications(db: Session, user_id: int, *, limit: int = 20) -> list[dict[str, object]]:
@@ -101,7 +103,7 @@ async def order_tracking_socket(websocket: WebSocket, order_id: int) -> None:
 
     db = SessionLocal()
     try:
-        order = db.scalar(select(StoreOrder).options(*ORDER_OPTIONS).where(StoreOrder.id == order_id))
+        order = db.scalar(select(StoreOrder).options(*_order_options(db)).where(StoreOrder.id == order_id))
         if order is None or not _can_access_order(user, order):
             await websocket.close(code=4404)
             return

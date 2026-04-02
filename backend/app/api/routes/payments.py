@@ -18,8 +18,19 @@ from app.services.mercadopago import (
     fetch_payment,
     normalize_payment_status,
 )
+from app.services.order_runtime import build_order_options
 
 router = APIRouter()
+
+
+def _order_options(db: Session) -> tuple[object, ...]:
+    return build_order_options(
+        db,
+        selectinload(StoreOrder.items),
+        selectinload(StoreOrder.store),
+        selectinload(StoreOrder.address),
+        selectinload(StoreOrder.delivery_assignment),
+    )
 
 
 def _get_nested_value(payload: dict[str, Any], path: str) -> Any:
@@ -34,13 +45,7 @@ def _get_nested_value(payload: dict[str, Any], path: str) -> Any:
 def _load_order(db: Session, reference: str) -> StoreOrder | None:
     return db.scalar(
         select(StoreOrder)
-        .options(
-            selectinload(StoreOrder.items),
-            selectinload(StoreOrder.store),
-            selectinload(StoreOrder.address),
-            selectinload(StoreOrder.delivery_assignment),
-            selectinload(StoreOrder.promotion_applications),
-        )
+        .options(*_order_options(db))
         .where(StoreOrder.payment_reference == reference)
     )
 

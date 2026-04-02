@@ -29,6 +29,7 @@ from app.services.delivery import (
     rider_pick_up_order,
     sync_delivery_location,
 )
+from app.services.order_runtime import build_order_options
 from app.services.settlements import get_rider_payments
 
 router = APIRouter()
@@ -41,13 +42,14 @@ PROFILE_OPTIONS = (
     selectinload(DeliveryProfile.store),
 )
 
-ORDER_OPTIONS = (
-    selectinload(StoreOrder.items),
-    selectinload(StoreOrder.store),
-    selectinload(StoreOrder.address),
-    selectinload(StoreOrder.delivery_assignment),
-    selectinload(StoreOrder.promotion_applications),
-)
+def _order_options(db: Session) -> tuple[object, ...]:
+    return build_order_options(
+        db,
+        selectinload(StoreOrder.items),
+        selectinload(StoreOrder.store),
+        selectinload(StoreOrder.address),
+        selectinload(StoreOrder.delivery_assignment),
+    )
 
 PAYMENT_OPTIONS = (
     selectinload(RiderSettlementPayment.store),
@@ -97,7 +99,7 @@ def _get_rider_payment(db: Session, *, rider_user_id: int, payment_id: int) -> R
 def get_rider_order(db: Session, rider_id: int, order_id: int) -> StoreOrder:
     order = db.scalar(
         select(StoreOrder)
-        .options(*ORDER_OPTIONS)
+        .options(*_order_options(db))
         .where(StoreOrder.id == order_id, StoreOrder.delivery_provider == "platform", StoreOrder.delivery_mode == "delivery")
     )
     if order is None:
@@ -131,7 +133,7 @@ def update_availability(
 def list_my_orders(user: User = Depends(require_delivery), db: Session = Depends(get_db)) -> list[dict[str, object]]:
     orders = db.scalars(
         select(StoreOrder)
-        .options(*ORDER_OPTIONS)
+        .options(*_order_options(db))
         .where(
             StoreOrder.delivery_provider == "platform",
             StoreOrder.delivery_mode == "delivery",

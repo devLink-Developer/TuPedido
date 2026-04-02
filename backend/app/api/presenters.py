@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from sqlalchemy import inspect as sa_inspect
+from sqlalchemy.orm.attributes import NO_VALUE
+
 from app.core.utils import is_store_open, mask_secret
 from app.schemas.admin import PaymentProviderRead
 from app.schemas.cart import CartItemRead, CartRead
@@ -51,6 +54,7 @@ from app.services.settlements import (
     charge_status,
     payment_applied_amount,
 )
+from app.services.order_runtime import has_order_promotion_schema
 
 
 def serialize_category(category: object) -> CategoryRead:
@@ -356,6 +360,17 @@ def serialize_cart(cart: object) -> CartRead:
     )
 
 
+def _promotion_applications_for_serialization(order: object) -> list[object]:
+    state = sa_inspect(order)
+    attr_state = state.attrs.promotion_applications
+    loaded_value = attr_state.loaded_value
+    if loaded_value is not NO_VALUE:
+        return list(loaded_value or [])
+    if state.session is None or not has_order_promotion_schema(state.session):
+        return []
+    return list(getattr(order, "promotion_applications", []) or [])
+
+
 def serialize_order(order: object) -> OrderRead:
     return OrderRead(
         id=order.id,
@@ -427,7 +442,7 @@ def serialize_order(order: object) -> OrderRead:
         },
         applied_promotions=[
             serialize_applied_promotion(application)
-            for application in getattr(order, "promotion_applications", []) or []
+            for application in _promotion_applications_for_serialization(order)
         ],
     )
 

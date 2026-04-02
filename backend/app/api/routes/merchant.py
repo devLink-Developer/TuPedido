@@ -66,6 +66,7 @@ from app.services.delivery import (
     rider_has_active_order,
 )
 from app.services.mercadopago import get_or_create_mercadopago_provider, is_store_mercadopago_ready
+from app.services.order_runtime import build_order_options
 from app.services.promotions import get_store_promotion, get_store_promotions
 from app.services.settlements import create_cash_service_fee_charge
 from app.services.settlements import (
@@ -90,13 +91,14 @@ STORE_OPTIONS = (
     selectinload(Store.products).selectinload(Product.product_subcategory),
 )
 
-ORDER_OPTIONS = (
-    selectinload(StoreOrder.items),
-    selectinload(StoreOrder.store),
-    selectinload(StoreOrder.address),
-    selectinload(StoreOrder.delivery_assignment),
-    selectinload(StoreOrder.promotion_applications),
-)
+def _order_options(db: Session) -> tuple[object, ...]:
+    return build_order_options(
+        db,
+        selectinload(StoreOrder.items),
+        selectinload(StoreOrder.store),
+        selectinload(StoreOrder.address),
+        selectinload(StoreOrder.delivery_assignment),
+    )
 
 RIDER_OPTIONS = (
     selectinload(DeliveryProfile.user),
@@ -713,7 +715,9 @@ def assign_rider_to_order(
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     store = get_merchant_store(db, merchant.id)
-    order = db.scalar(select(StoreOrder).options(*ORDER_OPTIONS).where(StoreOrder.id == order_id, StoreOrder.store_id == store.id))
+    order = db.scalar(
+        select(StoreOrder).options(*_order_options(db)).where(StoreOrder.id == order_id, StoreOrder.store_id == store.id)
+    )
     if order is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
@@ -1061,7 +1065,7 @@ def list_orders(user: User = Depends(require_merchant), db: Session = Depends(ge
     store = get_merchant_store(db, user.id)
     orders = db.scalars(
         select(StoreOrder)
-        .options(*ORDER_OPTIONS)
+        .options(*_order_options(db))
         .where(StoreOrder.store_id == store.id)
         .order_by(StoreOrder.id.desc())
     ).all()
@@ -1078,7 +1082,7 @@ def update_order_status(
     store = get_merchant_store(db, user.id)
     order = db.scalar(
         select(StoreOrder)
-        .options(*ORDER_OPTIONS)
+        .options(*_order_options(db))
         .where(StoreOrder.id == order_id, StoreOrder.store_id == store.id)
     )
     if order is None:

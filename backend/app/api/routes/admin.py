@@ -36,6 +36,7 @@ from app.schemas.catalog import CategoryCreate, CategoryUpdate
 from app.schemas.merchant import MerchantApplicationReviewUpdate
 from app.services.category_colors import resolve_category_palette
 from app.services.mercadopago import get_or_create_mercadopago_provider
+from app.services.order_runtime import build_order_options
 from app.services.store_branding import resolve_store_assets
 
 router = APIRouter()
@@ -57,11 +58,12 @@ APPLICATION_OPTIONS = (
     selectinload(MerchantApplication.store),
 )
 
-ORDER_OPTIONS = (
-    selectinload(StoreOrder.items),
-    selectinload(StoreOrder.store),
-    selectinload(StoreOrder.promotion_applications),
-)
+def _order_options(db: Session) -> tuple[object, ...]:
+    return build_order_options(
+        db,
+        selectinload(StoreOrder.items),
+        selectinload(StoreOrder.store),
+    )
 
 
 def build_unique_store_slug(db: Session, base_value: str, exclude_store_id: int | None = None) -> str:
@@ -403,7 +405,7 @@ def update_store_status(
 
 @router.get("/orders")
 def list_orders(_: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict[str, object]]:
-    orders = db.scalars(select(StoreOrder).options(*ORDER_OPTIONS).order_by(StoreOrder.id.desc())).all()
+    orders = db.scalars(select(StoreOrder).options(*_order_options(db)).order_by(StoreOrder.id.desc())).all()
     return [serialize_order(order).model_dump() for order in orders]
 
 

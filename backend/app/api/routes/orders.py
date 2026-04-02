@@ -10,6 +10,7 @@ from app.db.session import get_db
 from app.models.order import OrderReview, StoreOrder
 from app.models.user import User
 from app.schemas.order import OrderRead, OrderReviewCreate, OrderTrackingRead, PendingOrderReviewRead
+from app.services.order_runtime import build_order_options
 from app.services.order_reviews import (
     find_oldest_pending_review_order,
     normalize_review_text,
@@ -22,13 +23,14 @@ router = APIRouter()
 
 TERMINAL_ORDER_STATUSES = {"delivered", "cancelled", "delivery_failed"}
 
-ORDER_OPTIONS = (
-    selectinload(StoreOrder.items),
-    selectinload(StoreOrder.store),
-    selectinload(StoreOrder.address),
-    selectinload(StoreOrder.delivery_assignment),
-    selectinload(StoreOrder.promotion_applications),
-)
+def _order_options(db: Session) -> tuple[object, ...]:
+    return build_order_options(
+        db,
+        selectinload(StoreOrder.items),
+        selectinload(StoreOrder.store),
+        selectinload(StoreOrder.address),
+        selectinload(StoreOrder.delivery_assignment),
+    )
 
 
 def _can_access_order(user: User, order: StoreOrder) -> bool:
@@ -53,7 +55,7 @@ def _customer_can_track_order(order: StoreOrder) -> bool:
 def list_orders(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[OrderRead]:
     orders = db.scalars(
         select(StoreOrder)
-        .options(*ORDER_OPTIONS)
+        .options(*_order_options(db))
         .where(StoreOrder.user_id == user.id)
         .order_by(StoreOrder.id.desc())
     ).all()
@@ -131,7 +133,7 @@ def create_order_review(
 def get_order(order_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> OrderRead:
     order = db.scalar(
         select(StoreOrder)
-        .options(*ORDER_OPTIONS)
+        .options(*_order_options(db))
         .where(StoreOrder.id == order_id)
     )
     if order is None or not _can_access_order(user, order):
@@ -146,7 +148,7 @@ def get_order_tracking(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> OrderTrackingRead:
-    order = db.scalar(select(StoreOrder).options(*ORDER_OPTIONS).where(StoreOrder.id == order_id))
+    order = db.scalar(select(StoreOrder).options(*_order_options(db)).where(StoreOrder.id == order_id))
     if order is None or not _can_access_order(user, order):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     if user.role == "customer" and not _customer_can_track_order(order):

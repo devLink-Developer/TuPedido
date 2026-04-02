@@ -38,6 +38,7 @@ from app.schemas.delivery import (
 )
 from app.schemas.settlement import RiderSettlementPaymentRead
 from app.services.delivery import create_notifications, ensure_assignment, mask_phone, publish_order_snapshot
+from app.services.order_runtime import build_order_options
 
 router = APIRouter()
 
@@ -57,12 +58,13 @@ RIDER_OPTIONS = (
 
 ZONE_OPTIONS = (selectinload(DeliveryZone.rates),)
 
-ORDER_OPTIONS = (
-    selectinload(StoreOrder.items),
-    selectinload(StoreOrder.store),
-    selectinload(StoreOrder.address),
-    selectinload(StoreOrder.promotion_applications),
-)
+def _order_options(db: Session) -> tuple[object, ...]:
+    return build_order_options(
+        db,
+        selectinload(StoreOrder.items),
+        selectinload(StoreOrder.store),
+        selectinload(StoreOrder.address),
+    )
 
 PAYMENT_OPTIONS = (
     selectinload(RiderSettlementPayment.store),
@@ -288,7 +290,7 @@ def list_delivery_dispatch(
 ) -> list[dict[str, object]]:
     orders = db.scalars(
         select(StoreOrder)
-        .options(*ORDER_OPTIONS)
+        .options(*_order_options(db))
         .where(StoreOrder.delivery_provider == "platform", StoreOrder.delivery_mode == "delivery")
         .order_by(StoreOrder.id.desc())
     ).all()
@@ -303,7 +305,7 @@ def assign_delivery_order(
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     order = db.scalar(
-        select(StoreOrder).options(*ORDER_OPTIONS).where(StoreOrder.id == order_id)
+        select(StoreOrder).options(*_order_options(db)).where(StoreOrder.id == order_id)
     )
     if order is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
