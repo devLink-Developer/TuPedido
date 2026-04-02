@@ -178,7 +178,6 @@ def mercadopago_connection_status(store: object) -> str:
 def is_store_mercadopago_ready(
     store: object, provider: PaymentProvider | None = None
 ) -> bool:
-    payment_settings = getattr(store, "payment_settings", None)
     account = get_store_payment_account(store)
     resolved_provider = provider
     if resolved_provider is None:
@@ -186,9 +185,7 @@ def is_store_mercadopago_ready(
         if session is not None:
             resolved_provider = get_or_create_mercadopago_provider(session)
     return bool(
-        payment_settings
-        and payment_settings.mercadopago_enabled
-        and resolved_provider
+        resolved_provider
         and resolved_provider.enabled
         and account
         and account.public_key
