@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import inspect
+from alembic.script import ScriptDirectory
+from sqlalchemy import inspect, text
 
 from app.core.config import settings
 from app.db.session import engine
 
 INITIAL_REVISION = "d9ba94f281ec"
+logger = logging.getLogger(__name__)
 MANAGED_TABLES = {
     "addresses",
     "categories",
@@ -30,6 +33,28 @@ MANAGED_TABLES = {
     "store_products",
     "stores",
     "users",
+}
+
+MERGE_RECOVERY_SCHEMA: dict[str, set[str]] = {
+    "platform_settings": {
+        "service_fee_amount",
+        "platform_logo_url",
+        "platform_wordmark_url",
+        "platform_favicon_url",
+        "platform_use_logo_as_favicon",
+        "catalog_banner_image_url",
+        "catalog_banner_width",
+        "catalog_banner_height",
+    },
+    "merchant_transfer_notices": {"proof_url", "proof_content_type", "proof_original_name"},
+    "store_promotions": {"sale_price", "max_per_customer_per_day", "is_active", "sort_order"},
+    "store_promotion_items": {"quantity", "sort_order"},
+    "order_promotion_applications": {"promotion_id", "discount_total_snapshot", "items_snapshot_json"},
+    "rider_settlement_payments": {
+        "receiver_status",
+        "receiver_response_notes",
+        "receiver_responded_at",
+    },
 }
 
 
@@ -54,8 +79,42 @@ def _needs_legacy_stamp() -> bool:
     return bool(MANAGED_TABLES & tables)
 
 
+def _schema_matches_recovered_head() -> bool:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        for table_name, required_columns in MERGE_RECOVERY_SCHEMA.items():
+            if table_name not in inspector.get_table_names():
+                return False
+            available_columns = {column["name"] for column in inspector.get_columns(table_name)}
+            if not required_columns.issubset(available_columns):
+                return False
+    return True
+
+
+def _recover_merge_head(config: Config) -> bool:
+    heads = ScriptDirectory.from_config(config).get_heads()
+    if len(heads) != 1:
+        return False
+    if not _schema_matches_recovered_head():
+        return False
+
+    head_revision = heads[0]
+    with engine.begin() as connection:
+        connection.execute(text("DELETE FROM alembic_version"))
+        connection.execute(
+            text("INSERT INTO alembic_version (version_num) VALUES (:version_num)"),
+            {"version_num": head_revision},
+        )
+    logger.warning("Recovered Alembic merge state by forcing alembic_version to head %s", head_revision)
+    return True
+
+
 def run_schema_migrations() -> None:
     config = _alembic_config()
     if _needs_legacy_stamp():
         command.stamp(config, INITIAL_REVISION)
-    command.upgrade(config, "head")
+    try:
+        command.upgrade(config, "head")
+    except KeyError:
+        if not _recover_merge_head(config):
+            raise
