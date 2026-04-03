@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "../../../shared/ui/Button";
 import { EmptyState, LoadingCard, PageHeader, StatCard } from "../../../shared/components";
 import { useAuthSession, useRealtimeNotifications } from "../../../shared/hooks";
 import {
-  createAdminDeliverySettlementPayment,
-  createAdminSettlementPayment,
   fetchAdminDeliverySettlementPayments,
   fetchAdminDeliverySettlements,
   fetchAdminSettlementHistory,
@@ -24,27 +22,6 @@ import type {
 import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
 import { statusLabels } from "../../../shared/utils/labels";
 
-type PlatformPaymentForm = {
-  store_id: string;
-  amount: string;
-  reference: string;
-  notes: string;
-};
-
-type RiderPaymentForm = {
-  rider_user_id: string;
-  amount: string;
-  paid_at: string;
-  reference: string;
-  notes: string;
-};
-
-function nowLocalDateTime() {
-  const now = new Date();
-  const offset = now.getTimezoneOffset() * 60000;
-  return new Date(now.getTime() - offset).toISOString().slice(0, 16);
-}
-
 function StatusBadge({ value }: { value: string }) {
   return (
     <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
@@ -62,23 +39,8 @@ export function LiquidationsPage() {
   const [deliverySettlements, setDeliverySettlements] = useState<DeliverySettlement[]>([]);
   const [deliveryPayments, setDeliveryPayments] = useState<RiderSettlementPayment[]>([]);
   const [history, setHistory] = useState<SettlementHistoryEntry[]>([]);
-  const [platformPaymentForm, setPlatformPaymentForm] = useState<PlatformPaymentForm>({
-    store_id: "",
-    amount: "",
-    reference: "",
-    notes: ""
-  });
-  const [riderPaymentForm, setRiderPaymentForm] = useState<RiderPaymentForm>({
-    rider_user_id: "",
-    amount: "",
-    paid_at: nowLocalDateTime(),
-    reference: "",
-    notes: ""
-  });
   const [noticeNotes, setNoticeNotes] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
-  const [savingPlatformPayment, setSavingPlatformPayment] = useState(false);
-  const [savingRiderPayment, setSavingRiderPayment] = useState(false);
   const [reviewingNoticeId, setReviewingNoticeId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,14 +62,6 @@ export function LiquidationsPage() {
       setDeliverySettlements(riderSettlements);
       setDeliveryPayments(riderPayments);
       setHistory(historyResult);
-      setPlatformPaymentForm((current) => ({
-        ...current,
-        store_id: current.store_id || String(stores[0]?.store_id ?? stores[0]?.id ?? "")
-      }));
-      setRiderPaymentForm((current) => ({
-        ...current,
-        rider_user_id: current.rider_user_id || String(riderSettlements[0]?.rider_user_id ?? "")
-      }));
       setError(null);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudieron cargar las liquidaciones");
@@ -128,53 +82,6 @@ export function LiquidationsPage() {
     () => settlementStores.reduce((sum, store) => sum + store.pending_balance, 0),
     [settlementStores]
   );
-
-  async function handlePlatformPaymentSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!token) return;
-    setSavingPlatformPayment(true);
-    try {
-      await createAdminSettlementPayment(token, {
-        store_id: Number(platformPaymentForm.store_id),
-        amount: Number(platformPaymentForm.amount),
-        reference: platformPaymentForm.reference.trim() || null,
-        notes: platformPaymentForm.notes.trim() || null
-      });
-      setPlatformPaymentForm((current) => ({ ...current, amount: "", reference: "", notes: "" }));
-      await load();
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No se pudo registrar el pago manual");
-    } finally {
-      setSavingPlatformPayment(false);
-    }
-  }
-
-  async function handleRiderPaymentSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!token) return;
-    setSavingRiderPayment(true);
-    try {
-      await createAdminDeliverySettlementPayment(token, {
-        rider_user_id: Number(riderPaymentForm.rider_user_id),
-        amount: Number(riderPaymentForm.amount),
-        paid_at: new Date(riderPaymentForm.paid_at || nowLocalDateTime()).toISOString(),
-        reference: riderPaymentForm.reference.trim() || null,
-        notes: riderPaymentForm.notes.trim() || null
-      });
-      setRiderPaymentForm((current) => ({
-        ...current,
-        amount: "",
-        paid_at: nowLocalDateTime(),
-        reference: "",
-        notes: ""
-      }));
-      await load();
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No se pudo registrar el pago al rider");
-    } finally {
-      setSavingRiderPayment(false);
-    }
-  }
 
   async function handleReviewNotice(noticeId: number, status: "approved" | "rejected") {
     if (!token) return;
@@ -200,67 +107,26 @@ export function LiquidationsPage() {
       <PageHeader
         eyebrow="Admin"
         title="Liquidaciones"
-        description="Revision de avisos, pagos manuales, seguimiento a riders y un historial auditable unificado para plataforma y repartidores."
+        description="Controlas avisos enviados por los comercios, seguimiento de liquidaciones y un historial auditable. El admin no registra pagos: los comercios pagan a la plataforma y a sus riders."
       />
 
       <section className="rounded-[28px] border border-[#d9e6ff] bg-[#f6f9ff] p-5 text-sm text-[#38558a] shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#6a88bf]">Ayuda</p>
         <p className="mt-2 leading-7">
-          Desde aqui revisas comprobantes de comercios, aplicas pagos excepcionales y registras liquidaciones a riders.
-          Cada confirmacion o disputa queda reflejada en el historial y dispara notificaciones in-app.
+          Desde aqui auditas lo que reporta cada comercio: comprobantes pagados a plataforma, pagos a riders y sus
+          confirmaciones. El panel de admin solo revisa, aprueba y deja trazabilidad.
         </p>
       </section>
 
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard label="Saldo pendiente" value={formatCurrency(totalPlatformPending)} description="Suma de saldos abiertos por comercio." />
         <StatCard label="Avisos pendientes" value={String(settlementNotices.filter((notice) => notice.status === "pending_review").length)} description="Transferencias pendientes de revision." />
-        <StatCard label="Riders por confirmar" value={String(riderPendingConfirmations)} description="Pagos a riders aun sin confirmacion de recepcion." />
+        <StatCard label="Riders por confirmar" value={String(riderPendingConfirmations)} description="Pagos reportados por comercios aun sin confirmacion del rider." />
         <StatCard label="Notificaciones" value={String(notifications.length)} description="Eventos visibles sin recargar el panel." />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <section className="space-y-4">
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-bold text-ink">Pagos manuales a plataforma</h2>
-            <form onSubmit={(event) => void handlePlatformPaymentSubmit(event)} className="mt-4 grid gap-3 md:grid-cols-2">
-              <select
-                value={platformPaymentForm.store_id}
-                onChange={(event) => setPlatformPaymentForm((current) => ({ ...current, store_id: event.target.value }))}
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              >
-                {settlementStores.map((store) => (
-                  <option key={store.id} value={store.store_id ?? store.id}>
-                    {store.store_name}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={platformPaymentForm.amount}
-                onChange={(event) => setPlatformPaymentForm((current) => ({ ...current, amount: event.target.value }))}
-                placeholder="Monto"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              />
-              <input
-                value={platformPaymentForm.reference}
-                onChange={(event) => setPlatformPaymentForm((current) => ({ ...current, reference: event.target.value }))}
-                placeholder="Referencia"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              />
-              <input
-                value={platformPaymentForm.notes}
-                onChange={(event) => setPlatformPaymentForm((current) => ({ ...current, notes: event.target.value }))}
-                placeholder="Notas"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              />
-              <Button type="submit" disabled={savingPlatformPayment} className="md:col-span-2">
-                {savingPlatformPayment ? "Registrando..." : "Registrar pago manual"}
-              </Button>
-            </form>
-          </article>
-
           <article className="rounded-[28px] bg-white p-5 shadow-sm">
             <h2 className="text-xl font-bold text-ink">Avisos con comprobante</h2>
             <div className="mt-4 space-y-3">
@@ -324,50 +190,21 @@ export function LiquidationsPage() {
 
         <section className="space-y-4">
           <article className="rounded-[28px] bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-bold text-ink">Pago manual a riders</h2>
-            <form onSubmit={(event) => void handleRiderPaymentSubmit(event)} className="mt-4 grid gap-3">
-              <select
-                value={riderPaymentForm.rider_user_id}
-                onChange={(event) => setRiderPaymentForm((current) => ({ ...current, rider_user_id: event.target.value }))}
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              >
-                {deliverySettlements.map((settlement) => (
-                  <option key={settlement.rider_user_id} value={settlement.rider_user_id}>
-                    {settlement.rider_name} | pendiente {formatCurrency(settlement.pending_amount)}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={riderPaymentForm.amount}
-                onChange={(event) => setRiderPaymentForm((current) => ({ ...current, amount: event.target.value }))}
-                placeholder="Monto"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              />
-              <input
-                type="datetime-local"
-                value={riderPaymentForm.paid_at}
-                onChange={(event) => setRiderPaymentForm((current) => ({ ...current, paid_at: event.target.value }))}
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              />
-              <input
-                value={riderPaymentForm.reference}
-                onChange={(event) => setRiderPaymentForm((current) => ({ ...current, reference: event.target.value }))}
-                placeholder="Referencia"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              />
-              <input
-                value={riderPaymentForm.notes}
-                onChange={(event) => setRiderPaymentForm((current) => ({ ...current, notes: event.target.value }))}
-                placeholder="Notas"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              />
-              <Button type="submit" disabled={savingRiderPayment}>
-                {savingRiderPayment ? "Registrando..." : "Registrar pago a rider"}
-              </Button>
-            </form>
+            <h2 className="text-xl font-bold text-ink">Criterio operativo</h2>
+            <div className="mt-4 space-y-3 text-sm text-zinc-600">
+              <div className="rounded-[22px] bg-zinc-50 p-4">
+                <p className="font-semibold text-ink">Plataforma</p>
+                <p className="mt-2">
+                  El comercio carga su comprobante y el admin solo aprueba o rechaza la recepcion.
+                </p>
+              </div>
+              <div className="rounded-[22px] bg-zinc-50 p-4">
+                <p className="font-semibold text-ink">Riders</p>
+                <p className="mt-2">
+                  El comercio registra el pago al rider. El admin solo audita el historial y el estado de confirmacion.
+                </p>
+              </div>
+            </div>
           </article>
 
           <article className="rounded-[28px] bg-white p-5 shadow-sm">
@@ -391,10 +228,41 @@ export function LiquidationsPage() {
                     <span>{formatCurrency(settlement.pending_amount)}</span>
                   </div>
                   <p className="mt-1 text-zinc-500">
-                    Ganado {formatCurrency(settlement.rider_fee_earned_total)} | Pagado {formatCurrency(settlement.rider_fee_paid_total)}
+                    Ganado {formatCurrency(settlement.rider_fee_earned_total)} | Reportado pagado {formatCurrency(settlement.rider_fee_paid_total)}
                   </p>
                 </div>
               ))}
+            </div>
+          </article>
+
+          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+            <h2 className="text-xl font-bold text-ink">Pagos auditables reportados</h2>
+            <div className="mt-4 space-y-3">
+              {settlementPayments.slice(0, 4).map((payment) => (
+                <div key={`platform-${payment.id}`} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <strong>{payment.store_name ?? "Comercio"}</strong>
+                    <span>{formatCurrency(payment.amount)}</span>
+                  </div>
+                  <p className="mt-1 text-zinc-500">
+                    Plataforma | {formatDateTime(payment.paid_at)} {payment.reference ? `| Ref: ${payment.reference}` : ""}
+                  </p>
+                </div>
+              ))}
+              {deliveryPayments.slice(0, 4).map((payment) => (
+                <div key={`rider-${payment.id}`} className="rounded-[22px] border border-black/5 bg-white p-4 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <strong>{payment.rider_name ?? "Rider"}</strong>
+                    <span>{formatCurrency(payment.amount)}</span>
+                  </div>
+                  <p className="mt-1 text-zinc-500">
+                    Comercio paga rider | {formatDateTime(payment.paid_at)} | {statusLabels[payment.receiver_status] ?? payment.receiver_status}
+                  </p>
+                </div>
+              ))}
+              {!settlementPayments.length && !deliveryPayments.length ? (
+                <EmptyState title="Sin pagos reportados" description="Los movimientos confirmados o reportados apareceran aqui." />
+              ) : null}
             </div>
           </article>
 

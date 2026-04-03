@@ -356,51 +356,7 @@ def create_settlement_payment(
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> MerchantSettlementPaymentRead:
-    if payload.amount <= 0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be greater than zero")
-    store = db.scalar(select(Store).where(Store.id == payload.store_id))
-    if store is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Store not found")
-    outstanding_balance = get_outstanding_balance(db, payload.store_id)
-    if payload.amount > outstanding_balance:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Payment amount exceeds outstanding store balance",
-        )
-    payment = MerchantSettlementPayment(
-        store_id=payload.store_id,
-        source="admin_manual",
-        amount=payload.amount,
-        paid_at=payload.paid_at or datetime.now(UTC),
-        reference=payload.reference,
-        notes=payload.notes,
-        created_by_user_id=user.id,
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="Admin no registra pagos a plataforma. Los comercios cargan el comprobante y el admin solo audita o aprueba.",
     )
-    db.add(payment)
-    db.flush()
-    remaining = apply_payment_to_oldest_charges(db, payment)
-    if remaining > 0:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Payment amount exceeds outstanding store balance",
-        )
-    if store.owner_user_id is not None:
-        create_notifications(
-            db,
-            user_ids=[store.owner_user_id],
-            order_id=None,
-            event_type="merchant.settlement_payment_recorded",
-            title="Pago manual aplicado",
-            body=f"Se aplico un pago manual por ${float(payload.amount):.2f}.",
-            payload={"store_id": store.id, "payment_id": payment.id, "amount": float(payload.amount)},
-        )
-    db.commit()
-    payment = db.scalar(
-        select(MerchantSettlementPayment)
-        .options(*PAYMENT_OPTIONS)
-        .where(MerchantSettlementPayment.id == payment.id)
-    )
-    if payment is None:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Payment was not persisted")
-    return serialize_settlement_payment(payment)

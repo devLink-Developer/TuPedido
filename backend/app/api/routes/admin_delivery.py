@@ -414,41 +414,7 @@ def create_delivery_settlement_payment(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
-    rider = db.scalar(select(User).where(User.id == payload.rider_user_id, User.role == "delivery"))
-    if rider is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rider not found")
-    rider_profile = db.get(DeliveryProfile, payload.rider_user_id)
-    payment = RiderSettlementPayment(
-        rider_user_id=payload.rider_user_id,
-        store_id=rider_profile.store_id if rider_profile is not None else None,
-        amount=payload.amount,
-        paid_at=payload.paid_at,
-        reference=payload.reference,
-        notes=payload.notes,
-        created_by_user_id=admin.id,
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="Admin no registra pagos a riders. Cada comercio gestiona y reporta sus pagos a riders; admin solo audita.",
     )
-    db.add(payment)
-    db.flush()
-    create_notifications(
-        db,
-        user_ids=[payload.rider_user_id],
-        order_id=None,
-        event_type="delivery.settlement_paid",
-        title="Liquidacion registrada",
-        body=f"Se registro un pago por ${payload.amount:.2f}.",
-        payload={
-            "amount": payload.amount,
-            "payment_id": payment.id,
-            "store_id": rider_profile.store_id if rider_profile is not None else None,
-        },
-    )
-    db.commit()
-    db.refresh(payment)
-    return {
-        "id": payment.id,
-        "rider_user_id": payment.rider_user_id,
-        "amount": float(payment.amount),
-        "paid_at": payment.paid_at.isoformat(),
-        "reference": payment.reference,
-        "notes": payment.notes,
-    }
