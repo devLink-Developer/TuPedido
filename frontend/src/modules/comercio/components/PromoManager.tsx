@@ -10,6 +10,7 @@ import {
 } from "../../../shared/services/api";
 import type { MerchantPromotion, Product, PromotionWrite } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
+import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
 import { statusLabels } from "../../../shared/utils/labels";
 
@@ -213,23 +214,18 @@ export function PromoManager() {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-[28px] border border-[#ffe6d7] bg-[#fff8f3] p-5 text-sm text-[#6d4f43] shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#a36e58]">Ayuda</p>
-        <p className="mt-2 leading-7">
-          Cada combo usa productos ya existentes. El precio final debe reflejar lo que pagara el cliente y el limite
-          diario controla cuantas veces puede comprar ese combo la misma persona en un dia.
-        </p>
-      </section>
-
       {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
 
       <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4 rounded-[28px] bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Combo</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">
-              {editingId === null ? "Nueva promocion" : "Editar promocion"}
-            </h2>
+            <div className="mt-2 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-ink">{editingId === null ? "Nueva promocion" : "Editar promocion"}</h2>
+              <HelpTooltip label="Ayuda sobre promocion">
+                Combina productos ya creados, define el precio final y el limite por cliente.
+              </HelpTooltip>
+            </div>
           </div>
           {editingId !== null ? (
             <button
@@ -296,7 +292,12 @@ export function PromoManager() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Productos</p>
-              <h3 className="mt-2 text-lg font-bold text-ink">Configura el combo</h3>
+              <div className="mt-2 flex items-center gap-2">
+                <h3 className="text-lg font-bold text-ink">Configura el combo</h3>
+                <HelpTooltip label="Ayuda sobre productos del combo">
+                  Agrega los productos y cantidades que forman parte de la promocion.
+                </HelpTooltip>
+              </div>
             </div>
             <Button
               type="button"

@@ -28,7 +28,7 @@ export function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Rider" title="Pedidos" description="Vista operativa de asignaciones y entregas en curso." />
+      <PageHeader eyebrow="Rider" title="Pedidos" description="Asignaciones y entregas en curso." />
       {orders.length ? <AvailableOrders orders={orders} /> : <EmptyState title="Sin pedidos" description="Todavía no hay pedidos para mostrar." />}
     </div>
   );

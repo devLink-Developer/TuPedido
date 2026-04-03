@@ -22,6 +22,7 @@ import type {
   SettlementNotice,
   SettlementOverview
 } from "../../../shared/types";
+import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
 import { statusLabels } from "../../../shared/utils/labels";
 
@@ -75,6 +76,15 @@ function StatusBadge({ value }: { value: string }) {
     <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
       {statusLabels[value] ?? value}
     </span>
+  );
+}
+
+function SectionTitle({ title, help }: { title: string; help: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <h2 className="text-xl font-bold text-ink">{title}</h2>
+      <HelpTooltip label={`Ayuda sobre ${title}`}>{help}</HelpTooltip>
+    </div>
   );
 }
 
@@ -251,38 +261,36 @@ export function LiquidationsPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Comercio"
-        title="Liquidaciones"
-        description="Gestiona en un solo lugar la cuenta corriente con plataforma, los pagos a riders, el historial auditado y las notificaciones operativas."
+        title={
+          <span className="inline-flex items-center gap-3">
+            <span>Liquidaciones</span>
+            <HelpTooltip label="Ayuda sobre liquidaciones" variant="inverse">
+              Informa pagos a la plataforma, registra pagos a riders y revisa el historial.
+            </HelpTooltip>
+          </span>
+        }
       />
-
-      <section className="rounded-[28px] border border-[#ffe6d7] bg-[#fff8f3] p-5 text-sm text-[#6d4f43] shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#a36e58]">Ayuda</p>
-        <p className="mt-2 leading-7">
-          Plataforma: envias un aviso con comprobante y el admin lo aprueba o rechaza. Riders: registras el pago y el
-          rider debe confirmar o disputar la recepcion para dejar trazabilidad.
-        </p>
-      </section>
 
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard
           label="Fee pendiente"
           value={formatCurrency(overview.pending_balance)}
-          description={`${overview.pending_notices_count} avisos pendientes de revision.`}
+          description={`${overview.pending_notices_count} avisos pendientes.`}
         />
         <StatCard
           label="Fee liquidado"
           value={formatCurrency(overview.paid_balance)}
-          description="Pagos ya aplicados en cuenta corriente."
+          description="Pagos ya revisados."
         />
         <StatCard
           label="Riders pendiente"
           value={formatCurrency(ridersPendingTotal)}
-          description="Saldo aun no pagado a riders del comercio."
+          description="Saldo por pagar."
         />
         <StatCard
           label="Notificaciones"
           value={String(notifications.length)}
-          description="Eventos in-app recibidos sin recargar."
+          description="Alertas recientes."
         />
       </div>
 
@@ -292,7 +300,12 @@ export function LiquidationsPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Plataforma</p>
-                <h2 className="mt-2 text-xl font-bold text-ink">Avisar transferencia</h2>
+                <div className="mt-2 flex items-center gap-2">
+                  <SectionTitle
+                    title="Avisar transferencia"
+                    help="Carga el comprobante del pago enviado a la plataforma."
+                  />
+                </div>
               </div>
               {pendingNotice ? <StatusBadge value={pendingNotice.status} /> : null}
             </div>
@@ -380,7 +393,9 @@ export function LiquidationsPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Cuenta corriente</p>
-                <h2 className="mt-2 text-xl font-bold text-ink">Cargos y avisos</h2>
+                <div className="mt-2 flex items-center gap-2">
+                  <SectionTitle title="Cargos y avisos" help="Consulta cargos del comercio y avisos ya enviados." />
+                </div>
               </div>
               <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
                 {charges.length} cargos
@@ -439,7 +454,12 @@ export function LiquidationsPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Riders</p>
-                <h2 className="mt-2 text-xl font-bold text-ink">Pagos y confirmacion de recepcion</h2>
+                <div className="mt-2 flex items-center gap-2">
+                  <SectionTitle
+                    title="Pagos a riders"
+                    help="Registra el pago hecho al rider y revisa si ya lo confirmo."
+                  />
+                </div>
               </div>
               <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
                 {riderSettlements.length} riders
@@ -551,7 +571,9 @@ export function LiquidationsPage() {
 
           <article className="rounded-[28px] bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Notificaciones</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Eventos en tiempo real</h2>
+            <div className="mt-2 flex items-center gap-2">
+              <SectionTitle title="Alertas" help="Aqui aparecen avisos recientes relacionados con tus liquidaciones." />
+            </div>
             <div className="mt-4 space-y-3">
               {notifications.slice(0, 5).map((notification) => (
                 <div key={notification.id} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
@@ -571,8 +593,10 @@ export function LiquidationsPage() {
       <section className="rounded-[28px] bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Auditoria</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Historial unificado</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Historial</p>
+            <div className="mt-2 flex items-center gap-2">
+              <SectionTitle title="Movimientos" help="Consulta el registro de avisos, revisiones y pagos." />
+            </div>
           </div>
           <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
             {history.length} eventos

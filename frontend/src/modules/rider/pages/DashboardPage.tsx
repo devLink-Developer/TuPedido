@@ -201,7 +201,7 @@ export function DashboardPage() {
       <PageHeader
         eyebrow="Rider"
         title="Operacion de reparto"
-        description="Pedidos asignados, tracking en vivo y resumen de ganancias."
+        description="Pedidos asignados y resumen de ganancias."
         action={<OnlineToggle value={profile.availability} onChange={changeAvailability} />}
       />
 

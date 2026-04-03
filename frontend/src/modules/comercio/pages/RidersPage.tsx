@@ -10,6 +10,7 @@ import {
 } from "../../../shared/services/api";
 import type { DeliveryProfile, DeliveryVehicleType, MerchantRiderCreate, MerchantRiderUpdate, Order } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
+import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { formatDateTime } from "../../../shared/utils/format";
 import { statusLabels } from "../../../shared/utils/labels";
 
@@ -210,8 +211,14 @@ export function RidersPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Comercio"
-        title="Riders"
-        description="Alta, edicion compacta y asignacion manual. Los pagos y confirmaciones ahora viven en Liquidaciones."
+        title={
+          <span className="inline-flex items-center gap-3">
+            <span>Riders</span>
+            <HelpTooltip label="Ayuda sobre riders" variant="inverse">
+              Administra tu equipo de reparto y asigna riders a los pedidos listos.
+            </HelpTooltip>
+          </span>
+        }
         action={
           <div className="flex flex-wrap gap-2">
             <Button
@@ -232,14 +239,6 @@ export function RidersPage() {
         }
       />
 
-      <section className="rounded-[28px] border border-[#ffe6d7] bg-[#fff8f3] p-5 text-sm text-[#6d4f43] shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#a36e58]">Ayuda</p>
-        <p className="mt-2 leading-7">
-          Usa esta pantalla para mantener el equipo de reparto y resolver asignaciones. Los pagos a riders y la
-          confirmacion de recepcion ahora se registran desde Liquidaciones.
-        </p>
-      </section>
-
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard label="Activos" value={String(activeRiders.length)} description="Riders operativos en el comercio" />
         <StatCard label="Totales" value={String(riders.length)} description="Altas directas creadas desde este panel" />
@@ -256,7 +255,12 @@ export function RidersPage() {
       <section className="space-y-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Equipo</p>
-          <h2 className="mt-2 text-xl font-bold text-ink">Riders configurados</h2>
+          <div className="mt-2 flex items-center gap-2">
+            <h2 className="text-xl font-bold text-ink">Riders configurados</h2>
+            <HelpTooltip label="Ayuda sobre riders configurados">
+              Consulta tus riders activos y edita sus datos cuando lo necesites.
+            </HelpTooltip>
+          </div>
         </div>
         {riders.length ? (
           <div className="grid gap-4 xl:grid-cols-2">
@@ -316,7 +320,12 @@ export function RidersPage() {
       <section className="space-y-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Asignacion</p>
-          <h2 className="mt-2 text-xl font-bold text-ink">Pedidos listos para rider</h2>
+          <div className="mt-2 flex items-center gap-2">
+            <h2 className="text-xl font-bold text-ink">Pedidos listos para rider</h2>
+            <HelpTooltip label="Ayuda sobre asignacion">
+              Elige un rider disponible para los pedidos listos para despacho.
+            </HelpTooltip>
+          </div>
         </div>
         {dispatchOrders.length ? (
           <div className="space-y-4">
@@ -488,7 +497,7 @@ export function RidersPage() {
                   value={form.notes}
                   onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
                   rows={3}
-                  placeholder="Notas operativas"
+                  placeholder="Notas"
                   className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
                 />
               </div>

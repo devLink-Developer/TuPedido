@@ -9,6 +9,7 @@ import {
   fetchAdminStores
 } from "../../../shared/services/api";
 import type { DeliveryApplication, DeliveryProfile, MerchantApplication, Order, StoreSummary } from "../../../shared/types";
+import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { formatCurrency } from "../../../shared/utils/format";
 import { buildNamedPeriodStats } from "../../../shared/utils/orderAnalytics";
 
@@ -199,8 +200,14 @@ export function DashboardPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Admin"
-        title="Dashboard"
-        description="Refresco silencioso activo para seguir postulaciones, operacion y rendimiento por comercio sin recargar la pantalla."
+        title={
+          <span className="inline-flex items-center gap-3">
+            <span>Dashboard</span>
+            <HelpTooltip label="Ayuda sobre dashboard" variant="inverse">
+              Revisa el estado general del panel y compara el rendimiento de cada comercio.
+            </HelpTooltip>
+          </span>
+        }
       />
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -209,14 +216,6 @@ export function DashboardPage() {
         <StatCard label="Riders activos" value={String(overview.activeRiders)} description="Perfiles de reparto en operacion." />
         <StatCard label="Pedidos totales" value={String(overview.totalOrders)} description="Base acumulada de pedidos." />
       </div>
-
-      <section className="rounded-[28px] border border-[#d9e6ff] bg-[#f6f9ff] p-5 text-sm text-[#38558a] shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#6a88bf]">Ayuda</p>
-        <p className="mt-2 leading-7">
-          Las metricas se recalculan en frontend desde los pedidos existentes. El objetivo es detectar rapido que
-          comercio vende mas, cual esta cancelando de mas y donde el ticket promedio se esta desviando.
-        </p>
-      </section>
 
       <div className="grid gap-4 xl:grid-cols-3">
         {periodStats.map((period) => (
@@ -239,7 +238,7 @@ export function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Ranking por comercio</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Ventas y salud operativa</h2>
+            <h2 className="mt-2 text-xl font-bold text-ink">Ventas por comercio</h2>
           </div>
           <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
             top {storeRanking.length}

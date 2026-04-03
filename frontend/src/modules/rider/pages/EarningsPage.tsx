@@ -9,6 +9,7 @@ import {
 } from "../../../shared/services/api";
 import type { DeliverySettlement, DeliverySettlementPayment } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
+import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
 import { statusLabels } from "../../../shared/utils/labels";
 import { EarningsSummary } from "../components/EarningsSummary";
@@ -82,17 +83,15 @@ export function EarningsPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Rider"
-        title="Ganancias"
-        description="Consulta ingresos, pagos recibidos y confirma o disputa cada liquidacion para dejar trazabilidad."
+        title={
+          <span className="inline-flex items-center gap-3">
+            <span>Ganancias</span>
+            <HelpTooltip label="Ayuda sobre ganancias" variant="inverse">
+              Revisa tus pagos y confirma si ya recibiste cada liquidacion.
+            </HelpTooltip>
+          </span>
+        }
       />
-
-      <section className="rounded-[28px] border border-[#cce8d8] bg-[#f4fbf7] p-5 text-sm text-[#285b44] shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#4f8a6c]">Ayuda</p>
-        <p className="mt-2 leading-7">
-          Cuando un comercio o admin registra un pago, lo veras aqui. Debes confirmar la recepcion o disputarla para que
-          la liquidacion quede cerrada y auditada.
-        </p>
-      </section>
 
       <EarningsSummary settlement={settlement} />
 
@@ -116,7 +115,12 @@ export function EarningsPage() {
       <section className="space-y-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Historial</p>
-          <h2 className="mt-2 text-xl font-bold text-ink">Pagos recibidos</h2>
+          <div className="mt-2 flex items-center gap-2">
+            <h2 className="text-xl font-bold text-ink">Pagos recibidos</h2>
+            <HelpTooltip label="Ayuda sobre pagos recibidos">
+              Confirma o reporta cualquier problema con los pagos que te registren.
+            </HelpTooltip>
+          </div>
         </div>
         {payments.length ? (
           <div className="space-y-4">

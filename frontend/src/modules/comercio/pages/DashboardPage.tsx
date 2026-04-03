@@ -9,6 +9,7 @@ import {
   fetchMerchantStore
 } from "../../../shared/services/api";
 import type { MerchantStore, Order, SettlementOverview } from "../../../shared/types";
+import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
 import { buildNamedPeriodStats, compareOperationalOrders } from "../../../shared/utils/orderAnalytics";
 import { statusLabels } from "../../../shared/utils/labels";
@@ -123,8 +124,14 @@ export function DashboardPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Comercio"
-        title={store.name}
-        description="Primero ves estadisticas reales de ventas. La cuenta corriente de fees y los pagos a riders ahora se operan desde Liquidaciones."
+        title={
+          <span className="inline-flex items-center gap-3">
+            <span>{store.name}</span>
+            <HelpTooltip label="Ayuda sobre resumen" variant="inverse">
+              Mira tus ventas del dia, semana y mes. Los cobros y pagos se gestionan desde Liquidaciones.
+            </HelpTooltip>
+          </span>
+        }
         backgroundImageUrl={store.cover_image_url}
         action={
           <div className="flex flex-wrap gap-2">
@@ -141,14 +148,6 @@ export function DashboardPage() {
           </div>
         }
       />
-
-      <section className="rounded-[28px] border border-[#ffe6d7] bg-[#fff8f3] p-5 text-sm text-[#6d4f43] shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#a36e58]">Ayuda</p>
-        <p className="mt-2 leading-7">
-          Las metricas usan los pedidos visibles del comercio y se separan en hoy, semana y mes. Si necesitas operar cobros,
-          comprobantes o pagos a riders, usa el menu <strong>Liquidaciones</strong>.
-        </p>
-      </section>
 
       {approvalMessage ? (
         <section className="rounded-[28px] border border-black/5 bg-white p-5 shadow-sm">
@@ -181,7 +180,7 @@ export function DashboardPage() {
         <StatCard
           label="Pedidos abiertos"
           value={String(orders.filter((order) => !["cancelled", "delivered"].includes(order.status)).length)}
-          description="Carga operativa actual del comercio."
+          description="Pedidos por atender."
         />
         <StatCard
           label="Ventas mes"
@@ -205,10 +204,12 @@ export function DashboardPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Operacion</p>
-              <h2 className="mt-2 text-xl font-bold text-ink">Pedidos que requieren atencion</h2>
-              <p className="mt-2 text-sm text-zinc-600">
-                Se muestran primero los pedidos abiertos para priorizar aceptacion, preparacion y despacho.
-              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-ink">Pedidos que requieren atencion</h2>
+                <HelpTooltip label="Ayuda sobre pedidos que requieren atencion">
+                  Aqui ves primero los pedidos abiertos para resolverlos rapido.
+                </HelpTooltip>
+              </div>
             </div>
             <Link to="/m/pedidos" className="text-sm font-semibold text-brand-600">
               Ver todos

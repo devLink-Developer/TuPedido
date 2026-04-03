@@ -3,6 +3,7 @@ import { EmptyState, LoadingCard, PageHeader, StatCard } from "../../../shared/c
 import { useAuthSession } from "../../../shared/hooks";
 import { fetchAdminOrders, fetchAdminStores } from "../../../shared/services/api";
 import type { Order, StoreSummary } from "../../../shared/types";
+import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
 import { buildNamedPeriodStats } from "../../../shared/utils/orderAnalytics";
 import { paymentMethodLabels, statusLabels } from "../../../shared/utils/labels";
@@ -130,22 +131,20 @@ export function OrdersPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Admin"
-        title="Pedidos"
-        description="Filtra por comercio y cruza estados, pago, entrega y fechas con estadisticas recalculadas sobre el conjunto visible."
+        title={
+          <span className="inline-flex items-center gap-3">
+            <span>Pedidos</span>
+            <HelpTooltip label="Ayuda sobre pedidos" variant="inverse">
+              Filtra por comercio, fecha, estado y forma de entrega para revisar los pedidos que necesitas.
+            </HelpTooltip>
+          </span>
+        }
         action={
           <button type="button" onClick={() => void load()} className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white">
             Actualizar
           </button>
         }
       />
-
-      <section className="rounded-[28px] border border-[#d9e6ff] bg-[#f6f9ff] p-5 text-sm text-[#38558a] shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#6a88bf]">Ayuda</p>
-        <p className="mt-2 leading-7">
-          Las tarjetas de arriba muestran solo el subconjunto filtrado. Si eliges un comercio, las metricas se vuelven
-          especificas de esa tienda para detectar ventas, ticket y cancelaciones sin cambiar de pantalla.
-        </p>
-      </section>
 
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard label="Pedidos filtrados" value={String(filteredOrders.length)} description={filteredStore ? filteredStore.name : "Todos los comercios"} />

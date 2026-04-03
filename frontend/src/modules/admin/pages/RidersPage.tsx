@@ -48,7 +48,7 @@ export function RidersPage() {
       <PageHeader
         eyebrow="Admin"
         title="Riders"
-        description="Vista de solo lectura. El alta, la asignacion y los pagos ahora se gestionan desde cada comercio."
+        description="Consulta solicitudes, riders visibles y pedidos pendientes de asignacion."
       />
 
       <div className="grid gap-4 lg:grid-cols-2">

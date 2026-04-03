@@ -13,6 +13,7 @@ import {
 } from "../../../shared/services/api";
 import { useUiStore } from "../../../shared/stores";
 import type { DeliveryProfile, MerchantStore, Order, OrderStatusUpdate, StoreUpdate } from "../../../shared/types";
+import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { notifyCatalogStoresChanged } from "../../../shared/utils/catalogStores";
 import { formatCurrency } from "../../../shared/utils/format";
 import {
@@ -401,8 +402,14 @@ export function OrdersPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Comercio"
-        title="Pedidos"
-        description="Los pedidos se ordenan por fecha y prioridad operativa. Cancelados y entregados quedan ocultos hasta que los filtres."
+        title={
+          <span className="inline-flex items-center gap-3">
+            <span>Pedidos</span>
+            <HelpTooltip label="Ayuda sobre pedidos" variant="inverse">
+              Revisa tus pedidos abiertos y muestra entregados o cancelados solo cuando los necesites.
+            </HelpTooltip>
+          </span>
+        }
         action={
           <div className="min-w-[280px] rounded-[26px] border border-white/15 bg-white/10 p-4 backdrop-blur">
             <div className="flex items-start justify-between gap-4">
@@ -446,14 +453,6 @@ export function OrdersPage() {
         }
       />
 
-      <section className="rounded-[28px] border border-[#ffe6d7] bg-[#fff8f3] p-5 text-sm text-[#6d4f43] shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#a36e58]">Ayuda</p>
-        <p className="mt-2 leading-7">
-          Por defecto solo ves pedidos abiertos. Si necesitas revisar historicos, habilita los filtros de entregados o
-          cancelados. El orden prioriza primero los creados, despues los demas estados operativos.
-        </p>
-      </section>
-
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard label="Abiertos" value={String(openOrders.length)} description="Pedidos visibles para operar ahora." />
         <StatCard
@@ -483,7 +482,12 @@ export function OrdersPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Filtros</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Prioridad operativa</h2>
+            <div className="mt-2 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-ink">Filtros de pedidos</h2>
+              <HelpTooltip label="Ayuda sobre filtros de pedidos">
+                Usa estos filtros para mostrar solo los pedidos que quieres revisar.
+              </HelpTooltip>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <button

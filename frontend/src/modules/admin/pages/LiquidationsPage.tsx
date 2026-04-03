@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "../../../shared/ui/Button";
+import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { EmptyState, LoadingCard, PageHeader, StatCard } from "../../../shared/components";
 import { useAuthSession, useRealtimeNotifications } from "../../../shared/hooks";
 import {
@@ -27,6 +28,15 @@ function StatusBadge({ value }: { value: string }) {
     <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
       {statusLabels[value] ?? value}
     </span>
+  );
+}
+
+function SectionTitle({ title, help }: { title: string; help: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <h2 className="text-xl font-bold text-ink">{title}</h2>
+      <HelpTooltip label={`Ayuda sobre ${title}`}>{help}</HelpTooltip>
+    </div>
   );
 }
 
@@ -106,29 +116,30 @@ export function LiquidationsPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Admin"
-        title="Liquidaciones"
-        description="Controlas avisos enviados por los comercios, seguimiento de liquidaciones y un historial auditable. El admin no registra pagos: los comercios pagan a la plataforma y a sus riders."
+        title={
+          <span className="inline-flex items-center gap-3">
+            <span>Liquidaciones</span>
+            <HelpTooltip label="Ayuda sobre liquidaciones" variant="inverse">
+              Revisa comprobantes, movimientos recientes y el historial de liquidaciones.
+            </HelpTooltip>
+          </span>
+        }
       />
 
-      <section className="rounded-[28px] border border-[#d9e6ff] bg-[#f6f9ff] p-5 text-sm text-[#38558a] shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#6a88bf]">Ayuda</p>
-        <p className="mt-2 leading-7">
-          Desde aqui auditas lo que reporta cada comercio: comprobantes pagados a plataforma, pagos a riders y sus
-          confirmaciones. El panel de admin solo revisa, aprueba y deja trazabilidad.
-        </p>
-      </section>
-
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Saldo pendiente" value={formatCurrency(totalPlatformPending)} description="Suma de saldos abiertos por comercio." />
-        <StatCard label="Avisos pendientes" value={String(settlementNotices.filter((notice) => notice.status === "pending_review").length)} description="Transferencias pendientes de revision." />
-        <StatCard label="Riders por confirmar" value={String(riderPendingConfirmations)} description="Pagos reportados por comercios aun sin confirmacion del rider." />
-        <StatCard label="Notificaciones" value={String(notifications.length)} description="Eventos visibles sin recargar el panel." />
+        <StatCard label="Saldo pendiente" value={formatCurrency(totalPlatformPending)} description="Pendiente por revisar." />
+        <StatCard label="Avisos pendientes" value={String(settlementNotices.filter((notice) => notice.status === "pending_review").length)} description="Comprobantes por revisar." />
+        <StatCard label="Riders por confirmar" value={String(riderPendingConfirmations)} description="Pagos esperando respuesta." />
+        <StatCard label="Notificaciones" value={String(notifications.length)} description="Alertas recientes." />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <section className="space-y-4">
           <article className="rounded-[28px] bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-bold text-ink">Avisos con comprobante</h2>
+            <SectionTitle
+              title="Avisos con comprobante"
+              help="Verifica el comprobante enviado por el comercio antes de aprobar o rechazar la liquidacion."
+            />
             <div className="mt-4 space-y-3">
               {settlementNotices.map((notice) => (
                 <div key={notice.id} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
@@ -190,25 +201,10 @@ export function LiquidationsPage() {
 
         <section className="space-y-4">
           <article className="rounded-[28px] bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-bold text-ink">Criterio operativo</h2>
-            <div className="mt-4 space-y-3 text-sm text-zinc-600">
-              <div className="rounded-[22px] bg-zinc-50 p-4">
-                <p className="font-semibold text-ink">Plataforma</p>
-                <p className="mt-2">
-                  El comercio carga su comprobante y el admin solo aprueba o rechaza la recepcion.
-                </p>
-              </div>
-              <div className="rounded-[22px] bg-zinc-50 p-4">
-                <p className="font-semibold text-ink">Riders</p>
-                <p className="mt-2">
-                  El comercio registra el pago al rider. El admin solo audita el historial y el estado de confirmacion.
-                </p>
-              </div>
-            </div>
-          </article>
-
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-bold text-ink">Comercios y riders pendientes</h2>
+            <SectionTitle
+              title="Comercios y riders pendientes"
+              help="Muestra comercios con saldo pendiente y riders con pagos todavia sin confirmar."
+            />
             <div className="mt-4 space-y-3">
               {settlementStores.map((store) => (
                 <div key={store.id} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
@@ -236,7 +232,10 @@ export function LiquidationsPage() {
           </article>
 
           <article className="rounded-[28px] bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-bold text-ink">Pagos auditables reportados</h2>
+            <SectionTitle
+              title="Movimientos recientes"
+              help="Muestra los ultimos pagos y reportes informados por los comercios."
+            />
             <div className="mt-4 space-y-3">
               {settlementPayments.slice(0, 4).map((payment) => (
                 <div key={`platform-${payment.id}`} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
@@ -256,7 +255,7 @@ export function LiquidationsPage() {
                     <span>{formatCurrency(payment.amount)}</span>
                   </div>
                   <p className="mt-1 text-zinc-500">
-                    Comercio paga rider | {formatDateTime(payment.paid_at)} | {statusLabels[payment.receiver_status] ?? payment.receiver_status}
+                    Pago a rider | {formatDateTime(payment.paid_at)} | {statusLabels[payment.receiver_status] ?? payment.receiver_status}
                   </p>
                 </div>
               ))}
@@ -267,7 +266,10 @@ export function LiquidationsPage() {
           </article>
 
           <article className="rounded-[28px] bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-bold text-ink">Notificaciones</h2>
+            <SectionTitle
+              title="Notificaciones"
+              help="Eventos recientes relacionados con revisiones, pagos reportados y confirmaciones."
+            />
             <div className="mt-4 space-y-3">
               {notifications.slice(0, 5).map((notification) => (
                 <div key={notification.id} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
@@ -288,7 +290,12 @@ export function LiquidationsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Historial</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Auditoria unificada</h2>
+            <div className="mt-2 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-ink">Historial</h2>
+              <HelpTooltip label="Ayuda sobre historial">
+                Consulta el registro de revisiones, movimientos y confirmaciones.
+              </HelpTooltip>
+            </div>
           </div>
           <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
             {history.length} eventos
