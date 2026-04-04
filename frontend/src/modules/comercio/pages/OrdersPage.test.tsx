@@ -1,7 +1,9 @@
+import { useState, type ReactNode } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MerchantMobileHeaderProvider, useMerchantMobileHeader } from "../MerchantMobileHeaderContext";
 import { OrdersPage } from "./OrdersPage";
 
 const fetchMerchantOrdersMock = vi.fn();
@@ -42,6 +44,63 @@ class MockWebSocket {
   static reset() {
     MockWebSocket.instances = [];
   }
+}
+
+function setMatchMedia(matches: boolean) {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn()
+    }))
+  });
+}
+
+function MobileHeaderActionProbe() {
+  const { mobileHeaderAction } = useMerchantMobileHeader();
+
+  return <div data-testid="mobile-header-action">{mobileHeaderAction}</div>;
+}
+
+function renderOrdersPage() {
+  return render(
+    <MemoryRouter>
+      <OrdersPage />
+    </MemoryRouter>
+  );
+}
+
+function renderOrdersPageWithMobileHeaderProbe(ui: ReactNode = <OrdersPage />) {
+  return render(
+    <MemoryRouter>
+      <MerchantMobileHeaderProvider>
+        <MobileHeaderActionProbe />
+        {ui}
+      </MerchantMobileHeaderProvider>
+    </MemoryRouter>
+  );
+}
+
+function OrdersPageUnmountHarness() {
+  const [showPage, setShowPage] = useState(true);
+
+  return (
+    <MemoryRouter>
+      <MerchantMobileHeaderProvider>
+        <button type="button" onClick={() => setShowPage(false)}>
+          Ocultar pagina
+        </button>
+        <MobileHeaderActionProbe />
+        {showPage ? <OrdersPage /> : <div>pagina oculta</div>}
+      </MerchantMobileHeaderProvider>
+    </MemoryRouter>
+  );
 }
 
 vi.mock("../../../shared/hooks", () => ({
@@ -210,6 +269,7 @@ describe("OrdersPage", () => {
     refreshMock.mockReset();
     MockWebSocket.reset();
     globalThis.WebSocket = MockWebSocket as unknown as typeof WebSocket;
+    setMatchMedia(true);
     fetchMerchantOrdersMock.mockResolvedValue([]);
     fetchMerchantRidersMock.mockResolvedValue([]);
   });
@@ -220,13 +280,10 @@ describe("OrdersPage", () => {
     fetchMerchantStoreMock.mockResolvedValueOnce(approvedStoreWithAddress);
     updateMerchantStoreMock.mockResolvedValueOnce({ ...approvedStoreWithAddress, accepting_orders: false });
 
-    render(
-      <MemoryRouter>
-        <OrdersPage />
-      </MemoryRouter>
-    );
+    renderOrdersPage();
 
     await waitFor(() => expect(fetchMerchantStoreMock).toHaveBeenCalledWith("token"));
+    expect(screen.getAllByRole("switch", { name: "Recibir pedidos" })).toHaveLength(1);
     expect(screen.getByRole("switch", { name: "Recibir pedidos" })).toHaveAttribute("aria-checked", "true");
 
     await user.click(screen.getByRole("switch", { name: "Recibir pedidos" }));
@@ -251,11 +308,7 @@ describe("OrdersPage", () => {
   it("bloquea el toggle hasta que el comercio quede aprobado", async () => {
     fetchMerchantStoreMock.mockResolvedValueOnce({ ...approvedStore, status: "pending_review", accepting_orders: false });
 
-    render(
-      <MemoryRouter>
-        <OrdersPage />
-      </MemoryRouter>
-    );
+    renderOrdersPage();
 
     await waitFor(() => expect(fetchMerchantStoreMock).toHaveBeenCalledWith("token"));
     expect(screen.getByRole("switch", { name: "Recibir pedidos" })).toBeDisabled();
@@ -265,11 +318,7 @@ describe("OrdersPage", () => {
   it("no permite habilitar la venta si falta configurar la direccion del comercio", async () => {
     fetchMerchantStoreMock.mockResolvedValueOnce({ ...approvedStore, accepting_orders: false });
 
-    render(
-      <MemoryRouter>
-        <OrdersPage />
-      </MemoryRouter>
-    );
+    renderOrdersPage();
 
     await waitFor(() => expect(fetchMerchantStoreMock).toHaveBeenCalledWith("token"));
     expect(screen.getByRole("switch", { name: "Recibir pedidos" })).toBeDisabled();
@@ -277,15 +326,40 @@ describe("OrdersPage", () => {
     expect(updateMerchantStoreMock).not.toHaveBeenCalled();
   });
 
+  it("registra el toggle compacto en el header mobile y deja el resumen en la tarjeta", async () => {
+    setMatchMedia(false);
+    fetchMerchantStoreMock.mockResolvedValueOnce(approvedStoreWithAddress);
+
+    renderOrdersPageWithMobileHeaderProbe();
+
+    await waitFor(() => expect(fetchMerchantStoreMock).toHaveBeenCalledWith("token"));
+    await waitFor(() => expect(screen.getByTestId("mobile-header-action")).toHaveTextContent("Recibir pedidos"));
+    expect(screen.getAllByRole("switch", { name: "Recibir pedidos" })).toHaveLength(1);
+    expect(screen.getByText("Venta habilitada")).toBeInTheDocument();
+    expect(screen.getByText("El comercio figura abierto para tomar pedidos.")).toBeInTheDocument();
+  });
+
+  it("limpia la accion mobile al desmontar la pagina", async () => {
+    const user = userEvent.setup();
+
+    setMatchMedia(false);
+    fetchMerchantStoreMock.mockResolvedValueOnce(approvedStoreWithAddress);
+
+    render(<OrdersPageUnmountHarness />);
+
+    await waitFor(() => expect(screen.getByRole("switch", { name: "Recibir pedidos" })).toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: "Ocultar pagina" }));
+
+    await waitFor(() => expect(screen.getByTestId("mobile-header-action")).toBeEmptyDOMElement());
+    expect(screen.getByText("pagina oculta")).toBeInTheDocument();
+  });
+
   it("agrega pedidos nuevos en vivo con toast y sonido sin mostrar loading otra vez", async () => {
     fetchMerchantStoreMock.mockResolvedValueOnce(approvedStoreWithAddress);
     fetchMerchantOrdersMock.mockResolvedValueOnce([baseOrder]);
 
-    render(
-      <MemoryRouter>
-        <OrdersPage />
-      </MemoryRouter>
-    );
+    renderOrdersPage();
 
     await waitFor(() => expect(screen.getByText("Pedido #10")).toBeInTheDocument());
     expect(buildMerchantSocketUrlMock).toHaveBeenCalledWith("token");

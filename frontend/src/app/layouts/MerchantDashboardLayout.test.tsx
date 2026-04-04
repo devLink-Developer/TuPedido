@@ -1,7 +1,9 @@
+import { useEffect, type ReactNode } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MerchantMobileHeaderProvider, useMerchantMobileHeader } from "../../modules/comercio/MerchantMobileHeaderContext";
 import { MerchantDashboardLayout } from "./MerchantDashboardLayout";
 
 const logoutMock = vi.fn();
@@ -23,28 +25,44 @@ vi.mock("../../shared/hooks", async () => {
   };
 });
 
-function renderLayout(initialEntry = "/m/pedidos") {
+function MobileHeaderActionSetter({ action }: { action: ReactNode }) {
+  const { setMobileHeaderAction } = useMerchantMobileHeader();
+
+  useEffect(() => {
+    setMobileHeaderAction(action);
+    return () => {
+      setMobileHeaderAction(null);
+    };
+  }, [action, setMobileHeaderAction]);
+
+  return null;
+}
+
+function renderLayout(initialEntry = "/m/pedidos", options?: { mobileHeaderAction?: ReactNode }) {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
-      <Routes>
-        <Route
-          path="/m/pedidos"
-          element={
-            <MerchantDashboardLayout>
-              <div>pedidos page</div>
-            </MerchantDashboardLayout>
-          }
-        />
-        <Route
-          path="/m/configuracion"
-          element={
-            <MerchantDashboardLayout>
-              <div>configuracion page</div>
-            </MerchantDashboardLayout>
-          }
-        />
-        <Route path="/login" element={<div>login page</div>} />
-      </Routes>
+      <MerchantMobileHeaderProvider>
+        <Routes>
+          <Route
+            path="/m/pedidos"
+            element={
+              <MerchantDashboardLayout>
+                {options?.mobileHeaderAction ? <MobileHeaderActionSetter action={options.mobileHeaderAction} /> : null}
+                <div>pedidos page</div>
+              </MerchantDashboardLayout>
+            }
+          />
+          <Route
+            path="/m/configuracion"
+            element={
+              <MerchantDashboardLayout>
+                <div>configuracion page</div>
+              </MerchantDashboardLayout>
+            }
+          />
+          <Route path="/login" element={<div>login page</div>} />
+        </Routes>
+      </MerchantMobileHeaderProvider>
     </MemoryRouter>
   );
 }
@@ -58,8 +76,28 @@ describe("MerchantDashboardLayout", () => {
     renderLayout();
 
     const openButton = screen.getByRole("button", { name: "Abrir menu de comercio" });
-    expect(openButton).toHaveClass("self-end", "sm:self-auto");
+    expect(openButton.parentElement).toHaveClass("self-end", "sm:self-auto");
     expect(openButton.closest("header")).toHaveClass("flex-col", "sm:flex-row");
+  });
+
+  it("renderiza una accion mobile extra junto al menu sin romper el drawer", async () => {
+    const user = userEvent.setup();
+
+    renderLayout("/m/pedidos", {
+      mobileHeaderAction: (
+        <button type="button" className="rounded-full px-3 py-2">
+          Recibir pedidos
+        </button>
+      )
+    });
+
+    const openButton = screen.getByRole("button", { name: "Abrir menu de comercio" });
+    expect(screen.getByRole("button", { name: "Recibir pedidos" })).toBeInTheDocument();
+    expect(openButton.closest("header")).toHaveClass("justify-between");
+
+    await user.click(openButton);
+
+    expect(screen.getByRole("dialog", { name: "Menu de comercio" })).toBeInTheDocument();
   });
 
   it("abre el drawer mobile y lo cierra al navegar", async () => {

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from "react";
 import { EmptyState, LoadingCard, PageHeader, StatCard } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
+import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
 import {
   assignMerchantOrderRider,
   buildMerchantSocketUrl,
@@ -23,6 +24,7 @@ import {
 } from "../../../shared/utils/orderAnalytics";
 import { playNotificationTone } from "../../../shared/utils/notificationSound";
 import { statusLabels } from "../../../shared/utils/labels";
+import { useMerchantMobileHeader } from "../MerchantMobileHeaderContext";
 import { hasStoreAddressConfiguration, toStoreAddressFormState } from "../components/StoreAddressSection";
 import { OrdersTable } from "../components/OrdersTable";
 import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync";
@@ -59,8 +61,120 @@ function sortOrders(items: Order[]) {
   return [...items].sort((left, right) => right.id - left.id);
 }
 
+function OrdersToggleSwitch({
+  acceptingOrders,
+  canToggleOrders,
+  savingToggle,
+  onToggle,
+  surface
+}: {
+  acceptingOrders: boolean;
+  canToggleOrders: boolean;
+  savingToggle: boolean;
+  onToggle: () => void;
+  surface: "dark" | "light";
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={acceptingOrders}
+      aria-label="Recibir pedidos"
+      disabled={!canToggleOrders || savingToggle}
+      onClick={onToggle}
+      className={[
+        "relative inline-flex h-8 w-14 items-center rounded-full border transition",
+        acceptingOrders
+          ? "border-emerald-200/70 bg-emerald-400"
+          : surface === "light"
+            ? "border-black/10 bg-black/10"
+            : "border-white/15 bg-white/15",
+        !canToggleOrders || savingToggle ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+      ].join(" ")}
+    >
+      <span
+        className={[
+          "inline-block h-6 w-6 rounded-full bg-white shadow-sm transition",
+          acceptingOrders ? "translate-x-7" : "translate-x-1"
+        ].join(" ")}
+      />
+    </button>
+  );
+}
+
+function OrdersToggleControl({
+  acceptingOrders,
+  canToggleOrders,
+  savingToggle,
+  onToggle,
+  layout
+}: {
+  acceptingOrders: boolean;
+  canToggleOrders: boolean;
+  savingToggle: boolean;
+  onToggle: () => void;
+  layout: "inline" | "stacked";
+}) {
+  if (layout === "inline") {
+    return (
+      <div className="flex items-center gap-3 rounded-[22px] border border-black/10 bg-[#fff7f1] px-3 py-2 shadow-sm">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8f5f4e]">Recibir pedidos</span>
+        <OrdersToggleSwitch
+          acceptingOrders={acceptingOrders}
+          canToggleOrders={canToggleOrders}
+          savingToggle={savingToggle}
+          onToggle={onToggle}
+          surface="light"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-2">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#ffd3bf]/80">Recibir pedidos</span>
+      <OrdersToggleSwitch
+        acceptingOrders={acceptingOrders}
+        canToggleOrders={canToggleOrders}
+        savingToggle={savingToggle}
+        onToggle={onToggle}
+        surface="dark"
+      />
+    </div>
+  );
+}
+
+function OrdersSalesStatusCard({
+  acceptingOrders,
+  toggleDescription,
+  toggleError,
+  control,
+  className = ""
+}: {
+  acceptingOrders: boolean;
+  toggleDescription: string;
+  toggleError: string | null;
+  control?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`rounded-[26px] border border-white/15 bg-white/10 p-4 backdrop-blur ${className}`.trim()}>
+      <div className={`flex items-start gap-4 ${control ? "justify-between" : ""}`.trim()}>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#ffd3bf]/80">Venta</p>
+          <p className="mt-2 text-lg font-bold text-white">{acceptingOrders ? "Venta habilitada" : "Venta pausada"}</p>
+          <p className="mt-1 text-sm leading-6 text-white/72 md:max-w-[220px]">{toggleDescription}</p>
+        </div>
+        {control}
+      </div>
+      {toggleError ? <p className="mt-3 rounded-2xl bg-rose-500/15 px-3 py-2 text-sm text-rose-100">{toggleError}</p> : null}
+    </div>
+  );
+}
+
 export function OrdersPage() {
   const { token } = useAuthSession();
+  const { setMobileHeaderAction } = useMerchantMobileHeader();
   const enqueueToast = useUiStore((state) => state.enqueueToast);
   const [store, setStore] = useState<MerchantStore | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -78,6 +192,7 @@ export function OrdersPage() {
   const knownOrderIdsRef = useRef<Set<number>>(new Set());
   const hasLoadedOrdersRef = useRef(false);
   const requestIdRef = useRef(0);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const isApproved = store?.status === "approved";
   const acceptingOrders = isApproved ? store?.accepting_orders ?? false : false;
@@ -363,6 +478,10 @@ export function OrdersPage() {
     }
   }
 
+  const handleToggleOrdersAction = useEffectEvent(() => {
+    void handleToggleAcceptingOrders();
+  });
+
   const statusCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const order of orders) {
@@ -392,6 +511,27 @@ export function OrdersPage() {
   const periodStats = useMemo(() => buildNamedPeriodStats(filteredOrders), [filteredOrders]);
   const todayStats = periodStats.find((item) => item.key === "today")?.stats;
 
+  useEffect(() => {
+    if (isDesktop || loading || error || !store) {
+      setMobileHeaderAction(null);
+      return;
+    }
+
+    setMobileHeaderAction(
+      <OrdersToggleControl
+        acceptingOrders={acceptingOrders}
+        canToggleOrders={canToggleOrders}
+        savingToggle={savingToggle}
+        onToggle={handleToggleOrdersAction}
+        layout="inline"
+      />
+    );
+
+    return () => {
+      setMobileHeaderAction(null);
+    };
+  }, [acceptingOrders, canToggleOrders, error, isDesktop, loading, savingToggle, setMobileHeaderAction, store, handleToggleOrdersAction]);
+
   if (loading) return <LoadingCard />;
   if (error) return <EmptyState title="Pedidos no disponibles" description={error} />;
   if (!store) {
@@ -411,45 +551,29 @@ export function OrdersPage() {
           </span>
         }
         action={
-          <div className="min-w-[280px] rounded-[26px] border border-white/15 bg-white/10 p-4 backdrop-blur">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#ffd3bf]/80">Venta</p>
-                <p className="mt-2 text-lg font-bold text-white">
-                  {acceptingOrders ? "Venta habilitada" : "Venta pausada"}
-                </p>
-                <p className="mt-1 max-w-[220px] text-sm leading-6 text-white/72">{toggleDescription}</p>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#ffd3bf]/80">
-                  Recibir pedidos
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={acceptingOrders}
-                  aria-label="Recibir pedidos"
-                  disabled={!canToggleOrders || savingToggle}
-                  onClick={() => void handleToggleAcceptingOrders()}
-                  className={[
-                    "relative inline-flex h-8 w-14 items-center rounded-full border transition",
-                    acceptingOrders ? "border-emerald-200/70 bg-emerald-400" : "border-white/15 bg-white/15",
-                    !canToggleOrders || savingToggle ? "cursor-not-allowed opacity-60" : "cursor-pointer"
-                  ].join(" ")}
-                >
-                  <span
-                    className={[
-                      "inline-block h-6 w-6 rounded-full bg-white shadow-sm transition",
-                      acceptingOrders ? "translate-x-7" : "translate-x-1"
-                    ].join(" ")}
-                  />
-                </button>
-              </div>
-            </div>
-            {toggleError ? (
-              <p className="mt-3 rounded-2xl bg-rose-500/15 px-3 py-2 text-sm text-rose-100">{toggleError}</p>
-            ) : null}
-          </div>
+          isDesktop ? (
+            <OrdersSalesStatusCard
+              acceptingOrders={acceptingOrders}
+              toggleDescription={toggleDescription}
+              toggleError={toggleError}
+              control={
+                <OrdersToggleControl
+                  acceptingOrders={acceptingOrders}
+                  canToggleOrders={canToggleOrders}
+                  savingToggle={savingToggle}
+                  onToggle={handleToggleOrdersAction}
+                  layout="stacked"
+                />
+              }
+              className="min-w-[280px]"
+            />
+          ) : (
+            <OrdersSalesStatusCard
+              acceptingOrders={acceptingOrders}
+              toggleDescription={toggleDescription}
+              toggleError={toggleError}
+            />
+          )
         }
       />
 

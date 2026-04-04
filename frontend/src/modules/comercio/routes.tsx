@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { MerchantDashboardLayout } from "../../app/layouts/MerchantDashboardLayout";
+import { MerchantMobileHeaderProvider } from "./MerchantMobileHeaderContext";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LiquidationsPage } from "./pages/LiquidationsPage";
 import { OrdersPage } from "./pages/OrdersPage";
@@ -10,9 +11,11 @@ import { SettingsPage } from "./pages/SettingsPage";
 
 export function ComercioModuleLayoutRoute() {
   return (
-    <MerchantDashboardLayout>
-      <Outlet />
-    </MerchantDashboardLayout>
+    <MerchantMobileHeaderProvider>
+      <MerchantDashboardLayout>
+        <Outlet />
+      </MerchantDashboardLayout>
+    </MerchantMobileHeaderProvider>
   );
 }
 

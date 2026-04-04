@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useMerchantMobileHeader } from "../../modules/comercio/MerchantMobileHeaderContext";
 import { useAuthSession, useRouteBoundDrawer } from "../../shared/hooks";
 
 const navItems = [
@@ -17,6 +18,7 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
   const navigate = useNavigate();
   const { user, logout } = useAuthSession();
   const { open, setOpen, close } = useRouteBoundDrawer();
+  const { mobileHeaderAction } = useMerchantMobileHeader();
   const activeLabel =
     navItems.find((item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`))?.label ??
     "Panel operativo";
@@ -67,25 +69,35 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
           </div>
         </aside>
         <main className="flex-1 px-4 py-6 md:px-8">
-          <header className="mb-5 flex flex-col items-start gap-4 rounded-[26px] border border-black/5 bg-white/80 px-4 py-4 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between md:hidden">
+          <header
+            className={[
+              "mb-5 rounded-[26px] border border-black/5 bg-white/80 px-4 py-4 shadow-sm backdrop-blur md:hidden",
+              mobileHeaderAction
+                ? "flex items-start justify-between gap-3"
+                : "flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between"
+            ].join(" ")}
+          >
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8f5f4e]">Comercio</p>
               <h2 className="mt-1 text-lg font-bold text-ink">{activeLabel}</h2>
             </div>
-            <button
-              type="button"
-              aria-label="Abrir menu de comercio"
-              aria-expanded={open}
-              onClick={() => setOpen(true)}
-              className="inline-flex h-11 w-11 items-center justify-center self-end rounded-full border border-black/10 bg-white text-ink shadow-sm sm:self-auto"
-            >
-              <span className="sr-only">Menu</span>
-              <span className="space-y-1.5">
-                <span className="block h-0.5 w-5 rounded-full bg-current" />
-                <span className="block h-0.5 w-5 rounded-full bg-current" />
-                <span className="block h-0.5 w-5 rounded-full bg-current" />
-              </span>
-            </button>
+            <div className={`flex shrink-0 items-center gap-2 ${mobileHeaderAction ? "self-start" : "self-end sm:self-auto"}`}>
+              {mobileHeaderAction ? <div className="flex shrink-0 items-center">{mobileHeaderAction}</div> : null}
+              <button
+                type="button"
+                aria-label="Abrir menu de comercio"
+                aria-expanded={open}
+                onClick={() => setOpen(true)}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-ink shadow-sm"
+              >
+                <span className="sr-only">Menu</span>
+                <span className="space-y-1.5">
+                  <span className="block h-0.5 w-5 rounded-full bg-current" />
+                  <span className="block h-0.5 w-5 rounded-full bg-current" />
+                  <span className="block h-0.5 w-5 rounded-full bg-current" />
+                </span>
+              </button>
+            </div>
           </header>
           {children}
         </main>
