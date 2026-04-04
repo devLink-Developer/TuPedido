@@ -172,6 +172,26 @@ function OrdersSalesStatusCard({
   );
 }
 
+function OrdersSalesStatusCompactSummary({
+  acceptingOrders,
+  toggleDescription,
+  toggleError
+}: {
+  acceptingOrders: boolean;
+  toggleDescription: string;
+  toggleError: string | null;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="inline-flex w-fit items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ffd3bf]">
+        {acceptingOrders ? "Venta habilitada" : "Venta pausada"}
+      </span>
+      <span>{toggleDescription}</span>
+      {toggleError ? <span className="rounded-2xl bg-rose-500/15 px-3 py-2 text-sm text-rose-100">{toggleError}</span> : null}
+    </div>
+  );
+}
+
 export function OrdersPage() {
   const { token } = useAuthSession();
   const { setMobileHeaderAction } = useMerchantMobileHeader();
@@ -550,6 +570,15 @@ export function OrdersPage() {
             </HelpTooltip>
           </span>
         }
+        description={
+          isDesktop ? undefined : (
+            <OrdersSalesStatusCompactSummary
+              acceptingOrders={acceptingOrders}
+              toggleDescription={toggleDescription}
+              toggleError={toggleError}
+            />
+          )
+        }
         action={
           isDesktop ? (
             <OrdersSalesStatusCard
@@ -567,13 +596,7 @@ export function OrdersPage() {
               }
               className="min-w-[280px]"
             />
-          ) : (
-            <OrdersSalesStatusCard
-              acceptingOrders={acceptingOrders}
-              toggleDescription={toggleDescription}
-              toggleError={toggleError}
-            />
-          )
+          ) : undefined
         }
       />
 

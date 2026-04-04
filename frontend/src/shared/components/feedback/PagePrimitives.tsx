@@ -59,7 +59,7 @@ export function PageHeader({
 }: {
   eyebrow: string;
   title: ReactNode;
-  description?: string;
+  description?: ReactNode;
   action?: ReactNode;
   backgroundImageUrl?: string | null;
 }) {
@@ -90,7 +90,7 @@ export function PageHeader({
           <h1 className="mt-3 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight sm:text-3xl md:text-[2.35rem]">
             {title}
           </h1>
-          {description ? <p className="mt-3 max-w-2xl text-sm leading-6 text-white/74 sm:leading-7">{description}</p> : null}
+          {description ? <div className="mt-3 max-w-2xl text-sm leading-6 text-white/74 sm:leading-7">{description}</div> : null}
         </div>
         {action ? <div className="relative w-full md:w-auto md:shrink-0">{action}</div> : null}
       </div>
