@@ -55,21 +55,31 @@ export function PageHeader({
   title,
   description,
   action,
-  backgroundImageUrl
+  backgroundImageUrl,
+  className,
+  contentClassName,
+  titleClassName,
+  descriptionClassName
 }: {
   eyebrow: string;
   title: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
   backgroundImageUrl?: string | null;
+  className?: string;
+  contentClassName?: string;
+  titleClassName?: string;
+  descriptionClassName?: string;
 }) {
   const bannerUrl = backgroundImageUrl?.trim() || "";
   const hasBanner = Boolean(bannerUrl);
   return (
     <div
-      className={`ambient-grid overflow-hidden rounded-[34px] p-5 text-white shadow-lift sm:p-6 ${
-        hasBanner ? "min-h-[190px] md:min-h-[220px] bg-[#1d1614]" : "bg-[linear-gradient(135deg,#1d1614_0%,#281b18_45%,#3a221a_100%)]"
-      }`}
+      className={[
+        "ambient-grid overflow-hidden rounded-[34px] p-5 text-white shadow-lift sm:p-6",
+        hasBanner ? "min-h-[190px] md:min-h-[220px] bg-[#1d1614]" : "bg-[linear-gradient(135deg,#1d1614_0%,#281b18_45%,#3a221a_100%)]",
+        className ?? ""
+      ].join(" ")}
       style={
         hasBanner
           ? {
@@ -84,13 +94,20 @@ export function PageHeader({
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(20,14,12,0.52)_0%,rgba(20,14,12,0.2)_55%,rgba(20,14,12,0.38)_100%)]" />
       ) : null}
       <div className="absolute right-4 top-4 h-24 w-24 rounded-full bg-brand-400/20 blur-3xl" />
-      <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+      <div className={["flex flex-col gap-5 md:flex-row md:items-end md:justify-between", contentClassName ?? ""].join(" ")}>
         <div className="relative min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#ffd3bf]">{eyebrow}</p>
-          <h1 className="mt-3 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight sm:text-3xl md:text-[2.35rem]">
+          <h1
+            className={[
+              "mt-3 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight sm:text-3xl md:text-[2.35rem]",
+              titleClassName ?? ""
+            ].join(" ")}
+          >
             {title}
           </h1>
-          {description ? <div className="mt-3 max-w-2xl text-sm leading-6 text-white/74 sm:leading-7">{description}</div> : null}
+          {description ? (
+            <div className={["mt-3 max-w-2xl text-sm leading-6 text-white/74 sm:leading-7", descriptionClassName ?? ""].join(" ")}>{description}</div>
+          ) : null}
         </div>
         {action ? <div className="relative w-full md:w-auto md:shrink-0">{action}</div> : null}
       </div>

@@ -335,8 +335,8 @@ describe("OrdersPage", () => {
     await waitFor(() => expect(fetchMerchantStoreMock).toHaveBeenCalledWith("token"));
     await waitFor(() => expect(screen.getByTestId("mobile-header-action")).toHaveTextContent("Recibir pedidos"));
     expect(screen.getAllByRole("switch", { name: "Recibir pedidos" })).toHaveLength(1);
-    expect(screen.getByText("Venta habilitada")).toBeInTheDocument();
-    expect(screen.getByText("El comercio figura abierto para tomar pedidos.")).toBeInTheDocument();
+    expect(screen.getByText(/Venta habilitada\./)).toBeInTheDocument();
+    expect(screen.getByText(/El comercio figura abierto para tomar pedidos\./)).toBeInTheDocument();
     expect(screen.queryByText("Venta", { exact: true })).not.toBeInTheDocument();
   });
 
