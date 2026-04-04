@@ -45,7 +45,7 @@ export function CTAComercio({
         </div>
 
         <Link
-          className="inline-flex rounded-full px-5 py-3 text-sm font-semibold text-white shadow-float transition hover:opacity-95"
+          className="inline-flex min-h-[48px] items-center rounded-full px-5 py-3 text-sm font-semibold text-white shadow-float transition hover:scale-[1.02] hover:opacity-95 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           style={{
             backgroundImage: theme.buttonGradient,
             boxShadow: `0 22px 36px -22px ${theme.accentShadowStrong}`

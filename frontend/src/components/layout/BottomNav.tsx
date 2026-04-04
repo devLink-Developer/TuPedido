@@ -111,30 +111,38 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-[calc(0.75rem+var(--safe-bottom))] left-3 right-3 z-40 md:hidden">
-      <div className="mx-auto max-w-md rounded-[30px] border border-white/70 bg-[rgba(255,251,246,0.96)] p-2 shadow-[0_18px_40px_rgba(24,19,18,0.16)] backdrop-blur">
+      <div className="mx-auto max-w-md rounded-[30px] border border-white/80 bg-[rgba(255,251,246,0.96)] p-2 shadow-[0_20px_48px_rgba(24,19,18,0.18)] backdrop-blur-xl">
         <div className={`grid ${items.length === 4 ? "grid-cols-4" : "grid-cols-3"} gap-1`}>
           {items.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              className={({ isActive }) =>
-                [
-                  "relative flex min-h-[64px] flex-col items-center justify-center rounded-[22px] px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition",
-                  isActive || (item.to === "/cart" && itemCount > 0)
-                    ? "bg-[linear-gradient(135deg,#fb923c,#c2410c)] text-white shadow-float"
-                    : "text-zinc-500"
-                ].join(" ")
-              }
+              className={({ isActive }) => {
+                const active = isActive || (item.to === "/cart" && itemCount > 0);
+                return [
+                  "relative flex min-h-[64px] flex-col items-center justify-center rounded-[22px] px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition-all duration-200",
+                  active
+                    ? "bg-[linear-gradient(135deg,#fb923c,#c2410c)] text-white shadow-[0_8px_28px_-8px_rgba(194,65,12,0.45)]"
+                    : "text-zinc-500 hover:text-zinc-700 hover:bg-black/4"
+                ].join(" ");
+              }}
             >
-              <span className="relative flex h-8 w-8 items-center justify-center rounded-2xl bg-black/5">
-                <BottomIcon name={item.icon} />
-                {item.to === "/cart" && itemCount > 0 ? (
-                  <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-ink px-1.5 py-0.5 text-[9px] font-bold text-white">
-                    {itemCount}
-                  </span>
-                ) : null}
-              </span>
-              <span className="mt-1">{item.label}</span>
+              {({ isActive }) => {
+                const active = isActive || (item.to === "/cart" && itemCount > 0);
+                return (
+                  <>
+                    <span className={`relative flex h-8 w-8 items-center justify-center rounded-2xl transition-colors duration-200 ${active ? "bg-white/20" : "bg-black/5"}`}>
+                      <BottomIcon name={item.icon} />
+                      {item.to === "/cart" && itemCount > 0 ? (
+                        <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-white px-1.5 py-0.5 text-[9px] font-black text-[#c2410c]">
+                          {itemCount}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="mt-1">{item.label}</span>
+                  </>
+                );
+              }}
             </NavLink>
           ))}
         </div>

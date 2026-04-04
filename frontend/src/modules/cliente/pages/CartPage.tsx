@@ -38,7 +38,10 @@ export function CartPage() {
         eyebrow="Carrito"
         title={cart.store_name ?? "Tu carrito"}
         action={
-          <button className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white" onClick={() => void clear()}>
+          <button
+            className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+            onClick={() => void clear()}
+          >
             Vaciar carrito
           </button>
         }
@@ -46,7 +49,7 @@ export function CartPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-black/5">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Entrega</p>
             <div className="mt-3 flex gap-2">
               {availableDeliveryModes.length ? (
@@ -55,8 +58,10 @@ export function CartPage() {
                     key={mode.key}
                     type="button"
                     onClick={() => void setDeliveryMode(mode.key)}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                      cart.delivery_mode === mode.key ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-600"
+                    className={`min-h-[44px] rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
+                      cart.delivery_mode === mode.key
+                        ? "bg-[linear-gradient(135deg,#fb923c,#c2410c)] text-white shadow-[0_8px_20px_-8px_rgba(194,65,12,0.4)]"
+                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                     }`}
                   >
                     {mode.label}
@@ -69,7 +74,7 @@ export function CartPage() {
           </div>
 
           {cart.items.map((item) => (
-            <article key={item.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+            <article key={item.id} className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-black/5 transition-shadow duration-200 hover:shadow-md">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-bold">{item.product_name}</h3>
@@ -82,21 +87,23 @@ export function CartPage() {
                 <div className="inline-flex items-center rounded-full bg-zinc-100 p-1">
                   <button
                     type="button"
-                    className="rounded-full px-3 py-2 text-sm font-semibold text-zinc-600"
+                    aria-label="Reducir cantidad"
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-zinc-600 transition hover:bg-zinc-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
                     onClick={() => void updateItem(item.id, { quantity: Math.max(1, item.quantity - 1) })}
                   >
-                    -
+                    −
                   </button>
-                  <span className="min-w-10 px-3 text-center text-sm font-bold">{item.quantity}</span>
+                  <span className="min-w-10 px-3 text-center text-sm font-bold tabular-nums">{item.quantity}</span>
                   <button
                     type="button"
-                    className="rounded-full px-3 py-2 text-sm font-semibold text-zinc-600"
+                    aria-label="Aumentar cantidad"
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-zinc-600 transition hover:bg-zinc-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
                     onClick={() => void updateItem(item.id, { quantity: item.quantity + 1 })}
                   >
                     +
                   </button>
                 </div>
-                <button type="button" className="rounded-full bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700" onClick={() => void removeItem(item.id)}>
+                <button type="button" className="min-h-[44px] rounded-full bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400" onClick={() => void removeItem(item.id)}>
                   Quitar
                 </button>
               </div>
@@ -106,7 +113,7 @@ export function CartPage() {
 
         <aside className="space-y-4">
           <CheckoutSummary pricing={cart.pricing} title="Resumen" discountMode="combined" />
-          <button type="button" onClick={() => navigate("/c/checkout")} className="w-full rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white">
+          <button type="button" onClick={() => navigate("/c/checkout")} className="w-full rounded-full bg-[linear-gradient(135deg,#fb923c,#c2410c)] px-4 py-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(194,65,12,0.45)] transition hover:opacity-95 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400">
             Ir a pagar
           </button>
         </aside>

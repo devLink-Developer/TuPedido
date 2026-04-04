@@ -147,8 +147,10 @@ export function MobileShell() {
                     }}
                     className="flex min-w-0 items-center gap-3 text-left"
                   >
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.2rem] border border-black/10 bg-white/80 text-lg font-bold text-ink shadow-sm">
-                      {"<"}
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.2rem] border border-black/10 bg-white/80 shadow-sm">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 text-ink">
+                        <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Volver al catalogo</p>

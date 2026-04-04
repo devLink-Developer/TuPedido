@@ -34,14 +34,14 @@ export function Footer({
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            className="rounded-full border px-4 py-2 text-sm font-semibold text-zinc-700 transition"
+            className="min-h-[44px] rounded-full border px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
             style={{ borderColor: theme.accentBorderStrong, backgroundColor: selectedCategory ? theme.accentSoft : "#F8FAFC" }}
             to={selectedCategory ? `/c?category=${selectedCategory.slug}` : "/c"}
           >
             {selectedCategory ? `Ver ${selectedCategory.name}` : "Comprar"}
           </Link>
           <Link
-            className="rounded-full border px-4 py-2 text-sm font-semibold text-zinc-700 transition"
+            className="min-h-[44px] rounded-full border px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
             style={{ borderColor: theme.accentBorder, backgroundColor: "#FFFFFF" }}
             to="/registro-comercio"
           >

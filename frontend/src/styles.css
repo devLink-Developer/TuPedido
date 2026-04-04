@@ -95,6 +95,23 @@ textarea {
   font: inherit;
 }
 
+button,
+[role="button"],
+a {
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 .ambient-grid {
   position: relative;
 }
@@ -115,6 +132,18 @@ textarea {
   background:
     radial-gradient(circle at top right, rgba(255, 61, 0, 0.12), transparent 35%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 248, 240, 0.9));
+}
+
+.card-base {
+  border-radius: 1.75rem;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(43, 43, 43, 0.06), 0 0 0 1px rgba(43, 43, 43, 0.04);
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+
+.card-base:hover {
+  box-shadow: 0 8px 24px rgba(255, 61, 0, 0.08), 0 0 0 1px rgba(255, 61, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 .orb-float {

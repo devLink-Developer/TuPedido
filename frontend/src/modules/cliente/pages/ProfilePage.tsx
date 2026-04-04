@@ -139,7 +139,7 @@ export function ProfilePage() {
 
       <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="space-y-4">
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-black/5">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Cuenta</p>
             <h2 className="mt-2 text-2xl font-bold text-ink">{user.full_name}</h2>
             <p className="mt-2 text-sm text-zinc-600">{user.email}</p>
@@ -183,7 +183,7 @@ export function ProfilePage() {
                   <button
                     type="button"
                     onClick={handleStartCreate}
-                    className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm"
+                    className="rounded-full bg-[linear-gradient(135deg,#fb923c,#c2410c)] px-4 py-2 text-sm font-semibold text-white shadow-[0_6px_16px_-6px_rgba(194,65,12,0.4)] transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
                   >
                     Nueva direccion
                   </button>
@@ -196,7 +196,7 @@ export function ProfilePage() {
 
             <div className="mt-4 space-y-3">
               {addresses.map((address) => (
-                <article key={address.id} className="rounded-[24px] border border-black/5 bg-zinc-50 p-4">
+                <article key={address.id} className="rounded-[24px] border bg-zinc-50 p-4 transition-shadow duration-200 hover:shadow-sm" style={{ borderColor: address.is_default ? "rgba(249,115,22,0.28)" : "rgba(0,0,0,0.06)" }}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -222,14 +222,14 @@ export function ProfilePage() {
                       <button
                         type="button"
                         onClick={() => handleStartEdit(address)}
-                        className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
+                        className="min-h-[40px] rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
                       >
                         Editar
                       </button>
                       <button
                         type="button"
                         onClick={() => void handleDeleteAddress(address.id)}
-                        className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm"
+                        className="min-h-[40px] rounded-full border border-rose-100 bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
                       >
                         Eliminar
                       </button>

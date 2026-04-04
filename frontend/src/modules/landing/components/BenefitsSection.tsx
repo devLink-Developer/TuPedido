@@ -61,13 +61,23 @@ export function BenefitsSection({
               boxShadow: index === 0 ? `0 20px 40px -34px ${theme.accentShadow}` : undefined
             }}
           >
-            <p
-              className="text-xs font-semibold uppercase tracking-[0.2em]"
-              style={{ color: index === 0 ? theme.accent : "#9CA3AF" }}
-            >
-              {item.label}
-            </p>
-            <p className="mt-3 text-sm leading-7 text-zinc-700">{item.description}</p>
+            <div className="flex items-start gap-4">
+              <span
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
+                style={{ background: index === 0 ? theme.buttonGradient : `linear-gradient(135deg,${theme.accent}88,${theme.accent}44)` }}
+              >
+                {index + 1}
+              </span>
+              <div>
+                <p
+                  className="text-xs font-semibold uppercase tracking-[0.2em]"
+                  style={{ color: index === 0 ? theme.accent : "#9CA3AF" }}
+                >
+                  {item.label}
+                </p>
+                <p className="mt-2 text-sm leading-7 text-zinc-700">{item.description}</p>
+              </div>
+            </div>
           </article>
         ))}
       </section>

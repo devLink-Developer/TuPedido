@@ -69,8 +69,10 @@ export function OrdersPage() {
               <Link
                 key={order.id}
                 to={`/c/pedido/${order.id}`}
-                className="block rounded-[28px] bg-white p-5 shadow-sm transition hover:-translate-y-0.5"
+                className="block overflow-hidden rounded-[28px] bg-white shadow-sm ring-1 ring-black/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(255,61,0,0.1)]"
               >
+                <div className="h-1 w-full bg-[linear-gradient(90deg,#fb923c,#c2410c)]" />
+                <div className="p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pedido #{order.id}</p>
@@ -90,6 +92,7 @@ export function OrdersPage() {
                   <span>{formatDeliveryModeLabel(order)}</span>
                   <span>{statusLabels[order.payment_status] ?? order.payment_status}</span>
                   <span className="font-semibold text-ink">{formatCurrency(order.total)}</span>
+                </div>
                 </div>
               </Link>
             ))}
