@@ -326,7 +326,7 @@ describe("OrdersPage", () => {
     expect(updateMerchantStoreMock).not.toHaveBeenCalled();
   });
 
-  it("registra el toggle compacto en el header mobile y deja un resumen compacto en el header", async () => {
+  it("registra el toggle compacto en el header mobile y reemplaza el hero por un resumen compacto", async () => {
     setMatchMedia(false);
     fetchMerchantStoreMock.mockResolvedValueOnce(approvedStoreWithAddress);
 
@@ -337,7 +337,8 @@ describe("OrdersPage", () => {
     expect(screen.getAllByRole("switch", { name: "Recibir pedidos" })).toHaveLength(1);
     expect(screen.getByText(/Venta habilitada\./)).toBeInTheDocument();
     expect(screen.getByText(/El comercio figura abierto para tomar pedidos\./)).toBeInTheDocument();
-    expect(screen.queryByText("Venta", { exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ayuda sobre pedidos" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Comercio", { selector: "p" })).not.toBeInTheDocument();
   });
 
   it("limpia la accion mobile al desmontar la pagina", async () => {

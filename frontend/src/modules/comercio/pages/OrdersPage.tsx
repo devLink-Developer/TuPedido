@@ -183,7 +183,7 @@ function OrdersSalesStatusCompactSummary({
 }) {
   return (
     <div className="space-y-2">
-      <div className="flex items-start gap-2 text-sm leading-5 text-white/74">
+      <div className="flex items-start gap-2 text-sm leading-5 text-zinc-600">
         <span
           className={[
             "mt-1 inline-block h-2.5 w-2.5 shrink-0 rounded-full",
@@ -191,11 +191,11 @@ function OrdersSalesStatusCompactSummary({
           ].join(" ")}
         />
         <span>
-          <span className="font-semibold text-white">{acceptingOrders ? "Venta habilitada." : "Venta pausada."}</span>{" "}
+          <span className="font-semibold text-ink">{acceptingOrders ? "Venta habilitada." : "Venta pausada."}</span>{" "}
           <span>{toggleDescription}</span>
         </span>
       </div>
-      {toggleError ? <span className="block rounded-2xl bg-rose-500/15 px-3 py-2 text-sm text-rose-100">{toggleError}</span> : null}
+      {toggleError ? <span className="block rounded-2xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{toggleError}</span> : null}
     </div>
   );
 }
@@ -567,32 +567,19 @@ export function OrdersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Comercio"
-        className={isDesktop ? undefined : "p-4"}
-        contentClassName={isDesktop ? undefined : "gap-3"}
-        titleClassName={isDesktop ? undefined : "mt-2 text-[1.95rem]"}
-        descriptionClassName={isDesktop ? undefined : "mt-2 max-w-none text-sm leading-5"}
-        title={
-          <span className="inline-flex items-center gap-3">
-            <span>Pedidos</span>
-            <HelpTooltip label="Ayuda sobre pedidos" variant="inverse">
-              Revisa tus pedidos abiertos y muestra entregados o cancelados solo cuando los necesites.
-            </HelpTooltip>
-          </span>
-        }
-        description={
-          isDesktop ? undefined : (
-            <OrdersSalesStatusCompactSummary
-              acceptingOrders={acceptingOrders}
-              toggleDescription={toggleDescription}
-              toggleError={toggleError}
-            />
-          )
-        }
-        action={
-          isDesktop ? (
+    <div className="space-y-4 md:space-y-6">
+      {isDesktop ? (
+        <PageHeader
+          eyebrow="Comercio"
+          title={
+            <span className="inline-flex items-center gap-3">
+              <span>Pedidos</span>
+              <HelpTooltip label="Ayuda sobre pedidos" variant="inverse">
+                Revisa tus pedidos abiertos y muestra entregados o cancelados solo cuando los necesites.
+              </HelpTooltip>
+            </span>
+          }
+          action={
             <OrdersSalesStatusCard
               acceptingOrders={acceptingOrders}
               toggleDescription={toggleDescription}
@@ -608,9 +595,17 @@ export function OrdersPage() {
               }
               className="min-w-[280px]"
             />
-          ) : undefined
-        }
-      />
+          }
+        />
+      ) : (
+        <section className="rounded-[22px] border border-black/5 bg-white/80 px-4 py-3 text-sm shadow-sm backdrop-blur">
+          <OrdersSalesStatusCompactSummary
+            acceptingOrders={acceptingOrders}
+            toggleDescription={toggleDescription}
+            toggleError={toggleError}
+          />
+        </section>
+      )}
 
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard label="Abiertos" value={String(openOrders.length)} description="Pedidos visibles para operar ahora." />
