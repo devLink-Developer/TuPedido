@@ -14,6 +14,12 @@ Plataforma multi-comercio tipo delivery, con SPA React como interfaz principal y
 docker compose up --build
 ```
 
+Notas de despliegue:
+
+- El proyecto Compose queda fijado como `tupedido`, asi el nombre no cambia segun la carpeta del servidor.
+- PostgreSQL no se publica al host por defecto; solo queda accesible para `backend` y `worker` dentro de la red Docker.
+- Si necesitas abrir PostgreSQL temporalmente para administracion, hazlo con un override puntual y no en la compose principal.
+
 ## Credenciales demo
 
 - Admin: `admin@kepedimos.example.com` / `admin1234`
