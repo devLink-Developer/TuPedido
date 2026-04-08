@@ -13,6 +13,7 @@ from app.models.order import StoreOrder
 from app.models.user import User
 from app.services.order_runtime import build_order_options
 from app.services.realtime import realtime_hub
+from app.services.user_compat import find_user_by_email
 
 router = APIRouter()
 
@@ -64,7 +65,10 @@ def _get_user_from_token(token: str | None) -> User | None:
         return None
     db = SessionLocal()
     try:
-        return db.scalar(select(User).where(User.email == subject, User.is_active.is_(True)))
+        user = find_user_by_email(db, subject)
+        if user is None or not user.is_active:
+            return None
+        return user
     finally:
         db.close()
 

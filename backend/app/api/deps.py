@@ -1,10 +1,10 @@
 from fastapi import Depends, Header, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models.user import User
+from app.services.user_compat import find_user_by_email
 
 
 def get_current_user(
@@ -19,7 +19,7 @@ def get_current_user(
     if not subject:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
-    user = db.scalar(select(User).where(User.email == subject))
+    user = find_user_by_email(db, subject)
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
 

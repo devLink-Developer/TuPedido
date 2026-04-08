@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 from types import SimpleNamespace
 
 from sqlalchemy import or_, select, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -22,6 +24,7 @@ from app.services.mercadopago import get_or_create_mercadopago_provider
 from app.services.platform import get_platform_settings_snapshot, get_table_columns
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 STORE_LOAD_OPTIONS = (
     selectinload(Store.category_links).selectinload(StoreCategoryLink.category),
@@ -49,33 +52,45 @@ CATEGORY_PUBLIC_COLUMNS = (
 
 @router.get("/categories")
 def list_categories(db: Session = Depends(get_db)) -> list[dict[str, object]]:
-    columns = get_table_columns(db, "categories")
-    if not {"id", "name", "slug"}.issubset(columns):
+    try:
+        columns = get_table_columns(db, "categories")
+        if not {"id", "name", "slug"}.issubset(columns):
+            return []
+
+        selected_columns = [column for column in CATEGORY_PUBLIC_COLUMNS if column in columns]
+        filters = ["is_active = true"] if "is_active" in columns else []
+        order_by = ["sort_order"] if "sort_order" in columns else []
+        order_by.append("name")
+
+        where_clause = f" WHERE {' AND '.join(filters)}" if filters else ""
+        query = text(
+            f"SELECT {', '.join(selected_columns)} "
+            f"FROM categories{where_clause} "
+            f"ORDER BY {', '.join(order_by)}"
+        )
+        rows = db.execute(query).mappings().all()
+        return [serialize_category(SimpleNamespace(**dict(row))).model_dump() for row in rows]
+    except SQLAlchemyError:
+        logger.exception("catalog_categories_unavailable")
         return []
-
-    selected_columns = [column for column in CATEGORY_PUBLIC_COLUMNS if column in columns]
-    filters = ["is_active = true"] if "is_active" in columns else []
-    order_by = ["sort_order"] if "sort_order" in columns else []
-    order_by.append("name")
-
-    where_clause = f" WHERE {' AND '.join(filters)}" if filters else ""
-    query = text(
-        f"SELECT {', '.join(selected_columns)} "
-        f"FROM categories{where_clause} "
-        f"ORDER BY {', '.join(order_by)}"
-    )
-    rows = db.execute(query).mappings().all()
-    return [serialize_category(SimpleNamespace(**dict(row))).model_dump() for row in rows]
 
 
 @router.get("/platform-banner", response_model=CatalogBannerRead)
 def get_platform_banner(db: Session = Depends(get_db)) -> CatalogBannerRead:
-    return serialize_catalog_banner(get_platform_settings_snapshot(db))
+    try:
+        return serialize_catalog_banner(get_platform_settings_snapshot(db))
+    except SQLAlchemyError:
+        logger.exception("catalog_platform_banner_unavailable")
+        return serialize_catalog_banner(SimpleNamespace())
 
 
 @router.get("/platform-branding", response_model=PlatformBrandingRead)
 def get_platform_branding(db: Session = Depends(get_db)) -> PlatformBrandingRead:
-    return serialize_platform_branding(get_platform_settings_snapshot(db))
+    try:
+        return serialize_platform_branding(get_platform_settings_snapshot(db))
+    except SQLAlchemyError:
+        logger.exception("catalog_platform_branding_unavailable")
+        return serialize_platform_branding(SimpleNamespace())
 
 
 @router.get("/stores")

@@ -66,7 +66,7 @@ def serialize_category(category: object) -> CategoryRead:
         id=category.id,
         name=category.name,
         slug=category.slug,
-        description=category.description,
+        description=getattr(category, "description", None),
         color=color,
         color_light=color_light,
         icon=getattr(category, "icon", None),

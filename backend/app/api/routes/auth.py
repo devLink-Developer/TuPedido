@@ -1,4 +1,3 @@
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,13 +7,14 @@ from app.core.security import create_access_token, hash_password, verify_passwor
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import AuthResponse, ChangePasswordRequest, LoginRequest, RegisterRequest, UserRead
+from app.services.user_compat import create_user_compat, find_user_by_email, set_user_password
 
 router = APIRouter()
 
 
 @router.post("/login", response_model=AuthResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> AuthResponse:
-    user = db.scalar(select(User).where(User.email == payload.email))
+    user = find_user_by_email(db, payload.email)
     if user is None or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
@@ -23,19 +23,18 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> AuthResponse:
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> AuthResponse:
-    existing_user = db.scalar(select(User).where(User.email == payload.email))
+    existing_user = find_user_by_email(db, payload.email)
     if existing_user is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
-    user = User(
+    user = create_user_compat(
+        db,
         full_name=payload.full_name,
         email=payload.email,
         hashed_password=hash_password(payload.password),
         role="customer",
     )
-    db.add(user)
     db.commit()
-    db.refresh(user)
 
     return AuthResponse(access_token=create_access_token(user.email), user=UserRead.model_validate(user))
 
@@ -56,8 +55,11 @@ def change_password(
     if payload.current_password == payload.new_password:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be different")
 
-    user.hashed_password = hash_password(payload.new_password)
-    user.must_change_password = False
+    set_user_password(
+        db,
+        user=user,
+        hashed_password=hash_password(payload.new_password),
+        must_change_password=False,
+    )
     db.commit()
-    db.refresh(user)
     return UserRead.model_validate(user)
