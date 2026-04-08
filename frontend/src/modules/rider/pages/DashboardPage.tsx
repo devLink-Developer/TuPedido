@@ -220,7 +220,7 @@ export function DashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <AvailableOrders orders={orders} />
-        <div className="rounded-[28px] bg-white p-5 shadow-sm">
+        <div className="app-panel rounded-[28px] p-5">
           <h3 className="text-lg font-bold">Notificaciones</h3>
           <div className="mt-4 space-y-3">
             {notifications.map((notification) => (

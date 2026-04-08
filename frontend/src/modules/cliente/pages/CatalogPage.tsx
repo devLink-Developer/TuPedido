@@ -180,7 +180,7 @@ export function CatalogPage() {
   return (
     <div className="space-y-6">
       <section
-        className="rounded-[38px] border p-3 transition-[border-color,box-shadow,background] duration-300"
+        className="app-panel rounded-[38px] p-3 transition-[border-color,box-shadow,background] duration-300"
         style={{
           borderColor: catalogTheme.accentBorder,
           backgroundImage: catalogTheme.bannerFrame,
@@ -196,7 +196,7 @@ export function CatalogPage() {
       </section>
 
       <div
-        className="grid gap-4 rounded-[30px] border p-5 transition-[border-color,box-shadow,background] duration-300 md:grid-cols-[1.3fr_0.7fr]"
+        className="app-panel grid gap-4 rounded-[30px] p-5 transition-[border-color,box-shadow,background] duration-300 md:grid-cols-[1.3fr_0.7fr]"
         style={{
           borderColor: catalogTheme.accentBorder,
           backgroundImage: catalogTheme.filterPanel,
@@ -212,7 +212,7 @@ export function CatalogPage() {
               updateQuery({ search: event.target.value });
             }}
             placeholder="Despensa, farmacia, parrilla..."
-            className="w-full rounded-2xl border bg-white/88 px-4 py-3 outline-none transition focus:border-[var(--catalog-accent)] focus:ring-4 focus:ring-[var(--catalog-accent-soft)]"
+            className="app-input"
             style={{ borderColor: catalogTheme.accentBorder }}
           />
         </label>
@@ -224,7 +224,7 @@ export function CatalogPage() {
               setDeliveryMode(event.target.value as "" | "delivery" | "pickup");
               updateQuery({ deliveryMode: event.target.value });
             }}
-            className="w-full rounded-2xl border bg-white/88 px-4 py-3 outline-none transition focus:border-[var(--catalog-accent)] focus:ring-4 focus:ring-[var(--catalog-accent-soft)]"
+            className="app-input"
             style={{ borderColor: catalogTheme.accentBorder }}
           >
             <option value="">Todos</option>
@@ -235,7 +235,7 @@ export function CatalogPage() {
       </div>
 
       <section
-        className="rounded-[30px] border p-4 transition-[border-color,box-shadow,background] duration-300"
+        className="app-panel rounded-[30px] p-4 transition-[border-color,box-shadow,background] duration-300"
         style={{
           borderColor: catalogTheme.accentBorder,
           backgroundImage: catalogTheme.chipPanel,
@@ -249,8 +249,8 @@ export function CatalogPage() {
           </h2>
           <p className="text-sm text-zinc-600">
             {selectedCategory
-              ? "El catálogo toma el tono del rubro para que encuentres opciones más rápido."
-              : "Toca un rubro y deja el catálogo más enfocado para ese tipo de compra."}
+              ? "El catalogo toma el tono del rubro para que encuentres opciones mas rapido."
+              : "Toca un rubro y deja el catalogo mas enfocado para ese tipo de compra."}
           </p>
         </div>
 

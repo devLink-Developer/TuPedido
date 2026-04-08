@@ -51,11 +51,11 @@ export function MobileShell() {
               { to: "/delivery", label: "Ruta" },
               { to: "/orders", label: "Tracking" }
             ]
-        : [
-            { to: "/", label: "Marketplace" },
-            { to: "/admin", label: "Admin" },
-            { to: "/orders", label: "Pedidos" }
-          ];
+          : [
+              { to: "/", label: "Marketplace" },
+              { to: "/admin", label: "Admin" },
+              { to: "/orders", label: "Pedidos" }
+            ];
   const isStoreRoute = location.pathname.startsWith("/stores/") || location.pathname.startsWith("/restaurants/");
   const title = isStoreRoute ? (
     "Tienda"
@@ -69,17 +69,16 @@ export function MobileShell() {
     )
   );
   const desktopHighlights = [
-    "Abiertos primero, cerrados despues por proxima apertura.",
-    "Filtros rapidos por rubro, delivery o retiro.",
-    "Entra directo a la tienda y arma tu pedido."
+    "Ordena primero por disponibilidad real y luego por proxima apertura.",
+    "Usa filtros rapidos para bajar friccion desde el primer toque.",
+    "Entra directo al comercio y arma el pedido sin pasos intermedios."
   ];
 
   return (
-    <div className="ambient-grid min-h-screen text-ink">
+    <div className="app-shell ambient-grid min-h-screen text-ink">
       <div className="mx-auto flex min-h-screen w-full max-w-[1520px] flex-col md:flex-row">
-        <aside className="ambient-grid hidden w-[360px] overflow-hidden border-r border-white/10 bg-[linear-gradient(180deg,#1f1715_0%,#241917_58%,#120f0f_100%)] px-9 py-10 text-white md:flex md:flex-col md:justify-between">
+        <aside className="app-sidebar hidden w-[360px] overflow-hidden px-9 py-10 text-white md:flex md:flex-col md:justify-between">
           <div className="space-y-9">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.32),_transparent_60%)]" />
             <Link to="/" aria-label={`Ir al inicio de ${brandName}`} className="relative inline-flex items-center">
               <BrandMark
                 brandName={brandName}
@@ -91,10 +90,10 @@ export function MobileShell() {
             <div className="relative space-y-5">
               <p className="text-sm uppercase tracking-[0.28em] text-[#ffcfb7]/70">Pedir ahora</p>
               <h1 className="font-display text-4xl font-bold leading-tight text-white">
-                Pide en comercios activos del barrio.
+                Todo el marketplace resuelto primero para móvil.
               </h1>
               <p className="max-w-sm text-sm leading-7 text-white/68">
-                Busca por rubro, compara tiempos y entra directo a la tienda.
+                Busca, filtra y entra directo al comercio con una navegación compacta y clara.
               </p>
             </div>
             <div className="space-y-3">
@@ -105,11 +104,13 @@ export function MobileShell() {
               ))}
             </div>
           </div>
-          <div className="relative space-y-5 rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-float">
+          <div className="relative space-y-5 rounded-[32px] border border-white/10 bg-white/6 p-6 shadow-float">
             <div className="absolute right-5 top-5 h-16 w-16 rounded-full bg-brand-500/20 blur-2xl" />
             <p className="text-xs uppercase tracking-[0.26em] text-white/50">Sesion</p>
             <p className="text-2xl font-display font-bold">{isAuthenticated ? user?.full_name : "Accede a tu cuenta"}</p>
-            <p className="text-sm leading-6 text-white/60">{isAuthenticated ? user?.role : "Ingresa para seguir pedidos, guardar direcciones y cerrar mas rapido tu compra."}</p>
+            <p className="text-sm leading-6 text-white/60">
+              {isAuthenticated ? user?.role : "Ingresa para seguir pedidos, guardar direcciones y cerrar tu compra mas rapido."}
+            </p>
             {isAuthenticated ? (
               <button
                 type="button"
@@ -120,7 +121,7 @@ export function MobileShell() {
               </button>
             ) : (
               <div className="flex flex-wrap gap-2">
-                <Link className="rounded-full bg-[linear-gradient(135deg,#fb923c,#c2410c)] px-4 py-2 text-sm font-semibold text-white shadow-float" to="/login">
+                <Link className="app-button px-4 py-2 text-sm" to="/login">
                   Ingresar
                 </Link>
                 <Link className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/90" to="/register">
@@ -132,8 +133,8 @@ export function MobileShell() {
         </aside>
 
         <main className="flex-1 pb-[calc(var(--bottom-nav-height)+1.5rem+var(--safe-bottom))] md:pb-0">
-          <header className="sticky top-0 z-30 border-b border-black/5 bg-[rgba(255,251,246,0.88)] px-4 pb-4 pt-[calc(1rem+var(--safe-top))] backdrop-blur md:px-8 md:py-4">
-            <div className="mx-auto max-w-6xl">
+          <header className="sticky top-0 z-30 px-3 pb-4 pt-[calc(0.85rem+var(--safe-top))] md:px-8 md:py-4">
+            <div className="app-toolbar mx-auto max-w-6xl rounded-[28px] px-4 py-4 md:px-6">
               <div className="flex items-center justify-between gap-4 md:hidden">
                 {isStoreRoute ? (
                   <button
@@ -147,7 +148,7 @@ export function MobileShell() {
                     }}
                     className="flex min-w-0 items-center gap-3 text-left"
                   >
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.2rem] border border-black/10 bg-white/80 shadow-sm">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.2rem] border border-[var(--color-border-default)] bg-white/80 shadow-sm">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 text-ink">
                         <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
@@ -183,12 +184,12 @@ export function MobileShell() {
                     <button
                       type="button"
                       onClick={logout}
-                      className="rounded-full border border-black/10 bg-white/80 px-3 py-2 text-xs font-semibold text-zinc-700"
+                      className="rounded-full border border-[var(--color-border-default)] bg-white/84 px-3 py-2 text-xs font-semibold text-zinc-700"
                     >
                       Salir
                     </button>
                   ) : (
-                    <Link className="rounded-full bg-[linear-gradient(135deg,#fb923c,#c2410c)] px-3 py-2 text-xs font-semibold text-white shadow-float" to="/login">
+                    <Link className="app-button min-h-[40px] px-3 py-2 text-xs" to="/login">
                       Ingresar
                     </Link>
                   )}
@@ -203,7 +204,7 @@ export function MobileShell() {
                     className={({ isActive }) =>
                       [
                         "whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition",
-                        isActive ? "bg-ink text-white shadow-float" : "border border-black/10 bg-white/85 text-zinc-700"
+                        isActive ? "bg-ink text-white shadow-float" : "border border-[var(--color-border-default)] bg-white/88 text-zinc-700"
                       ].join(" ")
                     }
                   >
@@ -225,7 +226,7 @@ export function MobileShell() {
                       className={({ isActive }) =>
                         [
                           "rounded-full px-4 py-2 text-sm font-semibold transition",
-                          isActive ? "bg-ink text-white shadow-float" : "border border-black/10 bg-white/80 text-zinc-700"
+                          isActive ? "bg-ink text-white shadow-float" : "border border-[var(--color-border-default)] bg-white/84 text-zinc-700"
                         ].join(" ")
                       }
                     >
@@ -236,23 +237,23 @@ export function MobileShell() {
                 <div className="flex items-center gap-2">
                   {isAuthenticated ? (
                     <>
-                      <span className="hidden rounded-full border border-black/10 bg-white/80 px-4 py-2 text-sm font-semibold text-zinc-700 lg:inline-flex">
+                      <span className="hidden rounded-full border border-[var(--color-border-default)] bg-white/84 px-4 py-2 text-sm font-semibold text-zinc-700 lg:inline-flex">
                         {user?.role}
                       </span>
                       <button
                         type="button"
                         onClick={logout}
-                        className="rounded-full border border-black/10 bg-white/80 px-4 py-2 text-sm font-semibold text-zinc-700"
+                        className="rounded-full border border-[var(--color-border-default)] bg-white/84 px-4 py-2 text-sm font-semibold text-zinc-700"
                       >
                         Salir
                       </button>
                     </>
                   ) : (
                     <>
-                      <Link className="rounded-full border border-black/10 bg-white/80 px-4 py-2 text-sm font-semibold text-zinc-700" to="/login">
+                      <Link className="rounded-full border border-[var(--color-border-default)] bg-white/84 px-4 py-2 text-sm font-semibold text-zinc-700" to="/login">
                         Ingresar
                       </Link>
-                      <Link className="rounded-full bg-[linear-gradient(135deg,#fb923c,#c2410c)] px-4 py-2 text-sm font-semibold text-white shadow-float" to="/register">
+                      <Link className="app-button px-4 py-2 text-sm" to="/register">
                         Crear cuenta
                       </Link>
                     </>

@@ -28,8 +28,8 @@ export function Footer({
           />
           <p className="mt-2 text-sm text-zinc-600">
             {selectedCategory
-              ? `Ahora mismo estas navegando con el contexto visual de ${selectedCategory.name.toLowerCase()}.`
-              : "Soluciones para clientes y comercios en una misma plataforma."}
+              ? `Si hoy buscas ${selectedCategory.name.toLowerCase()}, aqui encontraras opciones para resolverlo rapido.`
+              : "Tu proxima compra esta mas cerca de lo que crees."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -38,18 +38,17 @@ export function Footer({
             style={{ borderColor: theme.accentBorderStrong, backgroundColor: selectedCategory ? theme.accentSoft : "#F8FAFC" }}
             to={selectedCategory ? `/c?category=${selectedCategory.slug}` : "/c"}
           >
-            {selectedCategory ? `Ver ${selectedCategory.name}` : "Comprar"}
+            {selectedCategory ? `Ver ${selectedCategory.name}` : "Explorar comercios"}
           </Link>
           <Link
             className="min-h-[44px] rounded-full border px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
             style={{ borderColor: theme.accentBorder, backgroundColor: "#FFFFFF" }}
-            to="/registro-comercio"
+            to="/registro"
           >
-            Sumar comercio
+            Crear cuenta
           </Link>
         </div>
       </div>
     </footer>
   );
 }
-

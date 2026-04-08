@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
+import { EmptyState, LoadingCard } from "../../../shared/components";
 import { useAuthSession, useCart } from "../../../shared/hooks";
 import { fetchStoreById } from "../../../shared/services/api";
 import { useUiStore } from "../../../shared/stores";
@@ -147,7 +147,7 @@ export function StoreDetailPage() {
 
   return (
     <div className="space-y-6 pb-24">
-      <div className="overflow-hidden rounded-[32px] bg-white shadow-sm">
+      <div className="app-panel overflow-hidden rounded-[32px]">
         <div
           className="h-56 bg-gradient-to-br from-ink via-ink to-orange-800"
           style={
@@ -162,10 +162,14 @@ export function StoreDetailPage() {
         />
         <div className="space-y-4 p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <PageHeader eyebrow="Comercio" title={store.name} description={store.description} />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">Comercio</p>
+              <h1 className="mt-2 font-display text-[2rem] font-bold leading-[1.03] tracking-tight text-ink sm:text-[2.4rem]">
+                {store.name}
+              </h1>
+              {store.description ? <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-600">{store.description}</p> : null}
             </div>
-            <div className="rounded-[24px] bg-zinc-50 p-4 text-sm text-zinc-600">
+            <div className="rounded-[24px] border border-[var(--color-border-default)] bg-white/72 p-4 text-sm text-zinc-600">
               <p className="font-semibold text-zinc-800">{store.address}</p>
               <p className="mt-2">{store.phone}</p>
               <p className="mt-2">{store.opening_note ?? (store.is_open ? "Abierto ahora" : "Cerrado ahora")}</p>
@@ -202,7 +206,7 @@ export function StoreDetailPage() {
           type="button"
           onClick={() => setSelectedCategory("all")}
           className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-            selectedCategory === "all" ? "bg-ink text-white" : "bg-white text-zinc-600 shadow-sm"
+            selectedCategory === "all" ? "bg-ink text-white" : "border border-[var(--color-border-default)] bg-white text-zinc-600 shadow-sm"
           }`}
         >
           Todo
@@ -213,7 +217,7 @@ export function StoreDetailPage() {
             type="button"
             onClick={() => setSelectedCategory(category.id)}
             className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-              selectedCategory === category.id ? "bg-brand-500 text-white" : "bg-white text-zinc-600 shadow-sm"
+              selectedCategory === category.id ? "bg-brand-500 text-white" : "border border-[var(--color-border-default)] bg-white text-zinc-600 shadow-sm"
             }`}
           >
             {category.name}
@@ -229,7 +233,7 @@ export function StoreDetailPage() {
           return (
             <article
               key={product.id}
-              className={`rounded-[28px] bg-white p-5 shadow-sm transition ${
+              className={`app-panel rounded-[28px] p-5 transition ${
                 isInCart ? "ring-2 ring-brand-100 shadow-[0_14px_40px_rgba(255,108,64,0.16)]" : ""
               }`}
             >
@@ -283,7 +287,7 @@ export function StoreDetailPage() {
                     value={quantities[product.id] ?? "1"}
                     onChange={(event) => setProductQuantity(product, event.currentTarget.value)}
                     onBlur={() => handleQuantityBlur(product)}
-                    className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 outline-none focus:border-brand-500"
+                    className="app-input px-3 py-2"
                   />
                 </label>
                 {noteInputsOpen[product.id] ? (
@@ -291,7 +295,7 @@ export function StoreDetailPage() {
                     value={notes[product.id] ?? ""}
                     onChange={(event) => setNotes((current) => ({ ...current, [product.id]: event.target.value }))}
                     placeholder="Sin cebolla, etc."
-                    className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 outline-none focus:border-brand-500"
+                    className="app-input px-3 py-2"
                   />
                 ) : (
                   <button
@@ -307,7 +311,7 @@ export function StoreDetailPage() {
                 type="button"
                 disabled={!product.is_available || savingProductId === product.id}
                 onClick={() => void handleAdd(product)}
-                className="mt-4 w-full rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-float transition disabled:cursor-not-allowed disabled:bg-zinc-300"
+                className="app-button mt-4 w-full"
               >
                 {savingProductId === product.id ? "Agregando..." : "Agregar al carrito"}
               </button>

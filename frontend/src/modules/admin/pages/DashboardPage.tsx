@@ -219,7 +219,7 @@ export function DashboardPage() {
 
       <div className="grid gap-4 xl:grid-cols-3">
         {periodStats.map((period) => (
-          <article key={period.key} className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article key={period.key} className="app-panel rounded-[28px] p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{period.label}</p>
             <p className="mt-3 font-display text-3xl font-bold tracking-tight text-ink">
               {formatCurrency(period.stats.sales)}
@@ -234,7 +234,7 @@ export function DashboardPage() {
         ))}
       </div>
 
-      <section className="rounded-[28px] bg-white p-5 shadow-sm">
+      <section className="app-panel rounded-[28px] p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Ranking por comercio</p>
@@ -245,7 +245,7 @@ export function DashboardPage() {
           </span>
         </div>
 
-        <div className="mt-4 overflow-x-auto">
+        <div className="app-table-shell mt-4 overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="text-left text-zinc-500">
               <tr>

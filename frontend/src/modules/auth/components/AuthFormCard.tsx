@@ -76,10 +76,82 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-      <div className="rounded-[32px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-5 text-white shadow-lift sm:p-6">
+    <div className="grid gap-5 lg:grid-cols-[0.96fr_1.04fr]">
+      <form onSubmit={(event) => void handleSubmit(event)} className="app-panel order-1 rounded-[32px] p-5 sm:p-6">
+        <div className="relative min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{content.formEyebrow}</p>
+          <h2 className="mt-2 font-display text-[1.85rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-3xl">
+            {content.formTitle}
+          </h2>
+          <p className="mt-2 max-w-xl text-sm leading-7 text-zinc-500">{content.formDescription}</p>
+        </div>
+
+        <div className="mt-6 space-y-4">
+          {mode === "register" ? (
+            <label className="block space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Nombre completo</span>
+              <input
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                required
+                className="app-input"
+              />
+            </label>
+          ) : null}
+
+          <label className="block space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Email</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              className="app-input"
+            />
+          </label>
+
+          <label className="block space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Contrasena</span>
+            <div className="flex items-center gap-2 rounded-[22px] border border-[var(--color-border-default)] bg-white/92 px-4 py-1.5 shadow-sm">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                minLength={6}
+                className="min-w-0 flex-1 bg-transparent py-3 outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                className="rounded-full border border-[var(--color-border-default)] bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600 transition hover:text-ink"
+              >
+                {showPassword ? "Ocultar" : "Mostrar"}
+              </button>
+            </div>
+          </label>
+        </div>
+
+        {error ? <p className="mt-4 rounded-[22px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+
+        <Button type="submit" className="mt-5 w-full" disabled={submitting || loading}>
+          {submitting || loading ? "Procesando..." : mode === "login" ? "Ingresar" : "Crear cuenta"}
+        </Button>
+
+        <div className="mt-5 border-t border-black/6 pt-5 text-center">
+          <p className="text-sm text-zinc-500">{content.secondaryPrompt}</p>
+          <Link
+            className="mt-3 inline-flex rounded-full border border-[var(--color-border-default)] bg-white/84 px-5 py-2.5 text-sm font-semibold text-zinc-700 transition hover:border-brand-200 hover:text-ink"
+            to={content.secondaryActionTo}
+          >
+            {content.secondaryActionLabel}
+          </Link>
+        </div>
+      </form>
+
+      <div className="app-panel-dark order-2 rounded-[32px] p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">{content.eyebrow}</p>
-        <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.05] tracking-tight sm:text-4xl">
+        <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.03] tracking-tight sm:text-4xl">
           {mode === "login" ? (
             <span className="flex flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
               <span>{content.titlePrefix}</span>
@@ -96,89 +168,18 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
             content.titlePrefix
           )}
         </h1>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-white/72 sm:text-[15px] sm:leading-7">
+        <p className="mt-3 max-w-xl text-sm leading-7 text-white/72 sm:text-[15px]">
           {content.description}
         </p>
         <div className="mt-6 grid gap-3 text-sm leading-6 text-white/78">
-          {content.highlights.map((item) => (
-            <div key={item} className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">
-              {item}
+          {content.highlights.map((item, index) => (
+            <div key={item} className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-brand-200/90">Paso {index + 1}</p>
+              <p className="mt-2">{item}</p>
             </div>
           ))}
         </div>
       </div>
-
-      <form onSubmit={(event) => void handleSubmit(event)} className="rounded-[32px] bg-white p-5 shadow-sm sm:p-6">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{content.formEyebrow}</p>
-          <h2 className="mt-2 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight text-ink sm:text-3xl">
-            {content.formTitle}
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-500">{content.formDescription}</p>
-        </div>
-
-        <div className="mt-6 space-y-4">
-          {mode === "register" ? (
-            <label className="block space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Nombre completo</span>
-              <input
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                required
-                className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 outline-none focus:border-brand-500"
-              />
-            </label>
-          ) : null}
-
-          <label className="block space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Email</span>
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 outline-none focus:border-brand-500"
-            />
-          </label>
-
-          <label className="block space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Contrasena</span>
-            <div className="flex items-center gap-2 rounded-2xl border border-black/10 bg-zinc-50 px-4 py-1.5">
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-                minLength={6}
-                className="min-w-0 flex-1 bg-transparent py-3 outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((current) => !current)}
-                className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600"
-              >
-                {showPassword ? "Ocultar" : "Mostrar"}
-              </button>
-            </div>
-          </label>
-        </div>
-
-        {error ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
-
-        <Button type="submit" className="mt-5 w-full" disabled={submitting || loading}>
-          {submitting || loading ? "Procesando..." : mode === "login" ? "Ingresar" : "Crear cuenta"}
-        </Button>
-
-        <div className="mt-5 border-t border-black/6 pt-5 text-center">
-          <p className="text-sm text-zinc-500">{content.secondaryPrompt}</p>
-          <Link
-            className="mt-3 inline-flex rounded-full border border-black/10 bg-zinc-50 px-5 py-2.5 text-sm font-semibold text-zinc-700 transition hover:border-brand-200 hover:text-ink"
-            to={content.secondaryActionTo}
-          >
-            {content.secondaryActionLabel}
-          </Link>
-        </div>
-      </form>
     </div>
   );
 }

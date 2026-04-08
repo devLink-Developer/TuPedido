@@ -150,7 +150,7 @@ export function DashboardPage() {
       />
 
       {approvalMessage ? (
-        <section className="rounded-[28px] border border-black/5 bg-white p-5 shadow-sm">
+        <section className="app-panel rounded-[28px] p-5">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Estado comercial</p>
@@ -200,7 +200,7 @@ export function DashboardPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-        <section className="rounded-[28px] bg-white p-5 shadow-sm">
+        <section className="app-panel rounded-[28px] p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Operacion</p>
@@ -247,7 +247,7 @@ export function DashboardPage() {
         </section>
 
         <section className="space-y-4">
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="app-panel rounded-[28px] p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Cuenta corriente</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Resumen financiero</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -270,7 +270,7 @@ export function DashboardPage() {
             </Link>
           </article>
 
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="app-panel rounded-[28px] p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Proximo paso</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Mantener el panel al dia</h2>
             <p className="mt-2 text-sm leading-7 text-zinc-600">

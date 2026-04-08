@@ -21,10 +21,10 @@ export function CTAComercio({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.24em]" style={{ color: selectedCategory ? "#FFFFFF" : "rgb(254 215 170)" }}>
-            Comercio
+            Clientes
           </p>
           <h2 className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 font-display text-3xl font-bold tracking-tight">
-            <span>Haz crecer tu negocio con</span>
+            <span>Haz tu proximo pedido con</span>
             <PlatformWordmark
               size="title"
               frameClassName="w-[12.5rem] sm:w-[15rem]"
@@ -32,14 +32,14 @@ export function CTAComercio({
             />
           </h2>
           <p className="mt-3 text-sm leading-7 text-white/72">
-            Publica tu catalogo, ordena tu operacion diaria y destaca mejor lo que vendes desde el primer vistazo.
+            Desde compras rapidas hasta comidas listas, encuentra opciones cercanas y resuelve tu compra en minutos.
           </p>
           {selectedCategory ? (
             <div
               className="mt-4 inline-flex rounded-full border px-4 py-2 text-sm font-semibold"
               style={{ borderColor: theme.accentBorderStrong, backgroundColor: theme.accentMuted, color: "#FFFFFF" }}
             >
-              Ideal para comercios de {selectedCategory.name.toLowerCase()}
+              Empieza por {selectedCategory.name.toLowerCase()}
             </div>
           ) : null}
         </div>
@@ -50,12 +50,11 @@ export function CTAComercio({
             backgroundImage: theme.buttonGradient,
             boxShadow: `0 22px 36px -22px ${theme.accentShadowStrong}`
           }}
-          to="/registro-comercio"
+          to={selectedCategory ? `/c?category=${selectedCategory.slug}` : "/c"}
         >
-          Quiero sumar mi comercio
+          {selectedCategory ? `Explorar ${selectedCategory.name}` : "Explorar comercios"}
         </Link>
       </div>
     </section>
   );
 }
-

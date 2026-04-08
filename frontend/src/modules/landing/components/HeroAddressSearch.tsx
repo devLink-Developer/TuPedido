@@ -13,6 +13,13 @@ export function HeroAddressSearch({
 }) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const headline = selectedCategory
+    ? `Encuentra ${selectedCategory.name.toLowerCase()} cerca de ti.`
+    : "Pide lo que necesitas en comercios de tu zona.";
+  const description = selectedCategory
+    ? selectedCategory.description ||
+      `Descubre opciones de ${selectedCategory.name.toLowerCase()} para resolver tu compra de hoy sin perder tiempo.`
+    : "Desde compras rápidas hasta comidas listas, reúne todo en un solo lugar y elige la opción que mejor te convenga.";
 
   return (
     <section
@@ -53,12 +60,10 @@ export function HeroAddressSearch({
               </div>
             ) : null}
             <h1 className="max-w-3xl font-display text-[2rem] font-bold leading-[1.05] sm:text-4xl md:text-5xl">
-              {selectedCategory ? `Todo listo para pedir en ${selectedCategory.name.toLowerCase()}.` : "Todo lo que necesitas en un solo lugar."}
+              {headline}
             </h1>
             <p className="max-w-2xl text-sm leading-6 text-white/72 md:text-base md:leading-7">
-              {selectedCategory
-                ? selectedCategory.description || `Explora comercios de ${selectedCategory.name.toLowerCase()}, entra al local que mas te cierre y resuelve tu compra sin dar vueltas.`
-                : "Descubre comercios cercanos, organiza tu compra y sigue cada pedido con una experiencia simple y clara."}
+              {description}
             </p>
           </div>
           <form
@@ -77,11 +82,11 @@ export function HeroAddressSearch({
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder={selectedCategory ? `Buscar en ${selectedCategory.name.toLowerCase()}` : "Buscar comercio, rubro o direccion"}
-              className="w-full rounded-[24px] border border-white/10 bg-white/10 px-4 py-3 text-white outline-none backdrop-blur placeholder:text-white/45"
+              className="w-full rounded-[24px] border border-white/10 bg-white/10 px-4 py-3 text-white outline-none backdrop-blur placeholder:text-white/45 focus:border-white/30 focus:ring-4 focus:ring-white/10"
             />
             <button
               type="submit"
-              className="rounded-full px-5 py-3 text-sm font-semibold text-white shadow-float transition hover:opacity-95"
+              className="rounded-full px-5 py-3 text-sm font-semibold text-white shadow-float transition hover:-translate-y-0.5 hover:opacity-95"
               style={{
                 backgroundImage: theme.buttonGradient,
                 boxShadow: `0 20px 36px -24px ${theme.accentShadowStrong}`
@@ -99,23 +104,23 @@ export function HeroAddressSearch({
           }}
         >
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#ffd2bd]/80">
-            {selectedCategory ? "Por que este rubro destaca" : "Por que pedir aqui"}
+            {selectedCategory ? `Por que elegir ${selectedCategory.name}` : "Por que pedir aqui"}
           </p>
           <div className="mt-4 grid gap-3 text-sm leading-6 text-white/74 sm:leading-7">
             <div className="rounded-[22px] bg-white/10 px-4 py-4">
               {selectedCategory
-                ? `Encuentra locales de ${selectedCategory.name.toLowerCase()} con una entrada mucho mas clara.`
-                : "Comercios, farmacias y locales cerca de vos."}
+                ? `Encuentra opciones de ${selectedCategory.name.toLowerCase()} cerca de ti en minutos.`
+                : "Comercios, farmacias y locales de tu zona en un mismo lugar."}
             </div>
             <div className="rounded-[22px] bg-white/10 px-4 py-4">
               {selectedCategory
-                ? "El color del rubro te va guiando para que identifiques rapido donde estas navegando."
-                : "Pedidos faciles de seguir desde la compra hasta la entrega."}
+                ? "Compara alternativas para elegir la que mejor se ajuste a tu momento."
+                : "Descubre opciones para resolver compras del dia y antojos sin dar vueltas."}
             </div>
             <div className="rounded-[22px] bg-white/10 px-4 py-4">
               {selectedCategory
-                ? "Un toque y ya puedes saltar directo al catalogo filtrado por ese rubro."
-                : "Montos claros y confirmados antes de finalizar tu pedido."}
+                ? "Elige envio o retiro segun lo que mas te convenga hoy."
+                : "Todo pensado para que pedir sea rapido, simple y confiable."}
             </div>
           </div>
         </div>

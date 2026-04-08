@@ -43,12 +43,12 @@ export function CategoryGrid({
         >
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">Rubros destacados</p>
           <h2 className="mt-2 text-2xl font-bold tracking-tight text-ink">
-            {selectedCategory ? selectedCategory.name : "Elige un rubro y cambia el ritmo visual de la pagina"}
+            {selectedCategory ? `${selectedCategory.name} para resolver tu compra de hoy` : "Explora lo que puedes pedir cerca de ti"}
           </h2>
           <p className="mt-3 text-sm leading-7 text-zinc-600">
             {selectedCategory
-              ? selectedCategory.description || `Ya tienes activo el contexto de ${selectedCategory.name.toLowerCase()}. Desde aqui puedes entrar directo a ese rubro en el catalogo.`
-              : "Cada rubro tiene su propia paleta. Al seleccionarlo, la landing toma ese color para que el contexto cambie de verdad."}
+              ? selectedCategory.description || `Encuentra opciones de ${selectedCategory.name.toLowerCase()} para compras del dia, antojos o pedidos urgentes.`
+              : "Elige la categoria que mejor se ajuste a tu momento y descubre comercios listos para ayudarte."}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2">
@@ -70,7 +70,7 @@ export function CategoryGrid({
                   className="rounded-full border px-4 py-2.5 text-sm font-semibold transition"
                   style={{ borderColor: theme.accentBorderStrong, color: theme.accent }}
                 >
-                  Quitar seleccion
+                  Ver otro rubro
                 </button>
               </>
             ) : (
@@ -78,7 +78,7 @@ export function CategoryGrid({
                 className="inline-flex rounded-full border px-4 py-2.5 text-sm font-semibold"
                 style={{ borderColor: theme.accentBorder, backgroundColor: theme.accentSoft, color: theme.accent }}
               >
-                Toca un rubro para verlo en contexto
+                Toca un rubro para descubrir opciones cercanas
               </span>
             )}
           </div>
@@ -147,4 +147,3 @@ export function CategoryGrid({
     </section>
   );
 }
-

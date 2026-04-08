@@ -38,18 +38,18 @@ export function StoreList({
           <Link
             key={store.id}
             to={`/c/tienda/${store.id}`}
-            className="group overflow-hidden rounded-[28px] border bg-white transition hover:-translate-y-0.5"
+            className="group overflow-hidden rounded-[30px] border bg-white transition hover:-translate-y-1"
             style={{
               borderColor: categoryActive ? activeTheme.accentBorderStrong : activeTheme.accentBorder,
               backgroundImage: activeTheme.cardSurface,
               boxShadow: categoryActive
-                ? `0 24px 48px -34px ${activeTheme.accentShadowStrong}`
+                ? `0 26px 52px -34px ${activeTheme.accentShadowStrong}`
                 : `0 20px 40px -36px ${activeTheme.accentShadow}`
             }}
           >
-            <div className="relative h-40 overflow-hidden">
+            <div className="relative h-44 overflow-hidden">
               <div
-                className="absolute inset-0"
+                className="absolute inset-0 transition-transform duration-300 group-hover:scale-[1.03]"
                 style={
                   store.cover_image_url
                     ? {
@@ -63,7 +63,7 @@ export function StoreList({
                 }
               />
               <div className="absolute inset-x-0 top-0 h-16" style={{ background: `linear-gradient(180deg, ${activeTheme.accentSoft}, transparent)` }} />
-              <div className="absolute inset-x-0 bottom-0 h-20 bg-[linear-gradient(180deg,transparent,rgba(24,24,27,0.76))]" />
+              <div className="absolute inset-x-0 bottom-0 h-24 bg-[linear-gradient(180deg,transparent,rgba(24,24,27,0.82))]" />
               <div className="absolute left-4 top-4">
                 <span
                   className="inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-white"
@@ -75,9 +75,9 @@ export function StoreList({
             </div>
             <div className="space-y-4 p-5">
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-black tracking-tight">{store.name}</h3>
-                  <p className="mt-1 text-sm text-zinc-600">{store.address}</p>
+                <div className="min-w-0">
+                  <h3 className="truncate text-xl font-black tracking-tight">{store.name}</h3>
+                  <p className="mt-1 line-clamp-2 text-sm text-zinc-600">{store.address}</p>
                 </div>
                 <span
                   className="rounded-full px-3 py-1 text-xs font-bold"

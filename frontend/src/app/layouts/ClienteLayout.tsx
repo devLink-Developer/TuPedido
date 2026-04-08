@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 import { Link, useLocation, useMatch, useNavigate } from "react-router-dom";
+import { ActiveOrderBar } from "../../modules/cliente/components/ActiveOrderBar";
+import { OrderReviewPrompt } from "../../modules/cliente/components/OrderReviewPrompt";
 import { BrandMark } from "../../shared/components";
-import { createOrderReview, fetchAddresses, fetchPendingOrderReview } from "../../shared/services/api";
 import { useAuthSession, useCart } from "../../shared/hooks";
 import { usePlatformBranding } from "../../shared/providers/PlatformBrandingProvider";
+import { createOrderReview, fetchAddresses, fetchPendingOrderReview } from "../../shared/services/api";
 import { useClienteStore } from "../../shared/stores";
 import type { Address, CreateOrderReviewPayload, PendingOrderReview } from "../../shared/types";
 import { formatCurrency } from "../../shared/utils/format";
@@ -13,8 +15,6 @@ import {
   getDismissedOrderReviewId
 } from "../../shared/utils/orderReviewPrompt";
 import { CUSTOMER_ADDRESSES_CHANGED_EVENT } from "../../shared/utils/customerAddresses";
-import { ActiveOrderBar } from "../../modules/cliente/components/ActiveOrderBar";
-import { OrderReviewPrompt } from "../../modules/cliente/components/OrderReviewPrompt";
 
 export function ClienteLayout({ children }: PropsWithChildren) {
   const navigate = useNavigate();
@@ -37,8 +37,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
   const showFloatingCart = location.pathname !== "/c/carrito" && location.pathname !== "/c/checkout" && itemCount > 0;
   const showAddressSelector = isAuthenticated && user?.role === "customer";
   const showActiveOrderBar = !orderTrackingMatch;
-  const themedFieldClassName =
-    "w-full rounded-2xl border bg-white/92 px-4 py-3 text-sm font-semibold text-ink shadow-sm outline-none transition focus:border-[var(--catalog-accent)] focus:ring-4 focus:ring-[var(--catalog-accent-soft)]";
+  const themedFieldClassName = "app-input w-full text-sm font-semibold";
   const selectedAddress = useMemo(
     () => addresses.find((address) => address.id === selectedAddressId) ?? null,
     [addresses, selectedAddressId]
@@ -231,29 +230,26 @@ export function ClienteLayout({ children }: PropsWithChildren) {
   );
 
   return (
-    <div className="ambient-grid min-h-screen text-ink">
+    <div className="app-shell ambient-grid min-h-screen text-ink">
       <header
-        className={`fixed inset-x-0 top-0 z-30 border-b border-black/5 bg-[rgba(255,251,246,0.88)] py-3 backdrop-blur transition-transform duration-200 ${
+        className={`fixed inset-x-0 top-0 z-30 px-3 pt-[calc(0.75rem+var(--safe-top))] transition-transform duration-200 md:px-6 md:pt-5 ${
           navbarVisible ? "translate-y-0" : "-translate-y-[calc(100%+0.75rem)]"
         }`}
-        style={{
-          borderColor: "var(--catalog-accent-border)",
-          boxShadow: "0 18px 36px -34px var(--catalog-accent-shadow)"
-        }}
       >
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 md:px-8">
+        <div className="app-toolbar mx-auto flex w-full max-w-6xl flex-wrap items-center gap-3 rounded-[28px] px-4 py-4 md:px-6">
           <Link to="/c" aria-label={`Ir al catalogo de ${brandName}`} className="shrink-0">
             <BrandMark
               brandName={brandName}
               logoUrl={branding?.platform_logo_url ?? null}
-              imageClassName="h-9 max-w-[8.75rem] drop-shadow-[0_10px_20px_rgba(173,74,14,0.14)] sm:h-10 sm:max-w-[10rem]"
+              imageClassName="h-9 max-w-[8.5rem] drop-shadow-[0_10px_20px_rgba(173,74,14,0.14)] sm:h-10 sm:max-w-[10rem]"
               textClassName="text-[1.45rem] text-[#24130e]"
             />
           </Link>
+
           {showAddressSelector ? (
-            <div className="min-w-0 flex-1">
+            <div className="order-3 min-w-0 basis-full md:order-none md:flex-1">
               {addressesLoading ? (
-                <div className="h-[46px] w-full animate-pulse rounded-2xl bg-white shadow-sm" />
+                <div className="h-[50px] w-full animate-pulse rounded-[20px] border border-white/70 bg-white/84 shadow-sm" />
               ) : addresses.length > 1 ? (
                 <select
                   value={selectedAddress?.id ?? ""}
@@ -264,34 +260,33 @@ export function ClienteLayout({ children }: PropsWithChildren) {
                 >
                   {addresses.map((address) => (
                     <option key={address.id} value={address.id}>
-                      {address.label} · {address.street}
+                      {address.label} | {address.street}
                     </option>
                   ))}
                 </select>
               ) : (
                 <Link
                   to="/c/perfil"
-                  className="block rounded-2xl border bg-white/92 px-4 py-3 shadow-sm transition"
+                  className="app-input block min-h-[50px] border-[var(--catalog-accent-border)] px-4 py-3"
                   style={{ borderColor: "var(--catalog-accent-border)" }}
                 >
-                  <span className="hidden">
-                    {selectedAddress?.label ?? ""}
-                  </span>
+                  <span className="hidden">{selectedAddress?.label ?? ""}</span>
                   <span className="block truncate text-sm font-semibold text-ink">
-                    {selectedAddress ? `${selectedAddress.street} · ${selectedAddress.details}` : "Define tu direccion de entrega"}
+                    {selectedAddress ? `${selectedAddress.street} | ${selectedAddress.details}` : "Define tu direccion de entrega"}
                   </span>
                 </Link>
               )}
             </div>
           ) : (
-            <div className="flex-1" />
+            <div className="hidden flex-1 md:block" />
           )}
+
           {isAuthenticated ? (
             <div ref={menuRef} className="relative">
               <button
                 type="button"
                 onClick={() => setMenuOpen((current) => !current)}
-                className="flex items-center gap-3 rounded-full border bg-white/92 px-3 py-2 text-sm font-semibold text-ink shadow-sm"
+                className="flex min-h-[46px] items-center gap-3 rounded-full border bg-white/92 px-3 py-2 text-sm font-semibold text-ink shadow-sm"
                 style={{ borderColor: "var(--catalog-accent-border)" }}
               >
                 <span
@@ -307,7 +302,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
               </button>
               {menuOpen ? (
                 <div
-                  className="absolute right-0 top-[calc(100%+0.75rem)] z-40 min-w-[220px] rounded-[24px] border bg-white p-2 shadow-[0_18px_36px_rgba(24,19,18,0.14)]"
+                  className="app-panel absolute right-0 top-[calc(100%+0.75rem)] z-40 min-w-[220px] max-w-[min(92vw,280px)] rounded-[24px] p-2"
                   style={{ borderColor: "var(--catalog-accent-border)" }}
                 >
                   <Link
@@ -339,18 +334,20 @@ export function ClienteLayout({ children }: PropsWithChildren) {
           ) : null}
         </div>
       </header>
-      <main className={`mx-auto w-full max-w-6xl px-4 pt-24 md:px-8 ${showFloatingCart ? "pb-28 md:pb-24" : "pb-10"}`}>
+
+      <main className={`mx-auto w-full max-w-6xl px-4 pt-[9rem] md:px-8 md:pt-28 ${showFloatingCart ? "pb-28 md:pb-24" : "pb-10"}`}>
         {showActiveOrderBar ? <ActiveOrderBar /> : null}
         {children}
       </main>
+
       {showFloatingCart ? (
         <>
           <Link
             to="/c/carrito"
             aria-label={`Abrir carrito con ${itemCount} productos`}
-            className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 w-16 items-center justify-center rounded-full text-sm font-semibold text-white transition hover:opacity-95 md:hidden"
+            className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 w-16 items-center justify-center rounded-[24px] text-sm font-semibold text-white transition hover:opacity-95 md:hidden"
             style={{
-              backgroundColor: "var(--catalog-accent)",
+              backgroundImage: "linear-gradient(135deg, #ff7b46 0%, var(--catalog-accent) 48%, #be2600 100%)",
               boxShadow: "0 18px 40px -18px var(--catalog-accent-shadow)"
             }}
           >
@@ -366,7 +363,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
           <Link
             to="/c/carrito"
             aria-label={`Abrir carrito con ${itemCount} productos`}
-            className="fixed bottom-6 right-6 z-40 hidden min-w-[320px] max-w-[360px] items-center justify-between gap-4 rounded-[28px] border bg-white/96 px-5 py-4 text-ink backdrop-blur transition hover:-translate-y-0.5 md:flex"
+            className="app-panel fixed bottom-6 right-6 z-40 hidden min-w-[320px] max-w-[360px] items-center justify-between gap-4 rounded-[28px] px-5 py-4 text-ink transition hover:-translate-y-0.5 md:flex"
             style={{
               borderColor: "var(--catalog-accent-border)",
               boxShadow: "0 22px 44px -24px var(--catalog-accent-shadow)"
@@ -399,6 +396,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
           </Link>
         </>
       ) : null}
+
       {pendingReview ? (
         <OrderReviewPrompt
           review={pendingReview}

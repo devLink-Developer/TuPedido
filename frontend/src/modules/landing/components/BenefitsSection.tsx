@@ -3,20 +3,20 @@ import type { LandingTheme } from "../utils/landingTheme";
 
 const benefits = [
   {
-    label: "Compra sin vueltas",
-    description: "Entras, encuentras el local indicado y pides sin perder tiempo entre opciones desordenadas."
+    label: "Todo cerca",
+    description: "Encuentra comercios de tu zona sin ir saltando entre distintas aplicaciones o busquedas."
   },
   {
-    label: "Seguimiento claro",
-    description: "Sabes en que etapa va tu pedido desde que compras hasta que llega."
+    label: "Decide mas rapido",
+    description: "Descubre opciones claras para comparar y elegir lo que mas te conviene en ese momento."
   },
   {
-    label: "Mas visibilidad",
-    description: "Los comercios muestran mejor lo que venden y convierten mejor desde el primer vistazo."
+    label: "A tu manera",
+    description: "Pide con envio o retiro segun tu tiempo, tu urgencia y el tipo de compra que quieras hacer."
   },
   {
-    label: "Todo mas coherente",
-    description: "Cada rubro tiene su propio contexto visual para que navegar se sienta mas claro y natural."
+    label: "Mas tranquilidad",
+    description: "Compra con una experiencia simple, ordenada y pensada para que todo se sienta facil."
   }
 ];
 
@@ -32,12 +32,12 @@ export function BenefitsSection({
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">
-            {selectedCategory ? `Contexto ${selectedCategory.name}` : "Por que funciona"}
+            {selectedCategory ? `Beneficios de ${selectedCategory.name}` : "Beneficios para ti"}
           </p>
           <h2 className="mt-2 text-2xl font-bold tracking-tight text-ink">
             {selectedCategory
-              ? `Asi se siente navegar cuando eliges ${selectedCategory.name.toLowerCase()}`
-              : "Una experiencia mas clara para comprar y vender"}
+              ? `Pedir ${selectedCategory.name.toLowerCase()} puede ser asi de simple`
+              : "Todo pensado para que pedir sea mas facil"}
           </h2>
         </div>
         {selectedCategory ? (
@@ -45,7 +45,7 @@ export function BenefitsSection({
             className="inline-flex rounded-full border px-4 py-2 text-sm font-semibold"
             style={{ borderColor: theme.accentBorderStrong, backgroundColor: theme.accentSoft, color: theme.accent }}
           >
-            Rubro activo: {selectedCategory.name}
+            Ideal para hoy: {selectedCategory.name}
           </span>
         ) : null}
       </div>
@@ -84,4 +84,3 @@ export function BenefitsSection({
     </section>
   );
 }
-

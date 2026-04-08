@@ -8,7 +8,7 @@ export function Button({
   return (
     <button
       {...props}
-      className={`rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-float transition disabled:cursor-not-allowed disabled:bg-zinc-300 ${className}`}
+      className={`app-button ${className}`}
     >
       {children}
     </button>

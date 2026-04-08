@@ -7,15 +7,15 @@ export function AuthLayout({ children }: PropsWithChildren) {
   const { brandName, branding } = usePlatformBranding();
 
   return (
-    <div className="ambient-grid min-h-screen bg-[linear-gradient(180deg,#f7ecdf_0%,#fff8f1_55%,#f9f2e9_100%)] px-4 py-6 text-ink md:px-8 md:py-8">
+    <div className="app-shell ambient-grid min-h-screen px-4 py-6 text-ink md:px-8 md:py-8">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-6">
+        <div className="app-toolbar mb-6 inline-flex rounded-[26px] px-4 py-4 sm:px-5">
           <Link to="/" aria-label={`Ir al inicio de ${brandName}`} className="inline-flex items-center">
             <BrandMark
               brandName={brandName}
               logoUrl={branding?.platform_logo_url ?? null}
-              imageClassName="h-12 max-w-[12.5rem] sm:h-14 sm:max-w-[14rem]"
-              textClassName="text-[clamp(1.7rem,4vw,2.35rem)] text-[#24130e]"
+              imageClassName="h-11 max-w-[12rem] sm:h-12 sm:max-w-[13.5rem]"
+              textClassName="text-[clamp(1.6rem,4vw,2.3rem)] text-[#24130e]"
             />
           </Link>
         </div>
