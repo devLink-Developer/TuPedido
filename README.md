@@ -22,17 +22,18 @@ Notas de despliegue:
 
 ## Credenciales demo
 
-- Admin: `admin@kepedimos.example.com` / `admin1234`
+- Admin: `admin@kepedimos.com` / `admin1234`
 - Comercio demo: `merchant@kepedimos.example.com` / `merchant123`
 - Cliente demo: `cliente@kepedimos.example.com` / `cliente123`
 - Aspirante comercio: `applicant@kepedimos.example.com` / `applicant123`
 
 ## Bootstrap admin
 
-- En cada arranque del backend se verifica si existe algun usuario con rol `admin`.
-- Si no existe ninguno y `BOOTSTRAP_ADMIN_ENABLED=true`, se crea un admin inicial con `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD`.
-- Si ya existe un admin, no se crea otro ni se pisa ese usuario.
-- En `development`, el seed demo reutiliza esos mismos valores para el admin.
+- En cada arranque del backend se evalua el bootstrap del admin canonico, aunque ya existan otros admins.
+- En cada arranque, si `BOOTSTRAP_ADMIN_ENABLED=true`, se garantiza el admin configurado por `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD`.
+- El admin demo canonico por defecto es `admin@kepedimos.com` / `admin1234`.
+- Los admins demo legacy se migran o desactivan para evitar duplicados activos.
+- En `development`, el seed demo completa solo los faltantes y no reescribe los datos demo existentes, salvo la garantia de acceso del admin.
 
 ## Estructura
 

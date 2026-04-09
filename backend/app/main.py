@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -13,6 +14,8 @@ from app.core.config import settings
 from app.db.migrations import run_schema_migrations
 from app.db.seed import ensure_default_admin, seed_initial_data
 from app.services.delivery_jobs import run_delivery_maintenance_loop
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -29,7 +32,14 @@ async def lifespan(_: FastAPI):
 
     ensure_default_admin()
     if settings.app_env == "development" and settings.seed_demo_data:
-        seed_initial_data()
+        replenished = seed_initial_data()
+        logger.info("Demo seed completed at startup; replenished %s missing records.", replenished)
+    else:
+        logger.info(
+            "Demo seed skipped at startup (app_env=%s, seed_demo_data=%s).",
+            settings.app_env,
+            settings.seed_demo_data,
+        )
     if settings.delivery_embedded_worker:
         maintenance_task = asyncio.create_task(run_delivery_maintenance_loop())
     yield

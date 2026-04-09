@@ -30,7 +30,8 @@ def _seed_reviewable_orders() -> tuple[int, int]:
     try:
         customer = db.query(User).filter(User.email == "cliente@kepedimos.example.com").one()
         rider = db.query(User).filter(User.email == "delivery@kepedimos.example.com").one()
-        store = db.query(Store).filter(Store.slug == "comercio-demo").one()
+        merchant = db.query(User).filter(User.email == "merchant@kepedimos.example.com").one()
+        store = db.query(Store).filter(Store.owner_user_id == merchant.id).one()
         address = db.query(Address).filter(Address.user_id == customer.id).first()
         if address is None:
             raise AssertionError("Expected seeded customer address")
@@ -202,7 +203,8 @@ def run_smoke() -> None:
             assert reviews[0].review_text == "Muy buen retiro."
             assert reviews[1].review_text == "Entrega prolija."
 
-            store = db.query(Store).filter(Store.slug == "comercio-demo").one()
+            merchant = db.query(User).filter(User.email == "merchant@kepedimos.example.com").one()
+            store = db.query(Store).filter(Store.owner_user_id == merchant.id).one()
             rider_profile = db.query(DeliveryProfile).filter(DeliveryProfile.user_id == reviews[1].rider_user_id).one()
             assert store.rating_count == 2
             assert float(store.rating) == 4.5

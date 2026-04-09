@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     seed_demo_data: bool = True
     bootstrap_admin_enabled: bool = True
     bootstrap_admin_full_name: str = "Admin Kepedimos"
-    bootstrap_admin_email: str = "admin@kepedimos.example.com"
+    bootstrap_admin_email: str = "admin@kepedimos.com"
     bootstrap_admin_password: str = "admin1234"
     bootstrap_admin_address_label: str = "HQ"
     bootstrap_admin_address_street: str = "Av. Corrientes 1000"
@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     media_max_upload_mb: int = 5
     web_push_vapid_public_key: str | None = None
     web_push_vapid_private_key: str | None = None
-    web_push_vapid_subject: str = "mailto:admin@kepedimos.example.com"
+    web_push_vapid_subject: str = "mailto:admin@kepedimos.com"
 
 
 @lru_cache

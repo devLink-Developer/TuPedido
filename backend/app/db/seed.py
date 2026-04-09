@@ -4,7 +4,7 @@ from datetime import UTC, datetime, time
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.core.security import hash_password
+from app.core.security import hash_password, verify_password
 from app.core.utils import encrypt_sensitive_value, slugify
 from app.db.session import SessionLocal
 from app.models.delivery import DeliveryApplication, DeliveryProfile, DeliveryZone, DeliveryZoneRate
@@ -26,6 +26,12 @@ from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG
 from app.services.store_address import build_store_address
 
 logger = logging.getLogger(__name__)
+
+DEMO_ADMIN_LEGACY_EMAILS = (
+    "admin@kepedimos.example.com",
+    "admin@tupedido.example.com",
+    "admin@tupedido.local",
+)
 
 LEGACY_SEED_EMAILS: dict[str, tuple[str, ...]] = {
     "cliente@kepedimos.example.com": ("cliente@tupedido.example.com",),
@@ -49,20 +55,91 @@ def _default_admin_seed() -> dict[str, object]:
     }
 
 
-def ensure_default_admin() -> bool:
-    if not settings.bootstrap_admin_enabled:
+def _legacy_seed_emails_for(email: str) -> tuple[str, ...]:
+    if email == settings.bootstrap_admin_email:
+        return tuple(candidate for candidate in DEMO_ADMIN_LEGACY_EMAILS if candidate != email)
+    return tuple(candidate for candidate in LEGACY_SEED_EMAILS.get(email, ()) if candidate != email)
+
+
+def _get_seed_user(db, email: str) -> User | None:
+    user = db.scalar(select(User).where(User.email == email))
+    if user is not None:
+        return user
+
+    for legacy_email in _legacy_seed_emails_for(email):
+        user = db.scalar(select(User).where(User.email == legacy_email))
+        if user is not None:
+            user.email = email
+            db.flush()
+            return user
+    return None
+
+
+def _ensure_seed_address(
+    db,
+    *,
+    user: User,
+    address_seed: tuple[str, str, str],
+    latitude: float | None = None,
+    longitude: float | None = None,
+) -> bool:
+    address = db.scalar(select(Address).where(Address.user_id == user.id).limit(1))
+    if address is not None:
         return False
+
+    address = Address(
+        user_id=user.id,
+        label=address_seed[0],
+        street=address_seed[1],
+        details=address_seed[2],
+        latitude=latitude,
+        longitude=longitude,
+        is_default=True,
+    )
+    db.add(address)
+    return True
+
+
+def _next_store_slug(db, base_slug: str) -> str:
+    slug = base_slug
+    suffix = 2
+    while db.scalar(select(Store.id).where(Store.slug == slug).limit(1)) is not None:
+        slug = f"{base_slug}-{suffix}"
+        suffix += 1
+    return slug
+
+
+def ensure_default_admin() -> dict[str, object]:
+    seed = _default_admin_seed()
+    email = str(seed["email"])
+
+    if not settings.bootstrap_admin_enabled:
+        logger.info(
+            "Bootstrap admin skipped at startup because BOOTSTRAP_ADMIN_ENABLED=false for email '%s'.",
+            email,
+        )
+        return {"status": "disabled", "email": email, "deactivated_legacy_demo_admins": 0}
+
+    address_values = seed["address"]
+    if not isinstance(address_values, tuple):
+        raise TypeError("Default admin address configuration is invalid")
 
     db = SessionLocal()
     try:
-        admin_user = db.scalar(select(User).where(User.role == "admin").limit(1))
-        if admin_user is not None:
-            return False
-
-        seed = _default_admin_seed()
-        email = str(seed["email"])
         user = db.scalar(select(User).where(User.email == email))
-        created = user is None
+        migrated_from = None
+        created = False
+
+        if user is None:
+            for legacy_email in _legacy_seed_emails_for(email):
+                legacy_user = db.scalar(select(User).where(User.email == legacy_email))
+                if legacy_user is None:
+                    continue
+                legacy_user.email = email
+                db.flush()
+                user = legacy_user
+                migrated_from = legacy_email
+                break
 
         if user is None:
             user = User(
@@ -71,61 +148,74 @@ def ensure_default_admin() -> bool:
                 hashed_password=hash_password(str(seed["password"])),
                 role="admin",
                 is_active=True,
+                must_change_password=False,
             )
             db.add(user)
             db.flush()
-        else:
+            created = True
+
+        needs_refresh = (
+            user.full_name != str(seed["full_name"])
+            or user.role != "admin"
+            or not user.is_active
+            or user.must_change_password
+            or not verify_password(str(seed["password"]), user.hashed_password)
+        )
+        created_address = False
+
+        if created or migrated_from is not None or needs_refresh:
             user.full_name = str(seed["full_name"])
             user.hashed_password = hash_password(str(seed["password"]))
             user.role = "admin"
             user.is_active = True
+            user.must_change_password = False
 
-        address_values = seed["address"]
-        if not isinstance(address_values, tuple):
-            raise TypeError("Default admin address configuration is invalid")
+        created_address = _ensure_seed_address(
+            db,
+            user=user,
+            address_seed=(
+                str(address_values[0]),
+                str(address_values[1]),
+                str(address_values[2]),
+            ),
+        )
 
-        address = db.scalar(select(Address).where(Address.user_id == user.id).limit(1))
-        if address is None:
-            address = Address(
-                user_id=user.id,
-                label=str(address_values[0]),
-                street=str(address_values[1]),
-                details=str(address_values[2]),
-                is_default=True,
-            )
-            db.add(address)
-        else:
-            address.label = str(address_values[0])
-            address.street = str(address_values[1])
-            address.details = str(address_values[2])
-            address.is_default = True
+        action = "already_correct"
+        if created:
+            action = "created"
+        elif migrated_from is not None:
+            action = "migrated"
+        elif needs_refresh or created_address:
+            action = "reactivated"
+
+        deactivated_legacy_demo_admins = 0
+        for legacy_email in _legacy_seed_emails_for(email):
+            legacy_user = db.scalar(select(User).where(User.email == legacy_email))
+            if legacy_user is None or not legacy_user.is_active:
+                continue
+            legacy_user.is_active = False
+            deactivated_legacy_demo_admins += 1
 
         db.commit()
-        logger.warning(
-            "Bootstrap admin %s at startup with email '%s'. Change BOOTSTRAP_ADMIN_* values in production.",
-            "created" if created else "promoted",
+        log = logger.info if action == "already_correct" and deactivated_legacy_demo_admins == 0 else logger.warning
+        log(
+            "Bootstrap admin status=%s email='%s' deactivated_legacy_demo_admins=%s. Change BOOTSTRAP_ADMIN_* values in production.",
+            action,
             email,
+            deactivated_legacy_demo_admins,
         )
-        return True
+        return {
+            "status": action,
+            "email": email,
+            "deactivated_legacy_demo_admins": deactivated_legacy_demo_admins,
+        }
     finally:
         db.close()
 
 
-def _get_seed_user(db, email: str) -> User | None:
-    user = db.scalar(select(User).where(User.email == email))
-    if user is not None:
-        return user
-
-    for legacy_email in LEGACY_SEED_EMAILS.get(email, ()):
-        user = db.scalar(select(User).where(User.email == legacy_email))
-        if user is not None:
-            user.email = email
-            return user
-    return None
-
-
-def seed_initial_data() -> None:
+def seed_initial_data() -> int:
     db = SessionLocal()
+    replenished = 0
     try:
         platform_settings = db.scalar(select(PlatformSettings).where(PlatformSettings.id == 1))
         if platform_settings is None:
@@ -142,36 +232,29 @@ def seed_initial_data() -> None:
                     catalog_banner_height=DEFAULT_CATALOG_BANNER_HEIGHT,
                 )
             )
-        else:
-            platform_settings.platform_logo_url = platform_settings.platform_logo_url or None
-            platform_settings.platform_wordmark_url = platform_settings.platform_wordmark_url or None
-            platform_settings.platform_favicon_url = platform_settings.platform_favicon_url or None
-            platform_settings.platform_use_logo_as_favicon = bool(platform_settings.platform_use_logo_as_favicon)
-            platform_settings.catalog_banner_image_url = platform_settings.catalog_banner_image_url or None
-            platform_settings.catalog_banner_width = platform_settings.catalog_banner_width or DEFAULT_CATALOG_BANNER_WIDTH
-            platform_settings.catalog_banner_height = platform_settings.catalog_banner_height or DEFAULT_CATALOG_BANNER_HEIGHT
+            replenished += 1
 
         redirect_uri = settings.mercadopago_redirect_uri or (
             f"{settings.backend_base_url.rstrip('/')}{settings.api_prefix}/oauth/mercadopago/callback"
         )
-        payment_provider = db.scalar(
-            select(PaymentProvider).where(PaymentProvider.provider == "mercadopago")
-        )
+        payment_provider = db.scalar(select(PaymentProvider).where(PaymentProvider.provider == "mercadopago"))
         if payment_provider is None:
-            payment_provider = PaymentProvider(provider="mercadopago")
+            payment_provider = PaymentProvider(
+                provider="mercadopago",
+                client_id=settings.mercadopago_client_id or "SIMULATED-CLIENT-ID",
+                client_secret_encrypted=encrypt_sensitive_value(
+                    settings.mercadopago_client_secret or "SIMULATED-CLIENT-SECRET"
+                ),
+                redirect_uri=redirect_uri,
+                enabled=bool(settings.mercadopago_simulated) or bool(
+                    settings.mercadopago_client_id
+                    and settings.mercadopago_client_secret
+                    and settings.mercadopago_redirect_uri
+                ),
+                mode="sandbox",
+            )
             db.add(payment_provider)
-            db.flush()
-        payment_provider.client_id = settings.mercadopago_client_id or "SIMULATED-CLIENT-ID"
-        payment_provider.client_secret_encrypted = encrypt_sensitive_value(
-            settings.mercadopago_client_secret or "SIMULATED-CLIENT-SECRET"
-        )
-        payment_provider.redirect_uri = redirect_uri
-        payment_provider.enabled = bool(settings.mercadopago_simulated) or bool(
-            settings.mercadopago_client_id
-            and settings.mercadopago_client_secret
-            and settings.mercadopago_redirect_uri
-        )
-        payment_provider.mode = "sandbox"
+            replenished += 1
 
         base_categories = [
             {
@@ -223,19 +306,22 @@ def seed_initial_data() -> None:
             slug = slugify(name)
             category = db.scalar(select(Category).where(Category.slug == slug))
             if category is None:
-                category = Category(name=name, slug=slug)
+                category = Category(
+                    name=name,
+                    slug=slug,
+                    description=item["description"],
+                    color=item["color"],
+                    color_light=item["color_light"],
+                    icon=item["icon"],
+                    is_active=True,
+                    sort_order=sort_order,
+                )
                 db.add(category)
                 db.flush()
-            category.description = item["description"]
-            category.color = item["color"]
-            category.color_light = item["color_light"]
-            category.icon = item["icon"]
-            category.is_active = True
-            category.sort_order = sort_order
+                replenished += 1
             categories_by_name[name] = category
 
         users_seed = [
-            _default_admin_seed(),
             {
                 "full_name": "Cliente Demo",
                 "email": "cliente@kepedimos.example.com",
@@ -270,44 +356,37 @@ def seed_initial_data() -> None:
             user = _get_seed_user(db, str(item["email"]))
             if user is None:
                 user = User(
-                    full_name=item["full_name"],
-                    email=item["email"],
-                    hashed_password=hash_password(item["password"]),
-                    role=item["role"],
+                    full_name=str(item["full_name"]),
+                    email=str(item["email"]),
+                    hashed_password=hash_password(str(item["password"])),
+                    role=str(item["role"]),
                     is_active=True,
                 )
                 db.add(user)
                 db.flush()
-            else:
-                user.full_name = item["full_name"]
-                user.hashed_password = hash_password(item["password"])
-                user.role = item["role"]
-                user.is_active = True
-            users_by_email[item["email"]] = user
+                replenished += 1
+            users_by_email[str(item["email"])] = user
 
-            address = db.scalar(select(Address).where(Address.user_id == user.id).limit(1))
-            if address is None:
-                address = Address(
-                    user_id=user.id,
-                    label=item["address"][0],
-                    street=item["address"][1],
-                    details=item["address"][2],
-                    is_default=True,
-                )
-                db.add(address)
-            address.latitude = -34.5620 + (user.id * 0.001)
-            address.longitude = -58.4550 - (user.id * 0.001)
+            if _ensure_seed_address(
+                db,
+                user=user,
+                address_seed=item["address"],
+                latitude=-34.5620 + (user.id * 0.001),
+                longitude=-58.4550 - (user.id * 0.001),
+            ):
+                replenished += 1
 
         merchant_user = users_by_email["merchant@kepedimos.example.com"]
         store = db.scalar(select(Store).where(Store.owner_user_id == merchant_user.id))
         if store is None:
-            store = db.scalar(select(Store).where(Store.slug == "almacen-belgrano"))
-            if store is not None:
-                store.owner_user_id = merchant_user.id
-        if store is None:
+            requested_slug = "almacen-belgrano"
+            slug_owner = db.scalar(select(Store).where(Store.slug == requested_slug))
+            if slug_owner is not None and slug_owner.owner_user_id != merchant_user.id:
+                requested_slug = _next_store_slug(db, requested_slug)
+
             store = Store(
                 owner_user_id=merchant_user.id,
-                slug="almacen-belgrano",
+                slug=requested_slug,
                 name="Almacen Belgrano",
                 description="Despensa y kiosko de cercania con envios rapidos y retiro en local.",
                 address=build_store_address(
@@ -334,17 +413,7 @@ def seed_initial_data() -> None:
             )
             db.add(store)
             db.flush()
-        store.latitude = -34.5627
-        store.longitude = -58.4565
-        store.address = build_store_address(
-            street_line="Amenabar 1234",
-            locality="CABA",
-            province="CABA",
-            postal_code="1426",
-        )
-        store.postal_code = "1426"
-        store.province = "CABA"
-        store.locality = "CABA"
+            replenished += 1
 
         desired_category_links = {
             categories_by_name["Despensa"].id: True,
@@ -355,11 +424,10 @@ def seed_initial_data() -> None:
             for link in db.scalars(select(StoreCategoryLink).where(StoreCategoryLink.store_id == store.id)).all()
         }
         for category_id, is_primary in desired_category_links.items():
-            link = existing_category_links.get(category_id)
-            if link is None:
-                db.add(StoreCategoryLink(store_id=store.id, category_id=category_id, is_primary=is_primary))
-            else:
-                link.is_primary = is_primary
+            if category_id in existing_category_links:
+                continue
+            db.add(StoreCategoryLink(store_id=store.id, category_id=category_id, is_primary=is_primary))
+            replenished += 1
 
         if store.delivery_settings is None:
             db.add(
@@ -373,19 +441,11 @@ def seed_initial_data() -> None:
                     min_order=0,
                 )
             )
-        else:
-            store.delivery_settings.delivery_enabled = True
-            store.delivery_settings.pickup_enabled = True
-            store.delivery_settings.delivery_fee = 350
-            store.delivery_settings.free_delivery_min_order = 5000
-            store.delivery_settings.rider_fee = 220
-            store.delivery_settings.min_order = 0
+            replenished += 1
 
         if store.payment_settings is None:
             db.add(StorePaymentSettings(store_id=store.id, cash_enabled=True, mercadopago_enabled=True))
-        else:
-            store.payment_settings.cash_enabled = True
-            store.payment_settings.mercadopago_enabled = True
+            replenished += 1
 
         merchant_payment_account = db.scalar(
             select(MerchantPaymentAccount).where(
@@ -394,21 +454,22 @@ def seed_initial_data() -> None:
             )
         )
         if merchant_payment_account is None:
-            merchant_payment_account = MerchantPaymentAccount(
-                store_id=store.id,
-                provider="mercadopago",
+            db.add(
+                MerchantPaymentAccount(
+                    store_id=store.id,
+                    provider="mercadopago",
+                    public_key="APP_USR-TEST-1234",
+                    access_token_encrypted=encrypt_sensitive_value("TEST-ACCESS-TOKEN-1234"),
+                    refresh_token_encrypted=encrypt_sensitive_value("TEST-REFRESH-TOKEN-1234"),
+                    mp_user_id="123456789",
+                    expires_in=15552000,
+                    token_expires_at=datetime(2099, 1, 1, tzinfo=UTC),
+                    connected=True,
+                    onboarding_completed=True,
+                    reconnect_required=False,
+                )
             )
-            db.add(merchant_payment_account)
-            db.flush()
-        merchant_payment_account.public_key = "APP_USR-TEST-1234"
-        merchant_payment_account.access_token_encrypted = encrypt_sensitive_value("TEST-ACCESS-TOKEN-1234")
-        merchant_payment_account.refresh_token_encrypted = encrypt_sensitive_value("TEST-REFRESH-TOKEN-1234")
-        merchant_payment_account.mp_user_id = "123456789"
-        merchant_payment_account.expires_in = 15552000
-        merchant_payment_account.token_expires_at = datetime(2099, 1, 1, tzinfo=UTC)
-        merchant_payment_account.connected = True
-        merchant_payment_account.onboarding_completed = True
-        merchant_payment_account.reconnect_required = False
+            replenished += 1
 
         zone = db.scalar(select(DeliveryZone).where(DeliveryZone.name == "CABA Norte"))
         if zone is None:
@@ -422,11 +483,8 @@ def seed_initial_data() -> None:
             )
             db.add(zone)
             db.flush()
-        zone.description = "Cobertura operativa inicial para Belgrano, Nunez y alrededores."
-        zone.center_latitude = -34.5598
-        zone.center_longitude = -58.4548
-        zone.radius_km = 6
-        zone.is_active = True
+            replenished += 1
+
         desired_zone_rates = {
             "bicycle": {"delivery_fee_customer": 2.5, "rider_fee": 1.6},
             "motorcycle": {"delivery_fee_customer": 3.5, "rider_fee": 2.2},
@@ -437,31 +495,32 @@ def seed_initial_data() -> None:
             for rate in db.scalars(select(DeliveryZoneRate).where(DeliveryZoneRate.zone_id == zone.id)).all()
         }
         for vehicle_type, values in desired_zone_rates.items():
-            rate = existing_zone_rates.get(vehicle_type)
-            if rate is None:
-                db.add(
-                    DeliveryZoneRate(
-                        zone_id=zone.id,
-                        vehicle_type=vehicle_type,
-                        delivery_fee_customer=values["delivery_fee_customer"],
-                        rider_fee=values["rider_fee"],
-                    )
+            if vehicle_type in existing_zone_rates:
+                continue
+            db.add(
+                DeliveryZoneRate(
+                    zone_id=zone.id,
+                    vehicle_type=vehicle_type,
+                    delivery_fee_customer=values["delivery_fee_customer"],
+                    rider_fee=values["rider_fee"],
                 )
-            else:
-                rate.delivery_fee_customer = values["delivery_fee_customer"]
-                rate.rider_fee = values["rider_fee"]
+            )
+            replenished += 1
 
-        if not store.hours:
-            for day in range(7):
-                db.add(
-                    StoreHour(
-                        store_id=store.id,
-                        day_of_week=day,
-                        opens_at=time(hour=0),
-                        closes_at=time(hour=23, minute=59),
-                        is_closed=False,
-                    )
+        existing_hours = {hour.day_of_week for hour in store.hours}
+        for day in range(7):
+            if day in existing_hours:
+                continue
+            db.add(
+                StoreHour(
+                    store_id=store.id,
+                    day_of_week=day,
+                    opens_at=time(hour=0),
+                    closes_at=time(hour=23, minute=59),
+                    is_closed=False,
                 )
+            )
+            replenished += 1
 
         category_taxonomy_seed = {
             "Promos": ["Combos", "Oportunidades"],
@@ -472,7 +531,8 @@ def seed_initial_data() -> None:
             category_slug = slugify(category_name)
             product_category = db.scalar(
                 select(ProductCategory).where(
-                    ProductCategory.store_id == store.id, ProductCategory.slug == category_slug
+                    ProductCategory.store_id == store.id,
+                    ProductCategory.slug == category_slug,
                 )
             )
             if product_category is None:
@@ -484,6 +544,7 @@ def seed_initial_data() -> None:
                 )
                 db.add(product_category)
                 db.flush()
+                replenished += 1
             for sub_index, subcategory_name in enumerate(subcategory_names):
                 subcategory_slug = slugify(subcategory_name)
                 subcategory = db.scalar(
@@ -492,15 +553,17 @@ def seed_initial_data() -> None:
                         ProductSubcategory.slug == subcategory_slug,
                     )
                 )
-                if subcategory is None:
-                    db.add(
-                        ProductSubcategory(
-                            product_category_id=product_category.id,
-                            name=subcategory_name,
-                            slug=subcategory_slug,
-                            sort_order=sub_index,
-                        )
+                if subcategory is not None:
+                    continue
+                db.add(
+                    ProductSubcategory(
+                        product_category_id=product_category.id,
+                        name=subcategory_name,
+                        slug=subcategory_slug,
+                        sort_order=sub_index,
                     )
+                )
+                replenished += 1
 
         db.flush()
         product_categories = {
@@ -516,14 +579,16 @@ def seed_initial_data() -> None:
             ).all()
         }
         products_seed = [
-            ("combo-ahorro", "Combo Ahorro", "Promo del dia con gaseosa y snack.", 8.9, None, "promos", "combos"),
-            ("yerba-premium", "Yerba Premium 1kg", "Ideal para mate de todos los dias.", 6.4, None, "despensa", "yerbas"),
-            ("gaseosa-cola", "Gaseosa Cola 1.5L", "Bebida fria lista para delivery.", 3.25, None, "bebidas", "gaseosas"),
+            ("Combo Ahorro", "Promo del dia con gaseosa y snack.", 8.9, None, "promos", "combos"),
+            ("Yerba Premium 1kg", "Ideal para mate de todos los dias.", 6.4, None, "despensa", "yerbas"),
+            ("Gaseosa Cola 1.5L", "Bebida fria lista para delivery.", 3.25, None, "bebidas", "gaseosas"),
         ]
-        for index, (_, name, description, price, compare_at, category_slug, subcategory_slug) in enumerate(products_seed):
+        for index, (name, description, price, compare_at, category_slug, subcategory_slug) in enumerate(products_seed):
             product = db.scalar(select(Product).where(Product.store_id == store.id, Product.name == name))
-            if product is None:
-                product = Product(
+            if product is not None:
+                continue
+            db.add(
+                Product(
                     store_id=store.id,
                     product_category_id=product_categories[category_slug].id,
                     product_subcategory_id=product_subcategories[f"{category_slug}:{subcategory_slug}"].id,
@@ -535,15 +600,8 @@ def seed_initial_data() -> None:
                     is_available=True,
                     sort_order=index,
                 )
-                db.add(product)
-            else:
-                product.product_category_id = product_categories[category_slug].id
-                product.product_subcategory_id = product_subcategories[f"{category_slug}:{subcategory_slug}"].id
-                product.description = description
-                product.price = price
-                product.compare_at_price = compare_at
-                product.is_available = True
-                product.sort_order = index
+            )
+            replenished += 1
 
         applicant_user = users_by_email["applicant@kepedimos.example.com"]
         application = db.scalar(select(MerchantApplication).where(MerchantApplication.user_id == applicant_user.id))
@@ -559,6 +617,7 @@ def seed_initial_data() -> None:
                     status="pending_review",
                 )
             )
+            replenished += 1
 
         rider_user = users_by_email["delivery@kepedimos.example.com"]
         rider_application = db.scalar(select(DeliveryApplication).where(DeliveryApplication.user_id == rider_user.id))
@@ -578,43 +637,35 @@ def seed_initial_data() -> None:
             )
             db.add(rider_application)
             db.flush()
-        rider_application.store_id = store.id
-        rider_application.status = "approved"
+            replenished += 1
+
         rider_profile = db.get(DeliveryProfile, rider_user.id)
         if rider_profile is None:
-            rider_profile = DeliveryProfile(
-                user_id=rider_user.id,
-                application_id=rider_application.id,
-                store_id=store.id,
-                phone=rider_application.phone,
-                vehicle_type="motorcycle",
-                photo_url=None,
-                dni_number=rider_application.dni_number,
-                emergency_contact_name=rider_application.emergency_contact_name,
-                emergency_contact_phone=rider_application.emergency_contact_phone,
-                license_number=rider_application.license_number,
-                vehicle_plate=rider_application.vehicle_plate,
-                insurance_policy=rider_application.insurance_policy,
-                availability="idle",
-                is_active=True,
-                current_zone_id=zone.id,
-                current_latitude=-34.5615,
-                current_longitude=-58.4555,
-                push_enabled=False,
+            db.add(
+                DeliveryProfile(
+                    user_id=rider_user.id,
+                    application_id=rider_application.id,
+                    store_id=rider_application.store_id or store.id,
+                    phone=rider_application.phone or "+54 11 3333 1234",
+                    vehicle_type=rider_application.vehicle_type or "motorcycle",
+                    photo_url=None,
+                    dni_number=rider_application.dni_number or "30111222",
+                    emergency_contact_name=rider_application.emergency_contact_name or "Maria Rider",
+                    emergency_contact_phone=rider_application.emergency_contact_phone or "+54 11 3333 9999",
+                    license_number=rider_application.license_number or "LIC-998877",
+                    vehicle_plate=rider_application.vehicle_plate or "AA123BB",
+                    insurance_policy=rider_application.insurance_policy or "Seguro Demo 123",
+                    availability="idle",
+                    is_active=True,
+                    current_zone_id=zone.id,
+                    current_latitude=-34.5615,
+                    current_longitude=-58.4555,
+                    push_enabled=False,
+                )
             )
-            db.add(rider_profile)
-        else:
-            rider_profile.application_id = rider_application.id
-            rider_profile.store_id = store.id
-            rider_profile.phone = rider_application.phone
-            rider_profile.vehicle_type = "motorcycle"
-            rider_profile.availability = "idle"
-            rider_profile.is_active = True
-            rider_profile.current_zone_id = zone.id
-            rider_profile.current_latitude = -34.5615
-            rider_profile.current_longitude = -58.4555
-        rider_user.role = "delivery"
+            replenished += 1
 
         db.commit()
+        return replenished
     finally:
         db.close()
