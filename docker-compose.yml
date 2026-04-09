@@ -19,8 +19,6 @@ services:
       DELIVERY_EMBEDDED_WORKER: "false"
     ports:
       - "8016:8016"
-    volumes:
-      - ./backend:/app
     healthcheck:
       test:
         [
@@ -43,8 +41,6 @@ services:
     env_file:
       - .env
     command: ["python", "-m", "app.worker"]
-    volumes:
-      - ./backend:/app
     depends_on:
       db:
         condition: service_healthy
