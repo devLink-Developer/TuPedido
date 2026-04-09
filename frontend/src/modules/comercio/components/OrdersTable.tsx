@@ -94,15 +94,15 @@ export function OrdersTable({
   }, [groups, riders]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {groups.map((group) => (
-        <section key={group.dateKey} className="space-y-4">
+        <section key={group.dateKey} className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{group.dateKey}</p>
-              <h2 className="mt-1 text-xl font-bold text-ink">{group.label}</h2>
+              <h2 className="mt-1 text-lg font-bold text-ink">{group.label}</h2>
             </div>
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+            <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-semibold text-zinc-600">
               {group.orders.length} pedidos
             </span>
           </div>
@@ -116,11 +116,14 @@ export function OrdersTable({
             const paymentBlocked = requiresPaymentApproval(order);
 
             return (
-              <article key={order.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+              <article
+                key={order.id}
+                className="rounded-[24px] border border-[var(--color-border-default)] bg-white/95 p-4 shadow-[0_18px_36px_-30px_rgba(24,19,18,0.28)]"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-bold text-ink">Pedido #{order.id}</h3>
-                    <p className="mt-1 text-sm text-zinc-600">
+                    <p className="mt-1 text-[13px] text-zinc-600">
                       {order.customer_name} | {formatDateTime(order.created_at)}
                     </p>
                   </div>
@@ -130,7 +133,7 @@ export function OrdersTable({
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-3 text-sm text-zinc-600 md:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-3.5 grid gap-2.5 text-[13px] leading-5 text-zinc-600 md:grid-cols-2 xl:grid-cols-4">
                   <p>Pago: {paymentMethodLabels[order.payment_method]}</p>
                   <p>Estado pago: {statusLabels[order.payment_status] ?? order.payment_status}</p>
                   <p>Total cliente: {formatCurrency(order.pricing.total)}</p>
@@ -142,16 +145,16 @@ export function OrdersTable({
                 </div>
 
                 {paymentBlocked && order.status === "created" ? (
-                  <p className="mt-4 rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                  <p className="mt-3.5 rounded-[18px] border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[13px] text-amber-950">
                     Espera la aprobacion de Mercado Pago antes de aceptar este pedido.
                   </p>
                 ) : null}
 
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-3.5 flex flex-wrap gap-2">
                   {(order.status === "created" || order.status === "accepted") && (
                     <Button
                       type="button"
-                      className="bg-zinc-900 px-3 py-2 text-xs"
+                      className="!min-h-10 !rounded-[16px] !bg-zinc-900 !px-3.5 !py-2 !text-[13px]"
                       disabled={paymentBlocked || busyActionKey === `${order.id}:preparing`}
                       onClick={() => void onUpdateStatus(order.id, "preparing")}
                     >
@@ -162,7 +165,7 @@ export function OrdersTable({
                   {order.delivery_mode === "delivery" && order.status === "preparing" && (
                     <Button
                       type="button"
-                      className="bg-zinc-900 px-3 py-2 text-xs"
+                      className="!min-h-10 !rounded-[16px] !bg-zinc-900 !px-3.5 !py-2 !text-[13px]"
                       disabled={busyActionKey === `${order.id}:ready_for_dispatch`}
                       onClick={() => void onUpdateStatus(order.id, "ready_for_dispatch")}
                     >
@@ -173,7 +176,7 @@ export function OrdersTable({
                   {order.delivery_mode === "pickup" && order.status === "preparing" && (
                     <Button
                       type="button"
-                      className="bg-zinc-900 px-3 py-2 text-xs"
+                      className="!min-h-10 !rounded-[16px] !bg-zinc-900 !px-3.5 !py-2 !text-[13px]"
                       disabled={busyActionKey === `${order.id}:ready_for_pickup`}
                       onClick={() => void onUpdateStatus(order.id, "ready_for_pickup")}
                     >
@@ -184,7 +187,7 @@ export function OrdersTable({
                   {order.delivery_mode === "pickup" && order.status === "ready_for_pickup" && (
                     <Button
                       type="button"
-                      className="bg-zinc-900 px-3 py-2 text-xs"
+                      className="!min-h-10 !rounded-[16px] !bg-zinc-900 !px-3.5 !py-2 !text-[13px]"
                       disabled={busyActionKey === `${order.id}:delivered`}
                       onClick={() => void onUpdateStatus(order.id, "delivered")}
                     >
@@ -195,7 +198,7 @@ export function OrdersTable({
                   {canCancelOrder(order) && (
                     <Button
                       type="button"
-                      className="bg-rose-600 px-3 py-2 text-xs shadow-none"
+                      className="!min-h-10 !rounded-[16px] !bg-rose-600 !px-3.5 !py-2 !text-[13px] !shadow-none"
                       disabled={busyActionKey === `${order.id}:cancelled`}
                       onClick={() => void onUpdateStatus(order.id, "cancelled")}
                     >
@@ -205,18 +208,18 @@ export function OrdersTable({
                 </div>
 
                 {canAssignRider(order) ? (
-                  <div className="mt-4 rounded-[24px] border border-black/5 bg-zinc-50 p-4">
+                  <div className="mt-3.5 rounded-[20px] border border-black/5 bg-zinc-50 p-3.5">
                     <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Asignacion</p>
-                        <h4 className="mt-2 text-base font-bold text-ink">
+                        <h4 className="mt-1.5 text-sm font-bold text-ink">
                           {order.assigned_rider_id ? "Reasignar rider" : "Asignar rider"}
                         </h4>
-                        <p className="mt-1 text-sm text-zinc-600">
+                        <p className="mt-1 text-[13px] text-zinc-600">
                           Solo aparecen riders activos y disponibles del comercio.
                         </p>
                       </div>
-                      <div className="flex w-full flex-col gap-2 md:w-auto md:min-w-[360px] md:flex-row">
+                      <div className="flex w-full flex-col gap-2 md:w-auto md:min-w-[320px] md:flex-row">
                         <select
                           value={selectedRiderValue}
                           onChange={(event) =>
@@ -226,7 +229,7 @@ export function OrdersTable({
                             }))
                           }
                           disabled={!assignmentRiders.length || assignBusy}
-                          className="min-w-[220px] rounded-full border border-black/10 bg-white px-4 py-3 text-sm text-zinc-700 outline-none"
+                          className="min-w-[200px] rounded-[16px] border border-black/10 bg-white px-3.5 py-2.5 text-[13px] text-zinc-700 outline-none"
                         >
                           {!assignmentRiders.length ? <option value="">Sin riders disponibles</option> : null}
                           {assignmentRiders.map((rider) => (
@@ -237,6 +240,7 @@ export function OrdersTable({
                         </select>
                         <Button
                           type="button"
+                          className="!min-h-10 !rounded-[16px] !px-3.5 !py-2 !text-[13px]"
                           disabled={!selectedRiderValue || assignBusy}
                           onClick={() => void onAssignRider(order.id, Number(selectedRiderValue))}
                         >

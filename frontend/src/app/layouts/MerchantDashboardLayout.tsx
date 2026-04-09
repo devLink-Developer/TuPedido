@@ -31,12 +31,12 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
 
   return (
     <div className="app-shell min-h-screen text-ink">
-      <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col md:flex-row">
-        <aside className="app-sidebar hidden w-[320px] flex-col px-6 py-6 text-white md:flex">
+      <div className="mx-auto flex min-h-screen max-w-[1440px] flex-col md:flex-row">
+        <aside className="app-sidebar hidden w-[288px] flex-col px-5 py-5 text-white md:flex">
           <div className="relative">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ffcfb7]/70">Comercio</p>
-            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Panel operativo</h1>
-            <p className="mt-3 max-w-xs text-sm leading-7 text-white/62">
+            <h1 className="mt-3 font-display text-[2.15rem] font-bold tracking-tight">Panel operativo</h1>
+            <p className="mt-3 max-w-[15rem] text-sm leading-6 text-white/62">
               Gestiona pedidos, riders, promociones y liquidaciones con una sola jerarquía visual.
             </p>
             <div className="app-sidebar-nav mt-6">
@@ -47,7 +47,7 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
                   end={item.to === "/m/pedidos" || item.to === "/m/dashboard"}
                   className={({ isActive }) =>
                     [
-                      "rounded-[22px] px-4 py-3 text-sm font-semibold transition",
+                      "rounded-[18px] px-4 py-2.5 text-[13px] font-semibold transition",
                       isActive ? "app-sidebar-link-active" : "app-sidebar-link"
                     ].join(" ")
                   }
@@ -65,17 +65,17 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
             <button
               type="button"
               onClick={handleLogout}
-              className="mt-4 w-full rounded-[22px] border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-ink"
+              className="mt-4 w-full rounded-[18px] border border-white/10 bg-white/5 px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-white hover:text-ink"
             >
               Cerrar sesion
             </button>
           </div>
         </aside>
 
-        <main className="flex-1 px-4 py-6 md:px-8">
+        <main className="flex-1 px-4 py-5 md:px-6 md:py-6 lg:px-7">
           <header
             className={[
-              "app-toolbar mb-5 rounded-[28px] px-4 py-4 md:hidden",
+              "app-toolbar mb-4 rounded-[24px] px-4 py-3.5 md:hidden",
               mobileHeaderAction
                 ? "flex items-start justify-between gap-3"
                 : "flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between"
@@ -92,7 +92,7 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
                 aria-label="Abrir menu de comercio"
                 aria-expanded={open}
                 onClick={() => setOpen(true)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border-default)] bg-white text-ink shadow-sm"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border-default)] bg-white text-ink shadow-sm"
               >
                 <span className="sr-only">Menu</span>
                 <span className="space-y-1.5">
@@ -119,12 +119,12 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
             role="dialog"
             aria-modal="true"
             aria-label="Menu de comercio"
-            className="app-sidebar absolute inset-y-0 left-0 flex w-[min(84vw,320px)] flex-col px-6 py-6 text-white"
+            className="app-sidebar absolute inset-y-0 left-0 flex w-[min(82vw,300px)] flex-col px-5 py-5 text-white"
           >
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ffcfb7]/70">Comercio</p>
-                <h2 className="mt-3 font-display text-[1.75rem] font-bold leading-[1.08] tracking-tight sm:text-2xl">Panel operativo</h2>
+                <h2 className="mt-3 font-display text-[1.6rem] font-bold leading-[1.08] tracking-tight sm:text-[1.85rem]">Panel operativo</h2>
               </div>
               <button
                 type="button"
@@ -145,7 +145,7 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
                   onClick={close}
                   className={({ isActive }) =>
                     [
-                      "rounded-[22px] px-4 py-3 text-sm font-semibold transition",
+                      "rounded-[18px] px-4 py-2.5 text-[13px] font-semibold transition",
                       isActive ? "app-sidebar-link-active" : "app-sidebar-link"
                     ].join(" ")
                   }
@@ -162,7 +162,7 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="mt-4 w-full rounded-[22px] border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-ink"
+                className="mt-4 w-full rounded-[18px] border border-white/10 bg-white/5 px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-white hover:text-ink"
               >
                 Cerrar sesion
               </button>

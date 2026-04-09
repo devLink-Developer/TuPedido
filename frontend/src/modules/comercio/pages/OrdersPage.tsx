@@ -83,7 +83,7 @@ function OrdersToggleSwitch({
       disabled={!canToggleOrders || savingToggle}
       onClick={onToggle}
       className={[
-        "relative inline-flex h-8 w-14 items-center rounded-full border transition",
+        "relative inline-flex h-7 w-12 items-center rounded-full border transition",
         acceptingOrders
           ? "border-emerald-200/70 bg-emerald-400"
           : surface === "light"
@@ -94,8 +94,8 @@ function OrdersToggleSwitch({
     >
       <span
         className={[
-          "inline-block h-6 w-6 rounded-full bg-white shadow-sm transition",
-          acceptingOrders ? "translate-x-7" : "translate-x-1"
+          "inline-block h-5 w-5 rounded-full bg-white shadow-sm transition",
+          acceptingOrders ? "translate-x-6" : "translate-x-1"
         ].join(" ")}
       />
     </button>
@@ -117,7 +117,7 @@ function OrdersToggleControl({
 }) {
   if (layout === "inline") {
     return (
-      <div className="flex items-center gap-3 rounded-[22px] border border-black/10 bg-[#fff7f1] px-3 py-2 shadow-sm">
+      <div className="flex items-center gap-2.5 rounded-[20px] border border-black/10 bg-[#fff7f1] px-3 py-1.5 shadow-sm">
         <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8f5f4e]">Recibir pedidos</span>
         <OrdersToggleSwitch
           acceptingOrders={acceptingOrders}
@@ -131,8 +131,8 @@ function OrdersToggleControl({
   }
 
   return (
-    <div className="flex flex-col items-end gap-2">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#ffd3bf]/80">Recibir pedidos</span>
+    <div className="flex flex-col items-end gap-1.5">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#ffd3bf]/80">Recibir pedidos</span>
       <OrdersToggleSwitch
         acceptingOrders={acceptingOrders}
         canToggleOrders={canToggleOrders}
@@ -158,16 +158,16 @@ function OrdersSalesStatusCard({
   className?: string;
 }) {
   return (
-    <div className={`rounded-[26px] border border-white/15 bg-white/10 p-4 backdrop-blur ${className}`.trim()}>
-      <div className={`flex items-start gap-4 ${control ? "justify-between" : ""}`.trim()}>
+    <div className={`rounded-[24px] border border-white/15 bg-white/10 p-3.5 backdrop-blur md:p-4 ${className}`.trim()}>
+      <div className={`flex items-start gap-3 ${control ? "justify-between" : ""}`.trim()}>
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#ffd3bf]/80">Venta</p>
-          <p className="mt-2 text-lg font-bold text-white">{acceptingOrders ? "Venta habilitada" : "Venta pausada"}</p>
-          <p className="mt-1 text-sm leading-6 text-white/72 md:max-w-[220px]">{toggleDescription}</p>
+          <p className="mt-1.5 text-[1.02rem] font-bold text-white">{acceptingOrders ? "Venta habilitada" : "Venta pausada"}</p>
+          <p className="mt-1 text-[13px] leading-5 text-white/72 md:max-w-[220px]">{toggleDescription}</p>
         </div>
         {control}
       </div>
-      {toggleError ? <p className="mt-3 rounded-2xl bg-rose-500/15 px-3 py-2 text-sm text-rose-100">{toggleError}</p> : null}
+      {toggleError ? <p className="mt-2.5 rounded-[18px] bg-rose-500/15 px-3 py-2 text-[13px] text-rose-100">{toggleError}</p> : null}
     </div>
   );
 }
@@ -182,8 +182,8 @@ function OrdersSalesStatusCompactSummary({
   toggleError: string | null;
 }) {
   return (
-    <div className="space-y-2">
-      <div className="flex items-start gap-2 text-sm leading-5 text-zinc-600">
+    <div className="space-y-1.5">
+      <div className="flex items-start gap-2 text-[13px] leading-5 text-zinc-600">
         <span
           className={[
             "mt-1 inline-block h-2.5 w-2.5 shrink-0 rounded-full",
@@ -195,7 +195,7 @@ function OrdersSalesStatusCompactSummary({
           <span>{toggleDescription}</span>
         </span>
       </div>
-      {toggleError ? <span className="block rounded-2xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{toggleError}</span> : null}
+      {toggleError ? <span className="block rounded-[18px] bg-rose-50 px-3 py-2 text-[13px] text-rose-700">{toggleError}</span> : null}
     </div>
   );
 }
@@ -567,10 +567,14 @@ export function OrdersPage() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-5">
       {isDesktop ? (
         <PageHeader
           eyebrow="Comercio"
+          className="!rounded-[28px] !p-5 sm:!p-6"
+          contentClassName="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-end"
+          titleClassName="!text-[1.85rem] sm:!text-[2.08rem] md:!text-[2.28rem]"
+          descriptionClassName="!leading-6"
           title={
             <span className="inline-flex items-center gap-3">
               <span>Pedidos</span>
@@ -593,12 +597,12 @@ export function OrdersPage() {
                   layout="stacked"
                 />
               }
-              className="min-w-[280px]"
+              className="min-w-[280px] max-w-[340px]"
             />
           }
         />
       ) : (
-        <section className="rounded-[22px] border border-black/5 bg-white/80 px-4 py-3 text-sm shadow-sm backdrop-blur">
+        <section className="rounded-[20px] border border-black/5 bg-white/80 px-4 py-3 text-sm shadow-sm backdrop-blur">
           <OrdersSalesStatusCompactSummary
             acceptingOrders={acceptingOrders}
             toggleDescription={toggleDescription}
@@ -607,7 +611,7 @@ export function OrdersPage() {
         </section>
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Abiertos" value={String(openOrders.length)} description="Pedidos visibles para operar ahora." />
         <StatCard
           label="Hoy"
@@ -627,17 +631,17 @@ export function OrdersPage() {
       </div>
 
       {actionError ? (
-        <p className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
+        <p className="rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] text-rose-700">
           {actionError}
         </p>
       ) : null}
 
-      <section className="rounded-[28px] bg-white p-5 shadow-sm">
+      <section className="rounded-[24px] bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Filtros</p>
             <div className="mt-2 flex items-center gap-2">
-              <h2 className="text-xl font-bold text-ink">Filtros de pedidos</h2>
+              <h2 className="text-lg font-bold text-ink">Filtros de pedidos</h2>
               <HelpTooltip label="Ayuda sobre filtros de pedidos">
                 Usa estos filtros para mostrar solo los pedidos que quieres revisar.
               </HelpTooltip>
@@ -647,7 +651,7 @@ export function OrdersPage() {
             <button
               type="button"
               onClick={() => setShowDelivered((current) => !current)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${
+              className={`rounded-full px-3.5 py-2 text-[13px] font-semibold ${
                 showDelivered ? "bg-emerald-600 text-white" : "bg-zinc-100 text-zinc-700"
               }`}
             >
@@ -656,7 +660,7 @@ export function OrdersPage() {
             <button
               type="button"
               onClick={() => setShowCancelled((current) => !current)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${
+              className={`rounded-full px-3.5 py-2 text-[13px] font-semibold ${
                 showCancelled ? "bg-rose-600 text-white" : "bg-zinc-100 text-zinc-700"
               }`}
             >
@@ -665,11 +669,11 @@ export function OrdersPage() {
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-3.5 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setStatusFilter("")}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${
+            className={`rounded-full px-3.5 py-2 text-[13px] font-semibold ${
               statusFilter === "" ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
             }`}
           >
@@ -680,7 +684,7 @@ export function OrdersPage() {
               key={status}
               type="button"
               onClick={() => setStatusFilter(status)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${
+              className={`rounded-full px-3.5 py-2 text-[13px] font-semibold ${
                 statusFilter === status ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
               }`}
             >

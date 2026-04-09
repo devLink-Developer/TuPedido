@@ -50,18 +50,18 @@ function resolveStatusPillStyle(value: string) {
 
 export function LoadingCard({ label = "Cargando..." }: { label?: string }) {
   return (
-    <div className="mesh-surface rounded-[32px] border border-[var(--color-border-default)] p-6 shadow-sm sm:p-7">
-      <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+    <div className="mesh-surface rounded-[28px] border border-[var(--color-border-default)] p-5 shadow-sm sm:p-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">Estado</p>
-          <p className="mt-3 font-display text-[1.95rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-[2.35rem]">
+          <p className="mt-2.5 font-display text-[1.72rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-[2.05rem]">
             {label}
           </p>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-600">Preparamos la vista sin bloquear la navegación ni el contexto visual.</p>
         </div>
         <div className="grid grid-cols-3 gap-3 self-start">
           {Array.from({ length: 3 }, (_, index) => (
-            <span key={index} className="h-16 w-16 animate-pulse rounded-[22px] border border-white/70 bg-white/80" />
+            <span key={index} className="h-14 w-14 animate-pulse rounded-[18px] border border-white/70 bg-white/80" />
           ))}
         </div>
       </div>
@@ -79,13 +79,13 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="mesh-surface rounded-[32px] border border-dashed border-[var(--color-border-default)] p-6 text-center shadow-sm sm:p-8">
+    <div className="mesh-surface rounded-[28px] border border-dashed border-[var(--color-border-default)] p-5 text-center shadow-sm sm:p-7">
       <span className="app-chip text-[10px] uppercase tracking-[0.24em] text-zinc-500">Sin resultados</span>
-      <h3 className="mx-auto mt-4 max-w-2xl font-display text-[1.8rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-[2.2rem]">
+      <h3 className="mx-auto mt-3.5 max-w-2xl font-display text-[1.55rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-[1.95rem]">
         {title}
       </h3>
-      <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-zinc-600">{description}</p>
-      {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
+      <p className="mx-auto mt-2.5 max-w-2xl text-sm leading-6 text-zinc-600">{description}</p>
+      {action ? <div className="mt-4 flex justify-center">{action}</div> : null}
     </div>
   );
 }
@@ -101,7 +101,7 @@ export function IntegrationPendingCard({
     <div className="rounded-[28px] border border-[rgba(245,158,11,0.18)] bg-[linear-gradient(180deg,#fff8ef_0%,#fffdf9_100%)] p-5 text-sm text-amber-950 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">Pendiente</p>
       <h3 className="mt-2 text-lg font-bold">{title}</h3>
-      <p className="mt-2 leading-7 text-amber-900/78">{description}</p>
+      <p className="mt-2 leading-6 text-amber-900/78">{description}</p>
     </div>
   );
 }
@@ -133,8 +133,8 @@ export function PageHeader({
   return (
     <div
       className={[
-        "app-panel-dark ambient-grid overflow-hidden rounded-[36px] p-6 shadow-lift sm:p-7",
-        hasBanner ? "min-h-[220px] md:min-h-[250px]" : "",
+        "app-panel-dark ambient-grid overflow-hidden rounded-[32px] p-5 shadow-lift sm:p-6",
+        hasBanner ? "min-h-[200px] md:min-h-[228px]" : "",
         className ?? ""
       ].join(" ")}
       style={
@@ -150,21 +150,21 @@ export function PageHeader({
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,123,70,0.22),transparent_28%)]" />
       <div className="pointer-events-none absolute -right-10 top-0 h-44 w-44 rounded-full bg-brand-400/20 blur-3xl" />
       <div className="pointer-events-none absolute bottom-0 left-0 h-28 w-full bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.1))]" />
-      <div className={["relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between", contentClassName ?? ""].join(" ")}>
+      <div className={["relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between", contentClassName ?? ""].join(" ")}>
         <div className="min-w-0">
-          <span className="inline-flex rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.32em] text-[#ffd3bf] sm:text-[11px]">
+          <span className="inline-flex rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#ffd3bf] sm:text-[11px]">
             {eyebrow}
           </span>
           <h1
             className={[
-              "mt-4 max-w-4xl font-display text-[2rem] font-bold leading-[1.02] tracking-tight text-white sm:text-[2.4rem] md:text-[2.75rem]",
+              "mt-3.5 max-w-4xl font-display text-[1.82rem] font-bold leading-[1.02] tracking-tight text-white sm:text-[2.18rem] md:text-[2.48rem]",
               titleClassName ?? ""
             ].join(" ")}
           >
             {title}
           </h1>
           {description ? (
-            <div className={["mt-4 max-w-3xl text-sm leading-7 text-white/74 md:text-[15px]", descriptionClassName ?? ""].join(" ")}>{description}</div>
+            <div className={["mt-3 max-w-3xl text-sm leading-6 text-white/74 md:text-[15px]", descriptionClassName ?? ""].join(" ")}>{description}</div>
           ) : null}
         </div>
         {action ? <div className="relative flex w-full flex-wrap gap-2 md:w-auto md:shrink-0 md:justify-end">{action}</div> : null}
@@ -195,7 +195,7 @@ export function CatalogBanner({
   }, [preferredImageUrl]);
 
   return (
-    <div className="mx-auto w-full overflow-hidden rounded-[34px] border border-white/80 bg-white shadow-lift" style={{ maxWidth: `${resolvedDimensions.width}px` }}>
+    <div className="mx-auto w-full overflow-hidden rounded-[28px] border border-white/80 bg-white shadow-lift" style={{ maxWidth: `${resolvedDimensions.width}px` }}>
       <img
         src={currentImageUrl}
         alt={alt}
@@ -232,13 +232,13 @@ export function StatCard({
   description?: string;
 }) {
   return (
-    <article className="app-panel rounded-[28px] p-5">
+    <article className="app-panel rounded-[24px] p-4">
       <div className="relative">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">{label}</p>
-        <p className="mt-4 font-display text-[2rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-[2.25rem]">
+        <p className="mt-3 font-display text-[1.72rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-[1.95rem]">
           {value}
         </p>
-        {description ? <p className="mt-3 text-sm leading-7 text-zinc-600">{description}</p> : null}
+        {description ? <p className="mt-2.5 text-sm leading-6 text-zinc-600">{description}</p> : null}
       </div>
     </article>
   );

@@ -15,14 +15,14 @@ export function RiderLayout({ children }: PropsWithChildren) {
 
   return (
     <div className="app-shell min-h-screen text-ink">
-      <header className="px-4 pt-[calc(0.9rem+var(--safe-top))] md:px-8 md:pt-6">
-        <div className="app-panel-dark mx-auto flex max-w-6xl flex-col gap-5 rounded-[32px] px-5 py-5 md:flex-row md:items-center md:justify-between md:px-6">
+      <header className="px-4 pt-[calc(0.85rem+var(--safe-top))] md:px-6 md:pt-5">
+        <div className="app-panel-dark mx-auto flex max-w-[1200px] flex-col gap-4 rounded-[28px] px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ffd0ba]/70">Rider</p>
-            <h1 className="mt-2 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight sm:text-3xl">
+            <h1 className="mt-2 font-display text-[1.7rem] font-bold leading-[1.08] tracking-tight sm:text-[2.1rem]">
               Operacion en ruta
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-white/68">
+            <p className="mt-2 max-w-xl text-sm leading-6 text-white/68">
               Navegacion rapida para tomar pedidos, cerrar entregas y revisar ganancias sin cambiar de contexto.
             </p>
           </div>
@@ -34,7 +34,7 @@ export function RiderLayout({ children }: PropsWithChildren) {
                 end={item.to === "/r"}
                 className={({ isActive }) =>
                   [
-                    "rounded-full px-4 py-2 text-center text-sm font-semibold transition",
+                    "rounded-full px-3.5 py-1.5 text-center text-[13px] font-semibold transition",
                     isActive ? "app-sidebar-link-active" : "app-sidebar-link"
                   ].join(" ")
                 }
@@ -42,7 +42,7 @@ export function RiderLayout({ children }: PropsWithChildren) {
                 {item.label}
               </NavLink>
             ))}
-            <div className="ml-0 w-full rounded-full border border-white/10 bg-white/8 px-4 py-2 text-sm text-white/80 sm:w-auto md:ml-2">
+            <div className="ml-0 w-full rounded-full border border-white/10 bg-white/8 px-3.5 py-1.5 text-[13px] text-white/80 sm:w-auto md:ml-2">
               <p className="font-semibold text-white">{user?.full_name ?? "Rider"}</p>
             </div>
             <button
@@ -51,14 +51,14 @@ export function RiderLayout({ children }: PropsWithChildren) {
                 logout();
                 navigate("/login", { replace: true });
               }}
-              className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white hover:text-ink sm:w-auto"
+              className="w-full rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-[13px] font-semibold text-white transition hover:bg-white hover:text-ink sm:w-auto"
             >
               Cerrar sesion
             </button>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6 md:px-8">{children}</main>
+      <main className="mx-auto max-w-[1200px] px-4 py-5 md:px-6 md:py-6">{children}</main>
     </div>
   );
 }
