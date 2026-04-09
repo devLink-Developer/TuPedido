@@ -7,12 +7,12 @@ services:
     ports:
       - "8015:8015"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   backend:
     build:
       context: ./backend
-    command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8016 --reload"]
     env_file:
       - .env
     environment:
@@ -21,6 +21,18 @@ services:
       - "8016:8016"
     volumes:
       - ./backend:/app
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8016/health').status == 200 else 1)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     depends_on:
       db:
         condition: service_healthy

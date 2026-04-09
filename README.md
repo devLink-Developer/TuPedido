@@ -19,6 +19,8 @@ Notas de despliegue:
 - El proyecto Compose queda fijado como `tupedido`, asi el nombre no cambia segun la carpeta del servidor.
 - PostgreSQL no se publica al host por defecto; solo queda accesible para `backend` y `worker` dentro de la red Docker.
 - `frontend` se sirve como build estatico con Nginx y hace reverse proxy de `/api/v1` y `/media` hacia `backend`.
+- Nginx resuelve dinamicamente `backend` dentro de la red Docker para tolerar recreaciones del contenedor sin quedar apuntando a una IP vieja.
+- `frontend` espera a que `backend` quede healthy antes de arrancar, y `backend` corre sin `--reload` en esta compose para evitar reinicios del upstream durante el deploy.
 - Si necesitas abrir PostgreSQL temporalmente para administracion, hazlo con un override puntual y no en la compose principal.
 
 ## Credenciales demo
