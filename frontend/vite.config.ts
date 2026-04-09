@@ -39,8 +39,11 @@ export default defineConfig(({ mode }) => {
           ]
         },
         workbox: {
+          cleanupOutdatedCaches: true,
+          clientsClaim: true,
           globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
           navigateFallback: "/index.html",
+          skipWaiting: true,
           runtimeCaching: [
             {
               urlPattern: /\/api\/v1\//,
