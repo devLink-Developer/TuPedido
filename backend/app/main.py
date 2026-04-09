@@ -21,34 +21,41 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     maintenance_task = None
-    for attempt in range(10):
-        try:
-            run_schema_migrations()
-            break
-        except OperationalError:
-            if attempt == 9:
-                raise
-            await asyncio.sleep(2)
+    try:
+        for attempt in range(10):
+            try:
+                run_schema_migrations()
+                break
+            except OperationalError:
+                if attempt == 9:
+                    raise
+                await asyncio.sleep(2)
 
-    ensure_default_admin()
-    if settings.app_env == "development" and settings.seed_demo_data:
-        replenished = seed_initial_data()
-        logger.info("Demo seed completed at startup; replenished %s missing records.", replenished)
-    else:
-        logger.info(
-            "Demo seed skipped at startup (app_env=%s, seed_demo_data=%s).",
-            settings.app_env,
-            settings.seed_demo_data,
-        )
-    if settings.delivery_embedded_worker:
-        maintenance_task = asyncio.create_task(run_delivery_maintenance_loop())
-    yield
-    if maintenance_task is not None:
-        maintenance_task.cancel()
-        try:
-            await maintenance_task
-        except asyncio.CancelledError:
-            pass
+        ensure_default_admin()
+        if settings.app_env == "development" and settings.seed_demo_data:
+            replenished = seed_initial_data()
+            logger.info("Demo seed completed at startup; replenished %s missing records.", replenished)
+        else:
+            logger.info(
+                "Demo seed skipped at startup (app_env=%s, seed_demo_data=%s).",
+                settings.app_env,
+                settings.seed_demo_data,
+            )
+        if settings.delivery_embedded_worker:
+            maintenance_task = asyncio.create_task(run_delivery_maintenance_loop())
+    except Exception:
+        logger.exception("Application startup failed during initialization.")
+        raise
+
+    try:
+        yield
+    finally:
+        if maintenance_task is not None:
+            maintenance_task.cancel()
+            try:
+                await maintenance_task
+            except asyncio.CancelledError:
+                pass
 
 app = FastAPI(
     title="Kepedimos API",

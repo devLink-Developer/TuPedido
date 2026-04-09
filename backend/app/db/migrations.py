@@ -6,6 +6,7 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config
 from alembic.script import ScriptDirectory
+from alembic.util.exc import CommandError
 from sqlalchemy import inspect, text
 
 from app.core.config import settings
@@ -109,12 +110,30 @@ def _recover_merge_head(config: Config) -> bool:
     return True
 
 
+def _is_revision_resolution_error(exc: Exception) -> bool:
+    if isinstance(exc, KeyError):
+        return True
+    if not isinstance(exc, CommandError):
+        return False
+
+    message = str(exc).lower()
+    return (
+        "can't locate revision identified by" in message
+        or "requested revision" in message
+        or "overlaps with other requested revisions" in message
+        or "multiple heads are present" in message
+    )
+
+
 def run_schema_migrations() -> None:
     config = _alembic_config()
     if _needs_legacy_stamp():
         command.stamp(config, INITIAL_REVISION)
     try:
         command.upgrade(config, "head")
-    except KeyError:
-        if not _recover_merge_head(config):
-            raise
+    except Exception as exc:
+        if _is_revision_resolution_error(exc) and _recover_merge_head(config):
+            command.upgrade(config, "head")
+            return
+        logger.exception("Schema migration failed during startup.")
+        raise

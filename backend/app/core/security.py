@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 from jose import jwt
-from passlib.exc import UnknownHashError
+from passlib.exc import PasswordValueError, UnknownHashError
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -16,7 +16,7 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed_password: str) -> bool:
     try:
         return pwd_context.verify(password, hashed_password)
-    except UnknownHashError:
+    except (UnknownHashError, PasswordValueError, TypeError, ValueError):
         return False
 
 
