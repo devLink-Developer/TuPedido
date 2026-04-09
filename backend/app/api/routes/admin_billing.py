@@ -33,6 +33,7 @@ from app.schemas.settlement import (
 )
 from app.core.utils import encrypt_sensitive_value
 from app.services.mercadopago import get_or_create_mercadopago_provider
+from app.services.media import normalize_media_url
 from app.services.delivery import create_notifications
 from app.services.platform import get_or_create_platform_settings, get_platform_settings_snapshot
 from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
@@ -170,13 +171,13 @@ def update_platform_settings(
     settings = get_or_create_platform_settings(db)
     settings.service_fee_amount = payload.service_fee_amount
     if "catalog_banner_image_url" in payload.model_fields_set:
-        settings.catalog_banner_image_url = (payload.catalog_banner_image_url or "").strip() or None
+        settings.catalog_banner_image_url = normalize_media_url(payload.catalog_banner_image_url)
     if "platform_logo_url" in payload.model_fields_set:
-        settings.platform_logo_url = (payload.platform_logo_url or "").strip() or None
+        settings.platform_logo_url = normalize_media_url(payload.platform_logo_url)
     if "platform_wordmark_url" in payload.model_fields_set:
-        settings.platform_wordmark_url = (payload.platform_wordmark_url or "").strip() or None
+        settings.platform_wordmark_url = normalize_media_url(payload.platform_wordmark_url)
     if "platform_favicon_url" in payload.model_fields_set:
-        settings.platform_favicon_url = (payload.platform_favicon_url or "").strip() or None
+        settings.platform_favicon_url = normalize_media_url(payload.platform_favicon_url)
     if "platform_use_logo_as_favicon" in payload.model_fields_set and payload.platform_use_logo_as_favicon is not None:
         settings.platform_use_logo_as_favicon = payload.platform_use_logo_as_favicon
     if "catalog_banner_width" in payload.model_fields_set:

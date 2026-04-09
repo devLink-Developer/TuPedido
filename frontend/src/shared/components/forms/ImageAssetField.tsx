@@ -34,7 +34,7 @@ export function ImageAssetField({
     setError(null);
     try {
       const uploaded = await uploadImageAsset(file, folder);
-      onChange(uploaded.url);
+      onChange(uploaded.path);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudo subir la imagen");
     } finally {

@@ -19,6 +19,8 @@ services:
       DELIVERY_EMBEDDED_WORKER: "false"
     ports:
       - "8016:8016"
+    volumes:
+      - media_data:/app/media
     healthcheck:
       test:
         [
@@ -62,3 +64,4 @@ services:
 
 volumes:
   postgres_data:
+  media_data:
