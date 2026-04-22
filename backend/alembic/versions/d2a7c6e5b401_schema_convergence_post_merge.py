@@ -53,6 +53,16 @@ def _has_unique_constraint(table_name: str, constraint_name: str) -> bool:
     return constraint_name in {item["name"] for item in _inspector().get_unique_constraints(table_name)}
 
 
+def _has_foreign_key(table_name: str, constrained_columns: list[str], referred_table: str) -> bool:
+    for foreign_key in _inspector().get_foreign_keys(table_name):
+        if foreign_key.get("constrained_columns") != constrained_columns:
+            continue
+        if foreign_key.get("referred_table") != referred_table:
+            continue
+        return True
+    return False
+
+
 def _create_index(table_name: str, columns: list[str], *, unique: bool = False) -> None:
     index_name = op.f(f"ix_{table_name}_{'_'.join(columns)}")
     if _has_table(table_name) and not _has_index(table_name, index_name):
@@ -103,7 +113,7 @@ def _ensure_category_visuals() -> None:
             )
         )
 
-    if _has_column("categories", "color"):
+    if op.get_bind().dialect.name != "sqlite" and _has_column("categories", "color"):
         op.alter_column("categories", "color", server_default=None)
 
 
@@ -284,7 +294,26 @@ def _ensure_promotions() -> None:
             sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         )
     else:
-        if not _has_column("order_promotion_applications", "promotion_id"):
+        needs_promotion_id_column = not _has_column("order_promotion_applications", "promotion_id")
+        needs_promotion_id_fk = not _has_foreign_key(
+            "order_promotion_applications",
+            ["promotion_id"],
+            "store_promotions",
+        )
+        if op.get_bind().dialect.name == "sqlite":
+            if needs_promotion_id_column or needs_promotion_id_fk:
+                with op.batch_alter_table("order_promotion_applications", recreate="always") as batch_op:
+                    if needs_promotion_id_column:
+                        batch_op.add_column(sa.Column("promotion_id", sa.Integer(), nullable=True))
+                    if needs_promotion_id_fk:
+                        batch_op.create_foreign_key(
+                            "fk_order_promotion_applications_promotion_id_store_promotions",
+                            "store_promotions",
+                            ["promotion_id"],
+                            ["id"],
+                            ondelete="SET NULL",
+                        )
+        elif needs_promotion_id_column:
             op.add_column(
                 "order_promotion_applications",
                 sa.Column("promotion_id", sa.Integer(), sa.ForeignKey("store_promotions.id", ondelete="SET NULL"), nullable=True),

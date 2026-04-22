@@ -44,7 +44,8 @@ def upgrade() -> None:
 
     if _has_column("users", "must_change_password"):
         op.execute(sa.text("UPDATE users SET must_change_password = false WHERE must_change_password IS NULL"))
-        op.alter_column("users", "must_change_password", server_default=None)
+        if op.get_bind().dialect.name != "sqlite":
+            op.alter_column("users", "must_change_password", server_default=None)
 
 
 def downgrade() -> None:

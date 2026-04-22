@@ -137,18 +137,19 @@ def upgrade() -> None:
             )
         )
 
-    for table_name, column_name in (
-        ("shopping_carts", "commercial_discount_total"),
-        ("shopping_carts", "financial_discount_total"),
-        ("shopping_cart_items", "base_unit_price_snapshot"),
-        ("shopping_cart_items", "commercial_discount_amount_snapshot"),
-        ("store_orders", "commercial_discount_total"),
-        ("store_orders", "financial_discount_total"),
-        ("store_order_items", "base_unit_price_snapshot"),
-        ("store_order_items", "commercial_discount_amount_snapshot"),
-    ):
-        if _has_table(table_name) and _has_column(table_name, column_name):
-            op.alter_column(table_name, column_name, server_default=None)
+    if op.get_bind().dialect.name != "sqlite":
+        for table_name, column_name in (
+            ("shopping_carts", "commercial_discount_total"),
+            ("shopping_carts", "financial_discount_total"),
+            ("shopping_cart_items", "base_unit_price_snapshot"),
+            ("shopping_cart_items", "commercial_discount_amount_snapshot"),
+            ("store_orders", "commercial_discount_total"),
+            ("store_orders", "financial_discount_total"),
+            ("store_order_items", "base_unit_price_snapshot"),
+            ("store_order_items", "commercial_discount_amount_snapshot"),
+        ):
+            if _has_table(table_name) and _has_column(table_name, column_name):
+                op.alter_column(table_name, column_name, server_default=None)
 
 
 def downgrade() -> None:

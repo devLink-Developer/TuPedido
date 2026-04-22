@@ -34,6 +34,16 @@ def _has_index(table_name: str, index_name: str) -> bool:
     return index_name in {index["name"] for index in _inspector().get_indexes(table_name)}
 
 
+def _has_foreign_key(table_name: str, constrained_columns: list[str], referred_table: str) -> bool:
+    for foreign_key in _inspector().get_foreign_keys(table_name):
+        if foreign_key.get("constrained_columns") != constrained_columns:
+            continue
+        if foreign_key.get("referred_table") != referred_table:
+            continue
+        return True
+    return False
+
+
 def _create_index(table_name: str, columns: list[str], *, unique: bool = False) -> None:
     index_name = op.f(f"ix_{table_name}_{'_'.join(columns)}")
     if not _has_index(table_name, index_name):
@@ -52,6 +62,7 @@ def _drop_column(table_name: str, column_name: str) -> None:
 
 
 def upgrade() -> None:
+    is_sqlite = op.get_bind().dialect.name == "sqlite"
     if _has_table("addresses"):
         if not _has_column("addresses", "latitude"):
             op.add_column("addresses", sa.Column("latitude", sa.Numeric(precision=10, scale=7), nullable=True))
@@ -232,16 +243,49 @@ def upgrade() -> None:
                 "store_orders",
                 sa.Column("delivery_provider", sa.String(length=40), nullable=False, server_default="store"),
             )
-        if not _has_column("store_orders", "delivery_zone_id"):
-            op.add_column(
-                "store_orders",
-                sa.Column("delivery_zone_id", sa.Integer(), sa.ForeignKey("delivery_zones.id", ondelete="SET NULL"), nullable=True),
-            )
-        if not _has_column("store_orders", "assigned_rider_id"):
-            op.add_column(
-                "store_orders",
-                sa.Column("assigned_rider_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
-            )
+        if op.get_bind().dialect.name == "sqlite":
+            needs_delivery_zone_column = not _has_column("store_orders", "delivery_zone_id")
+            needs_assigned_rider_column = not _has_column("store_orders", "assigned_rider_id")
+            needs_delivery_zone_fk = not _has_foreign_key("store_orders", ["delivery_zone_id"], "delivery_zones")
+            needs_assigned_rider_fk = not _has_foreign_key("store_orders", ["assigned_rider_id"], "users")
+            if (
+                needs_delivery_zone_column
+                or needs_assigned_rider_column
+                or needs_delivery_zone_fk
+                or needs_assigned_rider_fk
+            ):
+                with op.batch_alter_table("store_orders", recreate="always") as batch_op:
+                    if needs_delivery_zone_column:
+                        batch_op.add_column(sa.Column("delivery_zone_id", sa.Integer(), nullable=True))
+                    if needs_assigned_rider_column:
+                        batch_op.add_column(sa.Column("assigned_rider_id", sa.Integer(), nullable=True))
+                    if needs_delivery_zone_fk:
+                        batch_op.create_foreign_key(
+                            "fk_store_orders_delivery_zone_id_delivery_zones",
+                            "delivery_zones",
+                            ["delivery_zone_id"],
+                            ["id"],
+                            ondelete="SET NULL",
+                        )
+                    if needs_assigned_rider_fk:
+                        batch_op.create_foreign_key(
+                            "fk_store_orders_assigned_rider_id_users",
+                            "users",
+                            ["assigned_rider_id"],
+                            ["id"],
+                            ondelete="SET NULL",
+                        )
+        else:
+            if not _has_column("store_orders", "delivery_zone_id"):
+                op.add_column(
+                    "store_orders",
+                    sa.Column("delivery_zone_id", sa.Integer(), sa.ForeignKey("delivery_zones.id", ondelete="SET NULL"), nullable=True),
+                )
+            if not _has_column("store_orders", "assigned_rider_id"):
+                op.add_column(
+                    "store_orders",
+                    sa.Column("assigned_rider_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
+                )
         if not _has_column("store_orders", "assigned_rider_name_snapshot"):
             op.add_column("store_orders", sa.Column("assigned_rider_name_snapshot", sa.String(length=180), nullable=True))
         if not _has_column("store_orders", "assigned_rider_phone_masked"):
@@ -537,38 +581,40 @@ def upgrade() -> None:
                 """
             )
         )
-        for column_name in (
-            "delivery_fee_customer",
-            "rider_fee",
-            "delivery_status",
-            "delivery_provider",
-            "tracking_stale",
-            "otp_required",
-        ):
-            if _has_column("store_orders", column_name):
-                op.alter_column("store_orders", column_name, server_default=None)
+        if not is_sqlite:
+            for column_name in (
+                "delivery_fee_customer",
+                "rider_fee",
+                "delivery_status",
+                "delivery_provider",
+                "tracking_stale",
+                "otp_required",
+            ):
+                if _has_column("store_orders", column_name):
+                    op.alter_column("store_orders", column_name, server_default=None)
 
-    for table_name, column_name in (
-        ("delivery_zones", "radius_km"),
-        ("delivery_zones", "is_active"),
-        ("delivery_zone_rates", "delivery_fee_customer"),
-        ("delivery_zone_rates", "rider_fee"),
-        ("delivery_applications", "status"),
-        ("delivery_profiles", "availability"),
-        ("delivery_profiles", "is_active"),
-        ("delivery_profiles", "push_enabled"),
-        ("delivery_profiles", "completed_deliveries"),
-        ("delivery_profiles", "rating"),
-        ("delivery_assignments", "status"),
-        ("delivery_assignments", "tracking_stale"),
-        ("notification_events", "channel"),
-        ("notification_events", "is_read"),
-        ("notification_events", "push_status"),
-        ("rider_settlement_payments", "source"),
-        ("merchant_cash_delivery_payables", "status"),
-    ):
-        if _has_column(table_name, column_name):
-            op.alter_column(table_name, column_name, server_default=None)
+    if not is_sqlite:
+        for table_name, column_name in (
+            ("delivery_zones", "radius_km"),
+            ("delivery_zones", "is_active"),
+            ("delivery_zone_rates", "delivery_fee_customer"),
+            ("delivery_zone_rates", "rider_fee"),
+            ("delivery_applications", "status"),
+            ("delivery_profiles", "availability"),
+            ("delivery_profiles", "is_active"),
+            ("delivery_profiles", "push_enabled"),
+            ("delivery_profiles", "completed_deliveries"),
+            ("delivery_profiles", "rating"),
+            ("delivery_assignments", "status"),
+            ("delivery_assignments", "tracking_stale"),
+            ("notification_events", "channel"),
+            ("notification_events", "is_read"),
+            ("notification_events", "push_status"),
+            ("rider_settlement_payments", "source"),
+            ("merchant_cash_delivery_payables", "status"),
+        ):
+            if _has_column(table_name, column_name):
+                op.alter_column(table_name, column_name, server_default=None)
 
 
 

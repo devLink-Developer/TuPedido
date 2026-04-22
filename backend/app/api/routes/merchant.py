@@ -65,7 +65,12 @@ from app.services.delivery import (
     publish_order_snapshot,
     rider_has_active_order,
 )
-from app.services.mercadopago import get_or_create_mercadopago_provider, is_store_mercadopago_ready
+from app.services.mercadopago import (
+    MercadoPagoAPIError,
+    ensure_provider_operable,
+    get_or_create_mercadopago_provider,
+    is_store_mercadopago_ready,
+)
 from app.services.order_runtime import build_order_options
 from app.services.promotions import get_store_promotion, get_store_promotions
 from app.services.settlements import create_cash_service_fee_charge
@@ -375,11 +380,13 @@ def update_payment_settings(
         settings = StorePaymentSettings(store_id=store.id)
         db.add(settings)
     if payload.mercadopago_enabled:
-        if not mercadopago_provider.enabled:
+        try:
+            ensure_provider_operable(mercadopago_provider)
+        except MercadoPagoAPIError as exc:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Mercado Pago is disabled by the platform configuration",
-            )
+                detail=str(exc),
+            ) from exc
         if not is_store_mercadopago_ready(store, provider=mercadopago_provider):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,

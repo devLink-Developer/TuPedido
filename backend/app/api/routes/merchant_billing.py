@@ -24,6 +24,8 @@ from app.schemas.settlement import (
 )
 from app.services.delivery import create_notifications
 from app.services.mercadopago import (
+    MercadoPagoAPIError,
+    ensure_provider_operable,
     get_or_create_mercadopago_provider,
     mercadopago_connection_status,
     oauth_connect_entrypoint,
@@ -65,7 +67,11 @@ def get_mercadopago_connect_url(
     db: Session = Depends(get_db),
 ) -> MercadoPagoConnectUrlRead:
     store = get_merchant_store(db, user.id)
-    get_or_create_mercadopago_provider(db)
+    provider = get_or_create_mercadopago_provider(db)
+    try:
+        ensure_provider_operable(provider)
+    except MercadoPagoAPIError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return MercadoPagoConnectUrlRead(
         connect_url=oauth_connect_entrypoint(base_url=resolve_public_backend_base_url(str(request.base_url))),
         connection_status=mercadopago_connection_status(store),

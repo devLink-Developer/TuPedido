@@ -47,6 +47,7 @@ def _drop_index(table_name: str, columns: list[str]) -> None:
 
 
 def upgrade() -> None:
+    is_sqlite = op.get_bind().dialect.name == "sqlite"
     if not _has_table("store_promotions"):
         op.create_table(
             "store_promotions",
@@ -61,8 +62,9 @@ def upgrade() -> None:
             sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
             sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         )
-        op.alter_column("store_promotions", "max_per_customer_per_day", server_default=None)
-        op.alter_column("store_promotions", "sort_order", server_default=None)
+        if not is_sqlite:
+            op.alter_column("store_promotions", "max_per_customer_per_day", server_default=None)
+            op.alter_column("store_promotions", "sort_order", server_default=None)
     _create_index("store_promotions", ["id"])
     _create_index("store_promotions", ["store_id"])
     _create_index("store_promotions", ["is_active"])
@@ -79,8 +81,9 @@ def upgrade() -> None:
             sa.Column("sort_order", sa.Integer(), nullable=False, server_default="0"),
             sa.UniqueConstraint("promotion_id", "product_id", name="uq_store_promotion_items_promotion_product"),
         )
-        op.alter_column("store_promotion_items", "quantity", server_default=None)
-        op.alter_column("store_promotion_items", "sort_order", server_default=None)
+        if not is_sqlite:
+            op.alter_column("store_promotion_items", "quantity", server_default=None)
+            op.alter_column("store_promotion_items", "sort_order", server_default=None)
     _create_index("store_promotion_items", ["id"])
     _create_index("store_promotion_items", ["promotion_id"])
     _create_index("store_promotion_items", ["product_id"])
@@ -101,7 +104,8 @@ def upgrade() -> None:
             sa.Column("items_snapshot_json", sa.Text(), nullable=True),
             sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         )
-        op.alter_column("order_promotion_applications", "combo_count", server_default=None)
+        if not is_sqlite:
+            op.alter_column("order_promotion_applications", "combo_count", server_default=None)
     _create_index("order_promotion_applications", ["id"])
     _create_index("order_promotion_applications", ["order_id"])
     _create_index("order_promotion_applications", ["promotion_id"])
@@ -122,7 +126,8 @@ def upgrade() -> None:
                 "rider_settlement_payments",
                 sa.Column("receiver_responded_at", sa.DateTime(timezone=True), nullable=True),
             )
-        op.alter_column("rider_settlement_payments", "receiver_status", server_default=None)
+        if not is_sqlite:
+            op.alter_column("rider_settlement_payments", "receiver_status", server_default=None)
     _create_index("rider_settlement_payments", ["receiver_status"])
 
 

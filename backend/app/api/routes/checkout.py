@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -28,44 +29,146 @@ from app.services.promotions import persist_order_promotions
 router = APIRouter()
 
 
-def build_payment_items(cart: object, *, delivery_fee: float) -> list[dict[str, object]]:
-    items = [
-        {
-            "title": item.product_name_snapshot,
-            "quantity": item.quantity,
-            "unit_price": float(item.unit_price_snapshot),
-            "currency_id": "ARS",
-        }
-        for item in cart.items
+MONEY_QUANTIZER = Decimal("0.01")
+
+
+def _money(value: object) -> Decimal:
+    return Decimal(str(value or 0)).quantize(MONEY_QUANTIZER, rounding=ROUND_HALF_UP)
+
+
+def _money_to_float(value: Decimal) -> float:
+    return float(value.quantize(MONEY_QUANTIZER, rounding=ROUND_HALF_UP))
+
+
+def _serialize_payment_item(title: str, quantity: int, unit_price: Decimal) -> dict[str, object]:
+    return {
+        "title": title,
+        "quantity": quantity,
+        "unit_price": _money_to_float(unit_price),
+        "currency_id": "ARS",
+    }
+
+
+def _sum_payment_items(items: list[dict[str, object]]) -> Decimal:
+    total = Decimal("0.00")
+    for item in items:
+        total += _money(item["unit_price"]) * Decimal(int(item["quantity"]))
+    return total.quantize(MONEY_QUANTIZER, rounding=ROUND_HALF_UP)
+
+
+def _build_product_payment_items(order: StoreOrder) -> list[dict[str, object]]:
+    return [
+        _serialize_payment_item(
+            title=item.product_name_snapshot,
+            quantity=int(item.quantity),
+            unit_price=_money(item.unit_price_snapshot),
+        )
+        for item in order.items
     ]
-    if cart.delivery_mode == "delivery" and float(delivery_fee) > 0:
-        items.append(
-            {
-                "title": "Envio",
-                "quantity": 1,
-                "unit_price": float(delivery_fee),
-                "currency_id": "ARS",
-            }
+
+
+def _prorate_discount_across_products(
+    product_items: list[dict[str, object]], discount_total: Decimal
+) -> list[dict[str, object]]:
+    discount_total = _money(discount_total)
+    if discount_total <= 0:
+        return product_items
+
+    expanded_units: list[dict[str, object]] = []
+    total_cents = 0
+    for item in product_items:
+        unit_price_cents = int((_money(item["unit_price"]) * 100).to_integral_value(rounding=ROUND_HALF_UP))
+        quantity = int(item["quantity"])
+        for _ in range(quantity):
+            expanded_units.append({"title": str(item["title"]), "unit_price_cents": unit_price_cents})
+            total_cents += unit_price_cents
+
+    discount_cents = int((discount_total * 100).to_integral_value(rounding=ROUND_HALF_UP))
+    if not expanded_units or discount_cents > total_cents:
+        raise MercadoPagoAPIError("Promotion discount exceeds the payable product total")
+
+    allocated_cents = 0
+    for unit in expanded_units:
+        exact_share = (Decimal(discount_cents) * Decimal(unit["unit_price_cents"])) / Decimal(total_cents)
+        floor_share = int(exact_share.to_integral_value(rounding=ROUND_DOWN))
+        unit["discount_cents"] = floor_share
+        unit["remainder"] = exact_share - Decimal(floor_share)
+        allocated_cents += floor_share
+
+    remaining_cents = discount_cents - allocated_cents
+    if remaining_cents > 0:
+        ranked_indexes = sorted(
+            range(len(expanded_units)),
+            key=lambda index: (
+                expanded_units[index]["remainder"],
+                expanded_units[index]["unit_price_cents"],
+                -index,
+            ),
+            reverse=True,
         )
-    if float(getattr(cart, "financial_discount_total", 0) or 0) > 0:
-        items.append(
-            {
-                "title": "Promociones",
-                "quantity": 1,
-                "unit_price": -float(cart.financial_discount_total),
-                "currency_id": "ARS",
-            }
-        )
-    if float(cart.service_fee) > 0:
-        items.append(
-            {
-                "title": "Servicio",
-                "quantity": 1,
-                "unit_price": float(cart.service_fee),
-                "currency_id": "ARS",
-            }
-        )
+        for index in ranked_indexes[:remaining_cents]:
+            expanded_units[index]["discount_cents"] += 1
+
+    adjusted_items: list[dict[str, object]] = []
+    for unit in expanded_units:
+        net_cents = unit["unit_price_cents"] - unit["discount_cents"]
+        if net_cents < 0:
+            raise MercadoPagoAPIError("Promotion discount exceeds the payable product total")
+        unit_price = Decimal(net_cents) / Decimal(100)
+        if adjusted_items and adjusted_items[-1]["title"] == unit["title"] and _money(adjusted_items[-1]["unit_price"]) == unit_price:
+            adjusted_items[-1]["quantity"] = int(adjusted_items[-1]["quantity"]) + 1
+            continue
+        adjusted_items.append(_serialize_payment_item(str(unit["title"]), 1, unit_price))
+    return adjusted_items
+
+
+def build_payment_items(
+    order: StoreOrder, *, allow_negative_promotion_item: bool = True
+) -> list[dict[str, object]]:
+    items = _build_product_payment_items(order)
+    financial_discount_total = _money(getattr(order, "financial_discount_total", 0) or 0)
+    if financial_discount_total > 0 and not allow_negative_promotion_item:
+        items = _prorate_discount_across_products(items, financial_discount_total)
+
+    delivery_fee = _money(getattr(order, "delivery_fee_customer", order.delivery_fee) or 0)
+    if order.delivery_mode == "delivery" and delivery_fee > 0:
+        items.append(_serialize_payment_item("Envio", 1, delivery_fee))
+    if financial_discount_total > 0 and allow_negative_promotion_item:
+        items.append(_serialize_payment_item("Promociones", 1, -financial_discount_total))
+
+    service_fee = _money(order.service_fee)
+    if service_fee > 0:
+        items.append(_serialize_payment_item("Servicio", 1, service_fee))
     return items
+
+
+def validate_checkout_split_payload(
+    order: StoreOrder, *, items: list[dict[str, object]], marketplace_fee: float
+) -> None:
+    order_total = _money(order.total)
+    items_total = _sum_payment_items(items)
+    service_fee = _money(order.service_fee)
+    actual_marketplace_fee = _money(marketplace_fee)
+    expected_delivery_fee = _money(getattr(order, "delivery_fee_customer", order.delivery_fee) or 0)
+    actual_delivery_fee = sum(
+        (_money(item["unit_price"]) * Decimal(int(item["quantity"])) for item in items if item["title"] == "Envio"),
+        Decimal("0.00"),
+    ).quantize(MONEY_QUANTIZER, rounding=ROUND_HALF_UP)
+    actual_service_item_total = sum(
+        (_money(item["unit_price"]) * Decimal(int(item["quantity"])) for item in items if item["title"] == "Servicio"),
+        Decimal("0.00"),
+    ).quantize(MONEY_QUANTIZER, rounding=ROUND_HALF_UP)
+
+    if actual_marketplace_fee != service_fee:
+        raise MercadoPagoAPIError("Marketplace fee must match the order service fee")
+    if items_total != order_total:
+        raise MercadoPagoAPIError("Mercado Pago preference items total must match the order total")
+    if actual_delivery_fee != expected_delivery_fee:
+        raise MercadoPagoAPIError("Delivery fee must remain on the merchant side of the split")
+    if actual_service_item_total != service_fee:
+        raise MercadoPagoAPIError("Service fee must remain charged to the buyer and mapped to marketplace_fee")
+    if items_total - actual_marketplace_fee != order_total - service_fee:
+        raise MercadoPagoAPIError("Seller settlement amount does not match the expected split payout")
 
 
 @router.post("", response_model=CheckoutResponse, status_code=status.HTTP_201_CREATED)
@@ -153,7 +256,7 @@ def checkout(
     for item in cart.items:
         db.add(
             StoreOrderItem(
-                order_id=order.id,
+                order=order,
                 product_id=item.product_id,
                 product_name_snapshot=item.product_name_snapshot,
                 base_unit_price_snapshot=getattr(item, "base_unit_price_snapshot", item.unit_price_snapshot),
@@ -180,14 +283,24 @@ def checkout(
                 f"?reference={payment_reference}&order_id={order.id}"
             )
         else:
+            primary_items = build_payment_items(order, allow_negative_promotion_item=True)
+            fallback_items = (
+                build_payment_items(order, allow_negative_promotion_item=False)
+                if _money(order.financial_discount_total) > 0
+                else None
+            )
+            validate_checkout_split_payload(order, items=primary_items, marketplace_fee=float(order.service_fee))
+            if fallback_items is not None:
+                validate_checkout_split_payload(order, items=fallback_items, marketplace_fee=float(order.service_fee))
             try:
                 preference = create_checkout_preference(
                     store=store,
                     payer_email=user.email,
                     order_id=order.id,
                     reference=payment_reference,
-                    items=build_payment_items(cart, delivery_fee=delivery_fee_customer),
+                    items=primary_items,
                     marketplace_fee=float(order.service_fee),
+                    fallback_items=fallback_items,
                 )
             except MercadoPagoAPIError as exc:
                 db.rollback()

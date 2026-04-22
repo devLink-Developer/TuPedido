@@ -50,11 +50,13 @@ def upgrade() -> None:
 
     if _has_column("platform_settings", "catalog_banner_width"):
         op.execute(sa.text("UPDATE platform_settings SET catalog_banner_width = 1600 WHERE catalog_banner_width IS NULL"))
-        op.alter_column("platform_settings", "catalog_banner_width", server_default=None)
+        if op.get_bind().dialect.name != "sqlite":
+            op.alter_column("platform_settings", "catalog_banner_width", server_default=None)
 
     if _has_column("platform_settings", "catalog_banner_height"):
         op.execute(sa.text("UPDATE platform_settings SET catalog_banner_height = 520 WHERE catalog_banner_height IS NULL"))
-        op.alter_column("platform_settings", "catalog_banner_height", server_default=None)
+        if op.get_bind().dialect.name != "sqlite":
+            op.alter_column("platform_settings", "catalog_banner_height", server_default=None)
 
 
 def downgrade() -> None:

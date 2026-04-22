@@ -6,7 +6,7 @@ from urllib.parse import urlencode, urlsplit
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from fastapi import APIRouter, Cookie, Depends, Request, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 
 from app.api.deps import require_merchant
@@ -23,6 +23,7 @@ from app.services.mercadopago import (
     decode_oauth_session_token,
     decode_oauth_state,
     disconnect_store_account,
+    ensure_provider_operable,
     exchange_oauth_code,
     get_or_create_mercadopago_provider,
     mercadopago_connection_status,
@@ -116,7 +117,11 @@ def create_mercadopago_oauth_session(
     db: Session = Depends(get_db),
 ) -> MercadoPagoConnectUrlRead:
     store = _get_merchant_store(db, user.id)
-    get_or_create_mercadopago_provider(db)
+    provider = get_or_create_mercadopago_provider(db)
+    try:
+        ensure_provider_operable(provider)
+    except MercadoPagoAPIError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     frontend_origin = _frontend_origin_from_request(request)
     token = build_oauth_session_token(store_id=store.id, user_id=user.id, frontend_origin=frontend_origin)
     _set_oauth_cookie(request, response, token)

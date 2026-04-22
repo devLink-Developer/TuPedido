@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import copy
 import os
 import sys
+from decimal import Decimal
 from pathlib import Path
 
 DB_PATH = Path(__file__).with_name("smoke_mp_real_checkout_webhook.db")
@@ -20,6 +22,17 @@ class FakeResponse:
         return self._payload
 
 
+def _money(value: object) -> Decimal:
+    return Decimal(str(value or 0)).quantize(Decimal("0.01"))
+
+
+def _sum_items(items: list[dict[str, object]]) -> Decimal:
+    return sum(
+        (_money(item["unit_price"]) * Decimal(int(item["quantity"])) for item in items),
+        Decimal("0.00"),
+    ).quantize(Decimal("0.01"))
+
+
 def configure_environment() -> None:
     os.environ["DATABASE_URL"] = f"sqlite:///{DB_PATH.as_posix()}"
     os.environ["APP_ENV"] = "development"
@@ -32,21 +45,56 @@ def configure_environment() -> None:
     os.environ["BACKEND_BASE_URL"] = "http://localhost:8016"
 
 
-def main() -> None:
-    from fastapi.testclient import TestClient
+def _login(client, email: str, password: str) -> dict[str, str]:
+    response = client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    response.raise_for_status()
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
 
-    from app.main import app
-    from app.services import mercadopago as mp
 
-    DB_PATH.unlink(missing_ok=True)
+def _prepare_customer_checkout(client) -> tuple[dict[str, str], dict[str, object], int]:
+    customer_headers = _login(client, "cliente@kepedimos.example.com", "cliente123")
+    store = client.get("/api/v1/catalog/stores").json()[0]
+    address_id = client.get("/api/v1/addresses", headers=customer_headers).json()[0]["id"]
+    return customer_headers, store, address_id
 
-    captured: dict[str, object] = {}
+
+def _assert_split_payload(payload: dict[str, object], order: dict[str, object]) -> None:
+    items = payload["items"]
+    marketplace_fee = _money(payload["marketplace_fee"])
+    order_total = _money(order["total"])
+    service_fee = _money(order["service_fee"])
+
+    assert _sum_items(items) == order_total
+    assert marketplace_fee == service_fee
+    assert _sum_items(items) - marketplace_fee == order_total - service_fee
+    assert sum(1 for item in items if item["title"] == "Envio") == 1
+    assert sum(1 for item in items if item["title"] == "Servicio") == 1
+
+
+def _approve_checkout_order(
+    client,
+    *,
+    store_id: int,
+    reference: str,
+) -> None:
+    webhook = client.post(
+        f"/api/v1/payments/mercadopago/webhook?store_id={store_id}&reference={reference}&type=payment&data.id=987654",
+        json={"type": "payment", "data": {"id": "987654"}},
+    )
+    webhook.raise_for_status()
+    assert webhook.json()["payment_status"] == "approved"
+
+
+def _run_delivery_split_scenario(client, mp) -> None:
+    captured: dict[str, object] = {"requests": []}
     original_request = mp.httpx.request
 
     def fake_request(method: str, url: str, headers=None, json=None, timeout=None):  # type: ignore[no-untyped-def]
         normalized_method = method.upper()
         if normalized_method == "POST" and url.endswith("/checkout/preferences"):
-            captured["preference_payload"] = json
+            captured["preference_payload"] = copy.deepcopy(json)
+            captured["requests"].append({"authorization": headers["Authorization"], "url": url})
             return FakeResponse(
                 201,
                 {
@@ -56,6 +104,7 @@ def main() -> None:
                 },
             )
         if normalized_method == "GET" and "/v1/payments/" in url:
+            captured["requests"].append({"authorization": headers["Authorization"], "url": url})
             return FakeResponse(
                 200,
                 {
@@ -67,57 +116,162 @@ def main() -> None:
         raise AssertionError(f"Unexpected Mercado Pago request: {normalized_method} {url}")
 
     mp.httpx.request = fake_request
-
     try:
-        with TestClient(app) as client:
-            login = client.post(
-                "/api/v1/auth/login",
-                json={"email": "cliente@kepedimos.example.com", "password": "cliente123"},
-            )
-            login.raise_for_status()
-            token = login.json()["access_token"]
-            headers = {"Authorization": f"Bearer {token}"}
+        customer_headers, store, address_id = _prepare_customer_checkout(client)
+        client.post(
+            "/api/v1/cart/items",
+            headers=customer_headers,
+            json={"store_id": store["id"], "product_id": 1, "quantity": 2},
+        ).raise_for_status()
 
-            store = client.get("/api/v1/catalog/stores").json()[0]
-            address_id = client.get("/api/v1/addresses", headers=headers).json()[0]["id"]
+        checkout = client.post(
+            "/api/v1/checkout",
+            headers=customer_headers,
+            json={
+                "store_id": store["id"],
+                "address_id": address_id,
+                "delivery_mode": "delivery",
+                "payment_method": "mercadopago",
+            },
+        )
+        checkout.raise_for_status()
+        checkout_payload = checkout.json()
+        captured["reference"] = checkout_payload["payment_reference"]
+        assert checkout_payload["checkout_url"] is not None
 
-            client.post(
-                "/api/v1/cart/items",
-                headers=headers,
-                json={"store_id": store["id"], "product_id": 1, "quantity": 2},
-            ).raise_for_status()
+        order = client.get(f"/api/v1/orders/{checkout_payload['order_id']}", headers=customer_headers)
+        order.raise_for_status()
+        order_payload = order.json()
+        _assert_split_payload(captured["preference_payload"], order_payload)
+        assert captured["requests"][0]["authorization"] == "Bearer TEST-ACCESS-TOKEN-1234"
 
-            checkout = client.post(
-                "/api/v1/checkout",
-                headers=headers,
-                json={
-                    "store_id": store["id"],
-                    "address_id": address_id,
-                    "delivery_mode": "delivery",
-                    "payment_method": "mercadopago",
-                },
-            )
-            checkout.raise_for_status()
-            checkout_payload = checkout.json()
-            captured["reference"] = checkout_payload["payment_reference"]
+        _approve_checkout_order(client, store_id=store["id"], reference=captured["reference"])
 
-            assert checkout_payload["checkout_url"] is not None
-            assert any(item["title"] == "Envio" for item in captured["preference_payload"]["items"])
-
-            webhook = client.post(
-                f"/api/v1/payments/mercadopago/webhook?store_id={store['id']}&reference={captured['reference']}&type=payment&data.id=987654",
-                json={"type": "payment", "data": {"id": "987654"}},
-            )
-            webhook.raise_for_status()
-            assert webhook.json()["payment_status"] == "approved"
-
-            order = client.get(f"/api/v1/orders/{checkout_payload['order_id']}", headers=headers)
-            order.raise_for_status()
-            assert order.json()["payment_status"] == "approved"
-
-        print("smoke_mercadopago_real_checkout_webhook_ok")
+        approved_order = client.get(f"/api/v1/orders/{checkout_payload['order_id']}", headers=customer_headers)
+        approved_order.raise_for_status()
+        assert approved_order.json()["payment_status"] == "approved"
     finally:
         mp.httpx.request = original_request
+
+
+def _create_smoke_promotion(client, merchant_headers: dict[str, str]) -> None:
+    products_response = client.get("/api/v1/merchant/products", headers=merchant_headers)
+    products_response.raise_for_status()
+    products = {item["name"]: item for item in products_response.json()}
+    promotion = client.post(
+        "/api/v1/merchant/promotions",
+        headers=merchant_headers,
+        json={
+            "name": "Split Smoke Promo",
+            "description": "Promocion para validar el fallback de Mercado Pago.",
+            "sale_price": 8.00,
+            "max_per_customer_per_day": 5,
+            "is_active": True,
+            "sort_order": 0,
+            "items": [
+                {"product_id": products["Yerba Premium 1kg"]["id"], "quantity": 1, "sort_order": 0},
+                {"product_id": products["Gaseosa Cola 1.5L"]["id"], "quantity": 1, "sort_order": 1},
+            ],
+        },
+    )
+    promotion.raise_for_status()
+
+
+def _run_promotions_fallback_scenario(client, mp) -> None:
+    captured: dict[str, object] = {"payloads": [], "requests": []}
+    original_request = mp.httpx.request
+
+    def fake_request(method: str, url: str, headers=None, json=None, timeout=None):  # type: ignore[no-untyped-def]
+        normalized_method = method.upper()
+        if normalized_method == "POST" and url.endswith("/checkout/preferences"):
+            captured["payloads"].append(copy.deepcopy(json))
+            captured["requests"].append({"authorization": headers["Authorization"], "url": url})
+            if len(captured["payloads"]) == 1 and any(float(item["unit_price"]) < 0 for item in json["items"]):
+                return FakeResponse(400, {"message": "unit_price invalid"})
+            return FakeResponse(
+                201,
+                {
+                    "id": "pref_retry",
+                    "init_point": "https://www.mercadopago.com/checkout/v1/redirect?pref_id=pref_retry",
+                    "sandbox_init_point": "https://sandbox.mercadopago.com/checkout/v1/redirect?pref_id=pref_retry",
+                },
+            )
+        if normalized_method == "GET" and "/v1/payments/" in url:
+            captured["requests"].append({"authorization": headers["Authorization"], "url": url})
+            return FakeResponse(
+                200,
+                {
+                    "id": "987654",
+                    "status": "approved",
+                    "external_reference": captured["reference"],
+                },
+            )
+        raise AssertionError(f"Unexpected Mercado Pago request: {normalized_method} {url}")
+
+    mp.httpx.request = fake_request
+    try:
+        customer_headers, store, address_id = _prepare_customer_checkout(client)
+        merchant_headers = _login(client, "merchant@kepedimos.example.com", "merchant123")
+        _create_smoke_promotion(client, merchant_headers)
+
+        products_response = client.get("/api/v1/merchant/products", headers=merchant_headers)
+        products_response.raise_for_status()
+        products = {item["name"]: item for item in products_response.json()}
+
+        client.post(
+            "/api/v1/cart/items",
+            headers=customer_headers,
+            json={"store_id": store["id"], "product_id": products["Yerba Premium 1kg"]["id"], "quantity": 1},
+        ).raise_for_status()
+        client.post(
+            "/api/v1/cart/items",
+            headers=customer_headers,
+            json={"store_id": store["id"], "product_id": products["Gaseosa Cola 1.5L"]["id"], "quantity": 1},
+        ).raise_for_status()
+
+        checkout = client.post(
+            "/api/v1/checkout",
+            headers=customer_headers,
+            json={
+                "store_id": store["id"],
+                "address_id": address_id,
+                "delivery_mode": "delivery",
+                "payment_method": "mercadopago",
+            },
+        )
+        checkout.raise_for_status()
+        checkout_payload = checkout.json()
+        captured["reference"] = checkout_payload["payment_reference"]
+        assert checkout_payload["checkout_url"] is not None
+        assert len(captured["payloads"]) == 2
+        assert any(float(item["unit_price"]) < 0 for item in captured["payloads"][0]["items"])
+        assert all(float(item["unit_price"]) >= 0 for item in captured["payloads"][1]["items"])
+        assert captured["requests"][0]["authorization"] == "Bearer TEST-ACCESS-TOKEN-1234"
+        assert captured["requests"][1]["authorization"] == "Bearer TEST-ACCESS-TOKEN-1234"
+
+        order = client.get(f"/api/v1/orders/{checkout_payload['order_id']}", headers=customer_headers)
+        order.raise_for_status()
+        order_payload = order.json()
+        _assert_split_payload(captured["payloads"][1], order_payload)
+
+        _approve_checkout_order(client, store_id=store["id"], reference=captured["reference"])
+    finally:
+        mp.httpx.request = original_request
+
+
+def main() -> None:
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+    from app.services import mercadopago as mp
+
+    DB_PATH.unlink(missing_ok=True)
+
+    with TestClient(app) as client:
+        _run_delivery_split_scenario(client, mp)
+        _run_promotions_fallback_scenario(client, mp)
+
+    print("smoke_mercadopago_real_checkout_webhook_ok")
 
 
 if __name__ == "__main__":

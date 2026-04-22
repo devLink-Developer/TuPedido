@@ -45,6 +45,14 @@ def _now_utc() -> datetime:
     return datetime.now(UTC)
 
 
+def _ensure_utc_datetime(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
 def _normalize_provider_mode(value: str | None) -> str:
     return "production" if (value or "").strip().lower() == "production" else "sandbox"
 
@@ -125,6 +133,26 @@ def get_or_create_mercadopago_provider(db: Session) -> PaymentProvider:
     return provider
 
 
+def is_provider_operable(provider: PaymentProvider | None) -> bool:
+    return bool(
+        provider
+        and provider.enabled
+        and provider.client_id
+        and provider.client_secret_encrypted
+        and provider.redirect_uri
+    )
+
+
+def ensure_provider_operable(provider: PaymentProvider | None) -> PaymentProvider:
+    if provider is None:
+        raise MercadoPagoAPIError("Mercado Pago is not configured by the platform")
+    if not provider.enabled:
+        raise MercadoPagoAPIError("Mercado Pago is disabled by the platform configuration")
+    if not provider.client_id or not provider.client_secret_encrypted or not provider.redirect_uri:
+        raise MercadoPagoAPIError("Mercado Pago is not configured by the platform")
+    return provider
+
+
 def get_store_payment_account(store: object, provider: str = MERCADOPAGO_PROVIDER) -> MerchantPaymentAccount | None:
     for account in list(getattr(store, "payment_accounts", []) or []):
         if getattr(account, "provider", None) == provider:
@@ -185,8 +213,7 @@ def is_store_mercadopago_ready(
         if session is not None:
             resolved_provider = get_or_create_mercadopago_provider(session)
     return bool(
-        resolved_provider
-        and resolved_provider.enabled
+        is_provider_operable(resolved_provider)
         and account
         and account.public_key
         and mercadopago_connection_status(store) == "connected"
@@ -336,15 +363,11 @@ def oauth_connect_entrypoint(*, base_url: str | None = None) -> str:
 
 
 def build_oauth_connect_url(*, provider: PaymentProvider, state: str, base_url: str | None = None) -> str:
+    ensure_provider_operable(provider)
     if settings.mercadopago_simulated:
         base = resolve_public_backend_base_url(base_url)
         query = urlencode({"code": "SIMULATED-OAUTH", "state": state})
         return f"{base}{settings.api_prefix}/oauth/mercadopago/callback?{query}"
-
-    if not provider.enabled:
-        raise MercadoPagoAPIError("Mercado Pago OAuth is disabled")
-    if not provider.client_id or not provider.redirect_uri:
-        raise MercadoPagoAPIError("Mercado Pago OAuth is not configured")
 
     query = urlencode(
         {
@@ -371,8 +394,7 @@ def exchange_oauth_code(code: str, provider: PaymentProvider) -> dict[str, Any]:
             "scope": "offline_access payments write",
         }
 
-    if not provider.client_id or not provider.redirect_uri:
-        raise MercadoPagoAPIError("Mercado Pago OAuth is not configured")
+    provider = ensure_provider_operable(provider)
 
     try:
         response = httpx.post(
@@ -401,9 +423,7 @@ def refresh_store_access_token(store: object) -> str:
     session = object_session(store)
     if session is None:
         raise MercadoPagoAPIError("Mercado Pago OAuth is not configured for this store")
-    provider = get_or_create_mercadopago_provider(session)
-    if not provider.client_id or not provider.redirect_uri:
-        raise MercadoPagoAPIError("Mercado Pago OAuth is not configured")
+    provider = ensure_provider_operable(get_or_create_mercadopago_provider(session))
 
     store_id = getattr(store, "id")
     refresh_token = get_store_refresh_token(store)
@@ -447,7 +467,7 @@ def ensure_valid_store_access_token(store: object) -> str:
     if account is None:
         raise MercadoPagoAPIError("Mercado Pago credentials are not configured for this store")
 
-    token_expires_at = getattr(account, "token_expires_at", None)
+    token_expires_at = _ensure_utc_datetime(getattr(account, "token_expires_at", None))
     if token_expires_at is None:
         return get_store_access_token(store)
     if token_expires_at <= (_now_utc() + timedelta(minutes=5)):
@@ -519,13 +539,12 @@ def create_checkout_preference(
     reference: str,
     items: list[dict[str, Any]],
     marketplace_fee: float,
+    fallback_items: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     session = object_session(store)
     if session is None:
         raise MercadoPagoAPIError("Mercado Pago provider configuration is unavailable")
-    provider = get_or_create_mercadopago_provider(session)
-    if not provider.enabled:
-        raise MercadoPagoAPIError("Mercado Pago is disabled for this environment")
+    provider = ensure_provider_operable(get_or_create_mercadopago_provider(session))
 
     return_url = build_order_return_url(order_id)
     payload = {
@@ -546,13 +565,29 @@ def create_checkout_preference(
             "platform": "kepedimos",
         },
     }
+    allow_promotions_retry = fallback_items is not None and any(
+        float(item.get("unit_price") or 0) < 0 for item in items
+    )
     response = _request_with_store_token_retry(
         store=store,
         method="POST",
         url=f"{settings.mercadopago_api_base_url.rstrip('/')}/checkout/preferences",
-        expected_statuses={200, 201},
+        expected_statuses={200, 201, 400} if allow_promotions_retry else {200, 201},
         json_payload=payload,
     )
+    if response.status_code == 400 and fallback_items is not None:
+        logger.warning(
+            "mercadopago_preference_retry_prorated_promotions",
+            extra={"store_id": getattr(store, "id", None), "order_id": order_id},
+        )
+        payload["items"] = fallback_items
+        response = _request_with_store_token_retry(
+            store=store,
+            method="POST",
+            url=f"{settings.mercadopago_api_base_url.rstrip('/')}/checkout/preferences",
+            expected_statuses={200, 201},
+            json_payload=payload,
+        )
     data = response.json()
     checkout_url = (
         data.get("sandbox_init_point")
