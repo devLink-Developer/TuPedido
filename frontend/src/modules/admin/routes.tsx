@@ -3,7 +3,6 @@ import { AdminLayout } from "../../app/layouts/AdminLayout";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LiquidationsPage } from "./pages/LiquidationsPage";
 import { OrdersPage } from "./pages/OrdersPage";
-import { RidersPage } from "./pages/RidersPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { StoresPage } from "./pages/StoresPage";
 import { UsersPage } from "./pages/UsersPage";
@@ -30,10 +29,6 @@ export function AdminLiquidationsRoute() {
 
 export function AdminStoresRoute() {
   return <StoresPage />;
-}
-
-export function AdminRidersRoute() {
-  return <RidersPage />;
 }
 
 export function AdminOrdersRoute() {

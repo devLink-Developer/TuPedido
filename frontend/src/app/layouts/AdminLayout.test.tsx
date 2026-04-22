@@ -92,4 +92,17 @@ describe("AdminLayout", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Menu admin" })).not.toBeInTheDocument());
   });
+
+  it("no expone gestion de riders en la navegacion admin", async () => {
+    const user = userEvent.setup();
+
+    renderLayout();
+
+    expect(screen.queryByRole("link", { name: "Riders" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Abrir menu admin" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Menu admin" });
+    expect(within(dialog).queryByRole("link", { name: "Riders" })).not.toBeInTheDocument();
+  });
 });

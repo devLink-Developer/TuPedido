@@ -1,14 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState, LoadingCard, PageHeader, StatCard } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
-import {
-  fetchAdminApplications,
-  fetchAdminDeliveryApplications,
-  fetchAdminDeliveryRiders,
-  fetchAdminOrders,
-  fetchAdminStores
-} from "../../../shared/services/api";
-import type { DeliveryApplication, DeliveryProfile, MerchantApplication, Order, StoreSummary } from "../../../shared/types";
+import { fetchAdminApplications, fetchAdminOrders, fetchAdminStores } from "../../../shared/services/api";
+import type { MerchantApplication, Order, StoreSummary } from "../../../shared/types";
 import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { formatCurrency } from "../../../shared/utils/format";
 import { buildNamedPeriodStats } from "../../../shared/utils/orderAnalytics";
@@ -18,16 +12,12 @@ const resolvedMerchantStatuses = new Set(["approved", "rejected", "suspended"]);
 
 type DashboardData = {
   merchantApplications: MerchantApplication[];
-  riderApplications: DeliveryApplication[];
-  riders: DeliveryProfile[];
   stores: StoreSummary[];
   orders: Order[];
 };
 
 const emptyDashboardData: DashboardData = {
   merchantApplications: [],
-  riderApplications: [],
-  riders: [],
   stores: [],
   orders: []
 };
@@ -94,11 +84,9 @@ export function DashboardPage() {
       setLoading(true);
     }
     try {
-      const [merchantApplications, stores, riderApplications, riders, orders] = await Promise.all([
+      const [merchantApplications, stores, orders] = await Promise.all([
         fetchAdminApplications(token),
         fetchAdminStores(token),
-        fetchAdminDeliveryApplications(token),
-        fetchAdminDeliveryRiders(token),
         fetchAdminOrders(token)
       ]);
       if (requestId !== requestIdRef.current) {
@@ -106,8 +94,6 @@ export function DashboardPage() {
       }
       setData({
         merchantApplications,
-        riderApplications,
-        riders,
         stores,
         orders
       });
@@ -158,17 +144,11 @@ export function DashboardPage() {
   }, [token]);
 
   const overview = useMemo(() => {
-    const pendingMerchantApplications = data.merchantApplications.filter(
-      (application) => !resolvedMerchantStatuses.has(application.status)
-    ).length;
-    const pendingRiderApplications = data.riderApplications.filter(
-      (application) => application.status === "pending_review"
-    ).length;
-
     return {
-      pendingApplications: pendingMerchantApplications + pendingRiderApplications,
+      pendingApplications: data.merchantApplications.filter(
+        (application) => !resolvedMerchantStatuses.has(application.status)
+      ).length,
       approvedStores: data.stores.filter((store) => store.status === "approved").length,
-      activeRiders: data.riders.filter((rider) => rider.is_active).length,
       totalOrders: data.orders.length
     };
   }, [data]);
@@ -210,10 +190,9 @@ export function DashboardPage() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Postulaciones pendientes" value={String(overview.pendingApplications)} description="Comercios y riders pendientes de revision." />
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard label="Postulaciones pendientes" value={String(overview.pendingApplications)} description="Comercios pendientes de revision." />
         <StatCard label="Comercios aprobados" value={String(overview.approvedStores)} description="Locales habilitados para operar." />
-        <StatCard label="Riders activos" value={String(overview.activeRiders)} description="Perfiles de reparto en operacion." />
         <StatCard label="Pedidos totales" value={String(overview.totalOrders)} description="Base acumulada de pedidos." />
       </div>
 

@@ -8,7 +8,6 @@ import {
   LazyAdminLiquidationsRoute,
   LazyAdminModuleLayoutRoute,
   LazyAdminOrdersRoute,
-  LazyAdminRidersRoute,
   LazyAdminSettingsRoute,
   LazyAdminStoresRoute,
   LazyAdminUsersRoute,
@@ -145,7 +144,6 @@ export const router = createBrowserRouter([
               { path: "liquidaciones", element: <LazyAdminLiquidationsRoute /> },
               { path: "usuarios", element: <LazyAdminUsersRoute /> },
               { path: "comercios", element: <LazyAdminStoresRoute /> },
-              { path: "riders", element: <LazyAdminRidersRoute /> },
               { path: "pedidos", element: <LazyAdminOrdersRoute /> },
               { path: "configuracion", element: <LazyAdminSettingsRoute /> }
             ]
