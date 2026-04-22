@@ -1,6 +1,8 @@
 import type { PropsWithChildren } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { BrandMark } from "../../shared/components";
 import { useAuthSession, useRouteBoundDrawer } from "../../shared/hooks";
+import { usePlatformBranding } from "../../shared/providers/PlatformBrandingProvider";
 
 const navItems = [
   { to: "/a", label: "Dashboard" },
@@ -15,6 +17,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthSession();
+  const { brandName, branding } = usePlatformBranding();
   const { open, setOpen, close } = useRouteBoundDrawer();
   const activeLabel =
     navItems.find((item) =>
@@ -29,6 +32,39 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
   return (
     <div className="app-shell min-h-screen text-ink">
+      <header className="hidden lg:block">
+        <div className="app-toolbar w-full border border-x-0 border-[var(--color-border-default)]">
+          <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-4 px-4 py-4 md:px-6 lg:px-7">
+            <div className="flex min-w-0 items-center gap-4">
+              <Link to="/a" aria-label={`Ir al panel admin de ${brandName}`} className="inline-flex items-center">
+                <BrandMark
+                  brandName={brandName}
+                  logoUrl={branding?.platform_logo_url ?? null}
+                  imageClassName="h-10 max-w-[10rem] sm:h-11 sm:max-w-[11.5rem]"
+                  textClassName="text-[1.5rem] text-[#24130e]"
+                />
+              </Link>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8f5f4e]">Admin</p>
+                <h2 className="mt-1 truncate text-lg font-bold text-ink">{activeLabel}</h2>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="hidden text-right xl:block">
+                <p className="text-sm font-semibold text-ink">{user?.full_name ?? "Admin"}</p>
+                <p className="text-xs text-zinc-500">{user?.email ?? ""}</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex min-h-[44px] items-center border border-[var(--color-border-default)] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-brand-200 hover:text-ink"
+              >
+                Cerrar sesion
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
       <div className="mx-auto flex min-h-screen max-w-[1440px] flex-col lg:flex-row">
         <aside className="app-sidebar hidden w-[288px] flex-col px-5 py-5 text-white lg:flex">
           <div className="relative">
@@ -45,7 +81,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
                   end={item.to === "/a"}
                   className={({ isActive }) =>
                     [
-                      "rounded-[18px] px-4 py-2.5 text-[13px] font-semibold transition",
+                      "border border-transparent px-4 py-2.5 text-[13px] font-semibold transition",
                       isActive ? "app-sidebar-link-active" : "app-sidebar-link"
                     ].join(" ")
                   }
@@ -63,15 +99,15 @@ export function AdminLayout({ children }: PropsWithChildren) {
             <button
               type="button"
               onClick={handleLogout}
-              className="mt-4 w-full rounded-[18px] border border-white/10 bg-white/5 px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-white hover:text-ink"
+              className="mt-4 w-full border border-white/10 bg-white/5 px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-white hover:text-ink"
             >
               Cerrar sesion
             </button>
           </div>
         </aside>
 
-        <main className="flex-1 px-4 py-5 md:px-6 md:py-6 lg:px-7">
-          <header className="app-toolbar mb-4 flex flex-col items-start gap-4 rounded-[24px] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between lg:hidden">
+        <main className="flex-1 px-4 pb-5 pt-0 md:px-6 md:py-6 lg:px-7">
+          <header className="app-toolbar -mx-4 mb-4 flex flex-col items-start gap-4 border border-x-0 border-[var(--color-border-default)] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between md:-mx-6 lg:hidden">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8f5f4e]">Admin</p>
               <h2 className="mt-1 text-lg font-bold text-ink">{activeLabel}</h2>
@@ -81,13 +117,13 @@ export function AdminLayout({ children }: PropsWithChildren) {
               aria-label="Abrir menu admin"
               aria-expanded={open}
               onClick={() => setOpen(true)}
-              className="inline-flex h-10 w-10 items-center justify-center self-end rounded-full border border-[var(--color-border-default)] bg-white text-ink shadow-sm sm:self-auto"
+              className="inline-flex h-10 w-10 items-center justify-center self-end border border-[var(--color-border-default)] bg-white text-ink shadow-sm sm:self-auto"
             >
               <span className="sr-only">Menu</span>
               <span className="space-y-1.5">
-                <span className="block h-0.5 w-5 rounded-full bg-current" />
-                <span className="block h-0.5 w-5 rounded-full bg-current" />
-                <span className="block h-0.5 w-5 rounded-full bg-current" />
+                <span className="block h-0.5 w-5 bg-current" />
+                <span className="block h-0.5 w-5 bg-current" />
+                <span className="block h-0.5 w-5 bg-current" />
               </span>
             </button>
           </header>
@@ -118,7 +154,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
                 type="button"
                 aria-label="Cerrar menu admin"
                 onClick={close}
-                className="inline-flex h-10 w-10 items-center justify-center self-end rounded-full border border-white/10 bg-white/5 text-white sm:self-auto"
+                className="inline-flex h-10 w-10 items-center justify-center self-end border border-white/10 bg-white/5 text-white sm:self-auto"
               >
                 ×
               </button>
@@ -131,9 +167,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
                   to={item.to}
                   end={item.to === "/a"}
                   onClick={close}
-                  className={({ isActive }) =>
-                    [
-                      "rounded-[18px] px-4 py-2.5 text-[13px] font-semibold transition",
+                className={({ isActive }) =>
+                  [
+                      "border border-transparent px-4 py-2.5 text-[13px] font-semibold transition",
                       isActive ? "app-sidebar-link-active" : "app-sidebar-link"
                     ].join(" ")
                   }
@@ -150,7 +186,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="mt-4 w-full rounded-[18px] border border-white/10 bg-white/5 px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-white hover:text-ink"
+                className="mt-4 w-full border border-white/10 bg-white/5 px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-white hover:text-ink"
               >
                 Cerrar sesion
               </button>

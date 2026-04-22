@@ -1,5 +1,6 @@
 import { useId, useRef, useState, type CSSProperties } from "react";
 import { uploadImageAsset } from "../../services/api";
+import { resolveApiMediaUrl } from "../../services/api/client";
 import { Button } from "../../ui/Button";
 
 export function ImageAssetField({
@@ -75,7 +76,7 @@ export function ImageAssetField({
 
       <div className="w-full overflow-hidden rounded-[24px] border border-black/5 bg-zinc-50" style={previewWrapperStyle}>
         {value ? (
-          <img src={value} alt={label} className={previewClassName} />
+          <img src={resolveApiMediaUrl(value)} alt={label} className={previewClassName} />
         ) : (
           <div className={`flex items-center justify-center px-4 text-sm text-zinc-400 ${previewWrapperStyle ? "h-full min-h-[10rem]" : "h-40"}`}>
             {emptyLabel}

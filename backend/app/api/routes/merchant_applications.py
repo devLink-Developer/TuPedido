@@ -16,6 +16,7 @@ from app.models.store import Category, Store, StoreCategoryLink, StoreDeliverySe
 from app.models.user import MerchantApplication, User
 from app.schemas.auth import AuthResponse, UserRead
 from app.schemas.merchant import MerchantApplicationCreate, MerchantApplicationRegister
+from app.services.media import normalize_media_url
 from app.services.store_branding import resolve_store_assets
 from app.services.store_address import store_has_configured_delivery_address
 
@@ -160,8 +161,8 @@ def build_application(
         description=payload.description,
         address=payload.address,
         phone=payload.phone,
-        logo_url=payload.logo_url or assets["logo_url"],
-        cover_image_url=payload.cover_image_url or assets["cover_image_url"],
+        logo_url=normalize_media_url(payload.logo_url) or assets["logo_url"],
+        cover_image_url=normalize_media_url(payload.cover_image_url) or assets["cover_image_url"],
         requested_category_ids=[category.id for category in categories],
         status="pending_review",
         review_notes="Solicitud recibida. Puedes configurar tu comercio mientras el equipo revisa la aprobacion.",

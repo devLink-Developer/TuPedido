@@ -34,7 +34,8 @@ describe("AuthFormCard", () => {
     const secondaryAction = screen.getByRole("link", { name: "Crear cuenta" });
     const primaryAction = screen.getByRole("button", { name: "Ingresar" });
     expect(screen.getByText("No tienes cuenta?")).toBeInTheDocument();
-    expect(secondaryAction).toHaveClass("inline-flex", "rounded-full");
+    expect(secondaryAction).toHaveClass("inline-flex");
+    expect(secondaryAction).not.toHaveClass("rounded-full");
     expect(primaryAction.compareDocumentPosition(secondaryAction)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(screen.getByRole("heading", { name: "Iniciar sesion" })).toHaveClass("text-[1.85rem]", "sm:text-3xl");
     expect(screen.getByText("Entra para ver tus pedidos y comprar sin vueltas.")).toBeInTheDocument();

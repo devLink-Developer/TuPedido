@@ -1,3 +1,5 @@
+import { resolveApiMediaUrl } from "../../services/api/client";
+
 type BrandWordmarkProps = {
   brandName: string;
   wordmarkUrl?: string | null;
@@ -46,7 +48,7 @@ export function BrandWordmark({
             .join(" ")}
         >
           <img
-            src={wordmarkUrl}
+            src={resolveApiMediaUrl(wordmarkUrl)}
             alt={brandName}
             className={[
               "inline-block h-full w-full max-w-none object-center",

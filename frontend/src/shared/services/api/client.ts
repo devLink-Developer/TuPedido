@@ -51,6 +51,43 @@ function resolveUrl(value: string): URL {
   }
 }
 
+function resolveApiRootUrl(): URL {
+  const baseUrl = resolveUrl(API_BASE_URL);
+  baseUrl.pathname = baseUrl.pathname.replace(/\/api\/v1\/?$/, "") || "/";
+  baseUrl.search = "";
+  baseUrl.hash = "";
+  return baseUrl;
+}
+
+export function resolveApiMediaUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("/media/")) {
+    return value;
+  }
+
+  const rootUrl = resolveApiRootUrl();
+  rootUrl.pathname = `${rootUrl.pathname.replace(/\/$/, "")}${trimmed}`;
+  return rootUrl.toString();
+}
+
+function normalizeApiPayload<T>(payload: T): T {
+  if (typeof payload === "string") {
+    return resolveApiMediaUrl(payload) as T;
+  }
+
+  if (Array.isArray(payload)) {
+    return payload.map((item) => normalizeApiPayload(item)) as T;
+  }
+
+  if (payload && typeof payload === "object") {
+    return Object.fromEntries(
+      Object.entries(payload).map(([key, value]) => [key, normalizeApiPayload(value)])
+    ) as T;
+  }
+
+  return payload;
+}
+
 type RequestOptions = RequestInit & {
   token?: string | null;
 };
@@ -76,7 +113,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     throw new Error(message);
   }
 
-  return payload as T;
+  return normalizeApiPayload(payload as T);
 }
 
 export function buildOrderSocketUrl(token: string, orderId: number): string {

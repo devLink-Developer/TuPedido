@@ -36,6 +36,7 @@ from app.schemas.catalog import CategoryCreate, CategoryUpdate
 from app.schemas.merchant import MerchantApplicationReviewUpdate
 from app.services.category_colors import resolve_category_palette
 from app.services.mercadopago import get_or_create_mercadopago_provider
+from app.services.media import normalize_media_url
 from app.services.order_runtime import build_order_options
 from app.services.store_branding import resolve_store_assets
 
@@ -207,8 +208,8 @@ def create_store(
         description=payload.description,
         address=payload.address,
         phone=payload.phone,
-        logo_url=payload.logo_url or assets["logo_url"],
-        cover_image_url=payload.cover_image_url or assets["cover_image_url"],
+        logo_url=normalize_media_url(payload.logo_url) or assets["logo_url"],
+        cover_image_url=normalize_media_url(payload.cover_image_url) or assets["cover_image_url"],
         requested_category_ids=[category.id for category in categories],
         status="approved",
         review_notes=payload.review_notes or "Alta directa por admin",
@@ -224,8 +225,8 @@ def create_store(
         description=payload.description,
         address=payload.address,
         phone=payload.phone,
-        logo_url=payload.logo_url or assets["logo_url"],
-        cover_image_url=payload.cover_image_url or assets["cover_image_url"],
+        logo_url=normalize_media_url(payload.logo_url) or assets["logo_url"],
+        cover_image_url=normalize_media_url(payload.cover_image_url) or assets["cover_image_url"],
         latitude=payload.latitude,
         longitude=payload.longitude,
         status="approved",

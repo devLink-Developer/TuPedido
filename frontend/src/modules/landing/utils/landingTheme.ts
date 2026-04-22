@@ -39,20 +39,19 @@ export function buildLandingTheme(category: LandingCategorySource): LandingTheme
   return {
     accent: palette.color,
     accentLight: palette.colorLight,
-    accentSoft: hexToRgba(palette.color, 0.08),
-    accentMuted: hexToRgba(palette.color, 0.12),
+    accentSoft: hexToRgba(palette.color, 0.05),
+    accentMuted: hexToRgba(palette.color, 0.08),
     accentBorder: hexToRgba(palette.color, 0.18),
-    accentBorderStrong: hexToRgba(palette.color, 0.34),
-    accentGlow: hexToRgba(palette.color, 0.22),
-    accentShadow: hexToRgba(palette.color, 0.18),
-    accentShadowStrong: hexToRgba(palette.color, 0.3),
-    heroGradient: `linear-gradient(135deg, ${hexToRgba(palette.color, 0.28)} 0%, #1d1614 18%, #281b18 52%, ${hexToRgba(palette.color, 0.22)} 100%)`,
-    heroPanelGradient: `linear-gradient(180deg, ${hexToRgba(palette.color, 0.12)} 0%, rgba(255,255,255,0.08) 100%)`,
-    softPanelGradient: `linear-gradient(180deg, ${hexToRgba(palette.color, 0.1)} 0%, rgba(255,255,255,0.98) 100%)`,
-    commerceGradient: `linear-gradient(135deg, ${hexToRgba(palette.color, 0.28)} 0%, #221816 26%, #171210 100%)`,
-    buttonGradient: `linear-gradient(135deg, ${palette.color} 0%, ${hexToRgba(palette.color, 0.82)} 100%)`,
+    accentBorderStrong: hexToRgba(palette.color, 0.28),
+    accentGlow: hexToRgba(palette.color, 0.06),
+    accentShadow: "rgba(24, 19, 18, 0.12)",
+    accentShadowStrong: "rgba(24, 19, 18, 0.16)",
+    heroGradient: "linear-gradient(180deg, #2a2320 0%, #1c1714 100%)",
+    heroPanelGradient: "linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.03) 100%)",
+    softPanelGradient: "linear-gradient(180deg, rgba(255,255,255,0.995) 0%, rgba(251,248,244,0.99) 100%)",
+    commerceGradient: "linear-gradient(180deg, #231c19 0%, #181311 100%)",
+    buttonGradient: `linear-gradient(180deg, ${palette.color} 0%, ${palette.color} 100%)`,
     textOnAccent: "#FFFFFF",
-    pageGlow: hexToRgba(palette.color, 0.16)
+    pageGlow: "rgba(24, 19, 18, 0.03)"
   };
 }
-

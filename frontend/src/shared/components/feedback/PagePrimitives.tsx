@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { DEFAULT_CATALOG_BANNER_URL, resolveCatalogBannerDimensions } from "../../config/catalogBanner";
+import { resolveApiMediaUrl } from "../../services/api/client";
 import { statusLabels } from "../../utils/labels";
 
 function resolveStatusPillStyle(value: string) {
@@ -50,7 +51,7 @@ function resolveStatusPillStyle(value: string) {
 
 export function LoadingCard({ label = "Cargando..." }: { label?: string }) {
   return (
-    <div className="mesh-surface rounded-[28px] border border-[var(--color-border-default)] p-5 shadow-sm sm:p-6">
+    <div className="mesh-surface border border-[var(--color-border-default)] p-5 shadow-sm sm:p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">Estado</p>
@@ -61,7 +62,7 @@ export function LoadingCard({ label = "Cargando..." }: { label?: string }) {
         </div>
         <div className="grid grid-cols-3 gap-3 self-start">
           {Array.from({ length: 3 }, (_, index) => (
-            <span key={index} className="h-14 w-14 animate-pulse rounded-[18px] border border-white/70 bg-white/80" />
+            <span key={index} className="h-14 w-14 animate-pulse border border-white/70 bg-white/80" />
           ))}
         </div>
       </div>
@@ -79,7 +80,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="mesh-surface rounded-[28px] border border-dashed border-[var(--color-border-default)] p-5 text-center shadow-sm sm:p-7">
+    <div className="mesh-surface border border-dashed border-[var(--color-border-default)] p-5 text-center shadow-sm sm:p-7">
       <span className="app-chip text-[10px] uppercase tracking-[0.24em] text-zinc-500">Sin resultados</span>
       <h3 className="mx-auto mt-3.5 max-w-2xl font-display text-[1.55rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-[1.95rem]">
         {title}
@@ -98,7 +99,7 @@ export function IntegrationPendingCard({
   description?: string;
 }) {
   return (
-    <div className="rounded-[28px] border border-[rgba(245,158,11,0.18)] bg-[linear-gradient(180deg,#fff8ef_0%,#fffdf9_100%)] p-5 text-sm text-amber-950 shadow-sm">
+    <div className="border border-[rgba(245,158,11,0.18)] bg-[linear-gradient(180deg,#fff8ef_0%,#fffdf9_100%)] p-5 text-sm text-amber-950 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">Pendiente</p>
       <h3 className="mt-2 text-lg font-bold">{title}</h3>
       <p className="mt-2 leading-6 text-amber-900/78">{description}</p>
@@ -127,13 +128,13 @@ export function PageHeader({
   titleClassName?: string;
   descriptionClassName?: string;
 }) {
-  const bannerUrl = backgroundImageUrl?.trim() || "";
+  const bannerUrl = backgroundImageUrl?.trim() ? resolveApiMediaUrl(backgroundImageUrl) : "";
   const hasBanner = Boolean(bannerUrl);
 
   return (
     <div
       className={[
-        "app-panel-dark ambient-grid overflow-hidden rounded-[32px] p-5 shadow-lift sm:p-6",
+        "app-panel-dark ambient-grid overflow-hidden border border-white/10 p-5 shadow-lift sm:p-6",
         hasBanner ? "min-h-[200px] md:min-h-[228px]" : "",
         className ?? ""
       ].join(" ")}
@@ -147,12 +148,11 @@ export function PageHeader({
           : undefined
       }
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,123,70,0.22),transparent_28%)]" />
-      <div className="pointer-events-none absolute -right-10 top-0 h-44 w-44 rounded-full bg-brand-400/20 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 left-0 h-28 w-full bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.1))]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(255,123,70,0.14),transparent_18%)]" />
+      <div className="pointer-events-none absolute bottom-0 left-0 h-28 w-full bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.12))]" />
       <div className={["relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between", contentClassName ?? ""].join(" ")}>
         <div className="min-w-0">
-          <span className="inline-flex rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#ffd3bf] sm:text-[11px]">
+          <span className="inline-flex border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#ffd3bf] sm:text-[11px]">
             {eyebrow}
           </span>
           <h1
@@ -187,7 +187,7 @@ export function CatalogBanner({
   fallbackImageUrl?: string;
 }) {
   const resolvedDimensions = resolveCatalogBannerDimensions(width, height);
-  const preferredImageUrl = imageUrl?.trim() || fallbackImageUrl;
+  const preferredImageUrl = imageUrl?.trim() ? resolveApiMediaUrl(imageUrl) : fallbackImageUrl;
   const [currentImageUrl, setCurrentImageUrl] = useState(preferredImageUrl);
 
   useEffect(() => {
@@ -195,7 +195,7 @@ export function CatalogBanner({
   }, [preferredImageUrl]);
 
   return (
-    <div className="mx-auto w-full overflow-hidden rounded-[28px] border border-white/80 bg-white shadow-lift" style={{ maxWidth: `${resolvedDimensions.width}px` }}>
+    <div className="mx-auto w-full overflow-hidden border border-white/80 bg-white shadow-lift" style={{ maxWidth: `${resolvedDimensions.width}px` }}>
       <img
         src={currentImageUrl}
         alt={alt}
@@ -214,7 +214,7 @@ export function CatalogBanner({
 export function StatusPill({ value }: { value: string }) {
   return (
     <span
-      className="inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold"
+      className="inline-flex border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em]"
       style={resolveStatusPillStyle(value)}
     >
       {statusLabels[value] ?? value}
@@ -232,7 +232,7 @@ export function StatCard({
   description?: string;
 }) {
   return (
-    <article className="app-panel rounded-[24px] p-4">
+    <article className="app-panel border p-4">
       <div className="relative">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">{label}</p>
         <p className="mt-3 font-display text-[1.72rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-[1.95rem]">

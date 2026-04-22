@@ -42,7 +42,7 @@ export function ForcePasswordChangeCard() {
 
   return (
     <div className="grid gap-5 lg:grid-cols-[0.96fr_1.04fr]">
-      <form onSubmit={(event) => void handleSubmit(event)} className="app-panel order-1 rounded-[32px] p-5 sm:p-6">
+      <form onSubmit={(event) => void handleSubmit(event)} className="app-panel order-1 p-5 sm:p-6">
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Cambio obligatorio</p>
@@ -56,7 +56,7 @@ export function ForcePasswordChangeCard() {
               logout();
               navigate("/login", { replace: true });
             }}
-            className="w-full rounded-full border border-[var(--color-border-default)] bg-white/84 px-4 py-2 text-center text-sm font-semibold text-zinc-700 sm:w-auto"
+            className="w-full border border-[var(--color-border-default)] bg-white/84 px-4 py-2 text-center text-sm font-semibold uppercase tracking-[0.16em] text-zinc-700 sm:w-auto"
           >
             Cerrar sesion
           </button>
@@ -100,14 +100,14 @@ export function ForcePasswordChangeCard() {
           </label>
         </div>
 
-        {error ? <p className="mt-4 rounded-[22px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+        {error ? <p className="mt-4 border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
 
         <Button type="submit" className="mt-5 w-full" disabled={submitting || loading}>
           {submitting || loading ? "Actualizando..." : "Guardar nueva contrasena"}
         </Button>
       </form>
 
-      <div className="app-panel-dark order-2 rounded-[32px] p-5 sm:p-6">
+      <div className="app-panel-dark order-2 p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">Seguridad</p>
         <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.03] tracking-tight sm:text-4xl">
           Cambia tu contrasena para continuar
@@ -117,10 +117,10 @@ export function ForcePasswordChangeCard() {
           contrasena personal.
         </p>
         <div className="mt-6 grid gap-3 text-sm leading-6 text-white/78">
-          <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
+          <div className="border border-white/10 bg-white/6 px-4 py-4">
             Ingresa la contrasena temporal que recibiste. Desde el panel admin se restablece como <strong>12345678</strong>.
           </div>
-          <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
+          <div className="border border-white/10 bg-white/6 px-4 py-4">
             Cuando confirmes la nueva contrasena, recuperas el acceso normal a tu cuenta.
           </div>
         </div>

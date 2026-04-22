@@ -31,6 +31,7 @@ import { hexToRgba, isHexColor, normalizeHexColor, resolveCategoryPalette } from
 import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
 import { statusLabels } from "../../../shared/utils/labels";
 import { Button } from "../../../shared/ui/Button";
+import { resolveApiMediaUrl } from "../../../shared/services/api/client";
 
 type CategoryFormState = {
   name: string;
@@ -828,7 +829,7 @@ export function SettingsPage() {
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       {platformLogoUrl ? (
-                        <img src={platformLogoUrl} alt="Logo principal" className="h-10 w-auto max-w-[12rem] object-contain" />
+                        <img src={resolveApiMediaUrl(platformLogoUrl)} alt="Logo principal" className="h-10 w-auto max-w-[12rem] object-contain" />
                       ) : (
                         <BrandWordmark brandName="Marca" wordmarkUrl={platformWordmarkUrl} size="title" textClassName="font-display text-2xl font-black tracking-tight text-[#24130e]" />
                       )}
@@ -841,7 +842,7 @@ export function SettingsPage() {
                 <div className="mt-4 flex items-center gap-4">
                   <div className="flex h-14 min-w-0 flex-1 items-center overflow-hidden rounded-[1.2rem] bg-white px-4 shadow-sm">
                     {platformLogoUrl ? (
-                      <img src={platformLogoUrl} alt="Logo de la app" className="h-9 w-auto max-w-full object-contain" />
+                      <img src={resolveApiMediaUrl(platformLogoUrl)} alt="Logo de la app" className="h-9 w-auto max-w-full object-contain" />
                     ) : (
                       <BrandWordmark brandName="Marca" wordmarkUrl={platformWordmarkUrl} size="inline" frameClassName="w-[8.5rem]" textClassName="font-display text-xl font-black tracking-tight text-zinc-400" />
                     )}
@@ -870,12 +871,12 @@ export function SettingsPage() {
                   <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm">
                     {platformUseLogoAsFavicon ? (
                       platformLogoUrl ? (
-                        <img src={platformLogoUrl} alt="Favicon resuelto" className="h-full w-full object-contain p-1.5" />
+                        <img src={resolveApiMediaUrl(platformLogoUrl)} alt="Favicon resuelto" className="h-full w-full object-contain p-1.5" />
                       ) : (
                         <span className="text-[10px] font-semibold text-zinc-400">Logo</span>
                       )
                     ) : platformFaviconUrl ? (
-                      <img src={platformFaviconUrl} alt="Favicon configurado" className="h-full w-full object-contain p-1.5" />
+                      <img src={resolveApiMediaUrl(platformFaviconUrl)} alt="Favicon configurado" className="h-full w-full object-contain p-1.5" />
                     ) : (
                       <span className="text-[10px] font-semibold text-zinc-400">Fav</span>
                     )}

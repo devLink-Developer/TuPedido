@@ -21,11 +21,11 @@ export default {
         surface: "#FFFFFF"
       },
       boxShadow: {
-        sm: "0 18px 40px -32px rgba(24, 19, 18, 0.2), inset 0 1px 0 rgba(255,255,255,0.7)",
-        md: "0 24px 52px -34px rgba(24, 19, 18, 0.24)",
-        lg: "0 28px 64px -34px rgba(24, 19, 18, 0.28)",
-        float: "0 22px 46px -22px rgba(255, 61, 0, 0.36)",
-        lift: "0 30px 80px -42px rgba(24, 19, 18, 0.26)"
+        sm: "0 12px 28px -24px rgba(24, 19, 18, 0.14)",
+        md: "0 18px 36px -28px rgba(24, 19, 18, 0.16)",
+        lg: "0 22px 46px -32px rgba(24, 19, 18, 0.18)",
+        float: "0 12px 28px -22px rgba(24, 19, 18, 0.16)",
+        lift: "0 20px 44px -32px rgba(24, 19, 18, 0.18)"
       },
       borderRadius: {
         xl2: "1.5rem",

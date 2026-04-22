@@ -1,26 +1,46 @@
 import type { PropsWithChildren } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { BrandMark } from "../../shared/components";
 import { usePlatformBranding } from "../../shared/providers/PlatformBrandingProvider";
 
 export function AuthLayout({ children }: PropsWithChildren) {
+  const location = useLocation();
   const { brandName, branding } = usePlatformBranding();
+  const isLoginRoute = location.pathname === "/login";
+  const isRegisterRoute = location.pathname === "/registro";
 
   return (
-    <div className="app-shell ambient-grid min-h-screen px-4 py-6 text-ink md:px-8 md:py-8">
-      <div className="mx-auto max-w-6xl">
-        <div className="app-toolbar mb-6 inline-flex rounded-[26px] px-4 py-4 sm:px-5">
-          <Link to="/" aria-label={`Ir al inicio de ${brandName}`} className="inline-flex items-center">
-            <BrandMark
-              brandName={brandName}
-              logoUrl={branding?.platform_logo_url ?? null}
-              imageClassName="h-11 max-w-[12rem] sm:h-12 sm:max-w-[13.5rem]"
-              textClassName="text-[clamp(1.6rem,4vw,2.3rem)] text-[#24130e]"
-            />
-          </Link>
+    <div className="app-shell ambient-grid min-h-screen text-ink">
+      <header className="sticky top-0 z-30">
+        <div className="app-toolbar w-full border border-x-0 border-[var(--color-border-default)]">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4 md:px-8">
+            <Link to="/" aria-label={`Ir al inicio de ${brandName}`} className="inline-flex items-center">
+              <BrandMark
+                brandName={brandName}
+                logoUrl={branding?.platform_logo_url ?? null}
+                imageClassName="h-11 max-w-[12rem] sm:h-12 sm:max-w-[13.5rem]"
+                textClassName="text-[clamp(1.6rem,4vw,2.3rem)] text-[#24130e]"
+              />
+            </Link>
+            <div className="flex items-center gap-2">
+              {!isLoginRoute ? (
+                <Link
+                  className="inline-flex min-h-[44px] items-center border border-[var(--landing-accent-border)] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-brand-200 hover:text-ink"
+                  to="/login"
+                >
+                  Ingresar
+                </Link>
+              ) : null}
+              {!isRegisterRoute ? (
+                <Link className="app-button px-4 py-2 text-sm" to="/registro">
+                  Crear cuenta
+                </Link>
+              ) : null}
+            </div>
+          </div>
         </div>
-        {children}
-      </div>
+      </header>
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-8">{children}</main>
     </div>
   );
 }

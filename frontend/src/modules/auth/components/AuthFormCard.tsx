@@ -77,7 +77,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
 
   return (
     <div className="grid gap-5 lg:grid-cols-[0.96fr_1.04fr]">
-      <form onSubmit={(event) => void handleSubmit(event)} className="app-panel order-1 rounded-[32px] p-5 sm:p-6">
+      <form onSubmit={(event) => void handleSubmit(event)} className="app-panel order-1 p-5 sm:p-6">
         <div className="relative min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{content.formEyebrow}</p>
           <h2 className="mt-2 font-display text-[1.85rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-3xl">
@@ -112,7 +112,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
 
           <label className="block space-y-2">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Contrasena</span>
-            <div className="flex items-center gap-2 rounded-[22px] border border-[var(--color-border-default)] bg-white/92 px-4 py-1.5 shadow-sm">
+            <div className="flex items-center gap-2 border border-[var(--color-border-default)] bg-white/92 px-4 py-1.5 shadow-sm">
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
@@ -124,7 +124,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
               <button
                 type="button"
                 onClick={() => setShowPassword((current) => !current)}
-                className="rounded-full border border-[var(--color-border-default)] bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600 transition hover:text-ink"
+                className="border border-[var(--color-border-default)] bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-600 transition hover:text-ink"
               >
                 {showPassword ? "Ocultar" : "Mostrar"}
               </button>
@@ -132,7 +132,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
           </label>
         </div>
 
-        {error ? <p className="mt-4 rounded-[22px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+        {error ? <p className="mt-4 border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
 
         <Button type="submit" className="mt-5 w-full" disabled={submitting || loading}>
           {submitting || loading ? "Procesando..." : mode === "login" ? "Ingresar" : "Crear cuenta"}
@@ -141,7 +141,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
         <div className="mt-5 border-t border-black/6 pt-5 text-center">
           <p className="text-sm text-zinc-500">{content.secondaryPrompt}</p>
           <Link
-            className="mt-3 inline-flex rounded-full border border-[var(--color-border-default)] bg-white/84 px-5 py-2.5 text-sm font-semibold text-zinc-700 transition hover:border-brand-200 hover:text-ink"
+            className="mt-3 inline-flex border border-[var(--color-border-default)] bg-white/84 px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.16em] text-zinc-700 transition hover:border-brand-200 hover:text-ink"
             to={content.secondaryActionTo}
           >
             {content.secondaryActionLabel}
@@ -149,7 +149,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
         </div>
       </form>
 
-      <div className="app-panel-dark order-2 rounded-[32px] p-5 sm:p-6">
+      <div className="app-panel-dark order-2 p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">{content.eyebrow}</p>
         <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.03] tracking-tight sm:text-4xl">
           {mode === "login" ? (
@@ -173,7 +173,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
         </p>
         <div className="mt-6 grid gap-3 text-sm leading-6 text-white/78">
           {content.highlights.map((item, index) => (
-            <div key={item} className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
+            <div key={item} className="border border-white/10 bg-white/6 px-4 py-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-brand-200/90">Paso {index + 1}</p>
               <p className="mt-2">{item}</p>
             </div>

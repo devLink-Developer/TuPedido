@@ -1,3 +1,5 @@
+import { resolveApiMediaUrl } from "../../services/api/client";
+
 type BrandMarkProps = {
   brandName: string;
   logoUrl?: string | null;
@@ -17,7 +19,7 @@ export function BrandMark({
     return (
       <span className={className}>
         <img
-          src={logoUrl}
+          src={resolveApiMediaUrl(logoUrl)}
           alt={brandName}
           className={[
             "block h-11 w-auto max-w-[11rem] object-contain",

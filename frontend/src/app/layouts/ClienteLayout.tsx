@@ -232,106 +232,108 @@ export function ClienteLayout({ children }: PropsWithChildren) {
   return (
     <div className="app-shell ambient-grid min-h-screen text-ink">
       <header
-        className={`fixed inset-x-0 top-0 z-30 px-3 pt-[calc(0.75rem+var(--safe-top))] transition-transform duration-200 md:px-6 md:pt-5 ${
+        className={`fixed inset-x-0 top-0 z-30 transition-transform duration-200 ${
           navbarVisible ? "translate-y-0" : "-translate-y-[calc(100%+0.75rem)]"
         }`}
       >
-        <div className="app-toolbar mx-auto flex w-full max-w-6xl flex-wrap items-center gap-3 rounded-[28px] px-4 py-4 md:px-6">
-          <Link to="/c" aria-label={`Ir al catalogo de ${brandName}`} className="shrink-0">
-            <BrandMark
-              brandName={brandName}
-              logoUrl={branding?.platform_logo_url ?? null}
-              imageClassName="h-9 max-w-[8.5rem] drop-shadow-[0_10px_20px_rgba(173,74,14,0.14)] sm:h-10 sm:max-w-[10rem]"
-              textClassName="text-[1.45rem] text-[#24130e]"
-            />
-          </Link>
+        <div className="app-toolbar w-full border-x-0">
+          <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-3 px-4 py-4 md:px-8">
+            <Link to="/c" aria-label={`Ir al catalogo de ${brandName}`} className="shrink-0">
+              <BrandMark
+                brandName={brandName}
+                logoUrl={branding?.platform_logo_url ?? null}
+                imageClassName="h-9 max-w-[8.5rem] drop-shadow-[0_10px_20px_rgba(173,74,14,0.14)] sm:h-10 sm:max-w-[10rem]"
+                textClassName="text-[1.45rem] text-[#24130e]"
+              />
+            </Link>
 
-          {showAddressSelector ? (
-            <div className="order-3 min-w-0 basis-full md:order-none md:flex-1">
-              {addressesLoading ? (
-                <div className="h-[50px] w-full animate-pulse rounded-[20px] border border-white/70 bg-white/84 shadow-sm" />
-              ) : addresses.length > 1 ? (
-                <select
-                  value={selectedAddress?.id ?? ""}
-                  onChange={(event) => setSelectedAddressId(event.target.value ? Number(event.target.value) : "")}
-                  aria-label="Define tu direccion de entrega"
-                  className={themedFieldClassName}
-                  style={{ borderColor: "var(--catalog-accent-border)" }}
-                >
-                  {addresses.map((address) => (
-                    <option key={address.id} value={address.id}>
-                      {address.label} | {address.street}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <Link
-                  to="/c/perfil"
-                  className="app-input block min-h-[50px] border-[var(--catalog-accent-border)] px-4 py-3"
-                  style={{ borderColor: "var(--catalog-accent-border)" }}
-                >
-                  <span className="hidden">{selectedAddress?.label ?? ""}</span>
-                  <span className="block truncate text-sm font-semibold text-ink">
-                    {selectedAddress ? `${selectedAddress.street} | ${selectedAddress.details}` : "Define tu direccion de entrega"}
-                  </span>
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="hidden flex-1 md:block" />
-          )}
-
-          {isAuthenticated ? (
-            <div ref={menuRef} className="relative">
-              <button
-                type="button"
-                onClick={() => setMenuOpen((current) => !current)}
-                className="flex min-h-[46px] items-center gap-3 rounded-full border bg-white/92 px-3 py-2 text-sm font-semibold text-ink shadow-sm"
-                style={{ borderColor: "var(--catalog-accent-border)" }}
-              >
-                <span
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white"
-                  style={{ backgroundColor: "var(--catalog-accent)" }}
-                >
-                  {user?.full_name?.trim().charAt(0).toUpperCase() || "P"}
-                </span>
-                <span className="hidden text-left md:block">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Cuenta</span>
-                  <span className="block">Mi perfil</span>
-                </span>
-              </button>
-              {menuOpen ? (
-                <div
-                  className="app-panel absolute right-0 top-[calc(100%+0.75rem)] z-40 min-w-[220px] max-w-[min(92vw,280px)] rounded-[24px] p-2"
-                  style={{ borderColor: "var(--catalog-accent-border)" }}
-                >
-                  <Link
-                    to="/c/pedidos"
-                    className="block rounded-[18px] px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 hover:text-ink"
+            {showAddressSelector ? (
+              <div className="order-3 min-w-0 basis-full md:order-none md:flex-1">
+                {addressesLoading ? (
+                  <div className="h-[50px] w-full animate-pulse border border-white/70 bg-white/84 shadow-sm" />
+                ) : addresses.length > 1 ? (
+                  <select
+                    value={selectedAddress?.id ?? ""}
+                    onChange={(event) => setSelectedAddressId(event.target.value ? Number(event.target.value) : "")}
+                    aria-label="Define tu direccion de entrega"
+                    className={themedFieldClassName}
+                    style={{ borderColor: "var(--catalog-accent-border)" }}
                   >
-                    Mis pedidos
-                  </Link>
+                    {addresses.map((address) => (
+                      <option key={address.id} value={address.id}>
+                        {address.label} | {address.street}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
                   <Link
                     to="/c/perfil"
-                    className="block rounded-[18px] px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 hover:text-ink"
+                    className="app-input block min-h-[50px] border-[var(--catalog-accent-border)] px-4 py-3"
+                    style={{ borderColor: "var(--catalog-accent-border)" }}
                   >
-                    Mi perfil
+                    <span className="hidden">{selectedAddress?.label ?? ""}</span>
+                    <span className="block truncate text-sm font-semibold text-ink">
+                      {selectedAddress ? `${selectedAddress.street} | ${selectedAddress.details}` : "Define tu direccion de entrega"}
+                    </span>
                   </Link>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedAddressId("");
-                      logout();
-                      navigate("/login", { replace: true });
-                    }}
-                    className="mt-1 w-full rounded-[18px] px-4 py-3 text-left text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
+                )}
+              </div>
+            ) : (
+              <div className="hidden flex-1 md:block" />
+            )}
+
+            {isAuthenticated ? (
+              <div ref={menuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen((current) => !current)}
+                  className="flex min-h-[46px] items-center gap-3 border bg-white/92 px-3 py-2 text-sm font-semibold text-ink shadow-sm transition-colors hover:bg-white"
+                  style={{ borderColor: "var(--catalog-accent-border)" }}
+                >
+                  <span
+                    className="flex h-9 w-9 items-center justify-center border border-black/10 text-xs font-bold text-white"
+                    style={{ backgroundColor: "var(--catalog-accent)" }}
                   >
-                    Cerrar sesion
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+                    {user?.full_name?.trim().charAt(0).toUpperCase() || "P"}
+                  </span>
+                  <span className="hidden text-left md:block">
+                    <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Cuenta</span>
+                    <span className="block">Mi perfil</span>
+                  </span>
+                </button>
+                {menuOpen ? (
+                  <div
+                    className="app-panel absolute right-0 top-[calc(100%+0.75rem)] z-40 min-w-[220px] max-w-[min(92vw,280px)] p-2"
+                    style={{ borderColor: "var(--catalog-accent-border)" }}
+                  >
+                    <Link
+                      to="/c/pedidos"
+                      className="block border border-transparent px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:border-black/8 hover:bg-zinc-50 hover:text-ink"
+                    >
+                      Mis pedidos
+                    </Link>
+                    <Link
+                      to="/c/perfil"
+                      className="block border border-transparent px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:border-black/8 hover:bg-zinc-50 hover:text-ink"
+                    >
+                      Mi perfil
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedAddressId("");
+                        logout();
+                        navigate("/login", { replace: true });
+                      }}
+                      className="mt-1 w-full border border-transparent px-4 py-3 text-left text-sm font-semibold text-rose-700 transition hover:border-rose-100 hover:bg-rose-50"
+                    >
+                      Cerrar sesion
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
       </header>
 
@@ -345,7 +347,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
           <Link
             to="/c/carrito"
             aria-label={`Abrir carrito con ${itemCount} productos`}
-            className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 w-16 items-center justify-center rounded-[24px] text-sm font-semibold text-white transition hover:opacity-95 md:hidden"
+            className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 w-16 items-center justify-center border border-black/10 text-sm font-semibold text-white transition hover:opacity-95 md:hidden"
             style={{
               backgroundImage: "linear-gradient(135deg, #ff7b46 0%, var(--catalog-accent) 48%, #be2600 100%)",
               boxShadow: "0 18px 40px -18px var(--catalog-accent-shadow)"
@@ -356,14 +358,14 @@ export function ClienteLayout({ children }: PropsWithChildren) {
               <circle cx="9.25" cy="18.25" r="1.35" />
               <circle cx="16.75" cy="18.25" r="1.35" />
             </svg>
-            <span className="absolute -right-1 -top-1 inline-flex min-w-6 items-center justify-center rounded-full bg-ink px-2 py-1 text-xs font-bold text-white">
+            <span className="absolute -right-1 -top-1 inline-flex min-w-6 items-center justify-center border border-white/15 bg-ink px-2 py-1 text-xs font-bold text-white">
               {itemCount}
             </span>
           </Link>
           <Link
             to="/c/carrito"
             aria-label={`Abrir carrito con ${itemCount} productos`}
-            className="app-panel fixed bottom-6 right-6 z-40 hidden min-w-[320px] max-w-[360px] items-center justify-between gap-4 rounded-[28px] px-5 py-4 text-ink transition hover:-translate-y-0.5 md:flex"
+            className="app-panel fixed bottom-6 right-6 z-40 hidden min-w-[320px] max-w-[360px] items-center justify-between gap-4 px-5 py-4 text-ink transition hover:-translate-y-0.5 md:flex"
             style={{
               borderColor: "var(--catalog-accent-border)",
               boxShadow: "0 22px 44px -24px var(--catalog-accent-shadow)"
@@ -371,7 +373,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
           >
             <div className="flex min-w-0 items-center gap-3">
               <span
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white"
+                className="flex h-11 w-11 shrink-0 items-center justify-center border border-black/10 text-white"
                 style={{ backgroundColor: "var(--catalog-accent)" }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">

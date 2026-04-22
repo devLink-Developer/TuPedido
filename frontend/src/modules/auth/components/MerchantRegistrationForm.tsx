@@ -121,14 +121,14 @@ export function MerchantRegistrationForm() {
 
       <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <form
-          className="grid gap-4 rounded-[30px] bg-white p-5 shadow-sm md:grid-cols-2"
+          className="grid gap-4 border border-black/6 bg-white p-5 shadow-sm md:grid-cols-2"
           onSubmit={(event) => {
             event.preventDefault();
             void handleSubmit();
           }}
         >
           {isAuthenticated && user?.role === "customer" ? (
-            <div className="rounded-[24px] bg-zinc-50 px-4 py-4 md:col-span-2">
+            <div className="border border-black/6 bg-zinc-50 px-4 py-4 md:col-span-2">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Cuenta actual</p>
               <p className="mt-2 text-sm font-semibold text-ink">{user.full_name}</p>
               <p className="mt-1 text-sm text-zinc-600">{user.email}</p>
@@ -139,7 +139,7 @@ export function MerchantRegistrationForm() {
                 value={form.full_name}
                 onChange={(event) => setForm((current) => ({ ...current, full_name: event.target.value }))}
                 placeholder="Nombre del responsable"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="border border-black/10 bg-zinc-50 px-4 py-3"
                 required
               />
               <input
@@ -147,7 +147,7 @@ export function MerchantRegistrationForm() {
                 value={form.email}
                 onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
                 placeholder="Email"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="border border-black/10 bg-zinc-50 px-4 py-3"
                 required
               />
               <input
@@ -155,7 +155,7 @@ export function MerchantRegistrationForm() {
                 value={form.password}
                 onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
                 placeholder="Contrasena"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+                className="border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
                 minLength={6}
                 required
               />
@@ -166,21 +166,21 @@ export function MerchantRegistrationForm() {
             value={form.business_name}
             onChange={(event) => setForm((current) => ({ ...current, business_name: event.target.value }))}
             placeholder="Nombre comercial"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="border border-black/10 bg-zinc-50 px-4 py-3"
             required
           />
           <input
             value={form.phone}
             onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
             placeholder="Telefono"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="border border-black/10 bg-zinc-50 px-4 py-3"
             required
           />
           <input
             value={form.address}
             onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
             placeholder="Direccion"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+            className="border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
             required
           />
           <textarea
@@ -188,7 +188,7 @@ export function MerchantRegistrationForm() {
             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
             placeholder="Describe tu propuesta comercial"
             rows={5}
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+            className="border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
             required
           />
 
@@ -219,7 +219,7 @@ export function MerchantRegistrationForm() {
             </div>
           </div>
 
-          {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 md:col-span-2">{error}</p> : null}
+          {error ? <p className="border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700 md:col-span-2">{error}</p> : null}
           <Button type="submit" disabled={saving} className="md:col-span-2">
             {saving
               ? "Guardando..."
@@ -230,21 +230,21 @@ export function MerchantRegistrationForm() {
         </form>
 
         <div className="space-y-4">
-          <div className="rounded-[30px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-5 text-white shadow-lift sm:p-6">
+          <div className="border border-white/10 bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-5 text-white shadow-lift sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">Tu comercio</p>
             <h3 className="mt-3 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight sm:text-3xl">Configura primero, activa despues</h3>
             <div className="mt-4 grid gap-3 text-sm leading-6 text-white/72 sm:leading-7">
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Creas tu acceso y entras al panel en el mismo paso.</div>
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Tu rubro define imagenes iniciales para el comercio y luego puedes personalizarlas desde configuracion.</div>
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Podras cargar productos, medios de pago y datos del negocio mientras se revisa la solicitud.</div>
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Tu local no podra recibir pedidos hasta que el equipo apruebe el alta.</div>
+              <div className="border border-white/10 bg-white/5 px-4 py-4">Creas tu acceso y entras al panel en el mismo paso.</div>
+              <div className="border border-white/10 bg-white/5 px-4 py-4">Tu rubro define imagenes iniciales para el comercio y luego puedes personalizarlas desde configuracion.</div>
+              <div className="border border-white/10 bg-white/5 px-4 py-4">Podras cargar productos, medios de pago y datos del negocio mientras se revisa la solicitud.</div>
+              <div className="border border-white/10 bg-white/5 px-4 py-4">Tu local no podra recibir pedidos hasta que el equipo apruebe el alta.</div>
             </div>
           </div>
 
           {applications.length ? (
             <div className="space-y-3">
               {applications.map((application) => (
-                <article key={application.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+                <article key={application.id} className="border border-black/6 bg-white p-5 shadow-sm">
                   <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <h4 className="text-lg font-bold">{application.business_name}</h4>
@@ -254,7 +254,7 @@ export function MerchantRegistrationForm() {
                   </div>
                   <p className="mt-3 text-sm text-zinc-600">{application.description}</p>
                   {application.review_notes ? (
-                    <p className="mt-3 rounded-2xl bg-zinc-50 px-4 py-3 text-sm text-zinc-700">{application.review_notes}</p>
+                    <p className="mt-3 border border-black/6 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">{application.review_notes}</p>
                   ) : null}
                 </article>
               ))}

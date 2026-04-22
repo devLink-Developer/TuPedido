@@ -71,6 +71,7 @@ from app.services.mercadopago import (
     get_or_create_mercadopago_provider,
     is_store_mercadopago_ready,
 )
+from app.services.media import normalize_media_url
 from app.services.order_runtime import build_order_options
 from app.services.promotions import get_store_promotion, get_store_promotions
 from app.services.settlements import create_cash_service_fee_charge
@@ -280,8 +281,8 @@ def update_store(
     store.phone = payload.phone
     store.latitude = payload.latitude
     store.longitude = payload.longitude
-    store.logo_url = payload.logo_url
-    store.cover_image_url = payload.cover_image_url
+    store.logo_url = normalize_media_url(payload.logo_url)
+    store.cover_image_url = normalize_media_url(payload.cover_image_url)
     store.accepting_orders = payload.accepting_orders if store.status == "approved" else False
     store.opening_note = payload.opening_note
     store.min_delivery_minutes = payload.min_delivery_minutes

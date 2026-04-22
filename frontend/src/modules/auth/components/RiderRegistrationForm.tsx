@@ -111,7 +111,7 @@ export function RiderRegistrationForm() {
 
       <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <form
-          className="grid gap-4 rounded-[30px] bg-white p-5 shadow-sm md:grid-cols-2"
+          className="grid gap-4 border border-black/6 bg-white p-5 shadow-sm md:grid-cols-2"
           onSubmit={(event) => {
             event.preventDefault();
             if (!isAuthenticated) {
@@ -126,13 +126,13 @@ export function RiderRegistrationForm() {
             value={form.phone}
             onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
             placeholder="Telefono"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="border border-black/10 bg-zinc-50 px-4 py-3"
             required
           />
           <select
             value={form.vehicle_type}
             onChange={(event) => setForm((current) => ({ ...current, vehicle_type: event.target.value as RiderDraft["vehicle_type"] }))}
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="border border-black/10 bg-zinc-50 px-4 py-3"
           >
             <option value="bicycle">Bicicleta</option>
             <option value="motorcycle">Moto</option>
@@ -142,7 +142,7 @@ export function RiderRegistrationForm() {
             value={form.dni_number}
             onChange={(event) => setForm((current) => ({ ...current, dni_number: event.target.value }))}
             placeholder="DNI"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="border border-black/10 bg-zinc-50 px-4 py-3"
             required
           />
           <div className="md:col-span-2">
@@ -159,62 +159,62 @@ export function RiderRegistrationForm() {
             value={form.emergency_contact_name}
             onChange={(event) => setForm((current) => ({ ...current, emergency_contact_name: event.target.value }))}
             placeholder="Contacto de emergencia"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="border border-black/10 bg-zinc-50 px-4 py-3"
             required
           />
           <input
             value={form.emergency_contact_phone}
             onChange={(event) => setForm((current) => ({ ...current, emergency_contact_phone: event.target.value }))}
             placeholder="Telefono emergencia"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="border border-black/10 bg-zinc-50 px-4 py-3"
             required
           />
           <input
             value={form.license_number ?? ""}
             onChange={(event) => setForm((current) => ({ ...current, license_number: event.target.value }))}
             placeholder="Licencia"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="border border-black/10 bg-zinc-50 px-4 py-3"
           />
           <input
             value={form.vehicle_plate ?? ""}
             onChange={(event) => setForm((current) => ({ ...current, vehicle_plate: event.target.value }))}
             placeholder="Patente"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="border border-black/10 bg-zinc-50 px-4 py-3"
           />
           <input
             value={form.insurance_policy ?? ""}
             onChange={(event) => setForm((current) => ({ ...current, insurance_policy: event.target.value }))}
             placeholder="Seguro"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+            className="border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
           />
           <textarea
             value={form.notes ?? ""}
             onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
             placeholder="Notas adicionales"
             rows={4}
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+            className="border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
           />
-          {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 md:col-span-2">{error}</p> : null}
+          {error ? <p className="border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700 md:col-span-2">{error}</p> : null}
           <Button type="submit" disabled={saving} className="md:col-span-2">
             {saving ? "Enviando..." : isAuthenticated ? "Enviar postulacion" : "Guardar y continuar"}
           </Button>
         </form>
 
         <div className="space-y-4">
-          <div className="rounded-[30px] bg-[linear-gradient(180deg,#0f1f1b_0%,#132c24_100%)] p-5 text-white shadow-lift sm:p-6">
+          <div className="border border-white/10 bg-[linear-gradient(180deg,#0f1f1b_0%,#132c24_100%)] p-5 text-white shadow-lift sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#9be3c1]/70">Postulacion</p>
             <h3 className="mt-3 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight sm:text-3xl">Suma tu perfil y activa tu proceso</h3>
             <div className="mt-4 grid gap-3 text-sm leading-6 text-white/72 sm:leading-7">
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Si interrumpes el proceso, podras retomarlo al volver.</div>
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">Tu informacion se usa para validar tu perfil operativo.</div>
-              <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-4">El equipo revisara tu solicitud y te informara el resultado.</div>
+              <div className="border border-white/10 bg-white/5 px-4 py-4">Si interrumpes el proceso, podras retomarlo al volver.</div>
+              <div className="border border-white/10 bg-white/5 px-4 py-4">Tu informacion se usa para validar tu perfil operativo.</div>
+              <div className="border border-white/10 bg-white/5 px-4 py-4">El equipo revisara tu solicitud y te informara el resultado.</div>
             </div>
           </div>
 
           {applications.length ? (
             <div className="space-y-3">
               {applications.map((application) => (
-                <article key={application.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+                <article key={application.id} className="border border-black/6 bg-white p-5 shadow-sm">
                   <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <h4 className="text-lg font-bold">{application.user_name}</h4>

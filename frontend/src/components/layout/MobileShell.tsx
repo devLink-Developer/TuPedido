@@ -98,14 +98,14 @@ export function MobileShell() {
             </div>
             <div className="space-y-3">
               {desktopHighlights.map((item) => (
-                <div key={item} className="rounded-[26px] border border-white/10 bg-white/5 px-4 py-4 text-sm leading-6 text-white/74">
+                <div key={item} className="border border-white/10 bg-white/5 px-4 py-4 text-sm leading-6 text-white/74">
                   {item}
                 </div>
               ))}
             </div>
           </div>
-          <div className="relative space-y-5 rounded-[32px] border border-white/10 bg-white/6 p-6 shadow-float">
-            <div className="absolute right-5 top-5 h-16 w-16 rounded-full bg-brand-500/20 blur-2xl" />
+          <div className="relative space-y-5 border border-white/10 bg-white/6 p-6 shadow-float">
+            <div className="absolute inset-x-6 top-5 h-px bg-gradient-to-r from-transparent via-brand-300/55 to-transparent" />
             <p className="text-xs uppercase tracking-[0.26em] text-white/50">Sesion</p>
             <p className="text-2xl font-display font-bold">{isAuthenticated ? user?.full_name : "Accede a tu cuenta"}</p>
             <p className="text-sm leading-6 text-white/60">
@@ -115,7 +115,7 @@ export function MobileShell() {
               <button
                 type="button"
                 onClick={logout}
-                className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10"
+                className="border border-white/15 px-4 py-2 text-sm font-semibold uppercase tracking-[0.16em] text-white/90 transition hover:bg-white/10"
               >
                 Cerrar sesion
               </button>
@@ -124,7 +124,7 @@ export function MobileShell() {
                 <Link className="app-button px-4 py-2 text-sm" to="/login">
                   Ingresar
                 </Link>
-                <Link className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/90" to="/register">
+                <Link className="border border-white/15 px-4 py-2 text-sm font-semibold uppercase tracking-[0.16em] text-white/90" to="/register">
                   Crear cuenta
                 </Link>
               </div>
@@ -133,8 +133,9 @@ export function MobileShell() {
         </aside>
 
         <main className="flex-1 pb-[calc(var(--bottom-nav-height)+1.5rem+var(--safe-bottom))] md:pb-0">
-          <header className="sticky top-0 z-30 px-3 pb-4 pt-[calc(0.85rem+var(--safe-top))] md:px-8 md:py-4">
-            <div className="app-toolbar mx-auto max-w-6xl rounded-[28px] px-4 py-4 md:px-6">
+          <header className="sticky top-0 z-30">
+            <div className="app-toolbar w-full border border-x-0 border-[var(--color-border-default)]">
+              <div className="mx-auto max-w-6xl px-4 py-4 md:px-8">
               <div className="flex items-center justify-between gap-4 md:hidden">
                 {isStoreRoute ? (
                   <button
@@ -148,7 +149,7 @@ export function MobileShell() {
                     }}
                     className="flex min-w-0 items-center gap-3 text-left"
                   >
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.2rem] border border-[var(--color-border-default)] bg-white/80 shadow-sm">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-[var(--color-border-default)] bg-white/80 shadow-sm">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 text-ink">
                         <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
@@ -176,7 +177,7 @@ export function MobileShell() {
                   {isStoreRoute && itemCount > 0 ? (
                     <Link
                       to="/cart"
-                      className="rounded-full bg-ink px-3 py-2 text-xs font-semibold text-white shadow-float"
+                      className="border border-black/10 bg-ink px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white shadow-float"
                     >
                       Carrito ({itemCount})
                     </Link>
@@ -184,7 +185,7 @@ export function MobileShell() {
                     <button
                       type="button"
                       onClick={logout}
-                      className="rounded-full border border-[var(--color-border-default)] bg-white/84 px-3 py-2 text-xs font-semibold text-zinc-700"
+                      className="border border-[var(--color-border-default)] bg-white/84 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-700"
                     >
                       Salir
                     </button>
@@ -203,7 +204,7 @@ export function MobileShell() {
                     to={item.to}
                     className={({ isActive }) =>
                       [
-                        "whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition",
+                        "whitespace-nowrap border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition",
                         isActive ? "bg-ink text-white shadow-float" : "border border-[var(--color-border-default)] bg-white/88 text-zinc-700"
                       ].join(" ")
                     }
@@ -225,7 +226,7 @@ export function MobileShell() {
                       to={item.to}
                       className={({ isActive }) =>
                         [
-                          "rounded-full px-4 py-2 text-sm font-semibold transition",
+                          "border px-4 py-2 text-sm font-semibold uppercase tracking-[0.16em] transition",
                           isActive ? "bg-ink text-white shadow-float" : "border border-[var(--color-border-default)] bg-white/84 text-zinc-700"
                         ].join(" ")
                       }
@@ -237,20 +238,20 @@ export function MobileShell() {
                 <div className="flex items-center gap-2">
                   {isAuthenticated ? (
                     <>
-                      <span className="hidden rounded-full border border-[var(--color-border-default)] bg-white/84 px-4 py-2 text-sm font-semibold text-zinc-700 lg:inline-flex">
+                      <span className="hidden border border-[var(--color-border-default)] bg-white/84 px-4 py-2 text-sm font-semibold uppercase tracking-[0.16em] text-zinc-700 lg:inline-flex">
                         {user?.role}
                       </span>
                       <button
                         type="button"
                         onClick={logout}
-                        className="rounded-full border border-[var(--color-border-default)] bg-white/84 px-4 py-2 text-sm font-semibold text-zinc-700"
+                        className="border border-[var(--color-border-default)] bg-white/84 px-4 py-2 text-sm font-semibold uppercase tracking-[0.16em] text-zinc-700"
                       >
                         Salir
                       </button>
                     </>
                   ) : (
                     <>
-                      <Link className="rounded-full border border-[var(--color-border-default)] bg-white/84 px-4 py-2 text-sm font-semibold text-zinc-700" to="/login">
+                      <Link className="border border-[var(--color-border-default)] bg-white/84 px-4 py-2 text-sm font-semibold uppercase tracking-[0.16em] text-zinc-700" to="/login">
                         Ingresar
                       </Link>
                       <Link className="app-button px-4 py-2 text-sm" to="/register">
@@ -260,6 +261,7 @@ export function MobileShell() {
                   )}
                 </div>
               </div>
+            </div>
             </div>
           </header>
           <div className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8">
