@@ -73,6 +73,10 @@ export function PlatformBrandingProvider({ children }: PropsWithChildren) {
     shortcutLink.type = iconLink.type;
   }, [faviconUrl]);
 
+  useEffect(() => {
+    document.title = DEFAULT_BRAND_NAME;
+  }, []);
+
   const value = useMemo<PlatformBrandingContextValue>(
     () => ({
       branding,

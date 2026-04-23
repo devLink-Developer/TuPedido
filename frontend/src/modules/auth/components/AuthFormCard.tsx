@@ -54,6 +54,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const content = authMarketingContent[mode];
+  const isLogin = mode === "login";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -75,6 +76,106 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
     }
   }
 
+  const formFields = (
+    <div className="mt-6 space-y-4">
+      {mode === "register" ? (
+        <label className="block space-y-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Nombre completo</span>
+          <input
+            value={fullName}
+            onChange={(event) => setFullName(event.target.value)}
+            required
+            className="app-input"
+          />
+        </label>
+      ) : null}
+
+      <label className="block space-y-2">
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Email</span>
+        <input
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+          className="app-input"
+        />
+      </label>
+
+      <label className="block space-y-2">
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Contrasena</span>
+        <div className="flex items-center gap-2 border border-[var(--color-border-default)] bg-white/92 px-4 py-1.5 shadow-sm">
+          <input
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+            minLength={6}
+            className="min-w-0 flex-1 bg-transparent py-3 outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((current) => !current)}
+            className="border border-[var(--color-border-default)] bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-600 transition hover:text-ink"
+          >
+            {showPassword ? "Ocultar" : "Mostrar"}
+          </button>
+        </div>
+      </label>
+    </div>
+  );
+
+  const formActions = (
+    <>
+      {error ? <p className="mt-4 border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+
+      <Button type="submit" className="mt-5 w-full" disabled={submitting || loading}>
+        {submitting || loading ? "Procesando..." : mode === "login" ? "Ingresar" : "Crear cuenta"}
+      </Button>
+
+      <div className="mt-5 border-t border-black/6 pt-5 text-center">
+        <p className="text-sm text-zinc-500">{content.secondaryPrompt}</p>
+        <Link
+          className="mt-3 inline-flex border border-[var(--color-border-default)] bg-white/84 px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.16em] text-zinc-700 transition hover:border-brand-200 hover:text-ink"
+          to={content.secondaryActionTo}
+        >
+          {content.secondaryActionLabel}
+        </Link>
+      </div>
+    </>
+  );
+
+  if (isLogin) {
+    return (
+      <section className="app-panel mx-auto w-full max-w-lg overflow-hidden">
+        <div className="border-b border-[var(--color-border-default)] px-5 py-4 sm:px-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">{content.eyebrow}</p>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="font-display text-[1.72rem] font-bold leading-[1.02] tracking-tight text-ink sm:text-[1.95rem]">
+                Iniciar sesion
+              </h1>
+              <p className="mt-2 max-w-md text-sm leading-6 text-zinc-600">{content.formDescription}</p>
+            </div>
+            <BrandWordmark
+              brandName={brandName}
+              wordmarkUrl={wordmarkUrl}
+              size="inline"
+              fit="contain"
+              className="inline-flex min-w-0"
+              frameClassName="h-8 w-[9.5rem] sm:h-9 sm:w-[10.5rem]"
+              textClassName="text-lg"
+            />
+          </div>
+        </div>
+
+        <form onSubmit={(event) => void handleSubmit(event)} className="p-5 sm:p-6">
+          {formFields}
+          {formActions}
+        </form>
+      </section>
+    );
+  }
+
   return (
     <div className="grid gap-5 lg:grid-cols-[0.96fr_1.04fr]">
       <form onSubmit={(event) => void handleSubmit(event)} className="app-panel order-1 p-5 sm:p-6">
@@ -86,88 +187,13 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
           <p className="mt-2 max-w-xl text-sm leading-7 text-zinc-500">{content.formDescription}</p>
         </div>
 
-        <div className="mt-6 space-y-4">
-          {mode === "register" ? (
-            <label className="block space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Nombre completo</span>
-              <input
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                required
-                className="app-input"
-              />
-            </label>
-          ) : null}
-
-          <label className="block space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Email</span>
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-              className="app-input"
-            />
-          </label>
-
-          <label className="block space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Contrasena</span>
-            <div className="flex items-center gap-2 border border-[var(--color-border-default)] bg-white/92 px-4 py-1.5 shadow-sm">
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-                minLength={6}
-                className="min-w-0 flex-1 bg-transparent py-3 outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((current) => !current)}
-                className="border border-[var(--color-border-default)] bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-600 transition hover:text-ink"
-              >
-                {showPassword ? "Ocultar" : "Mostrar"}
-              </button>
-            </div>
-          </label>
-        </div>
-
-        {error ? <p className="mt-4 border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
-
-        <Button type="submit" className="mt-5 w-full" disabled={submitting || loading}>
-          {submitting || loading ? "Procesando..." : mode === "login" ? "Ingresar" : "Crear cuenta"}
-        </Button>
-
-        <div className="mt-5 border-t border-black/6 pt-5 text-center">
-          <p className="text-sm text-zinc-500">{content.secondaryPrompt}</p>
-          <Link
-            className="mt-3 inline-flex border border-[var(--color-border-default)] bg-white/84 px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.16em] text-zinc-700 transition hover:border-brand-200 hover:text-ink"
-            to={content.secondaryActionTo}
-          >
-            {content.secondaryActionLabel}
-          </Link>
-        </div>
+        {formFields}
+        {formActions}
       </form>
 
       <div className="app-panel-dark order-2 p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">{content.eyebrow}</p>
-        <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.03] tracking-tight sm:text-4xl">
-          {mode === "login" ? (
-            <span className="flex flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
-              <span>{content.titlePrefix}</span>
-              <BrandWordmark
-                brandName={brandName}
-                wordmarkUrl={wordmarkUrl}
-                size="hero"
-                fit="contain"
-                className="min-w-0 shrink-0"
-                frameClassName="h-[5.25rem] w-[15rem] sm:h-[6.5rem] sm:w-[18rem]"
-              />
-            </span>
-          ) : (
-            content.titlePrefix
-          )}
-        </h1>
+        <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.03] tracking-tight sm:text-4xl">{content.titlePrefix}</h1>
         <p className="mt-3 max-w-xl text-sm leading-7 text-white/72 sm:text-[15px]">
           {content.description}
         </p>
