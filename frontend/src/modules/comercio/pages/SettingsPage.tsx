@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { EmptyState, ImageAssetField, LoadingCard, PageHeader, PlatformWordmark, RubroChip, StatusPill } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
@@ -116,6 +116,8 @@ function emptySubcategoryDraft(): SubcategoryDraftState {
 export function SettingsPage() {
   const { token } = useAuthSession();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const categories = useCategoryStore((state) => state.categories);
   const categoryLoading = useCategoryStore((state) => state.loading);
   const loadCategories = useCategoryStore((state) => state.loadCategories);
@@ -135,6 +137,10 @@ export function SettingsPage() {
   const [showAddressEditor, setShowAddressEditor] = useState(false);
   const [mercadoPagoAction, setMercadoPagoAction] = useState<"connect" | "disconnect" | null>(null);
   const [mercadoPagoActionError, setMercadoPagoActionError] = useState<string | null>(null);
+  const [mercadopagoOAuthResult, setMercadopagoOAuthResult] = useState<{
+    status: string;
+    detail: string | null;
+  } | null>(null);
 
   const isApproved = store?.status === "approved";
   const canToggleOrders = isApproved;
@@ -145,8 +151,8 @@ export function SettingsPage() {
     if (!store) return "";
     return storeStatusMessages[store.status] ?? "Actualiza la informacion de tu negocio y mantente listo para operar.";
   }, [store]);
-  const mercadopagoOAuthStatus = searchParams.get("mercadopago_oauth");
-  const mercadopagoOAuthDetail = searchParams.get("detail");
+  const mercadopagoOAuthStatus = mercadopagoOAuthResult?.status;
+  const mercadopagoOAuthDetail = mercadopagoOAuthResult?.detail;
   const mercadopagoProviderEnabled = store?.payment_settings.mercadopago_provider_enabled ?? false;
   const mercadopagoProviderMode = store?.payment_settings.mercadopago_provider_mode ?? "sandbox";
   const mercadopagoState = useMemo(
@@ -201,6 +207,31 @@ export function SettingsPage() {
   useEffect(() => {
     void load();
   }, [token]);
+
+  useEffect(() => {
+    const status = searchParams.get("mercadopago_oauth");
+    if (!status) {
+      return;
+    }
+
+    setMercadopagoOAuthResult({
+      status,
+      detail: searchParams.get("detail")
+    });
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("mercadopago_oauth");
+    nextParams.delete("detail");
+    const nextSearch = nextParams.toString();
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : "",
+        hash: location.hash
+      },
+      { replace: true }
+    );
+  }, [location.hash, location.pathname, navigate, searchParams]);
 
   useMerchantStoreStatusSync({ paused: saving || taxonomySaving, store, setStore });
 
