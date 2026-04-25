@@ -117,6 +117,11 @@ function isValidHttpUrl(value: string) {
   }
 }
 
+function isMercadoPagoCredentialToken(value: string) {
+  const normalized = value.trim().toUpperCase();
+  return normalized.startsWith("APP_USR-") || normalized.startsWith("TEST-") || normalized.startsWith("PROD-");
+}
+
 export function SettingsPage() {
   const { token } = useAuthSession();
   const syncPublicCategories = useCategoryStore((state) => state.setCategories);
@@ -319,6 +324,9 @@ export function SettingsPage() {
     const nextErrors: Partial<Record<keyof MercadoPagoProviderFormState, string>> = {};
     if (mercadoPagoForm.enabled) {
       if (!mercadoPagoForm.client_id.trim()) nextErrors.client_id = "El Client ID es obligatorio.";
+      if (isMercadoPagoCredentialToken(mercadoPagoForm.client_id)) {
+        nextErrors.client_id = "Usa el Client ID/Application ID de OAuth, no la Public Key ni el Access Token.";
+      }
       if (!mercadoPagoForm.client_secret.trim() && !paymentProvider.client_secret_masked) {
         nextErrors.client_secret = "El Client Secret es obligatorio.";
       }
@@ -747,9 +755,12 @@ export function SettingsPage() {
                 }))
               }
               className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              placeholder="APP_USR-..."
+              placeholder="Ej: 7906728616621997"
               aria-invalid={Boolean(providerFieldErrors.client_id)}
             />
+            <p className="text-xs font-normal text-zinc-500">
+              Debe ser el Client ID/Application ID de OAuth. No pegues la Public Key ni el Access Token que empiezan con APP_USR, TEST o PROD.
+            </p>
             {providerFieldErrors.client_id ? <p className="text-xs font-normal text-rose-700">{providerFieldErrors.client_id}</p> : null}
           </label>
           <label className="space-y-2 text-sm font-semibold text-zinc-600">

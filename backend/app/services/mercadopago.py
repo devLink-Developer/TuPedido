@@ -131,6 +131,16 @@ def _provider_enabled_from_settings() -> bool:
     )
 
 
+def is_mercadopago_oauth_client_id(value: str | None) -> bool:
+    normalized = (value or "").strip()
+    if not normalized:
+        return False
+    token_prefixes = ("APP_USR-", "TEST-", "PROD-")
+    if normalized.upper().startswith(token_prefixes):
+        return False
+    return True
+
+
 def get_or_create_mercadopago_provider(db: Session) -> PaymentProvider:
     provider = db.scalar(
         select(PaymentProvider).where(PaymentProvider.provider == MERCADOPAGO_PROVIDER)
@@ -174,6 +184,10 @@ def ensure_provider_operable(provider: PaymentProvider | None) -> PaymentProvide
         raise MercadoPagoAPIError("Mercado Pago is disabled by the platform configuration")
     if not provider.client_id or not provider.client_secret_encrypted or not provider.redirect_uri:
         raise MercadoPagoAPIError("Mercado Pago is not configured by the platform")
+    if not is_mercadopago_oauth_client_id(provider.client_id):
+        raise MercadoPagoAPIError(
+            "Mercado Pago Client ID must be the OAuth Application ID, not a Public Key or Access Token"
+        )
     if not settings.mercadopago_simulated and not provider_webhook_secret_configured(provider):
         raise MercadoPagoAPIError("Mercado Pago webhook secret is not configured by the platform")
     return provider

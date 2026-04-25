@@ -33,7 +33,11 @@ from app.schemas.settlement import (
     SettlementHistoryEntryRead,
 )
 from app.core.utils import encrypt_sensitive_value
-from app.services.mercadopago import get_or_create_mercadopago_provider, provider_webhook_secret_configured
+from app.services.mercadopago import (
+    get_or_create_mercadopago_provider,
+    is_mercadopago_oauth_client_id,
+    provider_webhook_secret_configured,
+)
 from app.services.media import normalize_media_url
 from app.services.delivery import create_notifications
 from app.services.platform import get_or_create_platform_settings, get_platform_settings_snapshot
@@ -223,6 +227,11 @@ def update_mercadopago_payment_provider(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Client ID, Client Secret and Redirect URI are required when Mercado Pago is enabled",
+        )
+    if provider.enabled and not is_mercadopago_oauth_client_id(provider.client_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Use the Mercado Pago OAuth Client ID/Application ID, not the Public Key or Access Token",
         )
     if provider.enabled and not settings.mercadopago_simulated and not provider_webhook_secret_configured(provider):
         raise HTTPException(
