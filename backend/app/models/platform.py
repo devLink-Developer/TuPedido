@@ -32,6 +32,7 @@ class PaymentProvider(Base):
     provider: Mapped[str] = mapped_column(String(60), unique=True, index=True)
     client_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     client_secret_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    webhook_secret_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     redirect_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     mode: Mapped[str] = mapped_column(String(20), default="sandbox")

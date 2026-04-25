@@ -3,10 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
 import { useAuthSession, useCart } from "../../../shared/hooks";
 import { checkout, createAddress, fetchAddresses, fetchStoreById } from "../../../shared/services/api";
+import { ApiError } from "../../../shared/services/api/client";
 import { useClienteStore } from "../../../shared/stores";
 import type { Address, StoreDetail } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
 import { notifyCustomerAddressesChanged } from "../../../shared/utils/customerAddresses";
+import { deriveMercadoPagoState } from "../../../shared/utils/mercadopago";
 import { normalizePath } from "../../../shared/utils/routing";
 import { CheckoutSummary } from "../components/CheckoutSummary";
 import {
@@ -18,6 +20,52 @@ import {
   type AddressFormState,
 } from "../components/AddressFormCard";
 
+function hashCheckoutSignature(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) | 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+function buildCheckoutAttemptSignature(
+  cart: NonNullable<ReturnType<typeof useCart>["cart"]>,
+  selectedPaymentMethod: "cash" | "mercadopago",
+  selectedAddressId: number | ""
+) {
+  const items = cart.items.map((item) => [item.product_id, item.quantity, item.note ?? ""].join(":")).join("|");
+  return hashCheckoutSignature(
+    JSON.stringify({
+      store_id: cart.store_id,
+      delivery_mode: cart.delivery_mode,
+      address_id: cart.delivery_mode === "delivery" ? selectedAddressId : null,
+      payment_method: selectedPaymentMethod,
+      items
+    })
+  );
+}
+
+function createCheckoutIdempotencyKey(storeId: number) {
+  const randomValue =
+    typeof window !== "undefined" && window.crypto && "randomUUID" in window.crypto
+      ? window.crypto.randomUUID()
+      : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  return `checkout_${storeId}_${randomValue}`;
+}
+
+function readCheckoutIdempotencyKey(signature: string, storeId: number) {
+  const storageKey = `checkout_idempotency_${signature}`;
+  const existing = window.sessionStorage.getItem(storageKey);
+  if (existing) return existing;
+  const next = createCheckoutIdempotencyKey(storeId);
+  window.sessionStorage.setItem(storageKey, next);
+  return next;
+}
+
+function clearCheckoutIdempotencyKey(signature: string) {
+  window.sessionStorage.removeItem(`checkout_idempotency_${signature}`);
+}
+
 function formatMissingAddressFields(fields: string[]) {
   if (!fields.length) {
     return "";
@@ -28,10 +76,6 @@ function formatMissingAddressFields(fields: string[]) {
   }
 
   return `${fields.slice(0, -1).join(", ")} y ${fields[fields.length - 1]}`;
-}
-
-function hasMercadoPago(paymentSettings: StoreDetail["payment_settings"]) {
-  return paymentSettings.mercadopago_enabled && paymentSettings.mercadopago_configured;
 }
 
 export function CheckoutPage() {
@@ -47,6 +91,7 @@ export function CheckoutPage() {
   const [store, setStore] = useState<StoreDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [redirectingToPayment, setRedirectingToPayment] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [addressForm, setAddressForm] = useState<AddressFormState>(emptyAddressForm);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +113,8 @@ export function CheckoutPage() {
         const geolocatedAddresses = addressList.filter((address) => address.latitude !== null && address.longitude !== null);
         const defaultAddress = geolocatedAddresses.find((address) => address.is_default) ?? geolocatedAddresses[0];
         setSelectedAddressId(cart.delivery_mode === "delivery" ? defaultAddress?.id ?? "" : "");
-        setSelectedPaymentMethod(hasMercadoPago(storeData.payment_settings) ? "mercadopago" : "cash");
+        const mercadoPagoState = deriveMercadoPagoState(storeData.payment_settings);
+        setSelectedPaymentMethod(mercadoPagoState.customerAvailable ? "mercadopago" : storeData.payment_settings.cash_enabled ? "cash" : "mercadopago");
       })
       .catch((requestError) => {
         if (!cancelled) {
@@ -86,13 +132,36 @@ export function CheckoutPage() {
     };
   }, [cart?.delivery_mode, cart?.store_id, setSelectedAddressId, setSelectedPaymentMethod, token]);
 
-  const availableMethods = useMemo(() => {
-    if (!store) return ["cash", "mercadopago"] as const;
+  const paymentOptions = useMemo(() => {
+    if (!store) {
+      return [
+        { method: "cash" as const, available: true, reason: null },
+        { method: "mercadopago" as const, available: true, reason: null }
+      ];
+    }
+    const mercadoPagoState = deriveMercadoPagoState(store.payment_settings);
     return [
-      store.payment_settings.cash_enabled ? ("cash" as const) : null,
-      hasMercadoPago(store.payment_settings) ? ("mercadopago" as const) : null
-    ].filter(Boolean) as Array<"cash" | "mercadopago">;
+      {
+        method: "cash" as const,
+        available: store.payment_settings.cash_enabled,
+        reason: store.payment_settings.cash_enabled ? null : "El comercio no acepta efectivo."
+      },
+      {
+        method: "mercadopago" as const,
+        available: mercadoPagoState.customerAvailable,
+        reason: mercadoPagoState.customerAvailable ? null : mercadoPagoState.reason
+      }
+    ];
   }, [store]);
+  const availableMethods = useMemo(
+    () => paymentOptions.filter((option) => option.available).map((option) => option.method),
+    [paymentOptions]
+  );
+
+  useEffect(() => {
+    if (!store || availableMethods.includes(selectedPaymentMethod)) return;
+    setSelectedPaymentMethod(availableMethods[0] ?? "cash");
+  }, [availableMethods, selectedPaymentMethod, setSelectedPaymentMethod, store]);
 
   const selectedAddress = useMemo(
     () => addresses.find((address) => address.id === selectedAddressId) ?? null,
@@ -157,19 +226,38 @@ export function CheckoutPage() {
       setError("Selecciona una direccion para el envio");
       return;
     }
+    if (!availableMethods.length) {
+      setError("El comercio no tiene medios de pago disponibles en este momento.");
+      return;
+    }
+    if (!availableMethods.includes(selectedPaymentMethod)) {
+      setError("Selecciona un medio de pago disponible.");
+      return;
+    }
 
     setSubmitting(true);
+    setRedirectingToPayment(false);
     setError(null);
+
+    const checkoutAttemptSignature = buildCheckoutAttemptSignature(
+      currentCart,
+      selectedPaymentMethod,
+      selectedAddressId
+    );
+    const idempotencyKey = readCheckoutIdempotencyKey(checkoutAttemptSignature, storeId);
 
     try {
       const result = await checkout(token, {
         store_id: storeId,
         address_id: currentCart.delivery_mode === "delivery" ? Number(selectedAddressId) : null,
         delivery_mode: currentCart.delivery_mode,
-        payment_method: selectedPaymentMethod
+        payment_method: selectedPaymentMethod,
+        idempotency_key: idempotencyKey
       });
 
       if (result.checkout_url) {
+        setRedirectingToPayment(true);
+        clearCheckoutIdempotencyKey(checkoutAttemptSignature);
         resetCart();
         resetCheckout();
         const path = normalizePath(result.checkout_url);
@@ -181,11 +269,23 @@ export function CheckoutPage() {
         return;
       }
 
+      clearCheckoutIdempotencyKey(checkoutAttemptSignature);
       resetCart();
       resetCheckout();
       navigate(`/c/pedido/${result.order_id}`, { replace: true });
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No se pudo completar el checkout");
+      if (requestError instanceof ApiError && selectedPaymentMethod === "mercadopago") {
+        const fallback = availableMethods.includes("cash") ? " Puedes elegir efectivo y volver a confirmar." : "";
+        if (requestError.status === 409) {
+          setError(`Mercado Pago ya no esta disponible para este comercio.${fallback}`);
+        } else if (requestError.status === 502) {
+          setError(`Mercado Pago no respondio correctamente. Intenta de nuevo en unos segundos.${fallback}`);
+        } else {
+          setError(`${requestError.message}${fallback}`);
+        }
+      } else {
+        setError(requestError instanceof Error ? requestError.message : "No se pudo completar el checkout");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -270,20 +370,44 @@ export function CheckoutPage() {
 
           <div className="rounded-[28px] bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Pago</h3>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {availableMethods.map((method) => (
-                <button
+            <fieldset className="mt-4 grid gap-3" role="radiogroup" aria-label="Metodo de pago">
+              <legend className="sr-only">Metodo de pago</legend>
+              {paymentOptions.map(({ method, available, reason }) => (
+                <label
                   key={method}
-                  type="button"
-                  onClick={() => setSelectedPaymentMethod(method)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                    selectedPaymentMethod === method ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
+                  className={`min-h-14 rounded-[20px] border px-4 py-3 text-left text-sm transition focus-within:ring-2 focus-within:ring-brand-400 ${
+                    selectedPaymentMethod === method
+                      ? "border-brand-500 bg-brand-50 text-brand-900"
+                      : available
+                        ? "border-black/10 bg-zinc-50 text-zinc-700 hover:border-brand-200"
+                        : "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"
                   }`}
                 >
-                  {method === "cash" ? "Efectivo" : "Mercado Pago"}
-                </button>
+                  <input
+                    type="radio"
+                    name="payment_method"
+                    value={method}
+                    checked={selectedPaymentMethod === method}
+                    disabled={!available}
+                    onChange={() => {
+                      setSelectedPaymentMethod(method);
+                      setError(null);
+                    }}
+                    className="sr-only"
+                  />
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="font-semibold">{method === "cash" ? "Efectivo" : "Mercado Pago"}</span>
+                    <span className={`h-4 w-4 rounded-full border ${selectedPaymentMethod === method ? "border-brand-500 bg-brand-500" : "border-zinc-300 bg-white"}`} />
+                  </span>
+                  {reason ? <span className="mt-1 block text-xs text-zinc-500">{reason}</span> : null}
+                </label>
               ))}
-            </div>
+            </fieldset>
+            {!availableMethods.length ? (
+              <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">
+                El comercio no tiene medios de pago disponibles.
+              </p>
+            ) : null}
           </div>
 
           {selectedAddress ? (
@@ -297,13 +421,13 @@ export function CheckoutPage() {
             </div>
           ) : null}
 
-          {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+          {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{error}</p> : null}
         </div>
 
         <aside className="space-y-4">
           <CheckoutSummary pricing={cart.pricing} title="Resumen del pedido" />
-          <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? "Confirmando..." : "Confirmar pedido"}
+          <Button type="submit" className="w-full" disabled={submitting || redirectingToPayment || !availableMethods.length}>
+            {redirectingToPayment ? "Redirigiendo a Mercado Pago..." : submitting ? "Confirmando..." : "Confirmar pedido"}
           </Button>
         </aside>
       </form>

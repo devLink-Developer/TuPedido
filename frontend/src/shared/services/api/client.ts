@@ -92,6 +92,18 @@ type RequestOptions = RequestInit & {
   token?: string | null;
 };
 
+export class ApiError extends Error {
+  status: number;
+  detail: unknown;
+
+  constructor(message: string, status: number, detail: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type") && options.body && !(options.body instanceof FormData)) {
@@ -110,7 +122,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const payload = isJson ? await response.json() : null;
   if (!response.ok) {
     const message = payload?.detail ?? payload?.message ?? `Request failed (${response.status})`;
-    throw new Error(message);
+    throw new ApiError(String(message), response.status, payload);
   }
 
   return normalizeApiPayload(payload as T);

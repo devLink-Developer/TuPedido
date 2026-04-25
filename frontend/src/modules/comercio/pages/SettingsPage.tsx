@@ -23,6 +23,7 @@ import { useCategoryStore } from "../../../shared/stores";
 import type { MerchantStore, ProductCategory } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
 import { buildAddressGeocodeRequest } from "../../../shared/utils/addressFields";
+import { deriveMercadoPagoState } from "../../../shared/utils/mercadopago";
 import {
   StoreAddressSection,
   emptyStoreAddressForm,
@@ -43,12 +44,14 @@ const storeStatusMessages: Record<string, string> = {
 
 const mercadopagoConnectionMessages: Record<string, string> = {
   connected: "Tu cuenta ya esta vinculada y lista para cobrar con split por comercio.",
+  onboarding_pending: "La cuenta esta vinculada, pero falta completar el onboarding de Mercado Pago.",
   reconnect_required: "La vinculacion necesita renovarse. Desconecta y vuelve a conectar tu cuenta para seguir cobrando.",
   disconnected: "Conecta tu cuenta para aceptar pagos online desde tu propio usuario de Mercado Pago."
 };
 
 const mercadopagoConnectionLabels: Record<string, string> = {
   connected: "Conectado",
+  onboarding_pending: "Onboarding pendiente",
   reconnect_required: "Reconexion requerida",
   disconnected: "No conectado"
 };
@@ -146,13 +149,15 @@ export function SettingsPage() {
   const mercadopagoOAuthDetail = searchParams.get("detail");
   const mercadopagoProviderEnabled = store?.payment_settings.mercadopago_provider_enabled ?? false;
   const mercadopagoProviderMode = store?.payment_settings.mercadopago_provider_mode ?? "sandbox";
-  const mercadopagoConnectionStatus =
-    store?.payment_settings.mercadopago_connection_status ??
-    (store?.payment_settings.mercadopago_configured ? "connected" : "disconnected");
-  const mercadopagoReconnectRequired =
-    mercadopagoConnectionStatus === "reconnect_required" || Boolean(store?.payment_settings.mercadopago_reconnect_required);
+  const mercadopagoState = useMemo(
+    () => (store ? deriveMercadoPagoState(store.payment_settings) : null),
+    [store]
+  );
+  const mercadopagoConnectionStatus = mercadopagoState?.status ?? "disconnected";
+  const mercadopagoReconnectRequired = mercadopagoConnectionStatus === "reconnect_required";
   const mercadopagoConnected = mercadopagoConnectionStatus === "connected";
-  const mercadopagoCanOperate = mercadopagoProviderEnabled && mercadopagoConnected && !mercadopagoReconnectRequired;
+  const mercadopagoHasAccount = mercadopagoConnectionStatus !== "disconnected";
+  const mercadopagoCanOperate = Boolean(mercadopagoState?.canOperate);
   const mercadopagoModeLabel = mercadopagoProviderMode === "production" ? "Produccion" : "Sandbox";
   const mercadopagoMpUserId = store?.payment_settings.mercadopago_mp_user_id;
   const mercadopagoOnboardingCompleted = Boolean(store?.payment_settings.mercadopago_onboarding_completed);
@@ -196,23 +201,6 @@ export function SettingsPage() {
   useEffect(() => {
     void load();
   }, [token]);
-
-  useEffect(() => {
-    if (!store || mercadopagoCanOperate || !store.payment_settings.mercadopago_enabled) {
-      return;
-    }
-    setStore((current) =>
-      current
-        ? {
-            ...current,
-            payment_settings: {
-              ...current.payment_settings,
-              mercadopago_enabled: false
-            }
-          }
-        : current
-    );
-  }, [mercadopagoCanOperate, store]);
 
   useMerchantStoreStatusSync({ paused: saving || taxonomySaving, store, setStore });
 
@@ -293,6 +281,11 @@ export function SettingsPage() {
         setError("Configura la direccion completa del local y su geolocalizacion antes de habilitar delivery.");
         return;
       }
+      const nextMercadoPagoEnabled = mercadopagoCanOperate ? store.payment_settings.mercadopago_enabled : false;
+      if (!store.payment_settings.cash_enabled && !nextMercadoPagoEnabled) {
+        setError("Deja al menos un medio de cobro activo: efectivo o Mercado Pago operativo.");
+        return;
+      }
 
       const addressPayload =
         toStoreAddressPayload(nextStoreAddressForm) ??
@@ -334,7 +327,7 @@ export function SettingsPage() {
       await updateMerchantDeliverySettings(token, store.delivery_settings);
       await updateMerchantPaymentSettings(token, {
         cash_enabled: store.payment_settings.cash_enabled,
-        mercadopago_enabled: mercadopagoCanOperate ? store.payment_settings.mercadopago_enabled : false
+        mercadopago_enabled: nextMercadoPagoEnabled
       });
       await load();
       setShowAddressEditor(false);
@@ -362,6 +355,9 @@ export function SettingsPage() {
 
   async function handleMercadoPagoDisconnect() {
     if (!token) return;
+    if (!window.confirm("Desconectar Mercado Pago deshabilitara los cobros online hasta volver a conectar la cuenta. Continuar?")) {
+      return;
+    }
     setMercadoPagoAction("disconnect");
     setMercadoPagoActionError(null);
     try {
@@ -674,6 +670,8 @@ export function SettingsPage() {
                         ? "bg-emerald-100 text-emerald-800"
                         : mercadopagoReconnectRequired
                           ? "bg-amber-100 text-amber-900"
+                          : mercadopagoConnectionStatus === "onboarding_pending"
+                            ? "bg-sky-100 text-sky-800"
                           : "bg-zinc-200 text-zinc-700"
                     }`}
                   >
@@ -704,20 +702,26 @@ export function SettingsPage() {
                   disabled={!mercadopagoProviderEnabled || mercadoPagoAction !== null}
                   className="shadow-none"
                 >
-                  {mercadoPagoAction === "connect" ? "Conectando..." : "Conectar con Mercado Pago"}
+                  {mercadoPagoAction === "connect"
+                    ? "Conectando..."
+                    : mercadopagoReconnectRequired
+                      ? "Reconectar Mercado Pago"
+                      : mercadopagoHasAccount
+                        ? "Cambiar cuenta"
+                        : "Conectar con Mercado Pago"}
                 </Button>
                 <Button
                   type="button"
                   onClick={() => void handleMercadoPagoDisconnect()}
-                  disabled={!mercadopagoConnected || mercadoPagoAction !== null}
-                  className="bg-zinc-900 shadow-none"
+                  disabled={!mercadopagoHasAccount || mercadoPagoAction !== null}
+                  className="bg-rose-700 shadow-none hover:bg-rose-800"
                 >
                   {mercadoPagoAction === "disconnect" ? "Desconectando..." : "Desconectar"}
                 </Button>
               </div>
             </div>
             {mercadoPagoActionError ? (
-              <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{mercadoPagoActionError}</p>
+              <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{mercadoPagoActionError}</p>
             ) : null}
           </div>
           <div
@@ -825,7 +829,7 @@ export function SettingsPage() {
           ) : null}
           {mercadopagoProviderEnabled && !mercadopagoCanOperate ? (
             <p className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
-              Mercado Pago queda deshabilitado para cobros hasta que conectes una cuenta valida y completes el onboarding.
+              {mercadopagoState?.reason ?? "Mercado Pago queda deshabilitado para cobros hasta que conectes una cuenta valida."}
             </p>
           ) : null}
           {!deliveryAddressReady ? (

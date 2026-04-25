@@ -19,6 +19,7 @@ from app.models.store import MerchantPaymentAccount
 logger = logging.getLogger(__name__)
 
 MERCADOPAGO_PROVIDER = "mercadopago"
+SIMULATED_WEBHOOK_SECRET = "SIMULATED-WEBHOOK-SECRET"
 OAUTH_STATE_EXPIRATION_MINUTES = 15
 OAUTH_SESSION_EXPIRATION_MINUTES = 10
 
@@ -104,6 +105,14 @@ def resolve_public_backend_base_url(base_url: str | None = None) -> str:
 
 
 def _provider_enabled_from_settings() -> bool:
+    if not (
+        settings.mercadopago_client_id
+        and settings.mercadopago_client_secret
+        and settings.mercadopago_redirect_uri
+    ):
+        return False
+    if not settings.mercadopago_simulated and not settings.mercadopago_webhook_secret:
+        return False
     return bool(
         settings.mercadopago_client_id
         and settings.mercadopago_client_secret
@@ -124,6 +133,9 @@ def get_or_create_mercadopago_provider(db: Session) -> PaymentProvider:
         client_secret_encrypted=encrypt_sensitive_value(settings.mercadopago_client_secret)
         if settings.mercadopago_client_secret
         else None,
+        webhook_secret_encrypted=encrypt_sensitive_value(settings.mercadopago_webhook_secret)
+        if settings.mercadopago_webhook_secret
+        else None,
         redirect_uri=settings.mercadopago_redirect_uri,
         enabled=_provider_enabled_from_settings(),
         mode="sandbox",
@@ -139,6 +151,7 @@ def is_provider_operable(provider: PaymentProvider | None) -> bool:
         and provider.enabled
         and provider.client_id
         and provider.client_secret_encrypted
+        and (settings.mercadopago_simulated or provider_webhook_secret_configured(provider))
         and provider.redirect_uri
     )
 
@@ -150,7 +163,21 @@ def ensure_provider_operable(provider: PaymentProvider | None) -> PaymentProvide
         raise MercadoPagoAPIError("Mercado Pago is disabled by the platform configuration")
     if not provider.client_id or not provider.client_secret_encrypted or not provider.redirect_uri:
         raise MercadoPagoAPIError("Mercado Pago is not configured by the platform")
+    if not settings.mercadopago_simulated and not provider_webhook_secret_configured(provider):
+        raise MercadoPagoAPIError("Mercado Pago webhook secret is not configured by the platform")
     return provider
+
+
+def provider_webhook_secret_configured(provider: PaymentProvider | None) -> bool:
+    encrypted_secret = getattr(provider, "webhook_secret_encrypted", None) if provider is not None else None
+    if not encrypted_secret:
+        return False
+    if settings.mercadopago_simulated:
+        return True
+    try:
+        return decrypt_sensitive_value(encrypted_secret) != SIMULATED_WEBHOOK_SECRET
+    except Exception:
+        return False
 
 
 def get_store_payment_account(store: object, provider: str = MERCADOPAGO_PROVIDER) -> MerchantPaymentAccount | None:
@@ -188,7 +215,17 @@ def ensure_store_payment_account(
     return account
 
 
-def mercadopago_connection_status(store: object) -> str:
+def _account_mode_matches_provider(account: object | None, provider: PaymentProvider | None = None) -> bool:
+    if account is None or provider is None:
+        return True
+    live_mode = getattr(account, "live_mode", None)
+    provider_mode = _normalize_provider_mode(getattr(provider, "mode", "sandbox"))
+    if live_mode is None:
+        return provider_mode == "sandbox"
+    return bool(live_mode) == (provider_mode == "production")
+
+
+def mercadopago_connection_status(store: object, provider: PaymentProvider | None = None) -> str:
     account = get_store_payment_account(store)
     if account is None:
         return "disconnected"
@@ -199,6 +236,10 @@ def mercadopago_connection_status(store: object) -> str:
         and getattr(account, "access_token_encrypted", None)
         and getattr(account, "refresh_token_encrypted", None)
     ):
+        if not _account_mode_matches_provider(account, provider):
+            return "reconnect_required"
+        if not bool(getattr(account, "onboarding_completed", False)):
+            return "onboarding_pending"
         return "connected"
     return "disconnected"
 
@@ -216,7 +257,8 @@ def is_store_mercadopago_ready(
         is_provider_operable(resolved_provider)
         and account
         and account.public_key
-        and mercadopago_connection_status(store) == "connected"
+        and bool(getattr(account, "onboarding_completed", False))
+        and mercadopago_connection_status(store, provider=resolved_provider) == "connected"
     )
 
 
@@ -249,14 +291,28 @@ def get_provider_client_secret(provider: PaymentProvider) -> str:
         raise MercadoPagoAPIError("Mercado Pago OAuth client secret could not be decrypted") from exc
 
 
+def get_provider_webhook_secret(provider: PaymentProvider) -> str:
+    if not provider_webhook_secret_configured(provider):
+        raise MercadoPagoAPIError("Mercado Pago webhook secret is not configured")
+    try:
+        return decrypt_sensitive_value(provider.webhook_secret_encrypted)
+    except Exception as exc:  # pragma: no cover - defensive path
+        raise MercadoPagoAPIError("Mercado Pago webhook secret could not be decrypted") from exc
+
+
 def _oauth_token_payload(data: dict[str, Any]) -> dict[str, Any]:
     expires_in = int(data.get("expires_in") or 0)
     expires_at = _now_utc() + timedelta(seconds=expires_in) if expires_in > 0 else None
+    live_mode = data.get("live_mode")
+    if isinstance(live_mode, str):
+        live_mode = live_mode.strip().lower() in {"1", "true", "yes", "production"}
     return {
         "public_key": data.get("public_key"),
         "access_token": data.get("access_token"),
         "refresh_token": data.get("refresh_token"),
         "mp_user_id": str(data.get("user_id")) if data.get("user_id") is not None else None,
+        "scope": data.get("scope"),
+        "live_mode": live_mode,
         "expires_in": expires_in or None,
         "token_expires_at": expires_at,
     }
@@ -285,14 +341,34 @@ def store_oauth_credentials(store: object, data: dict[str, Any]) -> None:
     account = ensure_store_payment_account(store)
     payload = _oauth_token_payload(data)
 
+    access_token = str(payload["access_token"] or "").strip()
     refresh_token = payload["refresh_token"]
     if not refresh_token and account.refresh_token_encrypted:
         refresh_token = decrypt_sensitive_value(account.refresh_token_encrypted)
+    refresh_token = str(refresh_token or "").strip()
+    public_key = str(payload["public_key"] or account.public_key or "").strip()
+    mp_user_id = str(payload["mp_user_id"] or account.mp_user_id or "").strip()
 
-    account.public_key = payload["public_key"]
-    account.access_token_encrypted = encrypt_sensitive_value(str(payload["access_token"] or ""))
-    account.refresh_token_encrypted = encrypt_sensitive_value(str(refresh_token or ""))
-    account.mp_user_id = payload["mp_user_id"]
+    missing_fields = []
+    if not access_token:
+        missing_fields.append("access_token")
+    if not refresh_token:
+        missing_fields.append("refresh_token")
+    if not public_key:
+        missing_fields.append("public_key")
+    if not mp_user_id:
+        missing_fields.append("user_id")
+    if missing_fields:
+        raise MercadoPagoAPIError(
+            f"Mercado Pago OAuth response is missing required fields: {', '.join(missing_fields)}"
+        )
+
+    account.public_key = public_key
+    account.access_token_encrypted = encrypt_sensitive_value(access_token)
+    account.refresh_token_encrypted = encrypt_sensitive_value(refresh_token)
+    account.mp_user_id = mp_user_id
+    account.scope = payload["scope"] or account.scope
+    account.live_mode = payload["live_mode"] if payload["live_mode"] is not None else account.live_mode
     account.expires_in = payload["expires_in"]
     account.token_expires_at = payload["token_expires_at"]
     account.connected = True
@@ -306,6 +382,8 @@ def disconnect_store_account(store: object) -> None:
     account.access_token_encrypted = None
     account.refresh_token_encrypted = None
     account.mp_user_id = None
+    account.scope = None
+    account.live_mode = None
     account.expires_in = None
     account.token_expires_at = None
     account.connected = False
@@ -460,7 +538,9 @@ def refresh_store_access_token(store: object) -> str:
 
 
 def ensure_valid_store_access_token(store: object) -> str:
-    if mercadopago_connection_status(store) != "connected":
+    session = object_session(store)
+    provider = get_or_create_mercadopago_provider(session) if session is not None else None
+    if mercadopago_connection_status(store, provider=provider) != "connected":
         raise MercadoPagoAPIError("Mercado Pago OAuth connection is not active for this store")
 
     account = get_store_payment_account(store)
@@ -525,6 +605,11 @@ def build_notification_url(store_id: int, reference: str) -> str:
     base = settings.backend_base_url.rstrip("/")
     query = urlencode({"store_id": store_id, "reference": reference})
     return f"{base}{settings.api_prefix}/payments/mercadopago/webhook?{query}"
+
+
+def build_webhook_url() -> str:
+    base = settings.backend_base_url.rstrip("/")
+    return f"{base}{settings.api_prefix}/payments/mercadopago/webhook"
 
 
 def build_order_return_url(order_id: int) -> str:

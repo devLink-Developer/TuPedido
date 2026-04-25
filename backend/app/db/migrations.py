@@ -20,6 +20,8 @@ MANAGED_TABLES = {
     "merchant_applications",
     "merchant_payment_accounts",
     "mercadopago_credentials",
+    "payment_transactions",
+    "payment_webhook_events",
     "payment_providers",
     "product_categories",
     "product_subcategories",
@@ -56,6 +58,15 @@ MERGE_RECOVERY_SCHEMA: dict[str, set[str]] = {
         "receiver_response_notes",
         "receiver_responded_at",
     },
+    "payment_providers": {"webhook_secret_encrypted"},
+    "merchant_payment_accounts": {"scope", "live_mode"},
+    "payment_transactions": {
+        "external_reference",
+        "requested_marketplace_fee",
+        "seller_expected_amount",
+        "service_fee_amount",
+    },
+    "payment_webhook_events": {"event_id", "signature_valid"},
 }
 
 

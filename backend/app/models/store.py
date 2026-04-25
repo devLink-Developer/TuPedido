@@ -109,6 +109,9 @@ class Store(Base):
     cash_delivery_payables: Mapped[list["MerchantCashDeliveryPayable"]] = relationship(
         back_populates="store", cascade="all, delete-orphan"
     )
+    payment_transactions: Mapped[list["PaymentTransaction"]] = relationship(
+        back_populates="store", cascade="all, delete-orphan"
+    )
 
 
 class StoreCategoryLink(Base):
@@ -202,6 +205,8 @@ class MerchantPaymentAccount(Base):
     access_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     refresh_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     expires_in: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    scope: Mapped[str | None] = mapped_column(String(180), nullable=True)
+    live_mode: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     connected: Mapped[bool] = mapped_column(Boolean, default=False)
     onboarding_completed: Mapped[bool] = mapped_column(Boolean, default=False)

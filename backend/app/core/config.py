@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     mercadopago_timeout_seconds: float = 15.0
     mercadopago_client_id: str | None = None
     mercadopago_client_secret: str | None = None
+    mercadopago_webhook_secret: str | None = None
+    mercadopago_webhook_signature_tolerance_seconds: int = 300
     mercadopago_redirect_uri: str | None = None
     osrm_base_url: str = "https://router.project-osrm.org"
     map_style_url: str = "https://demotiles.maplibre.org/style.json"

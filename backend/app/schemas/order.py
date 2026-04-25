@@ -12,6 +12,7 @@ class CheckoutRequest(BaseModel):
     address_id: int | None = None
     delivery_mode: Literal["delivery", "pickup"]
     payment_method: Literal["cash", "mercadopago"]
+    idempotency_key: str | None = Field(default=None, max_length=160)
 
 
 class CheckoutResponse(BaseModel):
@@ -19,7 +20,32 @@ class CheckoutResponse(BaseModel):
     status: str
     payment_status: str
     payment_reference: str | None = None
+    payment_transaction_id: int | None = None
+    provider_preference_id: str | None = None
     checkout_url: str | None = None
+
+
+class PaymentTransactionRead(BaseModel):
+    id: int
+    order_id: int
+    provider: str
+    external_reference: str
+    preference_id: str | None = None
+    payment_id: str | None = None
+    status: str
+    status_detail: str | None = None
+    amount_total: float
+    currency: str
+    requested_marketplace_fee: float
+    approved_marketplace_fee: float | None = None
+    seller_expected_amount: float
+    delivery_fee_amount: float
+    service_fee_amount: float
+    mp_user_id: str | None = None
+    live_mode: bool | None = None
+    checkout_url: str | None = None
+    created_at: datetime
+    updated_at: datetime | None = None
 
 
 class OrderItemRead(BaseModel):

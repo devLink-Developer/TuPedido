@@ -1,4 +1,12 @@
-import type { CheckoutRequest, CheckoutResponse, CreateOrderReviewPayload, Order, OrderTracking, PendingOrderReview } from "../../types";
+import type {
+  CheckoutRequest,
+  CheckoutResponse,
+  CreateOrderReviewPayload,
+  Order,
+  OrderTracking,
+  PaymentTransaction,
+  PendingOrderReview
+} from "../../types";
 import { buildPricingSummary } from "../../utils/pricing";
 import { apiRequest, buildOrderSocketUrl } from "./client";
 
@@ -32,6 +40,10 @@ export async function fetchOrder(token: string, id: number): Promise<Order> {
 
 export async function fetchOrderTracking(token: string, id: number): Promise<OrderTracking> {
   return apiRequest<OrderTracking>(`/orders/${id}/tracking`, { token });
+}
+
+export async function fetchOrderPayment(token: string, id: number): Promise<PaymentTransaction> {
+  return apiRequest<PaymentTransaction>(`/orders/${id}/payment`, { token });
 }
 
 export async function fetchPendingOrderReview(token: string): Promise<PendingOrderReview | null> {

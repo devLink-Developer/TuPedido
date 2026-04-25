@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import hmac
 import os
 import sys
+import time
 from decimal import Decimal
 from pathlib import Path
 
 DB_PATH = Path(__file__).with_name("smoke_mp_real_checkout_webhook.db")
+WEBHOOK_SECRET = "SMOKE-WEBHOOK-SECRET"
+WEBHOOK_TS = str(int(time.time() * 1000))
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
@@ -40,6 +45,7 @@ def configure_environment() -> None:
     os.environ["MERCADOPAGO_SIMULATED"] = "false"
     os.environ["MERCADOPAGO_CLIENT_ID"] = "SMOKE-CLIENT-ID"
     os.environ["MERCADOPAGO_CLIENT_SECRET"] = "SMOKE-CLIENT-SECRET"
+    os.environ["MERCADOPAGO_WEBHOOK_SECRET"] = WEBHOOK_SECRET
     os.environ["MERCADOPAGO_REDIRECT_URI"] = "http://localhost:8016/api/v1/oauth/mercadopago/callback"
     os.environ["FRONTEND_BASE_URL"] = "http://localhost:8015"
     os.environ["BACKEND_BASE_URL"] = "http://localhost:8016"
@@ -72,15 +78,44 @@ def _assert_split_payload(payload: dict[str, object], order: dict[str, object]) 
     assert sum(1 for item in items if item["title"] == "Servicio") == 1
 
 
+def _payment_payload(
+    *, reference: str, order: dict[str, object], payment_id: str = "987654"
+) -> dict[str, object]:
+    return {
+        "id": payment_id,
+        "status": "approved",
+        "status_detail": "accredited",
+        "external_reference": reference,
+        "transaction_amount": order["total"],
+        "currency_id": "ARS",
+        "collector_id": "123456789",
+        "marketplace_fee": order["service_fee"],
+        "live_mode": False,
+    }
+
+
+def _webhook_headers(payment_id: str = "987654") -> dict[str, str]:
+    request_id = f"smoke-request-{payment_id}"
+    manifest = f"id:{payment_id};request-id:{request_id};ts:{WEBHOOK_TS};"
+    signature = hmac.new(WEBHOOK_SECRET.encode(), msg=manifest.encode(), digestmod=hashlib.sha256).hexdigest()
+    return {"x-request-id": request_id, "x-signature": f"ts={WEBHOOK_TS},v1={signature}"}
+
+
 def _approve_checkout_order(
     client,
     *,
     store_id: int,
     reference: str,
+    payment_id: str = "987654",
+    include_query_context: bool = True,
 ) -> None:
+    query = f"type=payment&data.id={payment_id}"
+    if include_query_context:
+        query = f"store_id={store_id}&reference={reference}&{query}"
     webhook = client.post(
-        f"/api/v1/payments/mercadopago/webhook?store_id={store_id}&reference={reference}&type=payment&data.id=987654",
-        json={"type": "payment", "data": {"id": "987654"}},
+        f"/api/v1/payments/mercadopago/webhook?{query}",
+        json={"type": "payment", "data": {"id": payment_id}},
+        headers=_webhook_headers(payment_id),
     )
     webhook.raise_for_status()
     assert webhook.json()["payment_status"] == "approved"
@@ -108,9 +143,7 @@ def _run_delivery_split_scenario(client, mp) -> None:
             return FakeResponse(
                 200,
                 {
-                    "id": "987654",
-                    "status": "approved",
-                    "external_reference": captured["reference"],
+                    **_payment_payload(reference=captured["reference"], order=captured["order"]),
                 },
             )
         raise AssertionError(f"Unexpected Mercado Pago request: {normalized_method} {url}")
@@ -142,6 +175,7 @@ def _run_delivery_split_scenario(client, mp) -> None:
         order = client.get(f"/api/v1/orders/{checkout_payload['order_id']}", headers=customer_headers)
         order.raise_for_status()
         order_payload = order.json()
+        captured["order"] = order_payload
         _assert_split_payload(captured["preference_payload"], order_payload)
         assert captured["requests"][0]["authorization"] == "Bearer TEST-ACCESS-TOKEN-1234"
 
@@ -201,9 +235,11 @@ def _run_promotions_fallback_scenario(client, mp) -> None:
             return FakeResponse(
                 200,
                 {
-                    "id": "987654",
-                    "status": "approved",
-                    "external_reference": captured["reference"],
+                    **_payment_payload(
+                        reference=captured["reference"],
+                        order=captured["order"],
+                        payment_id="987655",
+                    ),
                 },
             )
         raise AssertionError(f"Unexpected Mercado Pago request: {normalized_method} {url}")
@@ -252,9 +288,16 @@ def _run_promotions_fallback_scenario(client, mp) -> None:
         order = client.get(f"/api/v1/orders/{checkout_payload['order_id']}", headers=customer_headers)
         order.raise_for_status()
         order_payload = order.json()
+        captured["order"] = order_payload
         _assert_split_payload(captured["payloads"][1], order_payload)
 
-        _approve_checkout_order(client, store_id=store["id"], reference=captured["reference"])
+        _approve_checkout_order(
+            client,
+            store_id=store["id"],
+            reference=captured["reference"],
+            payment_id="987655",
+            include_query_context=False,
+        )
     finally:
         mp.httpx.request = original_request
 

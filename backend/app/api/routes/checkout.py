@@ -4,6 +4,7 @@ import uuid
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -13,6 +14,7 @@ from app.core.config import settings
 from app.core.utils import build_address_text
 from app.db.session import get_db
 from app.models.order import StoreOrder, StoreOrderItem
+from app.models.payment import PaymentTransaction
 from app.models.user import Address, User
 from app.schemas.order import CheckoutRequest, CheckoutResponse
 from app.services.cart_ops import (
@@ -24,12 +26,60 @@ from app.services.cart_ops import (
 )
 from app.services.delivery import bootstrap_delivery_order, publish_order_snapshot, snapshot_delivery_quote
 from app.services.mercadopago import MercadoPagoAPIError, create_checkout_preference
+from app.services.payment_transactions import (
+    attach_preference,
+    attach_simulated_checkout,
+    create_payment_transaction,
+)
 from app.services.promotions import persist_order_promotions
 
 router = APIRouter()
 
 
 MONEY_QUANTIZER = Decimal("0.01")
+
+
+def _find_idempotent_transaction(
+    db: Session, *, user_id: int, idempotency_key: str
+) -> PaymentTransaction | None:
+    return db.scalar(
+        select(PaymentTransaction)
+        .join(StoreOrder, StoreOrder.id == PaymentTransaction.order_id)
+        .where(
+            PaymentTransaction.provider == "mercadopago",
+            PaymentTransaction.idempotency_key == idempotency_key,
+            StoreOrder.user_id == user_id,
+        )
+    )
+
+
+def _checkout_response_from_transaction(transaction: PaymentTransaction) -> CheckoutResponse:
+    order = transaction.order
+    return CheckoutResponse(
+        order_id=order.id,
+        status=order.status,
+        payment_status=order.payment_status,
+        payment_reference=transaction.external_reference,
+        payment_transaction_id=transaction.id,
+        provider_preference_id=transaction.preference_id,
+        checkout_url=transaction.checkout_url,
+    )
+
+
+def _transaction_matches_checkout_payload(
+    transaction: PaymentTransaction, payload: CheckoutRequest
+) -> bool:
+    order = transaction.order
+    return bool(
+        order
+        and order.store_id == payload.store_id
+        and order.delivery_mode == payload.delivery_mode
+        and order.payment_method == payload.payment_method
+        and (
+            payload.delivery_mode != "delivery"
+            or order.address_id == payload.address_id
+        )
+    )
 
 
 def _money(value: object) -> Decimal:
@@ -175,6 +225,21 @@ def validate_checkout_split_payload(
 def checkout(
     payload: CheckoutRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> CheckoutResponse:
+    idempotency_key = (payload.idempotency_key or "").strip() or None
+    if idempotency_key:
+        existing_transaction = _find_idempotent_transaction(
+            db,
+            user_id=user.id,
+            idempotency_key=idempotency_key,
+        )
+        if existing_transaction is not None:
+            if not _transaction_matches_checkout_payload(existing_transaction, payload):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Idempotency key was already used for a different checkout",
+                )
+            return _checkout_response_from_transaction(existing_transaction)
+
     cart = get_or_create_cart(db, user.id)
     if not cart.items or cart.store_id is None or cart.store is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cart is empty")
@@ -274,14 +339,43 @@ def checkout(
 
     checkout_url = None
     payment_reference = None
+    payment_transaction = None
     if payload.payment_method == "mercadopago":
         payment_reference = f"mp_{uuid.uuid4().hex[:18]}"
         order.payment_reference = payment_reference
+        try:
+            payment_transaction = create_payment_transaction(
+                db,
+                order=order,
+                store=store,
+                external_reference=payment_reference,
+                idempotency_key=idempotency_key,
+            )
+        except IntegrityError as exc:
+            db.rollback()
+            if idempotency_key:
+                existing_transaction = _find_idempotent_transaction(
+                    db,
+                    user_id=user.id,
+                    idempotency_key=idempotency_key,
+                )
+                if existing_transaction is not None:
+                    if not _transaction_matches_checkout_payload(existing_transaction, payload):
+                        raise HTTPException(
+                            status_code=status.HTTP_409_CONFLICT,
+                            detail="Idempotency key was already used for a different checkout",
+                        )
+                    return _checkout_response_from_transaction(existing_transaction)
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Checkout already exists for this idempotency key",
+            ) from exc
         if settings.mercadopago_simulated:
             checkout_url = (
                 f"{settings.frontend_base_url}/payments/mercadopago/simulated"
                 f"?reference={payment_reference}&order_id={order.id}"
             )
+            attach_simulated_checkout(payment_transaction, checkout_url)
         else:
             primary_items = build_payment_items(order, allow_negative_promotion_item=True)
             fallback_items = (
@@ -309,6 +403,7 @@ def checkout(
                     detail=str(exc),
                 ) from exc
             checkout_url = preference["checkout_url"]
+            attach_preference(payment_transaction, preference)
 
     for item in list(cart.items):
         db.delete(item)
@@ -331,5 +426,7 @@ def checkout(
         status=order.status,
         payment_status=order.payment_status,
         payment_reference=payment_reference,
+        payment_transaction_id=payment_transaction.id if payment_transaction else None,
+        provider_preference_id=payment_transaction.preference_id if payment_transaction else None,
         checkout_url=checkout_url,
     )

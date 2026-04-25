@@ -216,6 +216,7 @@ describe("SettingsPage", () => {
     updateMerchantPaymentSettingsMock.mockReset();
     loadCategoriesMock.mockReset();
     refreshMock.mockReset();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
 
     loadCategoriesMock.mockResolvedValue(undefined);
     fetchMerchantProductCategoriesMock.mockResolvedValue([]);

@@ -210,12 +210,12 @@ describe("CheckoutPage", () => {
     await user.click(screen.getByRole("button", { name: "Confirmar pedido" }));
 
     await waitFor(() =>
-      expect(checkoutMock).toHaveBeenCalledWith("token", {
+      expect(checkoutMock).toHaveBeenCalledWith("token", expect.objectContaining({
         store_id: 15,
         address_id: null,
         delivery_mode: "pickup",
         payment_method: "cash"
-      })
+      }))
     );
     expect(resetCartMock).toHaveBeenCalledTimes(1);
     expect(useClienteStore.getState().selectedAddressId).toBe("");
@@ -271,16 +271,58 @@ describe("CheckoutPage", () => {
     await user.click(screen.getByRole("button", { name: "Confirmar pedido" }));
 
     await waitFor(() =>
-      expect(checkoutMock).toHaveBeenCalledWith("token", {
+      expect(checkoutMock).toHaveBeenCalledWith("token", expect.objectContaining({
         store_id: 15,
         address_id: null,
         delivery_mode: "pickup",
         payment_method: "mercadopago"
-      })
+      }))
     );
     expect(assignMock).toHaveBeenCalledWith("https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=123");
     expect(navigateMock).not.toHaveBeenCalled();
 
     vi.unstubAllGlobals();
+  });
+
+  it("muestra Mercado Pago deshabilitado con motivo cuando el comercio no esta conectado", async () => {
+    render(
+      <MemoryRouter>
+        <CheckoutPage />
+      </MemoryRouter>
+    );
+
+    const paymentGroup = await screen.findByRole("radiogroup", { name: "Metodo de pago" });
+    expect(paymentGroup).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Mercado Pago/ })).toBeDisabled();
+    expect(screen.getByText("El comercio todavia no conecto una cuenta de Mercado Pago.")).toBeInTheDocument();
+  });
+
+  it("bloquea la confirmacion cuando no hay medios de pago disponibles", async () => {
+    fetchStoreByIdMock.mockResolvedValue(
+      buildStoreDetail({
+        payment_settings: {
+          cash_enabled: false,
+          mercadopago_enabled: false,
+          mercadopago_configured: false,
+          mercadopago_provider_enabled: true,
+          mercadopago_provider_mode: "sandbox",
+          mercadopago_public_key_masked: null,
+          mercadopago_connection_status: "disconnected",
+          mercadopago_reconnect_required: false,
+          mercadopago_onboarding_completed: false,
+          mercadopago_oauth_connected_at: null,
+          mercadopago_mp_user_id: null
+        }
+      })
+    );
+
+    render(
+      <MemoryRouter>
+        <CheckoutPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("El comercio no tiene medios de pago disponibles.");
+    expect(screen.getByRole("button", { name: "Confirmar pedido" })).toBeDisabled();
   });
 });

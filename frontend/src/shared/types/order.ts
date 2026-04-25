@@ -17,6 +17,8 @@ export type CheckoutResponse = {
   status: string;
   payment_status: string;
   payment_reference: string | null;
+  payment_transaction_id: number | null;
+  provider_preference_id: string | null;
   checkout_url: string | null;
 };
 
@@ -25,6 +27,30 @@ export type CheckoutRequest = {
   address_id: number | null;
   delivery_mode: "delivery" | "pickup";
   payment_method: "cash" | "mercadopago";
+  idempotency_key?: string | null;
+};
+
+export type PaymentTransaction = {
+  id: number;
+  order_id: number;
+  provider: string;
+  external_reference: string;
+  preference_id: string | null;
+  payment_id: string | null;
+  status: string;
+  status_detail: string | null;
+  amount_total: number;
+  currency: string;
+  requested_marketplace_fee: number;
+  approved_marketplace_fee: number | null;
+  seller_expected_amount: number;
+  delivery_fee_amount: number;
+  service_fee_amount: number;
+  mp_user_id: string | null;
+  live_mode: boolean | null;
+  checkout_url: string | null;
+  created_at: string;
+  updated_at: string | null;
 };
 
 export type Order = {

@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import os
+import hashlib
+import hmac
 import sys
+import time
 from pathlib import Path
 
 DB_PATH = Path(__file__).with_name("smoke_service_fee_split_regression.db")
+WEBHOOK_SECRET = "SMOKE-WEBHOOK-SECRET"
+WEBHOOK_TS = str(int(time.time() * 1000))
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
@@ -27,6 +32,7 @@ def configure_environment() -> None:
     os.environ["MERCADOPAGO_SIMULATED"] = "false"
     os.environ["MERCADOPAGO_CLIENT_ID"] = "SMOKE-CLIENT-ID"
     os.environ["MERCADOPAGO_CLIENT_SECRET"] = "SMOKE-CLIENT-SECRET"
+    os.environ["MERCADOPAGO_WEBHOOK_SECRET"] = WEBHOOK_SECRET
     os.environ["MERCADOPAGO_REDIRECT_URI"] = "http://localhost:8016/api/v1/oauth/mercadopago/callback"
     os.environ["FRONTEND_BASE_URL"] = "http://localhost:8015"
     os.environ["BACKEND_BASE_URL"] = "http://localhost:8016"
@@ -81,9 +87,13 @@ def _move_pickup_order_to_delivered(client, *, merchant_headers: dict[str, str],
 
 
 def _approve_mercadopago_order(client, *, store_id: int, reference: str) -> None:
+    request_id = "smoke-service-fee-request"
+    manifest = f"id:987654;request-id:{request_id};ts:{WEBHOOK_TS};"
+    signature = hmac.new(WEBHOOK_SECRET.encode(), msg=manifest.encode(), digestmod=hashlib.sha256).hexdigest()
     webhook = client.post(
         f"/api/v1/payments/mercadopago/webhook?store_id={store_id}&reference={reference}&type=payment&data.id=987654",
         json={"type": "payment", "data": {"id": "987654"}},
+        headers={"x-request-id": request_id, "x-signature": f"ts={WEBHOOK_TS},v1={signature}"},
     )
     webhook.raise_for_status()
 
@@ -97,6 +107,7 @@ def main() -> None:
     DB_PATH.unlink(missing_ok=True)
     original_request = mp.httpx.request
     captured_reference: dict[str, str] = {}
+    captured_payment: dict[str, object] = {}
 
     def fake_request(method: str, url: str, headers=None, json=None, timeout=None):  # type: ignore[no-untyped-def]
         normalized_method = method.upper()
@@ -115,7 +126,13 @@ def main() -> None:
                 {
                     "id": "987654",
                     "status": "approved",
+                    "status_detail": "accredited",
                     "external_reference": captured_reference["value"],
+                    "transaction_amount": captured_payment["total"],
+                    "currency_id": "ARS",
+                    "collector_id": "123456789",
+                    "marketplace_fee": captured_payment["service_fee"],
+                    "live_mode": False,
                 },
             )
         raise AssertionError(f"Unexpected Mercado Pago request: {normalized_method} {url}")
@@ -136,6 +153,12 @@ def main() -> None:
                 payment_method="mercadopago",
             )
             captured_reference["value"] = str(mercadopago_checkout["payment_reference"])
+            payment_order = client.get(
+                f"/api/v1/orders/{mercadopago_checkout['order_id']}",
+                headers=customer_headers,
+            )
+            payment_order.raise_for_status()
+            captured_payment.update(payment_order.json())
             store = client.get("/api/v1/catalog/stores").json()[0]
             _approve_mercadopago_order(
                 client,

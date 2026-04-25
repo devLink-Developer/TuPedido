@@ -43,6 +43,8 @@ export type StoreDeliverySettings = {
   min_order: number;
 };
 
+export type MercadoPagoConnectionStatus = "connected" | "disconnected" | "reconnect_required" | "onboarding_pending";
+
 export type StorePaymentSettings = {
   cash_enabled: boolean;
   mercadopago_enabled: boolean;
@@ -50,7 +52,7 @@ export type StorePaymentSettings = {
   mercadopago_provider_enabled: boolean;
   mercadopago_provider_mode: string;
   mercadopago_public_key_masked: string | null;
-  mercadopago_connection_status?: string | null;
+  mercadopago_connection_status?: MercadoPagoConnectionStatus | null;
   mercadopago_reconnect_required?: boolean;
   mercadopago_onboarding_completed?: boolean;
   mercadopago_oauth_connected_at?: string | null;

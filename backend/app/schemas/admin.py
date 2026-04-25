@@ -46,15 +46,20 @@ class PaymentProviderRead(BaseModel):
     provider: Literal["mercadopago"]
     client_id: str | None = None
     client_secret_masked: str | None = None
+    webhook_secret_masked: str | None = None
+    webhook_url: str | None = None
+    webhook_configured: bool = False
     redirect_uri: str | None = None
     enabled: bool = False
     mode: Literal["sandbox", "production"] = "sandbox"
+    simulated: bool = False
     updated_at: datetime | None = None
 
 
 class PaymentProviderUpdate(BaseModel):
     client_id: str | None = None
     client_secret: str | None = None
+    webhook_secret: str | None = None
     redirect_uri: str | None = None
     enabled: bool = False
     mode: Literal["sandbox", "production"] = "sandbox"

@@ -5,11 +5,18 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import get_current_user, require_customer
-from app.api.presenters import serialize_order, serialize_tracking
+from app.api.presenters import serialize_order, serialize_payment_transaction, serialize_tracking
 from app.db.session import get_db
 from app.models.order import OrderReview, StoreOrder
+from app.models.payment import PaymentTransaction
 from app.models.user import User
-from app.schemas.order import OrderRead, OrderReviewCreate, OrderTrackingRead, PendingOrderReviewRead
+from app.schemas.order import (
+    OrderRead,
+    OrderReviewCreate,
+    OrderTrackingRead,
+    PaymentTransactionRead,
+    PendingOrderReviewRead,
+)
 from app.services.order_runtime import build_order_options
 from app.services.order_reviews import (
     find_oldest_pending_review_order,
@@ -44,6 +51,16 @@ def _can_access_order(user: User, order: StoreOrder) -> bool:
         return order.assigned_rider_id == user.id or (
             order.delivery_assignment is not None and order.delivery_assignment.rider_user_id == user.id
         )
+    return False
+
+
+def _can_access_payment(user: User, order: StoreOrder) -> bool:
+    if user.role == "admin":
+        return True
+    if user.role == "customer":
+        return order.user_id == user.id
+    if user.role == "merchant":
+        return order.store is not None and order.store.owner_user_id == user.id
     return False
 
 
@@ -140,6 +157,28 @@ def get_order(order_id: int, user: User = Depends(get_current_user), db: Session
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     return serialize_order(order)
+
+
+@router.get("/{order_id}/payment", response_model=PaymentTransactionRead)
+def get_order_payment(
+    order_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> PaymentTransactionRead:
+    order = db.scalar(
+        select(StoreOrder)
+        .options(*_order_options(db))
+        .where(StoreOrder.id == order_id)
+    )
+    if order is None or not _can_access_payment(user, order):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    transaction = db.scalar(select(PaymentTransaction).where(PaymentTransaction.order_id == order.id))
+    if transaction is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment transaction not found")
+    result = serialize_payment_transaction(transaction)
+    if user.role == "customer":
+        result.mp_user_id = None
+    return result
 
 
 @router.get("/{order_id}/tracking", response_model=OrderTrackingRead)

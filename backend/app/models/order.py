@@ -142,6 +142,9 @@ class StoreOrder(Base):
     order_review: Mapped["OrderReview | None"] = relationship(
         back_populates="order", uselist=False, cascade="all, delete-orphan"
     )
+    payment_transaction: Mapped["PaymentTransaction | None"] = relationship(
+        back_populates="order", uselist=False, cascade="all, delete-orphan"
+    )
 
 
 class StoreOrderItem(Base):

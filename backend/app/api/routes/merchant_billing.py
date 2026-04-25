@@ -74,8 +74,8 @@ def get_mercadopago_connect_url(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return MercadoPagoConnectUrlRead(
         connect_url=oauth_connect_entrypoint(base_url=resolve_public_backend_base_url(str(request.base_url))),
-        connection_status=mercadopago_connection_status(store),
-        status=mercadopago_connection_status(store),
+        connection_status=mercadopago_connection_status(store, provider=provider),
+        status=mercadopago_connection_status(store, provider=provider),
         callback_url=None,
     )
 

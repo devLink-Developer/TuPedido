@@ -15,6 +15,7 @@ from app.api.presenters import (
     serialize_settlement_payment,
     serialize_transfer_notice,
 )
+from app.core.config import settings
 from app.db.session import get_db
 from app.models.delivery import RiderSettlementPayment
 from app.models.platform import MerchantSettlementPayment, MerchantTransferNotice
@@ -32,7 +33,7 @@ from app.schemas.settlement import (
     SettlementHistoryEntryRead,
 )
 from app.core.utils import encrypt_sensitive_value
-from app.services.mercadopago import get_or_create_mercadopago_provider
+from app.services.mercadopago import get_or_create_mercadopago_provider, provider_webhook_secret_configured
 from app.services.media import normalize_media_url
 from app.services.delivery import create_notifications
 from app.services.platform import get_or_create_platform_settings, get_platform_settings_snapshot
@@ -211,6 +212,8 @@ def update_mercadopago_payment_provider(
     provider.enabled = payload.enabled
     if "client_secret" in payload.model_fields_set and (payload.client_secret or "").strip():
         provider.client_secret_encrypted = encrypt_sensitive_value(payload.client_secret.strip())
+    if "webhook_secret" in payload.model_fields_set and (payload.webhook_secret or "").strip():
+        provider.webhook_secret_encrypted = encrypt_sensitive_value(payload.webhook_secret.strip())
 
     if provider.enabled and (
         not provider.client_id or not provider.client_secret_encrypted or not provider.redirect_uri
@@ -218,6 +221,11 @@ def update_mercadopago_payment_provider(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Client ID, Client Secret and Redirect URI are required when Mercado Pago is enabled",
+        )
+    if provider.enabled and not settings.mercadopago_simulated and not provider_webhook_secret_configured(provider):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Webhook Secret is required when Mercado Pago is enabled for real payments",
         )
 
     db.commit()

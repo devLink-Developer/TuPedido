@@ -20,6 +20,7 @@ from app.models.order import (
     StoreOrder,
     StoreOrderItem,
 )
+from app.models.payment import PaymentTransaction, PaymentWebhookEvent
 from app.models.platform import (
     MerchantServiceFeeCharge,
     MerchantSettlementAllocation,
@@ -65,6 +66,8 @@ __all__ = [
     "OrderPromotionApplication",
     "OrderReview",
     "PaymentProvider",
+    "PaymentTransaction",
+    "PaymentWebhookEvent",
     "PlatformSettings",
     "PushSubscription",
     "RiderSettlementAllocation",

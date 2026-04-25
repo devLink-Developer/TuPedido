@@ -40,6 +40,8 @@ LEGACY_SEED_EMAILS: dict[str, tuple[str, ...]] = {
     "delivery@kepedimos.example.com": ("delivery@tupedido.example.com",),
 }
 
+SIMULATED_MERCADOPAGO_WEBHOOK_SECRET = "SIMULATED-WEBHOOK-SECRET"
+
 
 def _default_admin_seed() -> dict[str, object]:
     return {
@@ -239,21 +241,29 @@ def seed_initial_data() -> int:
         )
         payment_provider = db.scalar(select(PaymentProvider).where(PaymentProvider.provider == "mercadopago"))
         if payment_provider is None:
+            webhook_secret = settings.mercadopago_webhook_secret or (
+                SIMULATED_MERCADOPAGO_WEBHOOK_SECRET if settings.mercadopago_simulated else None
+            )
             payment_provider = PaymentProvider(
                 provider="mercadopago",
                 client_id=settings.mercadopago_client_id or "SIMULATED-CLIENT-ID",
                 client_secret_encrypted=encrypt_sensitive_value(
                     settings.mercadopago_client_secret or "SIMULATED-CLIENT-SECRET"
                 ),
+                webhook_secret_encrypted=encrypt_sensitive_value(webhook_secret) if webhook_secret else None,
                 redirect_uri=redirect_uri,
                 enabled=bool(settings.mercadopago_simulated) or bool(
                     settings.mercadopago_client_id
                     and settings.mercadopago_client_secret
+                    and settings.mercadopago_webhook_secret
                     and settings.mercadopago_redirect_uri
                 ),
                 mode="sandbox",
             )
             db.add(payment_provider)
+            replenished += 1
+        elif settings.mercadopago_webhook_secret and not payment_provider.webhook_secret_encrypted:
+            payment_provider.webhook_secret_encrypted = encrypt_sensitive_value(settings.mercadopago_webhook_secret)
             replenished += 1
 
         base_categories = [
@@ -463,6 +473,8 @@ def seed_initial_data() -> int:
                     refresh_token_encrypted=encrypt_sensitive_value("TEST-REFRESH-TOKEN-1234"),
                     mp_user_id="123456789",
                     expires_in=15552000,
+                    scope="offline_access payments write",
+                    live_mode=False,
                     token_expires_at=datetime(2099, 1, 1, tzinfo=UTC),
                     connected=True,
                     onboarding_completed=True,

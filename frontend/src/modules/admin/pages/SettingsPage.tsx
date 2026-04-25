@@ -46,6 +46,7 @@ type CategoryFormState = {
 type MercadoPagoProviderFormState = {
   client_id: string;
   client_secret: string;
+  webhook_secret: string;
   redirect_uri: string;
   enabled: boolean;
   mode: "sandbox" | "production";
@@ -64,6 +65,7 @@ const emptyCategoryForm: CategoryFormState = {
 const emptyMercadoPagoProviderForm: MercadoPagoProviderFormState = {
   client_id: "",
   client_secret: "",
+  webhook_secret: "",
   redirect_uri: "",
   enabled: false,
   mode: "sandbox"
@@ -106,6 +108,15 @@ function previewLabel(name: string, icon: string) {
   return (name.trim().slice(0, 2) || "RB").toUpperCase();
 }
 
+function isValidHttpUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function SettingsPage() {
   const { token } = useAuthSession();
   const syncPublicCategories = useCategoryStore((state) => state.setCategories);
@@ -132,6 +143,10 @@ export function SettingsPage() {
   const [categorySaving, setCategorySaving] = useState(false);
   const [serviceSaving, setServiceSaving] = useState(false);
   const [providerSaving, setProviderSaving] = useState(false);
+  const [providerMessage, setProviderMessage] = useState<string | null>(null);
+  const [providerFieldErrors, setProviderFieldErrors] = useState<Partial<Record<keyof MercadoPagoProviderFormState, string>>>({});
+  const [showClientSecret, setShowClientSecret] = useState(false);
+  const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [brandingSaving, setBrandingSaving] = useState(false);
   const [bannerSaving, setBannerSaving] = useState(false);
   const [paymentSaving, setPaymentSaving] = useState(false);
@@ -175,6 +190,7 @@ export function SettingsPage() {
       setMercadoPagoForm({
         client_id: paymentProviderResult.client_id ?? "",
         client_secret: "",
+        webhook_secret: "",
         redirect_uri: paymentProviderResult.redirect_uri ?? "",
         enabled: paymentProviderResult.enabled,
         mode: paymentProviderResult.mode
@@ -299,17 +315,45 @@ export function SettingsPage() {
 
   async function handleMercadoPagoProviderSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!token) return;
+    if (!token || !paymentProvider) return;
+    const nextErrors: Partial<Record<keyof MercadoPagoProviderFormState, string>> = {};
+    if (mercadoPagoForm.enabled) {
+      if (!mercadoPagoForm.client_id.trim()) nextErrors.client_id = "El Client ID es obligatorio.";
+      if (!mercadoPagoForm.client_secret.trim() && !paymentProvider.client_secret_masked) {
+        nextErrors.client_secret = "El Client Secret es obligatorio.";
+      }
+      if (!paymentProvider.simulated && !mercadoPagoForm.webhook_secret.trim() && !paymentProvider.webhook_secret_masked) {
+        nextErrors.webhook_secret = "El Webhook Secret es obligatorio para pagos reales.";
+      }
+      if (!mercadoPagoForm.redirect_uri.trim() || !isValidHttpUrl(mercadoPagoForm.redirect_uri.trim())) {
+        nextErrors.redirect_uri = "Ingresa una URL http/https valida.";
+      }
+    }
+    if (Object.keys(nextErrors).length) {
+      setProviderFieldErrors(nextErrors);
+      setProviderError("Revisa los campos marcados antes de guardar Mercado Pago.");
+      return;
+    }
+    if (paymentProvider.enabled && !mercadoPagoForm.enabled && !window.confirm("Desactivar Mercado Pago ocultara este medio de pago para todos los comercios. Continuar?")) {
+      return;
+    }
+    if (paymentProvider.mode !== "production" && mercadoPagoForm.mode === "production" && !window.confirm("Pasar a Produccion usara credenciales reales de Mercado Pago. Continuar?")) {
+      return;
+    }
     setProviderSaving(true);
     setProviderError(null);
+    setProviderMessage(null);
+    setProviderFieldErrors({});
     try {
       await updateAdminMercadoPagoProvider(token, {
         client_id: mercadoPagoForm.client_id.trim() || null,
         client_secret: mercadoPagoForm.client_secret.trim() || null,
+        webhook_secret: mercadoPagoForm.webhook_secret.trim() || null,
         redirect_uri: mercadoPagoForm.redirect_uri.trim() || null,
         enabled: mercadoPagoForm.enabled,
         mode: mercadoPagoForm.mode
       });
+      setProviderMessage("Configuracion de Mercado Pago guardada.");
       await load();
     } catch (requestError) {
       setProviderError(requestError instanceof Error ? requestError.message : "No se pudo guardar Mercado Pago");
@@ -688,6 +732,7 @@ export function SettingsPage() {
             <p className="font-semibold text-ink">{paymentProvider.enabled ? "Provider activo" : "Provider inactivo"}</p>
             <p className="mt-1">Modo actual: {paymentProvider.mode === "production" ? "Produccion" : "Sandbox"}</p>
             <p className="mt-1">Secret configurado: {paymentProvider.client_secret_masked ? "Si" : "No"}</p>
+            <p className="mt-1">Webhook secret: {paymentProvider.webhook_configured ? "Si" : "No"}</p>
           </div>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -703,12 +748,25 @@ export function SettingsPage() {
               }
               className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
               placeholder="APP_USR-..."
+              aria-invalid={Boolean(providerFieldErrors.client_id)}
             />
+            {providerFieldErrors.client_id ? <p className="text-xs font-normal text-rose-700">{providerFieldErrors.client_id}</p> : null}
           </label>
           <label className="space-y-2 text-sm font-semibold text-zinc-600">
-            Client Secret
+            <span className="flex items-center justify-between gap-3">
+              Client Secret
+              <button
+                type="button"
+                onClick={() => setShowClientSecret((current) => !current)}
+                className="text-xs font-semibold text-brand-700"
+                aria-label={showClientSecret ? "Ocultar Client Secret" : "Mostrar Client Secret"}
+                aria-pressed={showClientSecret}
+              >
+                {showClientSecret ? "Ocultar" : "Mostrar"}
+              </button>
+            </span>
             <input
-              type="password"
+              type={showClientSecret ? "text" : "password"}
               value={mercadoPagoForm.client_secret}
               onChange={(event) =>
                 setMercadoPagoForm((current) => ({
@@ -718,10 +776,43 @@ export function SettingsPage() {
               }
               className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
               placeholder={paymentProvider.client_secret_masked ? "Dejar vacio para conservar el actual" : "Ingresa el secret"}
+              aria-invalid={Boolean(providerFieldErrors.client_secret)}
             />
             {paymentProvider.client_secret_masked ? (
               <p className="text-xs font-normal text-zinc-500">Valor actual enmascarado: {paymentProvider.client_secret_masked}</p>
             ) : null}
+            {providerFieldErrors.client_secret ? <p className="text-xs font-normal text-rose-700">{providerFieldErrors.client_secret}</p> : null}
+          </label>
+          <label className="space-y-2 text-sm font-semibold text-zinc-600">
+            <span className="flex items-center justify-between gap-3">
+              Webhook Secret
+              <button
+                type="button"
+                onClick={() => setShowWebhookSecret((current) => !current)}
+                className="text-xs font-semibold text-brand-700"
+                aria-label={showWebhookSecret ? "Ocultar Webhook Secret" : "Mostrar Webhook Secret"}
+                aria-pressed={showWebhookSecret}
+              >
+                {showWebhookSecret ? "Ocultar" : "Mostrar"}
+              </button>
+            </span>
+            <input
+              type={showWebhookSecret ? "text" : "password"}
+              value={mercadoPagoForm.webhook_secret}
+              onChange={(event) =>
+                setMercadoPagoForm((current) => ({
+                  ...current,
+                  webhook_secret: event.target.value
+                }))
+              }
+              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              placeholder={paymentProvider.webhook_secret_masked ? "Dejar vacio para conservar el actual" : "Secret de Webhooks"}
+              aria-invalid={Boolean(providerFieldErrors.webhook_secret)}
+            />
+            {paymentProvider.webhook_secret_masked ? (
+              <p className="text-xs font-normal text-zinc-500">Valor actual enmascarado: {paymentProvider.webhook_secret_masked}</p>
+            ) : null}
+            {providerFieldErrors.webhook_secret ? <p className="text-xs font-normal text-rose-700">{providerFieldErrors.webhook_secret}</p> : null}
           </label>
           <label className="space-y-2 text-sm font-semibold text-zinc-600 md:col-span-2">
             Redirect URI
@@ -735,8 +826,15 @@ export function SettingsPage() {
               }
               className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
               placeholder="https://.../api/v1/oauth/mercadopago/callback"
+              aria-invalid={Boolean(providerFieldErrors.redirect_uri)}
             />
+            {providerFieldErrors.redirect_uri ? <p className="text-xs font-normal text-rose-700">{providerFieldErrors.redirect_uri}</p> : null}
           </label>
+          <div className="space-y-2 rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 md:col-span-2">
+            <p className="font-semibold text-zinc-700">Webhook URL</p>
+            <p className="break-all font-mono text-xs text-zinc-600">{paymentProvider.webhook_url ?? "Configura BACKEND_BASE_URL para calcularla."}</p>
+            <p className="text-xs">Usa esta URL en la app de Mercado Pago para validar notificaciones con x-signature.</p>
+          </div>
           <label className="space-y-2 text-sm font-semibold text-zinc-600">
             Modo
             <select
@@ -768,6 +866,7 @@ export function SettingsPage() {
           </label>
         </div>
         {providerError ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{providerError}</p> : null}
+        {providerMessage ? <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{providerMessage}</p> : null}
         <div className="mt-4 flex flex-wrap gap-2">
           <Button type="submit" disabled={providerSaving}>
             {providerSaving ? "Guardando..." : "Guardar Mercado Pago"}

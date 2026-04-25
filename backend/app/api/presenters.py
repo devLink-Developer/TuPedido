@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm.attributes import NO_VALUE
 
+from app.core.config import settings
 from app.core.utils import is_store_open, mask_secret
 from app.schemas.admin import PaymentProviderRead
 from app.schemas.cart import CartItemRead, CartRead
@@ -26,7 +27,7 @@ from app.schemas.delivery import (
     DeliveryZoneRead,
     NotificationRead,
 )
-from app.schemas.order import OrderItemRead, OrderRead, OrderTrackingRead
+from app.schemas.order import OrderItemRead, OrderRead, OrderTrackingRead, PaymentTransactionRead
 from app.schemas.settlement import (
     AdminSettlementStoreRead,
     MerchantServiceFeeChargeRead,
@@ -40,9 +41,12 @@ from app.schemas.settlement import (
 from app.schemas.promotion import AppliedPromotionSummaryRead, PromotionItemRead, PromotionRead
 from app.services.category_colors import resolve_category_palette
 from app.services.mercadopago import (
+    build_webhook_url,
     get_store_payment_account,
+    is_provider_operable,
     is_store_mercadopago_ready,
     mercadopago_connection_status,
+    provider_webhook_secret_configured,
 )
 from app.services.promotions import deserialize_items_snapshot
 from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
@@ -96,12 +100,12 @@ def serialize_store_payment_settings(
     settings = getattr(store, "payment_settings", None)
     account = get_store_payment_account(store)
     public_key = account.public_key if account else None
-    connection_status = mercadopago_connection_status(store)
+    connection_status = mercadopago_connection_status(store, provider=mercadopago_provider)
     return StorePaymentSettingsRead(
         cash_enabled=bool(settings.cash_enabled) if settings else False,
         mercadopago_enabled=bool(settings.mercadopago_enabled) if settings else False,
         mercadopago_configured=is_store_mercadopago_ready(store, provider=mercadopago_provider),
-        mercadopago_provider_enabled=bool(getattr(mercadopago_provider, "enabled", False)),
+        mercadopago_provider_enabled=is_provider_operable(mercadopago_provider),
         mercadopago_provider_mode=str(getattr(mercadopago_provider, "mode", "sandbox") or "sandbox"),
         mercadopago_public_key_masked=mask_secret(public_key) if public_key else None,
         mercadopago_connection_status=connection_status,
@@ -616,10 +620,43 @@ def serialize_payment_provider(provider: object) -> PaymentProviderRead:
         provider=getattr(provider, "provider", "mercadopago"),
         client_id=getattr(provider, "client_id", None),
         client_secret_masked="********" if getattr(provider, "client_secret_encrypted", None) else None,
+        webhook_secret_masked="********" if provider_webhook_secret_configured(provider) else None,
+        webhook_url=build_webhook_url(),
+        webhook_configured=provider_webhook_secret_configured(provider),
         redirect_uri=getattr(provider, "redirect_uri", None),
         enabled=bool(getattr(provider, "enabled", False)),
         mode=str(getattr(provider, "mode", "sandbox") or "sandbox"),
+        simulated=bool(settings.mercadopago_simulated),
         updated_at=getattr(provider, "updated_at", None),
+    )
+
+
+def serialize_payment_transaction(transaction: object) -> PaymentTransactionRead:
+    return PaymentTransactionRead(
+        id=getattr(transaction, "id"),
+        order_id=getattr(transaction, "order_id"),
+        provider=getattr(transaction, "provider", "mercadopago"),
+        external_reference=getattr(transaction, "external_reference"),
+        preference_id=getattr(transaction, "preference_id", None),
+        payment_id=getattr(transaction, "payment_id", None),
+        status=getattr(transaction, "status", "pending"),
+        status_detail=getattr(transaction, "status_detail", None),
+        amount_total=float(getattr(transaction, "amount_total", 0) or 0),
+        currency=getattr(transaction, "currency", "ARS"),
+        requested_marketplace_fee=float(getattr(transaction, "requested_marketplace_fee", 0) or 0),
+        approved_marketplace_fee=(
+            float(getattr(transaction, "approved_marketplace_fee"))
+            if getattr(transaction, "approved_marketplace_fee", None) is not None
+            else None
+        ),
+        seller_expected_amount=float(getattr(transaction, "seller_expected_amount", 0) or 0),
+        delivery_fee_amount=float(getattr(transaction, "delivery_fee_amount", 0) or 0),
+        service_fee_amount=float(getattr(transaction, "service_fee_amount", 0) or 0),
+        mp_user_id=getattr(transaction, "mp_user_id", None),
+        live_mode=getattr(transaction, "live_mode", None),
+        checkout_url=getattr(transaction, "checkout_url", None),
+        created_at=getattr(transaction, "created_at"),
+        updated_at=getattr(transaction, "updated_at", None),
     )
 
 

@@ -126,7 +126,7 @@ def create_mercadopago_oauth_session(
     token = build_oauth_session_token(store_id=store.id, user_id=user.id, frontend_origin=frontend_origin)
     _set_oauth_cookie(request, response, token)
     logger.info("mercadopago_oauth_session_created", extra={"store_id": store.id, "user_id": user.id})
-    status_value = mercadopago_connection_status(store)
+    status_value = mercadopago_connection_status(store, provider=provider)
     return MercadoPagoConnectUrlRead(
         connect_url=oauth_connect_entrypoint(base_url=_api_base_url_from_request(request)),
         connection_status=status_value,

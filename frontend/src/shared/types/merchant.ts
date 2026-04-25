@@ -200,15 +200,20 @@ export type PaymentProviderConfig = {
   provider: "mercadopago";
   client_id: string | null;
   client_secret_masked: string | null;
+  webhook_secret_masked: string | null;
+  webhook_url: string | null;
+  webhook_configured: boolean;
   redirect_uri: string | null;
   enabled: boolean;
   mode: "sandbox" | "production";
+  simulated: boolean;
   updated_at?: string | null;
 };
 
 export type PaymentProviderUpdate = {
   client_id?: string | null;
   client_secret?: string | null;
+  webhook_secret?: string | null;
   redirect_uri?: string | null;
   enabled: boolean;
   mode: "sandbox" | "production";
