@@ -36,6 +36,7 @@ from app.core.utils import encrypt_sensitive_value
 from app.services.mercadopago import (
     get_or_create_mercadopago_provider,
     is_mercadopago_oauth_client_id,
+    is_mercadopago_redirect_uri_allowed,
     provider_webhook_secret_configured,
 )
 from app.services.media import normalize_media_url
@@ -232,6 +233,11 @@ def update_mercadopago_payment_provider(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Use the Mercado Pago OAuth Client ID/Application ID, not the Public Key or Access Token",
+        )
+    if provider.enabled and not settings.mercadopago_simulated and not is_mercadopago_redirect_uri_allowed(provider.redirect_uri):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mercado Pago Redirect URI must use HTTPS for public OAuth callbacks",
         )
     if provider.enabled and not settings.mercadopago_simulated and not provider_webhook_secret_configured(provider):
         raise HTTPException(

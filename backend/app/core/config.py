@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     bootstrap_admin_address_details: str = "Piso 10, CABA"
     mercadopago_simulated: bool = True
     mercadopago_api_base_url: str = "https://api.mercadopago.com"
-    mercadopago_auth_base_url: str = "https://auth.mercadopago.com.ar"
+    mercadopago_auth_base_url: str = "https://auth.mercadopago.com"
     mercadopago_timeout_seconds: float = 15.0
     mercadopago_client_id: str | None = None
     mercadopago_client_secret: str | None = None

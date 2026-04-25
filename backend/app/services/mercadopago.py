@@ -103,6 +103,14 @@ def is_internal_http_url(value: str | None) -> bool:
     return _is_internal_hostname(urlsplit(normalized_url).hostname)
 
 
+def is_public_http_url(value: str | None) -> bool:
+    normalized_url = _normalize_http_base_url(value)
+    if not normalized_url:
+        return False
+    parsed = urlsplit(normalized_url)
+    return parsed.scheme == "http" and not _is_internal_hostname(parsed.hostname)
+
+
 def resolve_public_backend_base_url(base_url: str | None = None) -> str:
     configured_base_url = _normalize_http_base_url(settings.backend_base_url)
     if configured_base_url and not _is_internal_hostname(urlsplit(configured_base_url).hostname):
@@ -139,6 +147,10 @@ def is_mercadopago_oauth_client_id(value: str | None) -> bool:
     if normalized.upper().startswith(token_prefixes):
         return False
     return True
+
+
+def is_mercadopago_redirect_uri_allowed(value: str | None) -> bool:
+    return not is_public_http_url(value)
 
 
 def get_or_create_mercadopago_provider(db: Session) -> PaymentProvider:
@@ -187,6 +199,10 @@ def ensure_provider_operable(provider: PaymentProvider | None) -> PaymentProvide
     if not is_mercadopago_oauth_client_id(provider.client_id):
         raise MercadoPagoAPIError(
             "Mercado Pago Client ID must be the OAuth Application ID, not a Public Key or Access Token"
+        )
+    if not settings.mercadopago_simulated and not is_mercadopago_redirect_uri_allowed(provider.redirect_uri):
+        raise MercadoPagoAPIError(
+            "Mercado Pago Redirect URI must use HTTPS for public OAuth callbacks"
         )
     if not settings.mercadopago_simulated and not provider_webhook_secret_configured(provider):
         raise MercadoPagoAPIError("Mercado Pago webhook secret is not configured by the platform")

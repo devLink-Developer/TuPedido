@@ -117,6 +117,16 @@ function isValidHttpUrl(value: string) {
   }
 }
 
+function isPublicHttpUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    const hostname = parsed.hostname.toLowerCase();
+    return parsed.protocol === "http:" && hostname !== "localhost" && hostname !== "127.0.0.1";
+  } catch {
+    return false;
+  }
+}
+
 function isMercadoPagoCredentialToken(value: string) {
   const normalized = value.trim().toUpperCase();
   return normalized.startsWith("APP_USR-") || normalized.startsWith("TEST-") || normalized.startsWith("PROD-");
@@ -335,6 +345,9 @@ export function SettingsPage() {
       }
       if (!mercadoPagoForm.redirect_uri.trim() || !isValidHttpUrl(mercadoPagoForm.redirect_uri.trim())) {
         nextErrors.redirect_uri = "Ingresa una URL http/https valida.";
+      }
+      if (!paymentProvider.simulated && isPublicHttpUrl(mercadoPagoForm.redirect_uri)) {
+        nextErrors.redirect_uri = "Mercado Pago requiere HTTPS para callbacks OAuth publicos.";
       }
     }
     if (Object.keys(nextErrors).length) {
@@ -847,6 +860,11 @@ export function SettingsPage() {
             {paymentProvider.redirect_uri_internal && paymentProvider.oauth_callback_url && !paymentProvider.oauth_callback_url.includes("localhost") ? (
               <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs font-normal text-amber-800" role="alert">
                 El Redirect URI actual usa localhost. Para conectar comercios desde una URL publica, guarda el callback detectado aqui y registralo igual en la app de Mercado Pago.
+              </p>
+            ) : null}
+            {!paymentProvider.simulated && isPublicHttpUrl(mercadoPagoForm.redirect_uri) ? (
+              <p className="rounded-2xl bg-rose-50 px-3 py-2 text-xs font-normal text-rose-800" role="alert">
+                Mercado Pago no acepta callbacks OAuth publicos con HTTP. Configura un dominio con HTTPS y registra exactamente esa URL en la app.
               </p>
             ) : null}
             {providerFieldErrors.redirect_uri ? <p className="text-xs font-normal text-rose-700">{providerFieldErrors.redirect_uri}</p> : null}
