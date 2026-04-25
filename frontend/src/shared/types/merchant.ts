@@ -203,6 +203,8 @@ export type PaymentProviderConfig = {
   webhook_secret_masked: string | null;
   webhook_url: string | null;
   webhook_configured: boolean;
+  oauth_callback_url: string | null;
+  redirect_uri_internal: boolean;
   redirect_uri: string | null;
   enabled: boolean;
   mode: "sandbox" | "production";

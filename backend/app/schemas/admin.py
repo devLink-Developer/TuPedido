@@ -49,6 +49,8 @@ class PaymentProviderRead(BaseModel):
     webhook_secret_masked: str | None = None
     webhook_url: str | None = None
     webhook_configured: bool = False
+    oauth_callback_url: str | None = None
+    redirect_uri_internal: bool = False
     redirect_uri: str | None = None
     enabled: bool = False
     mode: Literal["sandbox", "production"] = "sandbox"

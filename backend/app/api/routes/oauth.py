@@ -18,6 +18,7 @@ from app.schemas.merchant import MercadoPagoConnectUrlRead
 from app.services.mercadopago import (
     MercadoPagoAPIError,
     build_oauth_connect_url,
+    build_oauth_callback_url,
     build_oauth_session_token,
     build_oauth_state,
     decode_oauth_session_token,
@@ -131,7 +132,7 @@ def create_mercadopago_oauth_session(
         connect_url=oauth_connect_entrypoint(base_url=_api_base_url_from_request(request)),
         connection_status=status_value,
         status=status_value,
-        callback_url=None,
+        callback_url=build_oauth_callback_url(base_url=_api_base_url_from_request(request)),
     )
 
 

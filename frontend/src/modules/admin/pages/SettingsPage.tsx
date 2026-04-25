@@ -825,9 +825,19 @@ export function SettingsPage() {
                 }))
               }
               className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-              placeholder="https://.../api/v1/oauth/mercadopago/callback"
+              placeholder={paymentProvider.oauth_callback_url ?? "https://.../api/v1/oauth/mercadopago/callback"}
               aria-invalid={Boolean(providerFieldErrors.redirect_uri)}
             />
+            {paymentProvider.oauth_callback_url ? (
+              <p className="text-xs font-normal text-zinc-500">
+                Callback OAuth detectado: <span className="break-all font-mono">{paymentProvider.oauth_callback_url}</span>
+              </p>
+            ) : null}
+            {paymentProvider.redirect_uri_internal && paymentProvider.oauth_callback_url && !paymentProvider.oauth_callback_url.includes("localhost") ? (
+              <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs font-normal text-amber-800" role="alert">
+                El Redirect URI actual usa localhost. Para conectar comercios desde una URL publica, guarda el callback detectado aqui y registralo igual en la app de Mercado Pago.
+              </p>
+            ) : null}
             {providerFieldErrors.redirect_uri ? <p className="text-xs font-normal text-rose-700">{providerFieldErrors.redirect_uri}</p> : null}
           </label>
           <div className="space-y-2 rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 md:col-span-2">

@@ -26,6 +26,7 @@ from app.services.delivery import create_notifications
 from app.services.mercadopago import (
     MercadoPagoAPIError,
     ensure_provider_operable,
+    build_oauth_callback_url,
     get_or_create_mercadopago_provider,
     mercadopago_connection_status,
     oauth_connect_entrypoint,
@@ -76,7 +77,7 @@ def get_mercadopago_connect_url(
         connect_url=oauth_connect_entrypoint(base_url=resolve_public_backend_base_url(str(request.base_url))),
         connection_status=mercadopago_connection_status(store, provider=provider),
         status=mercadopago_connection_status(store, provider=provider),
-        callback_url=None,
+        callback_url=build_oauth_callback_url(base_url=str(request.base_url)),
     )
 
 

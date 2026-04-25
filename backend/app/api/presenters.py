@@ -41,8 +41,10 @@ from app.schemas.settlement import (
 from app.schemas.promotion import AppliedPromotionSummaryRead, PromotionItemRead, PromotionRead
 from app.services.category_colors import resolve_category_palette
 from app.services.mercadopago import (
+    build_oauth_callback_url,
     build_webhook_url,
     get_store_payment_account,
+    is_internal_http_url,
     is_provider_operable,
     is_store_mercadopago_ready,
     mercadopago_connection_status,
@@ -615,7 +617,7 @@ def serialize_platform_settings(settings: object) -> PlatformSettingsRead:
     )
 
 
-def serialize_payment_provider(provider: object) -> PaymentProviderRead:
+def serialize_payment_provider(provider: object, *, base_url: str | None = None) -> PaymentProviderRead:
     return PaymentProviderRead(
         provider=getattr(provider, "provider", "mercadopago"),
         client_id=getattr(provider, "client_id", None),
@@ -623,6 +625,8 @@ def serialize_payment_provider(provider: object) -> PaymentProviderRead:
         webhook_secret_masked="********" if provider_webhook_secret_configured(provider) else None,
         webhook_url=build_webhook_url(),
         webhook_configured=provider_webhook_secret_configured(provider),
+        oauth_callback_url=build_oauth_callback_url(base_url=base_url),
+        redirect_uri_internal=is_internal_http_url(getattr(provider, "redirect_uri", None)),
         redirect_uri=getattr(provider, "redirect_uri", None),
         enabled=bool(getattr(provider, "enabled", False)),
         mode=str(getattr(provider, "mode", "sandbox") or "sandbox"),

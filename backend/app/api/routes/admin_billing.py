@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.api.deps import require_admin
 from app.api.presenters import (
@@ -192,16 +192,18 @@ def update_platform_settings(
 
 @router.get("/payment-providers/mercadopago", response_model=PaymentProviderRead)
 def get_mercadopago_payment_provider(
+    request: Request,
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> PaymentProviderRead:
     provider = get_or_create_mercadopago_provider(db)
-    return serialize_payment_provider(provider)
+    return serialize_payment_provider(provider, base_url=str(request.base_url))
 
 
 @router.post("/payment-providers/mercadopago", response_model=PaymentProviderRead)
 def update_mercadopago_payment_provider(
     payload: PaymentProviderUpdate,
+    request: Request,
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> PaymentProviderRead:
@@ -230,7 +232,7 @@ def update_mercadopago_payment_provider(
 
     db.commit()
     db.refresh(provider)
-    return serialize_payment_provider(provider)
+    return serialize_payment_provider(provider, base_url=str(request.base_url))
 
 
 @router.get("/settlements/stores", response_model=list[AdminSettlementStoreRead])

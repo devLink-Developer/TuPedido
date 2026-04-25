@@ -92,6 +92,13 @@ def _is_internal_hostname(hostname: str | None) -> bool:
     return "." not in normalized
 
 
+def is_internal_http_url(value: str | None) -> bool:
+    normalized_url = _normalize_http_base_url(value)
+    if not normalized_url:
+        return True
+    return _is_internal_hostname(urlsplit(normalized_url).hostname)
+
+
 def resolve_public_backend_base_url(base_url: str | None = None) -> str:
     configured_base_url = _normalize_http_base_url(settings.backend_base_url)
     if configured_base_url and not _is_internal_hostname(urlsplit(configured_base_url).hostname):
@@ -440,12 +447,24 @@ def oauth_connect_entrypoint(*, base_url: str | None = None) -> str:
     return f"{resolved_base_url}{settings.api_prefix}/oauth/mercadopago/connect"
 
 
+def build_oauth_callback_url(*, base_url: str | None = None) -> str:
+    resolved_base_url = resolve_public_backend_base_url(base_url)
+    return f"{resolved_base_url}{settings.api_prefix}/oauth/mercadopago/callback"
+
+
 def build_oauth_connect_url(*, provider: PaymentProvider, state: str, base_url: str | None = None) -> str:
     ensure_provider_operable(provider)
     if settings.mercadopago_simulated:
         base = resolve_public_backend_base_url(base_url)
         query = urlencode({"code": "SIMULATED-OAUTH", "state": state})
         return f"{base}{settings.api_prefix}/oauth/mercadopago/callback?{query}"
+
+    callback_url = build_oauth_callback_url(base_url=base_url)
+    if is_internal_http_url(provider.redirect_uri) and not is_internal_http_url(callback_url):
+        raise MercadoPagoAPIError(
+            "Mercado Pago Redirect URI is configured as localhost/internal. "
+            f"Configure {callback_url} in Admin and in the Mercado Pago application Redirect URL."
+        )
 
     query = urlencode(
         {
