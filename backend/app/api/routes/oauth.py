@@ -17,6 +17,8 @@ from app.models.user import User
 from app.schemas.merchant import MercadoPagoConnectUrlRead
 from app.services.mercadopago import (
     MercadoPagoAPIError,
+    build_oauth_code_challenge,
+    build_oauth_code_verifier,
     build_oauth_connect_url,
     build_oauth_callback_url,
     build_oauth_session_token,
@@ -124,7 +126,12 @@ def create_mercadopago_oauth_session(
     except MercadoPagoAPIError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     frontend_origin = _frontend_origin_from_request(request)
-    token = build_oauth_session_token(store_id=store.id, user_id=user.id, frontend_origin=frontend_origin)
+    token = build_oauth_session_token(
+        store_id=store.id,
+        user_id=user.id,
+        frontend_origin=frontend_origin,
+        code_verifier=build_oauth_code_verifier(),
+    )
     _set_oauth_cookie(request, response, token)
     logger.info("mercadopago_oauth_session_created", extra={"store_id": store.id, "user_id": user.id})
     status_value = mercadopago_connection_status(store, provider=provider)
@@ -162,11 +169,14 @@ def connect_mercadopago(
             user_id=int(session_payload["user_id"]),
             frontend_origin=session_payload.get("frontend_origin"),
         )
+        code_verifier = session_payload.get("code_verifier")
+        code_challenge = build_oauth_code_challenge(code_verifier) if isinstance(code_verifier, str) else None
         return RedirectResponse(
             build_oauth_connect_url(
                 provider=provider,
                 state=state,
                 base_url=_api_base_url_from_request(request),
+                code_challenge=code_challenge,
             ),
             status_code=status.HTTP_302_FOUND,
         )
@@ -186,6 +196,7 @@ def mercadopago_oauth_callback(
     state: str | None = None,
     error: str | None = None,
     error_description: str | None = None,
+    oauth_session: str | None = Cookie(default=None, alias=OAUTH_SESSION_COOKIE),
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
     payload: dict[str, object] | None = None
@@ -225,7 +236,13 @@ def mercadopago_oauth_callback(
             raise MercadoPagoAPIError("Merchant store not found for OAuth callback")
 
         provider = get_or_create_mercadopago_provider(db)
-        token_payload = exchange_oauth_code(code, provider)
+        if not oauth_session:
+            raise MercadoPagoAPIError("Mercado Pago OAuth session is missing or expired; start again")
+        session_payload = decode_oauth_session_token(oauth_session)
+        if int(session_payload["store_id"]) != store.id or int(session_payload["user_id"]) != int(payload["user_id"]):
+            raise MercadoPagoAPIError("Mercado Pago OAuth session does not match callback")
+        code_verifier = session_payload.get("code_verifier")
+        token_payload = exchange_oauth_code(code, provider, code_verifier if isinstance(code_verifier, str) else None)
         store_oauth_credentials(store, token_payload)
         db.commit()
         logger.info(

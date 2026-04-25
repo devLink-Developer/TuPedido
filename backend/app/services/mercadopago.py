@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 import logging
+import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlencode, urlsplit
@@ -22,6 +25,7 @@ MERCADOPAGO_PROVIDER = "mercadopago"
 SIMULATED_WEBHOOK_SECRET = "SIMULATED-WEBHOOK-SECRET"
 OAUTH_STATE_EXPIRATION_MINUTES = 15
 OAUTH_SESSION_EXPIRATION_MINUTES = 10
+OAUTH_CODE_VERIFIER_BYTES = 64
 
 
 class MercadoPagoAPIError(RuntimeError):
@@ -398,6 +402,15 @@ def disconnect_store_account(store: object) -> None:
     account.reconnect_required = False
 
 
+def build_oauth_code_verifier() -> str:
+    return secrets.token_urlsafe(OAUTH_CODE_VERIFIER_BYTES)
+
+
+def build_oauth_code_challenge(code_verifier: str) -> str:
+    digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
+    return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+
+
 def build_oauth_state(*, store_id: int, user_id: int, frontend_origin: str | None = None) -> str:
     payload = {
         "kind": "mercadopago_oauth",
@@ -420,7 +433,9 @@ def decode_oauth_state(state: str) -> dict[str, Any]:
     return payload
 
 
-def build_oauth_session_token(*, store_id: int, user_id: int, frontend_origin: str | None = None) -> str:
+def build_oauth_session_token(
+    *, store_id: int, user_id: int, frontend_origin: str | None = None, code_verifier: str | None = None
+) -> str:
     payload = {
         "kind": "mercadopago_oauth_session",
         "provider": MERCADOPAGO_PROVIDER,
@@ -429,6 +444,8 @@ def build_oauth_session_token(*, store_id: int, user_id: int, frontend_origin: s
         "frontend_origin": normalize_frontend_origin(frontend_origin),
         "exp": _now_utc() + timedelta(minutes=OAUTH_SESSION_EXPIRATION_MINUTES),
     }
+    if code_verifier:
+        payload["code_verifier"] = code_verifier
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
@@ -452,7 +469,9 @@ def build_oauth_callback_url(*, base_url: str | None = None) -> str:
     return f"{resolved_base_url}{settings.api_prefix}/oauth/mercadopago/callback"
 
 
-def build_oauth_connect_url(*, provider: PaymentProvider, state: str, base_url: str | None = None) -> str:
+def build_oauth_connect_url(
+    *, provider: PaymentProvider, state: str, base_url: str | None = None, code_challenge: str | None = None
+) -> str:
     ensure_provider_operable(provider)
     if settings.mercadopago_simulated:
         base = resolve_public_backend_base_url(base_url)
@@ -466,19 +485,21 @@ def build_oauth_connect_url(*, provider: PaymentProvider, state: str, base_url: 
             f"Configure {callback_url} in Admin and in the Mercado Pago application Redirect URL."
         )
 
-    query = urlencode(
-        {
-            "client_id": provider.client_id,
-            "response_type": "code",
-            "platform_id": "mp",
-            "redirect_uri": provider.redirect_uri,
-            "state": state,
-        }
-    )
+    query_params = {
+        "client_id": provider.client_id,
+        "response_type": "code",
+        "platform_id": "mp",
+        "redirect_uri": provider.redirect_uri,
+        "state": state,
+    }
+    if code_challenge:
+        query_params["code_challenge"] = code_challenge
+        query_params["code_challenge_method"] = "S256"
+    query = urlencode(query_params)
     return f"{settings.mercadopago_auth_base_url.rstrip('/')}/authorization?{query}"
 
 
-def exchange_oauth_code(code: str, provider: PaymentProvider) -> dict[str, Any]:
+def exchange_oauth_code(code: str, provider: PaymentProvider, code_verifier: str | None = None) -> dict[str, Any]:
     if settings.mercadopago_simulated and code == "SIMULATED-OAUTH":
         return {
             "access_token": "SIMULATED-SELLER-ACCESS-TOKEN",
@@ -494,16 +515,19 @@ def exchange_oauth_code(code: str, provider: PaymentProvider) -> dict[str, Any]:
     provider = ensure_provider_operable(provider)
 
     try:
+        data = {
+            "client_id": provider.client_id,
+            "client_secret": get_provider_client_secret(provider),
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": provider.redirect_uri,
+        }
+        if code_verifier:
+            data["code_verifier"] = code_verifier
         response = httpx.post(
             f"{settings.mercadopago_api_base_url.rstrip('/')}/oauth/token",
             headers=_oauth_form_headers(),
-            data={
-                "client_id": provider.client_id,
-                "client_secret": get_provider_client_secret(provider),
-                "grant_type": "authorization_code",
-                "code": code,
-                "redirect_uri": provider.redirect_uri,
-            },
+            data=data,
             timeout=settings.mercadopago_timeout_seconds,
         )
     except httpx.HTTPError as exc:
