@@ -34,10 +34,10 @@ export function PricingSummaryCard({
   const showCombinedDiscount = discountMode === "combined" && hasDiscount(combinedDiscount);
 
   return (
-    <div className="rounded-[28px] bg-white p-5 shadow-sm">
+    <div className="app-panel p-5">
       <h3 className="text-lg font-bold">{title}</h3>
       {!isPricingComplete(pricing) ? (
-        <p className="mt-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <p className="mt-2 rounded bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Algunos importes se estan actualizando. El total final se confirmara antes de finalizar el pedido.
         </p>
       ) : null}

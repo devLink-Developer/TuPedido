@@ -25,7 +25,7 @@ import { statusLabels } from "../../../shared/utils/labels";
 
 function StatusBadge({ value }: { value: string }) {
   return (
-    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
+    <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
       {statusLabels[value] ?? value}
     </span>
   );
@@ -135,14 +135,14 @@ export function LiquidationsPage() {
 
       <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <section className="space-y-4">
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-5 shadow-sm">
             <SectionTitle
               title="Avisos con comprobante"
               help="Verifica el comprobante enviado por el comercio antes de aprobar o rechazar la liquidacion."
             />
             <div className="mt-4 space-y-3">
               {settlementNotices.map((notice) => (
-                <div key={notice.id} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
+                <div key={notice.id} className="rounded bg-zinc-50 p-4 text-sm">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-ink">{notice.store_name ?? "Comercio"}</p>
@@ -156,7 +156,7 @@ export function LiquidationsPage() {
                   {notice.proof_url ? (
                     <div className="mt-3">
                       {notice.proof_content_type?.startsWith("image/") ? (
-                        <img src={notice.proof_url} alt="Comprobante" className="max-h-48 rounded-2xl object-contain" />
+                        <img src={notice.proof_url} alt="Comprobante" className="max-h-48 rounded object-contain" />
                       ) : (
                         <a href={notice.proof_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-brand-600">
                           Ver comprobante PDF
@@ -168,7 +168,7 @@ export function LiquidationsPage() {
                     value={noticeNotes[notice.id] ?? notice.reviewed_notes ?? ""}
                     onChange={(event) => setNoticeNotes((current) => ({ ...current, [notice.id]: event.target.value }))}
                     rows={2}
-                    className="mt-3 w-full rounded-2xl border border-black/10 bg-white px-4 py-3"
+                    className="mt-3 w-full rounded border border-black/10 bg-white px-4 py-3"
                     placeholder="Notas de revision"
                     disabled={reviewingNoticeId === notice.id || notice.status !== "pending_review"}
                   />
@@ -200,14 +200,14 @@ export function LiquidationsPage() {
         </section>
 
         <section className="space-y-4">
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-5 shadow-sm">
             <SectionTitle
               title="Comercios y riders pendientes"
               help="Muestra comercios con saldo pendiente y riders con pagos todavia sin confirmar."
             />
             <div className="mt-4 space-y-3">
               {settlementStores.map((store) => (
-                <div key={store.id} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
+                <div key={store.id} className="rounded bg-zinc-50 p-4 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <strong>{store.store_name}</strong>
                     <span>{formatCurrency(store.pending_balance)}</span>
@@ -218,7 +218,7 @@ export function LiquidationsPage() {
                 </div>
               ))}
               {deliverySettlements.map((settlement) => (
-                <div key={settlement.rider_user_id} className="rounded-[22px] border border-black/5 bg-white p-4 text-sm">
+                <div key={settlement.rider_user_id} className="rounded border border-black/5 bg-white p-4 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <strong>{settlement.rider_name}</strong>
                     <span>{formatCurrency(settlement.pending_amount)}</span>
@@ -231,14 +231,14 @@ export function LiquidationsPage() {
             </div>
           </article>
 
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-5 shadow-sm">
             <SectionTitle
               title="Movimientos recientes"
               help="Muestra los ultimos pagos y reportes informados por los comercios."
             />
             <div className="mt-4 space-y-3">
               {settlementPayments.slice(0, 4).map((payment) => (
-                <div key={`platform-${payment.id}`} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
+                <div key={`platform-${payment.id}`} className="rounded bg-zinc-50 p-4 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <strong>{payment.store_name ?? "Comercio"}</strong>
                     <span>{formatCurrency(payment.amount)}</span>
@@ -249,7 +249,7 @@ export function LiquidationsPage() {
                 </div>
               ))}
               {deliveryPayments.slice(0, 4).map((payment) => (
-                <div key={`rider-${payment.id}`} className="rounded-[22px] border border-black/5 bg-white p-4 text-sm">
+                <div key={`rider-${payment.id}`} className="rounded border border-black/5 bg-white p-4 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <strong>{payment.rider_name ?? "Rider"}</strong>
                     <span>{formatCurrency(payment.amount)}</span>
@@ -265,14 +265,14 @@ export function LiquidationsPage() {
             </div>
           </article>
 
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-5 shadow-sm">
             <SectionTitle
               title="Notificaciones"
               help="Eventos recientes relacionados con revisiones, pagos reportados y confirmaciones."
             />
             <div className="mt-4 space-y-3">
               {notifications.slice(0, 5).map((notification) => (
-                <div key={notification.id} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
+                <div key={notification.id} className="rounded bg-zinc-50 p-4 text-sm">
                   <p className="font-semibold text-ink">{notification.title}</p>
                   <p className="mt-2 text-zinc-600">{notification.body}</p>
                   <p className="mt-2 text-xs uppercase tracking-[0.18em] text-zinc-400">
@@ -286,7 +286,7 @@ export function LiquidationsPage() {
         </section>
       </div>
 
-      <section className="rounded-[28px] bg-white p-5 shadow-sm">
+      <section className="rounded bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Historial</p>
@@ -297,13 +297,13 @@ export function LiquidationsPage() {
               </HelpTooltip>
             </div>
           </div>
-          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+          <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
             {history.length} eventos
           </span>
         </div>
         <div className="mt-4 space-y-3">
           {history.map((entry) => (
-            <article key={entry.id} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
+            <article key={entry.id} className="rounded bg-zinc-50 p-4 text-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-ink">{entry.title}</p>

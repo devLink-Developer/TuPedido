@@ -38,7 +38,7 @@ export function StoreList({
           <Link
             key={store.id}
             to={`/c/tienda/${store.id}`}
-            className="group overflow-hidden rounded-[30px] border bg-white transition hover:-translate-y-1"
+            className="group overflow-hidden rounded border bg-white transition hover:-translate-y-1"
             style={{
               borderColor: categoryActive ? activeTheme.accentBorderStrong : activeTheme.accentBorder,
               backgroundImage: activeTheme.cardSurface,
@@ -66,7 +66,7 @@ export function StoreList({
               <div className="absolute inset-x-0 bottom-0 h-24 bg-[linear-gradient(180deg,transparent,rgba(24,24,27,0.82))]" />
               <div className="absolute left-4 top-4">
                 <span
-                  className="inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-white"
+                  className="inline-flex rounded px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-white"
                   style={{ backgroundColor: categoryActive ? activeTheme.accent : "rgba(24,24,27,0.72)" }}
                 >
                   {store.primary_category ?? "Comercio"}
@@ -80,7 +80,7 @@ export function StoreList({
                   <p className="mt-1 line-clamp-2 text-sm text-zinc-600">{store.address}</p>
                 </div>
                 <span
-                  className="rounded-full px-3 py-1 text-xs font-bold"
+                  className="rounded px-3 py-1 text-xs font-bold"
                   style={{
                     backgroundColor: categoryActive ? activeTheme.accentLight : "#FEF3C7",
                     color: categoryActive ? activeTheme.accent : "#92400E"
@@ -93,7 +93,7 @@ export function StoreList({
               <p className="line-clamp-2 text-sm leading-6 text-zinc-600">{store.description}</p>
 
               <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                <span className={`rounded-full px-3 py-1 ${store.is_open ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+                <span className={`rounded px-3 py-1 ${store.is_open ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
                   {store.is_open ? "Abierto" : "Cerrado"}
                 </span>
                 {store.primary_category ? (
@@ -110,7 +110,7 @@ export function StoreList({
 
               <div className="flex flex-wrap gap-2 text-xs font-semibold text-zinc-500">
                 <span
-                  className="rounded-full px-3 py-1"
+                  className="rounded px-3 py-1"
                   style={{
                     backgroundColor: categoryActive ? activeTheme.accentSoft : "#F4F4F5",
                     color: categoryActive ? activeTheme.textTint : "#71717A"
@@ -121,7 +121,7 @@ export function StoreList({
                     : "Solo retiro"}
                 </span>
                 <span
-                  className="rounded-full px-3 py-1"
+                  className="rounded px-3 py-1"
                   style={{
                     backgroundColor: categoryActive ? activeTheme.accentSoft : "#F4F4F5",
                     color: categoryActive ? activeTheme.textTint : "#71717A"
@@ -130,7 +130,7 @@ export function StoreList({
                   {store.payment_settings.cash_enabled ? "Efectivo" : "Sin efectivo"}
                 </span>
                 <span
-                  className="rounded-full px-3 py-1"
+                  className="rounded px-3 py-1"
                   style={{
                     backgroundColor: categoryActive ? activeTheme.accentSoft : "#F4F4F5",
                     color: categoryActive ? activeTheme.textTint : "#71717A"

@@ -47,13 +47,32 @@ function TonePill({ value }: { value: string }) {
   return (
     <span
       className={[
-        "rounded-full border px-3 py-1 text-xs font-semibold",
+        "rounded border px-3 py-1 text-xs font-semibold",
         orderStateTone[value] ?? "border-zinc-200 bg-zinc-50 text-zinc-700"
       ].join(" ")}
     >
       {statusLabels[value] ?? value}
     </span>
   );
+}
+
+function nextActionLabel(order: Order) {
+  if (requiresPaymentApproval(order) && order.status === "created") {
+    return "Esperar pago";
+  }
+  if (order.status === "created" || order.status === "accepted") {
+    return "Aceptar";
+  }
+  if (order.status === "preparing") {
+    return order.delivery_mode === "delivery" ? "Marcar listo" : "Listo para retiro";
+  }
+  if (order.delivery_mode === "pickup" && order.status === "ready_for_pickup") {
+    return "Entregar";
+  }
+  if (canAssignRider(order)) {
+    return order.assigned_rider_id ? "Reasignar repartidor" : "Asignar repartidor";
+  }
+  return "En seguimiento";
 }
 
 export function OrdersTable({
@@ -102,7 +121,7 @@ export function OrdersTable({
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{group.dateKey}</p>
               <h2 className="mt-1 text-lg font-bold text-ink">{group.label}</h2>
             </div>
-            <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-semibold text-zinc-600">
+            <span className="rounded bg-zinc-100 px-2.5 py-1 text-[11px] font-semibold text-zinc-600">
               {group.orders.length} pedidos
             </span>
           </div>
@@ -118,7 +137,7 @@ export function OrdersTable({
             return (
               <article
                 key={order.id}
-                className="rounded-[24px] border border-[var(--color-border-default)] bg-white/95 p-4 shadow-[0_18px_36px_-30px_rgba(24,19,18,0.28)]"
+                className="rounded border border-[var(--color-border-default)] bg-white/95 p-4 shadow-[0_18px_36px_-30px_rgba(24,19,18,0.28)]"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -127,7 +146,10 @@ export function OrdersTable({
                       {order.customer_name} | {formatDateTime(order.created_at)}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded border border-[rgba(255,106,26,0.22)] bg-[var(--kp-accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--kp-accent)]">
+                      {nextActionLabel(order)}
+                    </span>
                     <TonePill value={order.status} />
                     <TonePill value={order.delivery_status} />
                   </div>
@@ -139,22 +161,24 @@ export function OrdersTable({
                   <p>Total cliente: {formatCurrency(order.pricing.total)}</p>
                   <p>Delivery: {formatCurrency(order.delivery_fee_customer)}</p>
                   <p>Fee plataforma: {formatCurrency(order.pricing.serviceFee)}</p>
-                  <p>Rider: {order.assigned_rider_name ?? "Sin asignar"}</p>
-                  <p>Tipo: {order.delivery_mode === "delivery" ? "Envio" : "Retiro"}</p>
+                  <p>Repartidor: {order.assigned_rider_name ?? "Sin asignar"}</p>
+                  <p>Tipo: {order.delivery_mode === "delivery" ? "Envío" : "Retiro"}</p>
                   <p>Promociones: {formatCurrency(order.financial_discount_total)}</p>
                 </div>
 
                 {paymentBlocked && order.status === "created" ? (
-                  <p className="mt-3.5 rounded-[18px] border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[13px] text-amber-950">
-                    Espera la aprobacion de Mercado Pago antes de aceptar este pedido.
+                  <p className="mt-3.5 rounded border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[13px] text-amber-950">
+                    Espera la aprobación de Mercado Pago antes de aceptar este pedido.
                   </p>
                 ) : null}
 
-                <div className="mt-3.5 flex flex-wrap gap-2">
+                <div className="mt-3.5 rounded border border-black/5 bg-[#fffaf5] p-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Siguiente acción</p>
+                  <div className="flex flex-wrap gap-2">
                   {(order.status === "created" || order.status === "accepted") && (
                     <Button
                       type="button"
-                      className="!min-h-10 !rounded-[16px] !bg-zinc-900 !px-3.5 !py-2 !text-[13px]"
+                      className="!min-h-10 !rounded !px-3.5 !py-2 !text-[13px]"
                       disabled={paymentBlocked || busyActionKey === `${order.id}:preparing`}
                       onClick={() => void onUpdateStatus(order.id, "preparing")}
                     >
@@ -165,7 +189,7 @@ export function OrdersTable({
                   {order.delivery_mode === "delivery" && order.status === "preparing" && (
                     <Button
                       type="button"
-                      className="!min-h-10 !rounded-[16px] !bg-zinc-900 !px-3.5 !py-2 !text-[13px]"
+                      className="!min-h-10 !rounded !px-3.5 !py-2 !text-[13px]"
                       disabled={busyActionKey === `${order.id}:ready_for_dispatch`}
                       onClick={() => void onUpdateStatus(order.id, "ready_for_dispatch")}
                     >
@@ -176,7 +200,7 @@ export function OrdersTable({
                   {order.delivery_mode === "pickup" && order.status === "preparing" && (
                     <Button
                       type="button"
-                      className="!min-h-10 !rounded-[16px] !bg-zinc-900 !px-3.5 !py-2 !text-[13px]"
+                      className="!min-h-10 !rounded !px-3.5 !py-2 !text-[13px]"
                       disabled={busyActionKey === `${order.id}:ready_for_pickup`}
                       onClick={() => void onUpdateStatus(order.id, "ready_for_pickup")}
                     >
@@ -187,7 +211,7 @@ export function OrdersTable({
                   {order.delivery_mode === "pickup" && order.status === "ready_for_pickup" && (
                     <Button
                       type="button"
-                      className="!min-h-10 !rounded-[16px] !bg-zinc-900 !px-3.5 !py-2 !text-[13px]"
+                      className="!min-h-10 !rounded !px-3.5 !py-2 !text-[13px]"
                       disabled={busyActionKey === `${order.id}:delivered`}
                       onClick={() => void onUpdateStatus(order.id, "delivered")}
                     >
@@ -198,25 +222,26 @@ export function OrdersTable({
                   {canCancelOrder(order) && (
                     <Button
                       type="button"
-                      className="!min-h-10 !rounded-[16px] !bg-rose-600 !px-3.5 !py-2 !text-[13px] !shadow-none"
+                      className="!min-h-10 !rounded !bg-rose-600 !px-3.5 !py-2 !text-[13px] !shadow-none"
                       disabled={busyActionKey === `${order.id}:cancelled`}
                       onClick={() => void onUpdateStatus(order.id, "cancelled")}
                     >
                       {busyActionKey === `${order.id}:cancelled` ? "Cancelando..." : "Cancelar"}
                     </Button>
                   )}
+                  </div>
                 </div>
 
                 {canAssignRider(order) ? (
-                  <div className="mt-3.5 rounded-[20px] border border-black/5 bg-zinc-50 p-3.5">
+                  <div className="mt-3.5 rounded border border-black/5 bg-zinc-50 p-3.5">
                     <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Asignacion</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Asignación</p>
                         <h4 className="mt-1.5 text-sm font-bold text-ink">
-                          {order.assigned_rider_id ? "Reasignar rider" : "Asignar rider"}
+                          {order.assigned_rider_id ? "Reasignar repartidor" : "Asignar repartidor"}
                         </h4>
                         <p className="mt-1 text-[13px] text-zinc-600">
-                          Solo aparecen riders activos y disponibles del comercio.
+                          Solo aparecen repartidores activos y disponibles del comercio.
                         </p>
                       </div>
                       <div className="flex w-full flex-col gap-2 md:w-auto md:min-w-[320px] md:flex-row">
@@ -229,9 +254,9 @@ export function OrdersTable({
                             }))
                           }
                           disabled={!assignmentRiders.length || assignBusy}
-                          className="min-w-[200px] rounded-[16px] border border-black/10 bg-white px-3.5 py-2.5 text-[13px] text-zinc-700 outline-none"
+                          className="min-w-[200px] rounded border border-black/10 bg-white px-3.5 py-2.5 text-[13px] text-zinc-700 outline-none"
                         >
-                          {!assignmentRiders.length ? <option value="">Sin riders disponibles</option> : null}
+                          {!assignmentRiders.length ? <option value="">Sin repartidores disponibles</option> : null}
                           {assignmentRiders.map((rider) => (
                             <option key={rider.user_id} value={rider.user_id}>
                               {rider.full_name} | {statusLabels[rider.availability] ?? rider.availability}
@@ -240,11 +265,11 @@ export function OrdersTable({
                         </select>
                         <Button
                           type="button"
-                          className="!min-h-10 !rounded-[16px] !px-3.5 !py-2 !text-[13px]"
+                          className="!min-h-10 !rounded !px-3.5 !py-2 !text-[13px]"
                           disabled={!selectedRiderValue || assignBusy}
                           onClick={() => void onAssignRider(order.id, Number(selectedRiderValue))}
                         >
-                          {assignBusy ? "Asignando..." : order.assigned_rider_id ? "Reasignar rider" : "Asignar rider"}
+                          {assignBusy ? "Asignando..." : order.assigned_rider_id ? "Reasignar repartidor" : "Asignar repartidor"}
                         </Button>
                       </div>
                     </div>

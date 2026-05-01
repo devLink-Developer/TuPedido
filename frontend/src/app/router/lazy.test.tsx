@@ -11,6 +11,6 @@ describe("lazy module routes", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText(/Todo lo que necesitas en un solo lugar/i)).toBeInTheDocument();
+    expect(await screen.findByAltText(/Vista inicial de KePedimos/i)).toBeInTheDocument();
   });
 });

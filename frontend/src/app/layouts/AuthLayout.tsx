@@ -1,31 +1,25 @@
 import type { PropsWithChildren } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { BrandMark } from "../../shared/components";
-import { usePlatformBranding } from "../../shared/providers/PlatformBrandingProvider";
+import { KE_BRAND_NAME } from "../../shared/config/brand";
 
 export function AuthLayout({ children }: PropsWithChildren) {
   const location = useLocation();
-  const { brandName, branding } = usePlatformBranding();
   const isLoginRoute = location.pathname === "/login";
   const isRegisterRoute = location.pathname === "/registro";
 
   return (
-    <div className="app-shell ambient-grid min-h-screen text-ink">
+    <div className="app-shell min-h-screen text-ink">
       <header className="sticky top-0 z-30">
-        <div className="app-toolbar w-full border border-x-0 border-[var(--color-border-default)]">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4 md:px-8">
-            <Link to="/" aria-label={`Ir al inicio de ${brandName}`} className="inline-flex items-center">
-              <BrandMark
-                brandName={brandName}
-                logoUrl={branding?.platform_logo_url ?? null}
-                imageClassName="h-11 max-w-[12rem] sm:h-12 sm:max-w-[13.5rem]"
-                textClassName="text-[clamp(1.6rem,4vw,2.3rem)] text-[#24130e]"
-              />
+        <div className="app-toolbar w-full border-x-0">
+          <div className="mx-auto flex min-h-[76px] w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 md:px-8">
+            <Link to="/" aria-label={`Ir al inicio de ${KE_BRAND_NAME}`} className="inline-flex items-center">
+              <BrandMark imageClassName="h-11 w-[10.25rem] sm:h-12 sm:w-[11.5rem]" />
             </Link>
             <div className="flex items-center gap-2">
               {!isLoginRoute ? (
                 <Link
-                  className="inline-flex min-h-[44px] items-center border border-[var(--landing-accent-border)] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-brand-200 hover:text-ink"
+                  className="kp-soft-action min-h-[48px] px-4 py-2 text-sm"
                   to="/login"
                 >
                   Ingresar

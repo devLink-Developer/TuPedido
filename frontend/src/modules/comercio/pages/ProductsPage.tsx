@@ -75,9 +75,9 @@ export function ProductsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Comercio"
-        title="Productos"
-        description="Administra un catalogo real con datos comerciales, stock, imagenes y descuentos."
+        eyebrow="Comercial"
+        title="Catálogo"
+        description="Da de alta productos y mantené el listado ordenado por disponibilidad, stock y precio."
         action={
           <Button
             type="button"
@@ -88,18 +88,18 @@ export function ProductsPage() {
             }}
             disabled={!categories.length}
           >
-            Agregar producto
+            Nuevo producto
           </Button>
         }
       />
 
       {!categories.length ? (
         <EmptyState
-          title="Primero crea la taxonomia del catalogo"
-          description="Configura categorias y subcategorias en la seccion de configuracion antes de dar de alta productos."
+          title="Primero crea la taxonomía del catálogo"
+          description="Configura categorías y subcategorías en Configuración antes de dar de alta productos."
           action={
-            <Link to="/m/configuracion" className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white">
-              Ir a configuracion
+            <Link to="/m/configuracion" className="rounded bg-brand-500 px-4 py-2 text-sm font-semibold text-white">
+              Ir a configuración
             </Link>
           }
         />
@@ -115,11 +115,11 @@ export function ProductsPage() {
       />
 
       {formOpen ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(17,24,39,0.48)] p-4 md:items-center">
-          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[32px] bg-[linear-gradient(180deg,#fcf6ef_0%,#fffdfa_100%)] p-3 shadow-[0_32px_80px_rgba(24,19,18,0.28)] md:p-5">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(92,52,24,0.24)] p-4 backdrop-blur-[2px] md:items-center">
+          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded bg-[linear-gradient(180deg,#fcf6ef_0%,#fffdfa_100%)] p-3 shadow-[0_32px_80px_rgba(24,19,18,0.28)] md:p-5">
             <div className="mb-4 flex items-center justify-between gap-3 px-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Catalogo</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Catálogo</p>
                 <h2 className="mt-2 text-2xl font-bold text-ink">
                   {editingProduct ? "Editar producto" : "Nuevo producto"}
                 </h2>
@@ -130,7 +130,7 @@ export function ProductsPage() {
                   setEditingProduct(null);
                   setFormOpen(false);
                 }}
-                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
+                className="kp-soft-action min-h-[40px] px-4 py-2 text-sm"
               >
                 Cerrar
               </button>

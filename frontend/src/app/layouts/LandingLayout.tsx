@@ -1,39 +1,32 @@
 import type { PropsWithChildren } from "react";
 import { Link } from "react-router-dom";
 import { BrandMark } from "../../shared/components";
-import { usePlatformBranding } from "../../shared/providers/PlatformBrandingProvider";
+import { KE_BRAND_NAME } from "../../shared/config/brand";
 
 export function LandingLayout({ children }: PropsWithChildren) {
-  const { brandName, branding } = usePlatformBranding();
-
   return (
-    <div className="app-shell min-h-screen text-ink">
-      <header className="sticky top-0 z-30">
-        <div className="app-toolbar w-full border border-x-0 border-[var(--color-border-default)]">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4 md:px-8">
-            <Link to="/" aria-label={`Ir al inicio de ${brandName}`} className="inline-flex items-center">
-              <BrandMark
-                brandName={brandName}
-                logoUrl={branding?.platform_logo_url ?? null}
-                imageClassName="h-11 max-w-[12rem] sm:h-12 sm:max-w-[13.5rem]"
-                textClassName="text-[clamp(1.6rem,3vw,2.2rem)] text-[#24130e]"
-              />
+    <div className="kp-landing-root min-h-screen text-ink">
+      <header className="kp-site-header">
+        <div className="kp-shell kp-header-shell">
+          <Link to="/" aria-label={`Ir al inicio de ${KE_BRAND_NAME}`} className="kp-brand-link">
+            <BrandMark imageClassName="kp-header-brand" />
+          </Link>
+          <nav className="kp-site-nav" aria-label="Navegacion principal">
+            <a href="#comercios">Comercios</a>
+            <a href="#como-funciona">Como funciona</a>
+            <a href="#ayuda">Ayuda</a>
+          </nav>
+          <div className="kp-header-actions">
+            <Link className="kp-button kp-button-outline" to="/login">
+              Ingresar
             </Link>
-            <div className="flex items-center gap-2">
-              <Link
-                className="inline-flex min-h-[44px] items-center border border-[var(--landing-accent-border)] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-brand-200 hover:text-ink"
-                to="/login"
-              >
-                Ingresar
-              </Link>
-              <Link className="app-button px-4 py-2 text-sm" to="/registro">
-                Crear cuenta
-              </Link>
-            </div>
+            <Link className="kp-button kp-button-primary" to="/registro">
+              Crear cuenta
+            </Link>
           </div>
         </div>
       </header>
-      <main className="relative mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-8">{children}</main>
+      <main className="kp-landing-main">{children}</main>
     </div>
   );
 }

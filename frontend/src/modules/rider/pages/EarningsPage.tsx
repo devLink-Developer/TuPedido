@@ -96,17 +96,17 @@ export function EarningsPage() {
       <EarningsSummary settlement={settlement} />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="mesh-surface rounded-[28px] border border-white/80 p-5 shadow-lift">
+        <div className="mesh-surface rounded border border-white/80 p-5 shadow-lift">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pagos registrados</p>
           <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink">{payments.length}</h3>
         </div>
-        <div className="mesh-surface rounded-[28px] border border-white/80 p-5 shadow-lift">
+        <div className="mesh-surface rounded border border-white/80 p-5 shadow-lift">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pendiente de confirmar</p>
           <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink">
             {payments.filter((payment) => payment.receiver_status === "pending_confirmation").length}
           </h3>
         </div>
-        <div className="mesh-surface rounded-[28px] border border-white/80 p-5 shadow-lift">
+        <div className="mesh-surface rounded border border-white/80 p-5 shadow-lift">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Notificaciones</p>
           <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink">{notifications.length}</h3>
         </div>
@@ -125,7 +125,7 @@ export function EarningsPage() {
         {payments.length ? (
           <div className="space-y-4">
             {payments.map((payment) => (
-              <article key={payment.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+              <article key={payment.id} className="rounded bg-white p-5 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold text-ink">{payment.store_name ?? "Comercio"}</p>
@@ -133,7 +133,7 @@ export function EarningsPage() {
                       {formatCurrency(payment.amount)} | {formatDateTime(payment.paid_at)}
                     </p>
                   </div>
-                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+                  <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
                     {statusLabels[payment.receiver_status] ?? payment.receiver_status}
                   </span>
                 </div>
@@ -150,7 +150,7 @@ export function EarningsPage() {
                   onChange={(event) => setDraftNotes((current) => ({ ...current, [payment.id]: event.target.value }))}
                   rows={2}
                   placeholder="Agrega una nota para confirmar o disputar este pago"
-                  className="mt-4 w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                  className="mt-4 w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 />
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button

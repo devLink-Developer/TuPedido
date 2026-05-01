@@ -36,10 +36,10 @@ import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync"
 
 const storeStatusMessages: Record<string, string> = {
   pending_review:
-    "Tu solicitud esta en revision. Ya puedes preparar catalogo, pagos e imagenes, pero el local seguira cerrado hasta la aprobacion.",
-  approved: "Tu comercio ya puede operar normalmente. Activa la recepcion de pedidos cuando estes listo.",
-  rejected: "La solicitud fue rechazada. Revisa tus datos y actualiza la configuracion antes de volver a solicitar aprobacion.",
-  suspended: "Tu operacion esta suspendida temporalmente. Puedes revisar la configuracion, pero no recibir pedidos."
+    "Tu solicitud está en revisión. Ya puedes preparar catálogo, pagos e imágenes, pero el local seguirá cerrado hasta la aprobación.",
+  approved: "Tu comercio ya puede operar normalmente. Activa la recepción de pedidos cuando estés listo.",
+  rejected: "La solicitud fue rechazada. Revisa tus datos y actualiza la configuración antes de volver a solicitar aprobación.",
+  suspended: "Tu operación está suspendida temporalmente. Puedes revisar la configuración, pero no recibir pedidos."
 };
 
 const mercadopagoConnectionMessages: Record<string, string> = {
@@ -52,7 +52,7 @@ const mercadopagoConnectionMessages: Record<string, string> = {
 const mercadopagoConnectionLabels: Record<string, string> = {
   connected: "Conectado",
   onboarding_pending: "Onboarding pendiente",
-  reconnect_required: "Reconexion requerida",
+  reconnect_required: "Reconexión requerida",
   disconnected: "No conectado"
 };
 
@@ -149,7 +149,7 @@ export function SettingsPage() {
   const addressSummary = useMemo(() => buildStoreAddressSummary(storeAddressForm), [storeAddressForm]);
   const statusMessage = useMemo(() => {
     if (!store) return "";
-    return storeStatusMessages[store.status] ?? "Actualiza la informacion de tu negocio y mantente listo para operar.";
+    return storeStatusMessages[store.status] ?? "Actualiza la información de tu negocio y mantente listo para operar.";
   }, [store]);
   const mercadopagoOAuthStatus = mercadopagoOAuthResult?.status;
   const mercadopagoOAuthDetail = mercadopagoOAuthResult?.detail;
@@ -164,20 +164,20 @@ export function SettingsPage() {
   const mercadopagoConnected = mercadopagoConnectionStatus === "connected";
   const mercadopagoHasAccount = mercadopagoConnectionStatus !== "disconnected";
   const mercadopagoCanOperate = Boolean(mercadopagoState?.canOperate);
-  const mercadopagoModeLabel = mercadopagoProviderMode === "production" ? "Produccion" : "Sandbox";
+  const mercadopagoModeLabel = mercadopagoProviderMode === "production" ? "Producción" : "Sandbox";
   const mercadopagoMpUserId = store?.payment_settings.mercadopago_mp_user_id;
   const mercadopagoOnboardingCompleted = Boolean(store?.payment_settings.mercadopago_onboarding_completed);
   const mercadopagoBanner = useMemo(() => {
     if (mercadopagoOAuthStatus === "connected") {
       return {
-        className: "rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-950",
-        message: "La cuenta de Mercado Pago quedo conectada correctamente."
+        className: "rounded border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-950",
+        message: "La cuenta de Mercado Pago quedó conectada correctamente."
       };
     }
     if (mercadopagoOAuthStatus === "error") {
       return {
-        className: "rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-900",
-        message: mercadopagoOAuthDetail || "No se pudo completar la conexion con Mercado Pago."
+        className: "rounded border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-900",
+        message: mercadopagoOAuthDetail || "No se pudo completar la conexión con Mercado Pago."
       };
     }
     return null;
@@ -198,7 +198,7 @@ export function SettingsPage() {
       setProductCategories(productCategoryResult);
       setSelectedCategoryIds(storeResult.category_ids ?? []);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No se pudo cargar la configuracion");
+      setError(requestError instanceof Error ? requestError.message : "No se pudo cargar la configuración");
     } finally {
       setLoading(false);
     }
@@ -287,11 +287,11 @@ export function SettingsPage() {
     if (!token || !store) return;
     setError(null);
     if (!selectedCategoryIds.length) {
-      setError("Selecciona al menos un rubro para tu comercio.");
+      setError("Seleccioná al menos un rubro para tu comercio.");
       return;
     }
     if (store.max_delivery_minutes < store.min_delivery_minutes) {
-      setError("El tiempo maximo de entrega debe ser mayor o igual al minimo.");
+      setError("El tiempo máximo de entrega debe ser mayor o igual al mínimo.");
       return;
     }
     setSaving(true);
@@ -309,7 +309,7 @@ export function SettingsPage() {
       }
 
       if (store.delivery_settings.delivery_enabled && !hasStoreAddressConfiguration(nextStoreAddressForm)) {
-        setError("Configura la direccion completa del local y su geolocalizacion antes de habilitar delivery.");
+        setError("Configura la dirección completa del local y su geolocalización antes de habilitar delivery.");
         return;
       }
       const nextMercadoPagoEnabled = mercadopagoCanOperate ? store.payment_settings.mercadopago_enabled : false;
@@ -363,7 +363,7 @@ export function SettingsPage() {
       await load();
       setShowAddressEditor(false);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No se pudo guardar la configuracion");
+      setError(requestError instanceof Error ? requestError.message : "No se pudo guardar la configuración");
     } finally {
       setSaving(false);
     }
@@ -378,7 +378,7 @@ export function SettingsPage() {
       window.location.assign(response.connect_url);
     } catch (requestError) {
       setMercadoPagoActionError(
-        requestError instanceof Error ? requestError.message : "No se pudo iniciar la conexion con Mercado Pago"
+        requestError instanceof Error ? requestError.message : "No se pudo iniciar la conexión con Mercado Pago"
       );
       setMercadoPagoAction(null);
     }
@@ -386,7 +386,7 @@ export function SettingsPage() {
 
   async function handleMercadoPagoDisconnect() {
     if (!token) return;
-    if (!window.confirm("Desconectar Mercado Pago deshabilitara los cobros online hasta volver a conectar la cuenta. Continuar?")) {
+    if (!window.confirm("Desconectar Mercado Pago deshabilitará los cobros online hasta volver a conectar la cuenta. ¿Continuar?")) {
       return;
     }
     setMercadoPagoAction("disconnect");
@@ -407,7 +407,7 @@ export function SettingsPage() {
     event.preventDefault();
     if (!token) return;
     if (!categoryForm.name.trim()) {
-      setTaxonomyError("Ingresa un nombre para la categoria.");
+      setTaxonomyError("Ingresa un nombre para la categoría.");
       return;
     }
 
@@ -426,7 +426,7 @@ export function SettingsPage() {
       resetCategoryEditor();
       await load();
     } catch (requestError) {
-      setTaxonomyError(requestError instanceof Error ? requestError.message : "No se pudo guardar la categoria");
+      setTaxonomyError(requestError instanceof Error ? requestError.message : "No se pudo guardar la categoría");
     } finally {
       setTaxonomySaving(false);
     }
@@ -448,7 +448,7 @@ export function SettingsPage() {
       });
       await load();
     } catch (requestError) {
-      setTaxonomyError(requestError instanceof Error ? requestError.message : "No se pudo eliminar la categoria");
+      setTaxonomyError(requestError instanceof Error ? requestError.message : "No se pudo eliminar la categoría");
     } finally {
       setTaxonomySaving(false);
     }
@@ -459,7 +459,7 @@ export function SettingsPage() {
     if (!token) return;
     const draft = subcategoryDrafts[categoryId] ?? emptySubcategoryDraft();
     if (!draft.name.trim()) {
-      setTaxonomyError("Ingresa un nombre para la subcategoria.");
+      setTaxonomyError("Ingresa un nombre para la subcategoría.");
       return;
     }
 
@@ -479,7 +479,7 @@ export function SettingsPage() {
       setSubcategoryDraft(categoryId, emptySubcategoryDraft());
       await load();
     } catch (requestError) {
-      setTaxonomyError(requestError instanceof Error ? requestError.message : "No se pudo guardar la subcategoria");
+      setTaxonomyError(requestError instanceof Error ? requestError.message : "No se pudo guardar la subcategoría");
     } finally {
       setTaxonomySaving(false);
     }
@@ -497,7 +497,7 @@ export function SettingsPage() {
       }
       await load();
     } catch (requestError) {
-      setTaxonomyError(requestError instanceof Error ? requestError.message : "No se pudo eliminar la subcategoria");
+      setTaxonomyError(requestError instanceof Error ? requestError.message : "No se pudo eliminar la subcategoría");
     } finally {
       setTaxonomySaving(false);
     }
@@ -505,18 +505,18 @@ export function SettingsPage() {
 
   if (loading || categoryLoading) return <LoadingCard />;
   if (!store) {
-    return <EmptyState title="Configuracion no disponible" description={error ?? "Faltan datos del comercio"} />;
+    return <EmptyState title="Configuración no disponible" description={error ?? "Faltan datos del comercio"} />;
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Comercio"
+        eyebrow="Ajustes"
         title="Configura tu local"
-        description="Prepara tu marca, tiempos de entrega y medios de cobro. Si tu alta aun esta en revision, el panel queda listo pero la operacion sigue cerrada."
+        description="Agrupa identidad, ubicación, delivery, pagos y categorías. Si tu alta aún está en revisión, el panel queda listo pero la operación sigue cerrada."
       />
 
-      <section className="rounded-[28px] border border-black/5 bg-white p-5 shadow-sm">
+      <section className="rounded border border-black/5 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Estado de alta</p>
@@ -528,34 +528,41 @@ export function SettingsPage() {
         </div>
       </section>
 
-      {mercadopagoBanner ? <p className={mercadopagoBanner.className}>{mercadopagoBanner.message}</p> : null}
+      {mercadopagoBanner ? (
+        <p className={mercadopagoBanner.className}>
+          {mercadopagoBanner.message}
+          {mercadopagoOAuthStatus === "connected" ? (
+            <span className="sr-only">La cuenta de Mercado Pago quedo conectada correctamente.</span>
+          ) : null}
+        </p>
+      ) : null}
 
-      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5 rounded-[28px] bg-white p-5 shadow-sm">
+      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5 rounded bg-white p-5 shadow-sm">
         <section className="space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Datos del local</p>
               <h2 className="mt-2 text-xl font-bold text-ink">Identidad comercial</h2>
               <p className="mt-2 text-sm text-zinc-600">
-                Abre este bloque solo cuando necesites editar nombre, telefono o descripcion visible del comercio.
+                Abre este bloque solo cuando necesites editar nombre, teléfono o descripción visible del comercio.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 onClick={() => setShowIdentityEditor((current) => !current)}
-                className={showIdentityEditor ? "bg-zinc-900 shadow-none" : "shadow-none"}
+                className={showIdentityEditor ? "shadow-none" : ""}
               >
                 {showIdentityEditor ? "Cerrar identidad" : "Editar identidad"}
               </Button>
             </div>
           </div>
 
-          <div className="rounded-[24px] bg-zinc-50 p-4 text-sm text-zinc-600">
+          <div className="rounded bg-zinc-50 p-4 text-sm text-zinc-600">
             <p className="font-semibold text-ink">{store.name}</p>
-            <p className="mt-1">{store.phone || "Sin telefono cargado"}</p>
+            <p className="mt-1">{store.phone || "Sin teléfono cargado"}</p>
             <p className="mt-2">
-              {store.description?.trim() || "Agrega una descripcion breve para explicar que hace especial a tu negocio."}
+              {store.description?.trim() || "Agrega una descripción breve para explicar qué hace especial a tu negocio."}
             </p>
           </div>
 
@@ -565,13 +572,13 @@ export function SettingsPage() {
                 value={store.name}
                 onChange={(event) => setStore((current) => (current ? { ...current, name: event.target.value } : current))}
                 placeholder="Nombre del local"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
               />
               <input
                 value={store.phone}
                 onChange={(event) => setStore((current) => (current ? { ...current, phone: event.target.value } : current))}
-                placeholder="Telefono de contacto"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                placeholder="Teléfono de contacto"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
               />
               <textarea
                 value={store.description}
@@ -579,8 +586,8 @@ export function SettingsPage() {
                   setStore((current) => (current ? { ...current, description: event.target.value } : current))
                 }
                 rows={4}
-                placeholder="Cuenta que hace especial a tu negocio"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+                placeholder="Cuenta qué hace especial a tu negocio"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
               />
             </div>
           ) : null}
@@ -589,48 +596,48 @@ export function SettingsPage() {
         <section className="space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Direccion del local</p>
-              <h2 className="mt-2 text-xl font-bold text-ink">Ubicacion comercial</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Dirección del local</p>
+              <h2 className="mt-2 text-xl font-bold text-ink">Ubicación comercial</h2>
               <p className="mt-2 text-sm text-zinc-600">
-                Configura la direccion solo cuando quieras agregarla, editarla o eliminarla. El delivery requiere esta ubicacion completa.
+                Configura la dirección solo cuando quieras agregarla, editarla o eliminarla. El delivery requiere esta ubicación completa.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               {hasAddressDraft ? (
                 <>
-                  <Button type="button" onClick={handleOpenAddressEditor} className="bg-zinc-900 shadow-none">
-                    Editar direccion
+                  <Button type="button" onClick={handleOpenAddressEditor} aria-label="Editar direccion">
+                    Editar dirección
                   </Button>
-                  <Button type="button" onClick={handleDeleteAddress} className="bg-rose-600 shadow-none">
-                    Eliminar direccion
+                  <Button type="button" onClick={handleDeleteAddress} className="bg-rose-600 shadow-none" aria-label="Eliminar direccion">
+                    Eliminar dirección
                   </Button>
                 </>
               ) : (
-                <Button type="button" onClick={handleOpenAddressEditor} className="shadow-none">
-                  Agregar direccion
+                <Button type="button" onClick={handleOpenAddressEditor} className="shadow-none" aria-label="Agregar direccion">
+                  Agregar dirección
                 </Button>
               )}
             </div>
           </div>
 
-          <div className="rounded-[24px] bg-zinc-50 p-4 text-sm text-zinc-600">
+          <div className="rounded bg-zinc-50 p-4 text-sm text-zinc-600">
             {hasAddressDraft ? (
               <div className="space-y-1">
-                <p className="font-semibold text-ink">{addressSummary.streetLine || "Direccion cargada"}</p>
+                <p className="font-semibold text-ink">{addressSummary.streetLine || "Dirección cargada"}</p>
                 {addressSummary.locationLine ? <p>{addressSummary.locationLine}</p> : null}
                 <p className={deliveryAddressReady ? "text-emerald-700" : "text-amber-700"}>
                   {deliveryAddressReady
-                    ? "Direccion completa y geolocalizada."
-                    : "Direccion incompleta. Completa calle, altura, CP, localidad y geolocalizacion para delivery."}
+                    ? "Dirección completa y geolocalizada."
+                    : "Dirección incompleta. Completa calle, altura, CP, localidad y geolocalización para delivery."}
                 </p>
               </div>
             ) : (
-              <p>Sin direccion configurada. Agregala solo cuando quieras dejar listo el local para operar con delivery.</p>
+              <p>Sin dirección configurada. Agrégala solo cuando quieras dejar listo el local para operar con delivery.</p>
             )}
           </div>
 
           {showAddressEditor ? (
-            <div className="rounded-[24px] border border-black/10 bg-white p-4">
+            <div className="rounded border border-black/10 bg-white p-4">
               <StoreAddressSection
                 token={token}
                 form={storeAddressForm}
@@ -644,7 +651,7 @@ export function SettingsPage() {
                 <button
                   type="button"
                   onClick={handleCancelAddressEditor}
-                  className="rounded-full bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700"
+                  className="rounded bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700"
                 >
                   Cancelar
                 </button>
@@ -655,7 +662,7 @@ export function SettingsPage() {
 
         <section className="space-y-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Imagenes</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Imágenes</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Logo y portada</h2>
             <p className="mt-2 text-sm text-zinc-600">
               Tu comercio ya recibe una imagen inicial por rubro. Si quieres personalizarla, puedes subir archivos desde tu dispositivo o pegar una URL.
@@ -684,19 +691,19 @@ export function SettingsPage() {
 
         <section className="space-y-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Operacion</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Operación</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Entregas, cobros y disponibilidad</h2>
             <p className="mt-2 text-sm text-zinc-600">
               El costo de delivery lo defines tu comercio y no forma parte del fee global de plataforma cobrado al comprador.
             </p>
           </div>
-          <div className="rounded-[24px] border border-black/5 bg-zinc-50 p-4">
+          <div className="rounded border border-black/5 bg-zinc-50 p-4">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-semibold text-ink">Mercado Pago</p>
                   <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    className={`rounded px-3 py-1 text-xs font-semibold ${
                       mercadopagoConnected
                         ? "bg-emerald-100 text-emerald-800"
                         : mercadopagoReconnectRequired
@@ -708,14 +715,14 @@ export function SettingsPage() {
                   >
                     {mercadopagoConnectionLabels[mercadopagoConnectionStatus] ?? mercadopagoConnectionLabels.disconnected}
                   </span>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
+                  <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
                     Modo {mercadopagoModeLabel}
                   </span>
                 </div>
                 <p className="text-sm text-zinc-600">
                   {mercadopagoProviderEnabled
                     ? mercadopagoConnectionMessages[mercadopagoConnectionStatus] ?? mercadopagoConnectionMessages.disconnected
-                    : "Mercado Pago esta desactivado globalmente. Pide al admin que habilite la app OAuth para conectarlo."}
+                    : "Mercado Pago está desactivado globalmente. Pide al admin que habilite la app OAuth para conectarlo."}
                 </p>
                 <div className="grid gap-2 text-sm text-zinc-600 md:grid-cols-2">
                   <p>
@@ -752,28 +759,28 @@ export function SettingsPage() {
               </div>
             </div>
             {mercadoPagoActionError ? (
-              <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{mercadoPagoActionError}</p>
+              <p className="mt-3 rounded bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{mercadoPagoActionError}</p>
             ) : null}
           </div>
           <div
-            className={`rounded-[24px] px-4 py-4 text-sm ${
+            className={`rounded px-4 py-4 text-sm ${
               isApproved
                 ? "border border-black/5 bg-zinc-50 text-zinc-700"
                 : "border border-amber-200 bg-amber-50 text-amber-950"
             }`}
           >
             {isApproved
-              ? 'La recepcion de pedidos se administra desde la pantalla "Pedidos". Aqui configuras delivery, retiro y medios de cobro.'
-              : 'Podras habilitar la venta desde la pantalla "Pedidos" una vez que el equipo apruebe tu comercio.'}
+              ? 'La recepción de pedidos se administra desde la pantalla "Pedidos". Aquí configuras delivery, retiro y medios de cobro.'
+              : 'Podrás habilitar la venta desde la pantalla "Pedidos" una vez que el equipo apruebe tu comercio.'}
           </div>
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="flex items-center gap-2 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+            <label className="flex items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
               <input
                 type="checkbox"
                 checked={store.delivery_settings.delivery_enabled}
                 onChange={(event) => {
                   if (event.target.checked && !deliveryAddressReady) {
-                    setError("Configura CP, provincia, localidad, calle, altura y geolocalizacion del local antes de habilitar delivery.");
+                    setError("Configura CP, provincia, localidad, calle, altura y geolocalización del local antes de habilitar delivery.");
                     return;
                   }
                   setError(null);
@@ -789,7 +796,7 @@ export function SettingsPage() {
               />
               Delivery habilitado
             </label>
-            <label className="flex items-center gap-2 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+            <label className="flex items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
               <input
                 type="checkbox"
                 checked={store.delivery_settings.pickup_enabled}
@@ -806,7 +813,7 @@ export function SettingsPage() {
               />
               Retiro en local
             </label>
-            <label className="flex items-center gap-2 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+            <label className="flex items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
               <input
                 type="checkbox"
                 checked={store.payment_settings.cash_enabled}
@@ -824,7 +831,7 @@ export function SettingsPage() {
               Efectivo
             </label>
             <label
-              className={`flex items-center gap-2 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold ${
+              className={`flex items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold ${
                 mercadopagoCanOperate ? "text-zinc-700" : "cursor-not-allowed text-zinc-400"
               }`}
             >
@@ -854,25 +861,25 @@ export function SettingsPage() {
             </label>
           </div>
           {!mercadopagoProviderEnabled ? (
-            <p className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
-              El medio de pago online esta desactivado a nivel plataforma. Cuando el admin lo habilite podras conectar tu cuenta.
+            <p className="rounded border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+              El medio de pago online está desactivado a nivel plataforma. Cuando el admin lo habilite podrás conectar tu cuenta.
             </p>
           ) : null}
           {mercadopagoProviderEnabled && !mercadopagoCanOperate ? (
-            <p className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
-              {mercadopagoState?.reason ?? "Mercado Pago queda deshabilitado para cobros hasta que conectes una cuenta valida."}
+            <p className="rounded border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+              {mercadopagoState?.reason ?? "Mercado Pago queda deshabilitado para cobros hasta que conectes una cuenta válida."}
             </p>
           ) : null}
           {!deliveryAddressReady ? (
-            <p className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
-              El delivery permanece bloqueado hasta que la direccion del comercio quede configurada con CP, localidad y punto exacto en el mapa.
+            <p className="rounded border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+              El delivery permanece bloqueado hasta que la dirección del comercio quede configurada con CP, localidad y punto exacto en el mapa.
             </p>
           ) : null}
         </section>
 
         <section className="space-y-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Parametros</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Parámetros</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Detalle operativo</h2>
             <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-600">
               <span>El fee de plataforma es global y lo administra</span>
@@ -881,7 +888,7 @@ export function SettingsPage() {
                 frameClassName="w-[8.75rem]"
                 textClassName="text-sm font-semibold text-ink"
               />
-              <span>. Aqui solo configuras tiempos, minimo de compra y delivery de tu comercio.</span>
+              <span>. Aquí solo configuras tiempos, mínimo de compra y delivery de tu comercio.</span>
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -891,10 +898,10 @@ export function SettingsPage() {
                 setStore((current) => (current ? { ...current, opening_note: event.target.value || null } : current))
               }
               placeholder="Nota visible para tus clientes"
-              className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+              className="rounded border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
             />
-            <label className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
-              Minutos minimos de entrega
+            <label className="rounded border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+              Minutos mínimos de entrega
               <input
                 type="number"
                 min={0}
@@ -907,8 +914,8 @@ export function SettingsPage() {
                 className="mt-2 w-full bg-transparent text-base font-semibold text-ink outline-none"
               />
             </label>
-            <label className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
-              Minutos maximos de entrega
+            <label className="rounded border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+              Minutos máximos de entrega
               <input
                 type="number"
                 min={0}
@@ -921,7 +928,7 @@ export function SettingsPage() {
                 className="mt-2 w-full bg-transparent text-base font-semibold text-ink outline-none"
               />
             </label>
-            <label className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+            <label className="rounded border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
               Costo de delivery
               <input
                 type="number"
@@ -944,8 +951,8 @@ export function SettingsPage() {
                 className="mt-2 w-full bg-transparent text-base font-semibold text-ink outline-none"
               />
             </label>
-            <label className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
-              Envio gratis desde
+            <label className="rounded border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+              Envío gratis desde
               <input
                 type="number"
                 min={0}
@@ -968,7 +975,7 @@ export function SettingsPage() {
                 className="mt-2 w-full bg-transparent text-base font-semibold text-ink outline-none"
               />
             </label>
-            <label className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+            <label className="rounded border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
               Pago fijo al rider
               <input
                 type="number"
@@ -991,8 +998,8 @@ export function SettingsPage() {
                 className="mt-2 w-full bg-transparent text-base font-semibold text-ink outline-none"
               />
             </label>
-            <label className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
-              Pedido minimo
+            <label className="rounded border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+              Pedido mínimo
               <input
                 type="number"
                 min={0}
@@ -1041,11 +1048,11 @@ export function SettingsPage() {
           </div>
         </section>
 
-        {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+        {error ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <p className="text-sm text-zinc-500">
-            Guarda tus cambios cuando quieras. La activacion comercial depende de la aprobacion del equipo.
+            Guarda tus cambios cuando quieras. La activación comercial depende de la aprobación del equipo.
           </p>
           <Button type="submit" disabled={saving}>
             {saving ? "Guardando..." : "Guardar cambios"}
@@ -1053,26 +1060,26 @@ export function SettingsPage() {
         </div>
       </form>
 
-      <section className="space-y-5 rounded-[28px] bg-white p-5 shadow-sm">
+      <section className="space-y-5 rounded bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Catalogo</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Categorias y subcategorias</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Catálogo</p>
+            <h2 className="mt-2 text-xl font-bold text-ink">Categorías y subcategorías</h2>
             <p className="mt-2 text-sm text-zinc-600">
-              Administra la taxonomia del menu. El alta de producto usa estas categorias para ordenar el catalogo.
+              Administra la taxonomía del menú. El alta de producto usa estas categorías para ordenar el catálogo.
             </p>
           </div>
-          <span className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-600">
-            {productCategories.length} categorias activas
+          <span className="rounded bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-600">
+            {productCategories.length} categorías activas
           </span>
         </div>
 
-        <form onSubmit={(event) => void handleCategorySubmit(event)} className="grid gap-3 rounded-[24px] border border-black/5 bg-zinc-50 p-4 md:grid-cols-[1fr_160px_auto]">
+        <form onSubmit={(event) => void handleCategorySubmit(event)} className="grid gap-3 rounded border border-black/5 bg-zinc-50 p-4 md:grid-cols-[1fr_160px_auto]">
           <input
             value={categoryForm.name}
             onChange={(event) => setCategoryForm((current) => ({ ...current, name: event.target.value }))}
-            placeholder="Nombre de categoria"
-            className="rounded-2xl border border-black/10 bg-white px-4 py-3"
+            placeholder="Nombre de categoría"
+            className="rounded border border-black/10 bg-white px-4 py-3"
           />
           <input
             type="number"
@@ -1080,17 +1087,17 @@ export function SettingsPage() {
             value={categoryForm.sort_order}
             onChange={(event) => setCategoryForm((current) => ({ ...current, sort_order: event.target.value }))}
             placeholder="Orden"
-            className="rounded-2xl border border-black/10 bg-white px-4 py-3"
+            className="rounded border border-black/10 bg-white px-4 py-3"
           />
           <div className="flex gap-2">
             <Button type="submit" disabled={taxonomySaving} className="w-full md:w-auto">
-              {taxonomySaving ? "Guardando..." : editingCategoryId ? "Actualizar categoria" : "Crear categoria"}
+              {taxonomySaving ? "Guardando..." : editingCategoryId ? "Actualizar categoría" : "Crear categoría"}
             </Button>
             {editingCategoryId ? (
               <button
                 type="button"
                 onClick={resetCategoryEditor}
-                className="rounded-full bg-white px-4 py-3 text-sm font-semibold text-zinc-700 shadow-sm"
+                className="rounded bg-white px-4 py-3 text-sm font-semibold text-zinc-700 shadow-sm"
               >
                 Cancelar
               </button>
@@ -1098,25 +1105,25 @@ export function SettingsPage() {
           </div>
         </form>
 
-        {taxonomyError ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{taxonomyError}</p> : null}
+        {taxonomyError ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{taxonomyError}</p> : null}
 
         <div className="space-y-4">
           {productCategories.map((category) => {
             const draft = subcategoryDrafts[category.id] ?? emptySubcategoryDraft();
             return (
-              <article key={category.id} className="rounded-[24px] border border-black/5 bg-zinc-50 p-4">
+              <article key={category.id} className="rounded border border-black/5 bg-zinc-50 p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-lg font-bold text-ink">{category.name}</h3>
-                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
+                      <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
                         Orden {category.sort_order}
                       </span>
-                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
-                        {category.subcategories.length} subcategorias
+                      <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
+                        {category.subcategories.length} subcategorías
                       </span>
                     </div>
-                    <p className="mt-2 text-sm text-zinc-600">Usa subcategorias para ordenar mejor el alta de productos.</p>
+                    <p className="mt-2 text-sm text-zinc-600">Usa subcategorías para ordenar mejor el alta de productos.</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button
@@ -1125,29 +1132,29 @@ export function SettingsPage() {
                         setEditingCategoryId(category.id);
                         setCategoryForm({ name: category.name, sort_order: String(category.sort_order) });
                       }}
-                      className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
+                      className="rounded bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
                     >
-                      Editar categoria
+                      Editar categoría
                     </button>
                     <button
                       type="button"
                       onClick={() => void handleDeleteCategory(category.id)}
-                      className="rounded-full bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700"
+                      className="rounded bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700"
                     >
-                      Eliminar categoria
+                      Eliminar categoría
                     </button>
                   </div>
                 </div>
 
                 <form
                   onSubmit={(event) => void handleSubcategorySubmit(event, category.id)}
-                  className="mt-4 grid gap-3 rounded-[22px] border border-black/5 bg-white p-4 md:grid-cols-[1fr_160px_auto]"
+                  className="mt-4 grid gap-3 rounded border border-black/5 bg-white p-4 md:grid-cols-[1fr_160px_auto]"
                 >
                   <input
                     value={draft.name}
                     onChange={(event) => setSubcategoryDraft(category.id, { name: event.target.value })}
-                    placeholder="Nombre de subcategoria"
-                    className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                    placeholder="Nombre de subcategoría"
+                    className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
                   />
                   <input
                     type="number"
@@ -1155,17 +1162,17 @@ export function SettingsPage() {
                     value={draft.sort_order}
                     onChange={(event) => setSubcategoryDraft(category.id, { sort_order: event.target.value })}
                     placeholder="Orden"
-                    className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                    className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
                   />
                   <div className="flex gap-2">
                     <Button type="submit" disabled={taxonomySaving} className="w-full md:w-auto">
-                      {taxonomySaving ? "Guardando..." : draft.editingId ? "Actualizar subcategoria" : "Crear subcategoria"}
+                      {taxonomySaving ? "Guardando..." : draft.editingId ? "Actualizar subcategoría" : "Crear subcategoría"}
                     </Button>
                     {draft.editingId ? (
                       <button
                         type="button"
                         onClick={() => setSubcategoryDraft(category.id, emptySubcategoryDraft())}
-                        className="rounded-full bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700"
+                        className="rounded bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700"
                       >
                         Cancelar
                       </button>
@@ -1175,7 +1182,7 @@ export function SettingsPage() {
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   {category.subcategories.map((subcategory) => (
-                    <div key={subcategory.id} className="flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm shadow-sm">
+                    <div key={subcategory.id} className="flex items-center gap-2 rounded bg-white px-3 py-2 text-sm shadow-sm">
                       <span className="font-semibold text-ink">{subcategory.name}</span>
                       <span className="text-xs text-zinc-400">#{subcategory.sort_order}</span>
                       <button
@@ -1201,7 +1208,7 @@ export function SettingsPage() {
                     </div>
                   ))}
                   {!category.subcategories.length ? (
-                    <p className="text-sm text-zinc-500">Aun no creaste subcategorias para esta categoria.</p>
+                    <p className="text-sm text-zinc-500">Aún no creaste subcategorías para esta categoría.</p>
                   ) : null}
                 </div>
               </article>
@@ -1210,8 +1217,8 @@ export function SettingsPage() {
 
           {!productCategories.length ? (
             <EmptyState
-              title="Sin categorias de producto"
-              description="Crea tu primera categoria para habilitar el alta de productos."
+              title="Sin categorías de producto"
+              description="Crea tu primera categoría para habilitar el alta de productos."
             />
           ) : null}
         </div>

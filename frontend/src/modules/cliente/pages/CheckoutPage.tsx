@@ -174,7 +174,7 @@ export function CheckoutPage() {
         title="No hay items para pagar"
         description="Primero agrega productos al carrito."
         action={
-          <Link className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white" to="/c">
+          <Link className="app-button min-h-[48px] px-4 py-2 text-sm" to="/c">
             Volver al catalogo
           </Link>
         }
@@ -299,7 +299,7 @@ export function CheckoutPage() {
 
       <form onSubmit={(event) => void handleSubmit(event)} className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="app-panel p-5">
             <h3 className="text-lg font-bold">Entrega</h3>
             <p className="mt-1 text-sm text-zinc-500">{cart.delivery_mode === "delivery" ? "Envio a domicilio" : "Retiro en local"}</p>
 
@@ -311,13 +311,14 @@ export function CheckoutPage() {
                     type="button"
                     disabled={address.latitude === null || address.longitude === null}
                     onClick={() => setSelectedAddressId(address.id)}
-                    className={`block w-full rounded-[24px] border px-4 py-3 text-left text-sm ${
+                    className={`block w-full border px-4 py-3 text-left text-sm ${
                       address.latitude === null || address.longitude === null
                         ? "cursor-not-allowed border-amber-200 bg-amber-50 text-amber-900"
                         : selectedAddressId === address.id
                           ? "border-brand-500 bg-brand-50 text-brand-900"
                           : "border-black/10 bg-zinc-50 text-zinc-700"
                     }`}
+                    style={{ borderRadius: 18 }}
                   >
                     <p className="font-semibold">{address.label}</p>
                     <p className="mt-1 text-zinc-500">{address.street}</p>
@@ -336,7 +337,7 @@ export function CheckoutPage() {
                 <button
                   type="button"
                   onClick={() => setShowAddressForm((current) => !current)}
-                  className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold text-zinc-700"
+                  className="kp-soft-action min-h-[44px] px-4 py-2 text-sm"
                 >
                   {showAddressForm ? "Cancelar" : "Agregar direccion"}
                 </button>
@@ -364,24 +365,25 @@ export function CheckoutPage() {
                 {!addresses.length && !showAddressForm ? <p className="text-sm text-zinc-500">Aun no tienes direcciones guardadas.</p> : null}
               </div>
             ) : (
-              <p className="mt-4 rounded-[24px] bg-zinc-50 px-4 py-4 text-sm text-zinc-600">El pedido se retirara en {store?.name ?? cart.store_name}.</p>
+              <p className="mt-4 border border-[var(--kp-stroke)] bg-[#fffaf5] px-4 py-4 text-sm text-zinc-600" style={{ borderRadius: 18 }}>El pedido se retirara en {store?.name ?? cart.store_name}.</p>
             )}
           </div>
 
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="app-panel p-5">
             <h3 className="text-lg font-bold">Pago</h3>
             <fieldset className="mt-4 grid gap-3" role="radiogroup" aria-label="Metodo de pago">
               <legend className="sr-only">Metodo de pago</legend>
               {paymentOptions.map(({ method, available, reason }) => (
                 <label
                   key={method}
-                  className={`min-h-14 rounded-[20px] border px-4 py-3 text-left text-sm transition focus-within:ring-2 focus-within:ring-brand-400 ${
+                  className={`min-h-14 border px-4 py-3 text-left text-sm transition focus-within:ring-2 focus-within:ring-brand-400 ${
                     selectedPaymentMethod === method
                       ? "border-brand-500 bg-brand-50 text-brand-900"
                       : available
                         ? "border-black/10 bg-zinc-50 text-zinc-700 hover:border-brand-200"
                         : "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"
                   }`}
+                  style={{ borderRadius: 18 }}
                 >
                   <input
                     type="radio"
@@ -397,21 +399,21 @@ export function CheckoutPage() {
                   />
                   <span className="flex items-center justify-between gap-3">
                     <span className="font-semibold">{method === "cash" ? "Efectivo" : "Mercado Pago"}</span>
-                    <span className={`h-4 w-4 rounded-full border ${selectedPaymentMethod === method ? "border-brand-500 bg-brand-500" : "border-zinc-300 bg-white"}`} />
+                    <span className={`h-4 w-4 rounded border ${selectedPaymentMethod === method ? "border-brand-500 bg-brand-500" : "border-zinc-300 bg-white"}`} />
                   </span>
                   {reason ? <span className="mt-1 block text-xs text-zinc-500">{reason}</span> : null}
                 </label>
               ))}
             </fieldset>
             {!availableMethods.length ? (
-              <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">
+              <p className="mt-3 rounded bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">
                 El comercio no tiene medios de pago disponibles.
               </p>
             ) : null}
           </div>
 
           {selectedAddress ? (
-            <div className="rounded-[28px] bg-white p-5 text-sm text-zinc-600 shadow-sm">
+            <div className="app-panel p-5 text-sm text-zinc-600">
               <h3 className="text-lg font-bold text-ink">Confirmacion</h3>
               <p className="mt-3">Direccion: {selectedAddress.street}</p>
               {selectedAddress.locality || selectedAddress.province || selectedAddress.postal_code ? (
@@ -421,7 +423,7 @@ export function CheckoutPage() {
             </div>
           ) : null}
 
-          {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{error}</p> : null}
+          {error ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{error}</p> : null}
         </div>
 
         <aside className="space-y-4">

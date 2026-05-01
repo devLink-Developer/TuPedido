@@ -220,11 +220,11 @@ export function DashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <AvailableOrders orders={orders} />
-        <div className="app-panel rounded-[28px] p-5">
+        <div className="app-panel rounded p-5">
           <h3 className="text-lg font-bold">Notificaciones</h3>
           <div className="mt-4 space-y-3">
             {notifications.map((notification) => (
-              <div key={notification.id} className="rounded-2xl bg-zinc-50 p-4 text-sm">
+              <div key={notification.id} className="rounded bg-zinc-50 p-4 text-sm">
                 <p className="font-semibold">{notification.title}</p>
                 <p className="mt-2 text-zinc-600">{notification.body}</p>
                 <p className="mt-2 text-xs uppercase tracking-[0.18em] text-zinc-400">
@@ -234,7 +234,7 @@ export function DashboardPage() {
             ))}
             {!notifications.length ? <p className="text-sm text-zinc-500">No hay notificaciones nuevas.</p> : null}
           </div>
-          <div className="mt-5 rounded-[24px] bg-zinc-50 p-4 text-sm text-zinc-600">
+          <div className="mt-5 rounded bg-zinc-50 p-4 text-sm text-zinc-600">
             <p className="font-semibold text-ink">Estado actual</p>
             <p className="mt-2">{statusLabels[profile.availability] ?? profile.availability}</p>
           </div>

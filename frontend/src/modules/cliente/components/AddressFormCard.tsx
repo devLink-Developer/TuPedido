@@ -440,14 +440,14 @@ export function AddressFormCard({
   }
 
   return (
-    <article className="rounded-[28px] bg-white p-5 shadow-sm">
+    <article className="rounded bg-white p-5 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{title}</p>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <input
           value={form.label}
           onChange={(event) => updateField("label", event.target.value)}
           placeholder="Etiqueta opcional: casa, trabajo, consultorio"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+          className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
         />
         <div className="flex gap-2">
           <input
@@ -469,7 +469,7 @@ export function AddressFormCard({
               );
             }}
             placeholder="CP"
-            className="min-w-0 flex-1 rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="min-w-0 flex-1 rounded border border-black/10 bg-zinc-50 px-4 py-3"
           />
           <Button type="button" onClick={() => void handlePostalCodeLookup()} disabled={lookupLoading || !lookupToken} className="px-4 py-3 text-sm">
             {lookupLoading ? "Buscando..." : "Buscar CP"}
@@ -479,7 +479,7 @@ export function AddressFormCard({
           value={form.province}
           readOnly
           placeholder="Provincia"
-          className="rounded-2xl border border-black/10 bg-zinc-100 px-4 py-3 text-zinc-700"
+          className="rounded border border-black/10 bg-zinc-100 px-4 py-3 text-zinc-700"
         />
         <select
           value={form.locality}
@@ -487,7 +487,7 @@ export function AddressFormCard({
             handleLocalityChange(event.target.value);
           }}
           disabled={!localities.length}
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+          className="rounded border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
         >
           <option value="">{localities.length ? "Selecciona una localidad" : "Primero busca el CP"}</option>
           {localities.map((locality) => (
@@ -505,7 +505,7 @@ export function AddressFormCard({
           }}
           placeholder="Calle"
           disabled={!canEditStreet}
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+          className="rounded border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
         />
         <input
           value={form.street_number}
@@ -517,16 +517,16 @@ export function AddressFormCard({
           onBlur={() => void handleStreetNumberBlur()}
           placeholder="Altura"
           disabled={!canEditStreet}
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+          className="rounded border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
         />
         <textarea
           value={form.details}
           onChange={(event) => updateField("details", event.target.value)}
           rows={4}
           placeholder="Piso, depto, referencia, timbre (opcional)"
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+          className="rounded border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
         />
-        <div className="rounded-[24px] bg-zinc-50 p-4 text-sm text-zinc-600 md:col-span-2">
+        <div className="rounded bg-zinc-50 p-4 text-sm text-zinc-600 md:col-span-2">
           <div>
             <p className="font-semibold text-ink">Geolocalizacion automatica</p>
             <p className="mt-1">
@@ -542,7 +542,7 @@ export function AddressFormCard({
           fallbackLongitude={selectedLocality?.longitude ?? null}
           onChange={(coordinates, source) => void handleMapLocationChange(coordinates, source)}
         />
-        <label className="flex items-center gap-2 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700 md:col-span-2">
+        <label className="flex items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700 md:col-span-2">
           <input
             type="checkbox"
             checked={form.is_default}
@@ -552,10 +552,10 @@ export function AddressFormCard({
         </label>
       </div>
 
-      {lookupError ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{lookupError}</p> : null}
-      {geocodingError ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{geocodingError}</p> : null}
-      {geocodingSuccess ? <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{geocodingSuccess}</p> : null}
-      {error ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+      {lookupError ? <p className="mt-4 rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{lookupError}</p> : null}
+      {geocodingError ? <p className="mt-4 rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{geocodingError}</p> : null}
+      {geocodingSuccess ? <p className="mt-4 rounded bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{geocodingSuccess}</p> : null}
+      {error ? <p className="mt-4 rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Button type="button" onClick={() => void handleSubmitClick()} disabled={saving || geocoding}>
@@ -565,7 +565,7 @@ export function AddressFormCard({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-full bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700"
+            className="rounded bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700"
           >
             Cancelar
           </button>

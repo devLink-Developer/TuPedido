@@ -1,4 +1,5 @@
 import { Link, isRouteErrorResponse, useRouteError } from "react-router-dom";
+import { RotateCcw } from "lucide-react";
 import { EmptyState, PageHeader } from "../../shared/components";
 
 function resolveRouteError(error: unknown) {
@@ -39,14 +40,15 @@ export function RouteErrorBoundary() {
         description={description}
         action={
           <div className="flex flex-wrap justify-center gap-3">
-            <Link to="/" className="rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-float">
+            <Link to="/" className="app-button px-4 py-3 text-sm">
               Ir al inicio
             </Link>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="rounded-full bg-white px-4 py-3 text-sm font-semibold text-zinc-700 shadow-sm"
+              className="kp-soft-action px-4 py-3 text-sm"
             >
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
               Reintentar
             </button>
           </div>
@@ -54,7 +56,7 @@ export function RouteErrorBoundary() {
       />
 
       {import.meta.env.DEV && error instanceof Error ? (
-        <pre className="overflow-x-auto rounded-[28px] bg-zinc-950 p-4 text-xs leading-6 text-zinc-100 shadow-sm">
+        <pre className="overflow-x-auto border border-[var(--kp-stroke)] bg-[#151515] p-4 text-xs leading-6 text-zinc-100 shadow-sm">
           {error.stack ?? error.message}
         </pre>
       ) : null}

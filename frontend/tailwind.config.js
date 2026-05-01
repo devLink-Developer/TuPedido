@@ -4,20 +4,20 @@ export default {
     extend: {
       colors: {
         brand: {
-          50: "#FFF4EE",
-          100: "#FFE4D7",
-          200: "#FFC9B4",
-          300: "#FFA47E",
-          400: "#FF7442",
-          500: "#FF3D00",
-          600: "#DD2C00",
-          700: "#B32600",
-          800: "#8F1F00",
-          900: "#5E1300"
+          50: "#FFF7EF",
+          100: "#FFF0E5",
+          200: "#FFD7BB",
+          300: "#FFB780",
+          400: "#FF8A28",
+          500: "#FF6A1A",
+          600: "#F05A0A",
+          700: "#C2410C",
+          800: "#8F2F0A",
+          900: "#5A1B06"
         },
-        ink: "#201612",
-        shell: "#FFF8F0",
-        sand: "#FFF1E6",
+        ink: "#151515",
+        shell: "#FCFAF7",
+        sand: "#FFF7EF",
         surface: "#FFFFFF"
       },
       boxShadow: {
@@ -28,12 +28,12 @@ export default {
         lift: "0 20px 44px -32px rgba(24, 19, 18, 0.18)"
       },
       borderRadius: {
-        xl2: "1.5rem",
-        panel: "1.75rem"
+        xl2: "4px",
+        panel: "4px"
       },
       fontFamily: {
-        sans: ['"Manrope"', "system-ui", "sans-serif"],
-        display: ['"Space Grotesk"', '"Manrope"', "system-ui", "sans-serif"]
+        sans: ['"Plus Jakarta Sans"', "system-ui", "sans-serif"],
+        display: ['"Plus Jakarta Sans"', "system-ui", "sans-serif"]
       }
     }
   },

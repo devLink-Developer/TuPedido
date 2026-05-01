@@ -81,7 +81,7 @@ export function AddressLocationPicker({
 
     if (!markerRef.current) {
       const element = document.createElement("div");
-      element.className = "h-5 w-5 rounded-full border-4 border-white bg-brand-500 shadow-float";
+      element.className = "h-5 w-5 rounded border-4 border-white bg-brand-500 shadow-float";
       markerRef.current = new maplibregl.Marker({ element }).setLngLat([longitude, latitude]).addTo(map);
     } else {
       markerRef.current.setLngLat([longitude, latitude]);
@@ -163,14 +163,14 @@ export function AddressLocationPicker({
       </div>
 
       {!canUseCurrentLocation ? (
-        <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <p className="rounded bg-amber-50 px-4 py-3 text-sm text-amber-900">
           La ubicacion actual requiere HTTPS o localhost. Mientras tanto usa el CP, la localidad, calle y altura para ubicar la direccion.
         </p>
       ) : null}
 
-      <div ref={containerRef} className="h-72 overflow-hidden rounded-[24px] border border-black/5" />
+      <div ref={containerRef} className="h-72 overflow-hidden rounded border border-black/5" />
 
-      <div className="grid gap-3 rounded-[24px] bg-zinc-50 p-4 md:grid-cols-2">
+      <div className="grid gap-3 rounded bg-zinc-50 p-4 md:grid-cols-2">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">Latitud</p>
           <p className="mt-2 text-sm font-semibold text-ink">{latitude?.toFixed(7) ?? "Sin seleccionar"}</p>
@@ -181,7 +181,7 @@ export function AddressLocationPicker({
         </div>
       </div>
 
-      {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+      {error ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
     </div>
   );
 }

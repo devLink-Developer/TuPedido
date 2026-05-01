@@ -201,20 +201,20 @@ export function RiderRegistrationForm() {
         </form>
 
         <div className="space-y-4">
-          <div className="border border-white/10 bg-[linear-gradient(180deg,#0f1f1b_0%,#132c24_100%)] p-5 text-white shadow-lift sm:p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#9be3c1]/70">Postulacion</p>
-            <h3 className="mt-3 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight sm:text-3xl">Suma tu perfil y activa tu proceso</h3>
-            <div className="mt-4 grid gap-3 text-sm leading-6 text-white/72 sm:leading-7">
-              <div className="border border-white/10 bg-white/5 px-4 py-4">Si interrumpes el proceso, podras retomarlo al volver.</div>
-              <div className="border border-white/10 bg-white/5 px-4 py-4">Tu informacion se usa para validar tu perfil operativo.</div>
-              <div className="border border-white/10 bg-white/5 px-4 py-4">El equipo revisara tu solicitud y te informara el resultado.</div>
+          <div className="kp-install-banner p-5 sm:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--kp-accent)]">Postulacion</p>
+            <h3 className="mt-3 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight text-ink sm:text-3xl">Suma tu perfil y activa tu proceso</h3>
+            <div className="mt-4 grid gap-3 text-sm leading-6 text-zinc-600 sm:leading-7">
+              <div className="border border-[var(--kp-stroke)] bg-white/72 px-4 py-4" style={{ borderRadius: 18 }}>Si interrumpes el proceso, podras retomarlo al volver.</div>
+              <div className="border border-[var(--kp-stroke)] bg-white/72 px-4 py-4" style={{ borderRadius: 18 }}>Tu informacion se usa para validar tu perfil operativo.</div>
+              <div className="border border-[var(--kp-stroke)] bg-white/72 px-4 py-4" style={{ borderRadius: 18 }}>El equipo revisara tu solicitud y te informara el resultado.</div>
             </div>
           </div>
 
           {applications.length ? (
             <div className="space-y-3">
               {applications.map((application) => (
-                <article key={application.id} className="border border-black/6 bg-white p-5 shadow-sm">
+                <article key={application.id} className="app-panel p-5">
                   <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <h4 className="text-lg font-bold">{application.user_name}</h4>

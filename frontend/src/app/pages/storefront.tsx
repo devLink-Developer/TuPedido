@@ -111,7 +111,7 @@ export function StoreDetailPage() {
 
   return (
     <div className="space-y-5 pb-[calc(var(--bottom-nav-height)+var(--mobile-cart-cta-height)+2.5rem+var(--safe-bottom))] md:space-y-6 md:pb-8">
-      <div className="overflow-hidden rounded-[32px] bg-white shadow-sm">
+      <div className="overflow-hidden rounded bg-white shadow-sm">
         <div
           className="relative h-44 bg-gradient-to-br from-ink via-ink to-orange-800 md:h-56"
           style={
@@ -133,20 +133,20 @@ export function StoreDetailPage() {
                 </p>
                 <h1 className="mt-2 truncate font-display text-[2rem] font-bold tracking-tight">{store.name}</h1>
               </div>
-              <span className="shrink-0 rounded-full bg-white/12 px-3 py-1 text-xs font-bold text-white backdrop-blur">
+              <span className="shrink-0 rounded bg-white/12 px-3 py-1 text-xs font-bold text-white backdrop-blur">
                 {store.rating.toFixed(1)}
               </span>
             </div>
             <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold">
               <span
-                className={`rounded-full px-3 py-1 ${
+                className={`rounded px-3 py-1 ${
                   store.is_open ? "bg-emerald-400/18 text-emerald-100" : "bg-rose-400/18 text-rose-100"
                 }`}
               >
                 {store.is_open ? "Abierto" : "Cerrado"}
               </span>
-              <span className="rounded-full bg-white/10 px-3 py-1 text-white/86 backdrop-blur">{etaLabel()}</span>
-              <span className="rounded-full bg-white/10 px-3 py-1 text-white/86 backdrop-blur">
+              <span className="rounded bg-white/10 px-3 py-1 text-white/86 backdrop-blur">{etaLabel()}</span>
+              <span className="rounded bg-white/10 px-3 py-1 text-white/86 backdrop-blur">
                 {store.delivery_settings.delivery_enabled
                   ? `Envio ${formatCurrency(store.delivery_settings.delivery_fee)}`
                   : "Solo retiro"}
@@ -159,30 +159,30 @@ export function StoreDetailPage() {
           <div className="space-y-3">
             <p className="text-sm leading-7 text-zinc-600">{store.description}</p>
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[22px] bg-zinc-50 px-4 py-4 text-sm">
+              <div className="rounded bg-zinc-50 px-4 py-4 text-sm">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Entrega</p>
                 <p className="mt-2 font-semibold text-zinc-900">{etaLabel()}</p>
               </div>
-              <div className="rounded-[22px] bg-zinc-50 px-4 py-4 text-sm">
+              <div className="rounded bg-zinc-50 px-4 py-4 text-sm">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Pago</p>
                 <p className="mt-2 font-semibold text-zinc-900">
                   {store.payment_settings.cash_enabled ? "Efectivo" : "Sin efectivo"}
                   {hasMercadoPago(store.payment_settings) ? " y Mercado Pago" : ""}
                 </p>
               </div>
-              <div className="rounded-[22px] bg-zinc-50 px-4 py-4 text-sm">
+              <div className="rounded bg-zinc-50 px-4 py-4 text-sm">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Pedido minimo</p>
                 <p className="mt-2 font-semibold text-zinc-900">{formatCurrency(store.delivery_settings.min_order)}</p>
               </div>
             </div>
-            <div className="rounded-[24px] bg-zinc-50 p-4 text-sm text-zinc-600">
+            <div className="rounded bg-zinc-50 p-4 text-sm text-zinc-600">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-zinc-900">{store.address}</p>
                   <p className="mt-2">{store.phone}</p>
                 </div>
                 <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  className={`rounded px-3 py-1 text-xs font-semibold ${
                     store.is_open ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
                   }`}
                 >
@@ -196,12 +196,12 @@ export function StoreDetailPage() {
       </div>
 
       {cartStoreId && cartStoreSlug !== store.slug ? (
-        <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <p>
             Tienes un carrito iniciado en <strong>{cartStoreName}</strong>. Antes de cambiar de comercio conviene revisar ese pedido.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Link to="/cart" className="rounded-full bg-amber-900 px-4 py-2 text-xs font-semibold text-white">
+            <Link to="/cart" className="rounded bg-amber-900 px-4 py-2 text-xs font-semibold text-white">
               Ver carrito actual
             </Link>
           </div>
@@ -213,7 +213,7 @@ export function StoreDetailPage() {
           <button
             type="button"
             onClick={() => setSelectedCategory("all")}
-            className={`whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+            className={`whitespace-nowrap rounded px-4 py-2.5 text-sm font-semibold transition ${
               selectedCategory === "all" ? "bg-ink text-white shadow-float" : "bg-white text-zinc-600 shadow-sm"
             }`}
           >
@@ -224,7 +224,7 @@ export function StoreDetailPage() {
               key={category.id}
               type="button"
               onClick={() => setSelectedCategory(category.id)}
-              className={`whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+              className={`whitespace-nowrap rounded px-4 py-2.5 text-sm font-semibold transition ${
                 selectedCategory === category.id ? "bg-brand-500 text-white shadow-float" : "bg-white text-zinc-600 shadow-sm"
               }`}
             >
@@ -236,10 +236,10 @@ export function StoreDetailPage() {
 
       <div className="grid gap-4 md:grid-cols-2">
         {filteredProducts.map((product) => (
-          <article key={product.id} className="rounded-[28px] bg-white p-4 shadow-sm md:p-5">
+          <article key={product.id} className="rounded bg-white p-4 shadow-sm md:p-5">
             <div className="flex gap-4">
               <div
-                className="h-20 w-20 shrink-0 rounded-[22px] bg-zinc-100 md:h-24 md:w-24"
+                className="h-20 w-20 shrink-0 rounded bg-zinc-100 md:h-24 md:w-24"
                 style={
                   product.image_url
                     ? { backgroundImage: `url(${product.image_url})`, backgroundSize: "cover", backgroundPosition: "center" }
@@ -255,7 +255,7 @@ export function StoreDetailPage() {
                     <h3 className="mt-1 text-lg font-bold">{product.name}</h3>
                   </div>
                   <span
-                    className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold ${
+                    className={`shrink-0 rounded px-3 py-1 text-[11px] font-semibold ${
                       product.is_available ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"
                     }`}
                   >
@@ -271,11 +271,11 @@ export function StoreDetailPage() {
                 <p className="text-lg font-black text-ink">{formatCurrency(product.price)}</p>
                 {product.compare_at_price ? <p className="text-xs text-zinc-400 line-through">{formatCurrency(product.compare_at_price)}</p> : null}
               </div>
-              <div className="flex items-center gap-2 rounded-full bg-zinc-100 p-1">
+              <div className="flex items-center gap-2 rounded bg-zinc-100 p-1">
                 <button
                   type="button"
                   onClick={() => setProductQuantity(product.id, (quantities[product.id] ?? 1) - 1)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg font-bold text-zinc-700 shadow-sm"
+                  className="flex h-9 w-9 items-center justify-center rounded bg-white text-lg font-bold text-zinc-700 shadow-sm"
                 >
                   -
                 </button>
@@ -283,14 +283,14 @@ export function StoreDetailPage() {
                 <button
                   type="button"
                   onClick={() => setProductQuantity(product.id, (quantities[product.id] ?? 1) + 1)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg font-bold text-zinc-700 shadow-sm"
+                  className="flex h-9 w-9 items-center justify-center rounded bg-white text-lg font-bold text-zinc-700 shadow-sm"
                 >
                   +
                 </button>
               </div>
             </div>
 
-            <details className="mt-3 rounded-[22px] bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+            <details className="mt-3 rounded bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
               <summary className="cursor-pointer list-none text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
                 Agregar nota
               </summary>
@@ -298,7 +298,7 @@ export function StoreDetailPage() {
                 value={notes[product.id] ?? ""}
                 onChange={(event) => setNotes((current) => ({ ...current, [product.id]: event.target.value }))}
                 placeholder="Sin cebolla, bien cocido, etc."
-                className="mt-3 w-full rounded-2xl border border-black/10 bg-white px-3 py-2 outline-none focus:border-brand-500"
+                className="mt-3 w-full rounded border border-black/10 bg-white px-3 py-2 outline-none focus:border-brand-500"
               />
             </details>
 
@@ -306,7 +306,7 @@ export function StoreDetailPage() {
               type="button"
               disabled={!product.is_available || savingProductId === product.id}
               onClick={() => void handleAdd(product)}
-              className="mt-4 w-full rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-float transition disabled:cursor-not-allowed disabled:bg-zinc-300"
+              className="mt-4 w-full rounded bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-float transition disabled:cursor-not-allowed disabled:bg-zinc-300"
             >
               {savingProductId === product.id
                 ? "Agregando..."
@@ -325,11 +325,11 @@ export function StoreDetailPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-[28px] bg-white p-5 shadow-sm">
+        <div className="rounded bg-white p-5 shadow-sm">
           <h3 className="text-lg font-bold">Horarios</h3>
           <div className="mt-4 space-y-2 text-sm text-zinc-600">
             {store.hours.map((hour) => (
-              <div key={hour.day_of_week} className="flex items-center justify-between rounded-2xl bg-zinc-50 px-4 py-3">
+              <div key={hour.day_of_week} className="flex items-center justify-between rounded bg-zinc-50 px-4 py-3">
                 <span className="font-semibold">{["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"][hour.day_of_week]}</span>
                 <span>{hour.is_closed ? "Cerrado" : `${hour.opens_at?.slice(0, 5)} - ${hour.closes_at?.slice(0, 5)}`}</span>
               </div>
@@ -337,7 +337,7 @@ export function StoreDetailPage() {
           </div>
         </div>
 
-        <div className="rounded-[28px] bg-white p-5 shadow-sm">
+        <div className="rounded bg-white p-5 shadow-sm">
           <h3 className="text-lg font-bold">Medios de pago y entrega</h3>
           <div className="mt-4 space-y-2 text-sm text-zinc-600">
             <p>Envio: {store.delivery_settings.delivery_enabled ? `${formatCurrency(store.delivery_settings.delivery_fee)} / pedido` : "No disponible"}</p>
@@ -355,7 +355,7 @@ export function StoreDetailPage() {
         <div className="fixed bottom-[calc(var(--bottom-nav-height)+1rem+var(--safe-bottom))] left-4 right-4 z-30 md:hidden">
           <Link
             to="/cart"
-            className="mx-auto flex max-w-md items-center justify-between gap-3 rounded-[26px] bg-ink px-4 py-4 text-white shadow-[0_22px_44px_rgba(24,19,18,0.28)]"
+            className="mx-auto flex max-w-md items-center justify-between gap-3 rounded bg-ink px-4 py-4 text-white shadow-[0_22px_44px_rgba(24,19,18,0.28)]"
           >
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/55">Carrito activo</p>

@@ -40,7 +40,7 @@ export function LiveMap({
     for (const marker of markersRef.current) marker.remove();
     markersRef.current = points.map((point) => {
       const element = document.createElement("div");
-      element.className = "flex h-8 w-8 items-center justify-center rounded-full border-2 border-white shadow-float";
+      element.className = "flex h-8 w-8 items-center justify-center rounded border-2 border-white shadow-float";
       element.style.background = point.color;
       element.title = point.label;
       element.innerHTML = `<span style="font-size:10px;font-weight:700;color:white">${point.label.slice(0, 1)}</span>`;
@@ -67,5 +67,5 @@ export function LiveMap({
     []
   );
 
-  return <div ref={containerRef} className={["overflow-hidden rounded-[28px]", className].join(" ")} />;
+  return <div ref={containerRef} className={["overflow-hidden rounded", className].join(" ")} />;
 }

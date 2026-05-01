@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { EmptyState, LoadingCard } from "../../../shared/components";
+import { EmptyState, LoadingCard, RubroChip } from "../../../shared/components";
 import { useAuthSession, useCart } from "../../../shared/hooks";
 import { fetchStoreById } from "../../../shared/services/api";
 import { useUiStore } from "../../../shared/stores";
@@ -147,7 +147,7 @@ export function StoreDetailPage() {
 
   return (
     <div className="space-y-6 pb-24">
-      <div className="app-panel overflow-hidden rounded-[32px]">
+      <div className="app-panel overflow-hidden rounded">
         <div
           className="h-56 bg-gradient-to-br from-ink via-ink to-orange-800"
           style={
@@ -169,26 +169,26 @@ export function StoreDetailPage() {
               </h1>
               {store.description ? <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-600">{store.description}</p> : null}
             </div>
-            <div className="rounded-[24px] border border-[var(--color-border-default)] bg-white/72 p-4 text-sm text-zinc-600">
+            <div className="rounded border border-[var(--color-border-default)] bg-white/72 p-4 text-sm text-zinc-600">
               <p className="font-semibold text-zinc-800">{store.address}</p>
               <p className="mt-2">{store.phone}</p>
               <p className="mt-2">{store.opening_note ?? (store.is_open ? "Abierto ahora" : "Cerrado ahora")}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
-            <span className={`rounded-full px-3 py-1 ${store.is_open ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+            <span className={`rounded px-3 py-1 ${store.is_open ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
               {store.is_open ? "Abierto" : "Cerrado"}
             </span>
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-zinc-600">
+            <span className="rounded bg-zinc-100 px-3 py-1 text-zinc-600">
               {store.delivery_settings.delivery_enabled ? "Envio habilitado" : "Sin envio"}
             </span>
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-zinc-600">
+            <span className="rounded bg-zinc-100 px-3 py-1 text-zinc-600">
               {store.delivery_settings.pickup_enabled ? "Retiro habilitado" : "Sin retiro"}
             </span>
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-zinc-600">
+            <span className="rounded bg-zinc-100 px-3 py-1 text-zinc-600">
               {store.payment_settings.cash_enabled ? "Efectivo" : "Sin efectivo"}
             </span>
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-zinc-600">
+            <span className="rounded bg-zinc-100 px-3 py-1 text-zinc-600">
               {hasMercadoPago(store.payment_settings) ? "Mercado Pago" : "MP no disponible"}
             </span>
           </div>
@@ -196,32 +196,30 @@ export function StoreDetailPage() {
       </div>
 
       {cartStoreId && cartStoreId !== store.id ? (
-        <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           Tienes un carrito iniciado en <strong>{cartStoreName}</strong>. Si agregas productos de este comercio, tu carrito actual puede actualizarse.
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
+      <div className="hide-scrollbar flex flex-wrap gap-2 overflow-x-auto pb-1 sm:gap-3">
+        <RubroChip
+          label="Todo"
+          icon="grid"
+          color="#ff6a1a"
+          colorLight="#fff0e5"
+          selected={selectedCategory === "all"}
           onClick={() => setSelectedCategory("all")}
-          className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-            selectedCategory === "all" ? "bg-ink text-white" : "border border-[var(--color-border-default)] bg-white text-zinc-600 shadow-sm"
-          }`}
-        >
-          Todo
-        </button>
+        />
         {store.product_categories.map((category) => (
-          <button
+          <RubroChip
             key={category.id}
-            type="button"
+            label={category.name}
+            icon={category.name}
+            color="#ff6a1a"
+            colorLight="#fff0e5"
+            selected={selectedCategory === category.id}
             onClick={() => setSelectedCategory(category.id)}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-              selectedCategory === category.id ? "bg-brand-500 text-white" : "border border-[var(--color-border-default)] bg-white text-zinc-600 shadow-sm"
-            }`}
-          >
-            {category.name}
-          </button>
+          />
         ))}
       </div>
 
@@ -233,13 +231,13 @@ export function StoreDetailPage() {
           return (
             <article
               key={product.id}
-              className={`app-panel rounded-[28px] p-5 transition ${
+              className={`app-panel rounded p-5 transition ${
                 isInCart ? "ring-2 ring-brand-100 shadow-[0_14px_40px_rgba(255,108,64,0.16)]" : ""
               }`}
             >
               <div className="flex gap-4">
                 <div
-                  className="h-24 w-24 shrink-0 rounded-2xl bg-zinc-100"
+                  className="h-24 w-24 shrink-0 rounded bg-zinc-100"
                   style={product.image_url ? { backgroundImage: `url(${product.image_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
                 />
                 <div className="min-w-0 flex-1">
@@ -255,7 +253,7 @@ export function StoreDetailPage() {
                   {product.has_commercial_discount ? (
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <p className="text-xs text-zinc-400 line-through">{formatCurrency(product.price)}</p>
-                      <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                      <span className="rounded bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700">
                         -{product.commercial_discount_percentage}% comercial
                       </span>
                     </div>
@@ -263,15 +261,15 @@ export function StoreDetailPage() {
                     <p className="text-xs text-zinc-400 line-through">{formatCurrency(product.compare_at_price)}</p>
                   ) : null}
                   <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold text-zinc-500">
-                    {isInCart ? <span className="rounded-full bg-brand-50 px-2 py-1 text-brand-700">En carrito: {cartQuantity}</span> : null}
-                    {product.brand ? <span className="rounded-full bg-zinc-100 px-2 py-1">{product.brand}</span> : null}
-                    {product.unit_label ? <span className="rounded-full bg-zinc-100 px-2 py-1">{product.unit_label}</span> : null}
+                    {isInCart ? <span className="rounded bg-brand-50 px-2 py-1 text-brand-700">En carrito: {cartQuantity}</span> : null}
+                    {product.brand ? <span className="rounded bg-zinc-100 px-2 py-1">{product.brand}</span> : null}
+                    {product.unit_label ? <span className="rounded bg-zinc-100 px-2 py-1">{product.unit_label}</span> : null}
                     {product.stock_quantity !== null ? (
-                      <span className="rounded-full bg-zinc-100 px-2 py-1">Stock {product.stock_quantity}</span>
+                      <span className="rounded bg-zinc-100 px-2 py-1">Stock {product.stock_quantity}</span>
                     ) : null}
                   </div>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${product.is_available ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
+                <span className={`rounded px-3 py-1 text-xs font-semibold ${product.is_available ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
                   {product.is_available ? "Disponible" : "Agotado"}
                 </span>
               </div>

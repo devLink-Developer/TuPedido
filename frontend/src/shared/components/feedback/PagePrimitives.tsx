@@ -1,3 +1,4 @@
+import { AlertCircle, LoaderCircle, SearchX } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { DEFAULT_CATALOG_BANNER_URL, resolveCatalogBannerDimensions } from "../../config/catalogBanner";
 import { resolveApiMediaUrl } from "../../services/api/client";
@@ -9,7 +10,7 @@ function resolveStatusPillStyle(value: string) {
   if (["approved", "delivered", "paid", "active", "available", "online", "completed", "idle"].some((item) => normalized.includes(item))) {
     return {
       backgroundColor: "var(--color-success-soft)",
-      borderColor: "rgba(22,163,74,0.18)",
+      borderColor: "rgba(21,128,61,0.2)",
       color: "#166534"
     };
   }
@@ -29,21 +30,21 @@ function resolveStatusPillStyle(value: string) {
   ) {
     return {
       backgroundColor: "var(--color-warning-soft)",
-      borderColor: "rgba(245,158,11,0.2)",
-      color: "#b45309"
+      borderColor: "rgba(180,83,9,0.22)",
+      color: "#92400e"
     };
   }
 
   if (["cancelled", "rejected", "suspended", "offline", "failed", "error"].some((item) => normalized.includes(item))) {
     return {
       backgroundColor: "var(--color-error-soft)",
-      borderColor: "rgba(220,38,38,0.16)",
-      color: "#b91c1c"
+      borderColor: "rgba(185,28,28,0.18)",
+      color: "#991b1b"
     };
   }
 
   return {
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "rgba(255,255,255,0.9)",
     borderColor: "var(--color-border-default)",
     color: "var(--page-muted)"
   };
@@ -51,20 +52,16 @@ function resolveStatusPillStyle(value: string) {
 
 export function LoadingCard({ label = "Cargando..." }: { label?: string }) {
   return (
-    <div className="mesh-surface border border-[var(--color-border-default)] p-5 shadow-sm sm:p-6">
+    <div className="app-panel p-5 sm:p-6" aria-live="polite">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">Estado</p>
-          <p className="mt-2.5 font-display text-[1.72rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-[2.05rem]">
+          <p className="mt-2.5 font-display text-[1.35rem] font-bold leading-tight text-ink sm:text-[1.6rem]">
             {label}
           </p>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-600">Preparamos la vista sin bloquear la navegación ni el contexto visual.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">Actualizando la informacion de la vista.</p>
         </div>
-        <div className="grid grid-cols-3 gap-3 self-start">
-          {Array.from({ length: 3 }, (_, index) => (
-            <span key={index} className="h-14 w-14 animate-pulse border border-white/70 bg-white/80" />
-          ))}
-        </div>
+        <LoaderCircle className="h-6 w-6 animate-spin text-[var(--kp-accent)]" aria-hidden="true" />
       </div>
     </div>
   );
@@ -80,9 +77,12 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="mesh-surface border border-dashed border-[var(--color-border-default)] p-5 text-center shadow-sm sm:p-7">
-      <span className="app-chip text-[10px] uppercase tracking-[0.24em] text-zinc-500">Sin resultados</span>
-      <h3 className="mx-auto mt-3.5 max-w-2xl font-display text-[1.55rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-[1.95rem]">
+    <div className="app-panel border-dashed p-5 text-center sm:p-7">
+      <span className="app-chip text-[10px] uppercase tracking-[0.24em] text-zinc-500">
+        <SearchX className="h-4 w-4 text-[var(--kp-accent)]" aria-hidden="true" />
+        Sin resultados
+      </span>
+      <h3 className="mx-auto mt-3.5 max-w-2xl font-display text-[1.35rem] font-bold leading-tight text-ink sm:text-[1.6rem]">
         {title}
       </h3>
       <p className="mx-auto mt-2.5 max-w-2xl text-sm leading-6 text-zinc-600">{description}</p>
@@ -99,8 +99,11 @@ export function IntegrationPendingCard({
   description?: string;
 }) {
   return (
-    <div className="border border-[rgba(245,158,11,0.18)] bg-[linear-gradient(180deg,#fff8ef_0%,#fffdf9_100%)] p-5 text-sm text-amber-950 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">Pendiente</p>
+    <div className="app-panel border-[rgba(245,158,11,0.24)] bg-[linear-gradient(180deg,#fff8ef_0%,#fffdf9_100%)] p-5 text-sm text-amber-950">
+      <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">
+        <AlertCircle className="h-4 w-4" aria-hidden="true" />
+        Pendiente
+      </p>
       <h3 className="mt-2 text-lg font-bold">{title}</h3>
       <p className="mt-2 leading-6 text-amber-900/78">{description}</p>
     </div>
@@ -134,8 +137,7 @@ export function PageHeader({
   return (
     <div
       className={[
-        "app-panel-dark ambient-grid overflow-hidden border border-white/10 p-5 shadow-lift sm:p-6",
-        hasBanner ? "min-h-[200px] md:min-h-[228px]" : "",
+        hasBanner ? "app-panel-dark ambient-grid min-h-[188px] overflow-hidden p-5 sm:p-6" : "app-panel p-5 sm:p-6",
         className ?? ""
       ].join(" ")}
       style={
@@ -148,23 +150,41 @@ export function PageHeader({
           : undefined
       }
     >
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(255,123,70,0.14),transparent_18%)]" />
-      <div className="pointer-events-none absolute bottom-0 left-0 h-28 w-full bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.12))]" />
+      {hasBanner ? (
+        <>
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(255,123,70,0.14),transparent_18%)]" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-28 w-full bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.12))]" />
+        </>
+      ) : null}
       <div className={["relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between", contentClassName ?? ""].join(" ")}>
         <div className="min-w-0">
-          <span className="inline-flex border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#ffd3bf] sm:text-[11px]">
+          <span
+            className={[
+              "inline-flex border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.24em] sm:text-[11px]",
+              hasBanner ? "border-white/12 bg-white/8 text-[#ffd3bf]" : "app-chip text-[var(--kp-accent)]"
+            ].join(" ")}
+          >
             {eyebrow}
           </span>
           <h1
             className={[
-              "mt-3.5 max-w-4xl font-display text-[1.82rem] font-bold leading-[1.02] tracking-tight text-white sm:text-[2.18rem] md:text-[2.48rem]",
+              "mt-3.5 max-w-4xl font-display text-[1.65rem] font-bold leading-tight sm:text-[1.95rem] md:text-[2.2rem]",
+              hasBanner ? "text-white" : "text-ink",
               titleClassName ?? ""
             ].join(" ")}
           >
             {title}
           </h1>
           {description ? (
-            <div className={["mt-3 max-w-3xl text-sm leading-6 text-white/74 md:text-[15px]", descriptionClassName ?? ""].join(" ")}>{description}</div>
+            <div
+              className={[
+                "mt-3 max-w-3xl text-sm leading-6 md:text-[15px]",
+                hasBanner ? "text-white/74" : "text-zinc-600",
+                descriptionClassName ?? ""
+              ].join(" ")}
+            >
+              {description}
+            </div>
           ) : null}
         </div>
         {action ? <div className="relative flex w-full flex-wrap gap-2 md:w-auto md:shrink-0 md:justify-end">{action}</div> : null}
@@ -195,7 +215,7 @@ export function CatalogBanner({
   }, [preferredImageUrl]);
 
   return (
-    <div className="mx-auto w-full overflow-hidden border border-white/80 bg-white shadow-lift" style={{ maxWidth: `${resolvedDimensions.width}px` }}>
+    <div className="mx-auto w-full overflow-hidden border border-[var(--kp-stroke)] bg-white shadow-lift" style={{ maxWidth: `${resolvedDimensions.width}px` }}>
       <img
         src={currentImageUrl}
         alt={alt}
@@ -214,7 +234,7 @@ export function CatalogBanner({
 export function StatusPill({ value }: { value: string }) {
   return (
     <span
-      className="inline-flex border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em]"
+      className="app-chip text-xs uppercase tracking-[0.14em]"
       style={resolveStatusPillStyle(value)}
     >
       {statusLabels[value] ?? value}
@@ -232,10 +252,10 @@ export function StatCard({
   description?: string;
 }) {
   return (
-    <article className="app-panel border p-4">
+    <article className="app-panel p-4">
       <div className="relative">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">{label}</p>
-        <p className="mt-3 font-display text-[1.72rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-[1.95rem]">
+        <p className="mt-3 font-display text-[1.5rem] font-bold leading-tight text-ink sm:text-[1.75rem]">
           {value}
         </p>
         {description ? <p className="mt-2.5 text-sm leading-6 text-zinc-600">{description}</p> : null}

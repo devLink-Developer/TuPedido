@@ -69,12 +69,12 @@ export function ImageAssetField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+        className="app-input"
       />
 
       {description ? <p className="text-sm text-zinc-500">{description}</p> : null}
 
-      <div className="w-full overflow-hidden rounded-[24px] border border-black/5 bg-zinc-50" style={previewWrapperStyle}>
+      <div className="w-full overflow-hidden border border-[var(--kp-stroke)] bg-[#fffaf5]" style={{ borderRadius: 18, ...previewWrapperStyle }}>
         {value ? (
           <img src={resolveApiMediaUrl(value)} alt={label} className={previewClassName} />
         ) : (
@@ -84,7 +84,7 @@ export function ImageAssetField({
         )}
       </div>
 
-      {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+      {error ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
     </div>
   );
 }

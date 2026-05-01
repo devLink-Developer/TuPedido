@@ -73,7 +73,7 @@ function isImageProof(notice: Pick<SettlementNotice, "proof_content_type"> | { p
 
 function StatusBadge({ value }: { value: string }) {
   return (
-    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
+    <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
       {statusLabels[value] ?? value}
     </span>
   );
@@ -265,7 +265,7 @@ export function LiquidationsPage() {
           <span className="inline-flex items-center gap-3">
             <span>Liquidaciones</span>
             <HelpTooltip label="Ayuda sobre liquidaciones" variant="inverse">
-              Informa pagos a la plataforma, registra pagos a riders y revisa el historial.
+              Informa pagos a la plataforma, registra pagos a repartidores y revisa el historial.
             </HelpTooltip>
           </span>
         }
@@ -273,17 +273,17 @@ export function LiquidationsPage() {
 
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard
-          label="Fee pendiente"
+          label="Pendiente plataforma"
           value={formatCurrency(overview.pending_balance)}
           description={`${overview.pending_notices_count} avisos pendientes.`}
         />
         <StatCard
-          label="Fee liquidado"
+          label="Pagado plataforma"
           value={formatCurrency(overview.paid_balance)}
           description="Pagos ya revisados."
         />
         <StatCard
-          label="Riders pendiente"
+          label="Pendiente repartidores"
           value={formatCurrency(ridersPendingTotal)}
           description="Saldo por pagar."
         />
@@ -296,7 +296,7 @@ export function LiquidationsPage() {
 
       <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <section className="space-y-4">
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Plataforma</p>
@@ -311,8 +311,8 @@ export function LiquidationsPage() {
             </div>
 
             {pendingNotice ? (
-              <p className="mt-4 rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
-                Ya existe un aviso pendiente por {formatCurrency(pendingNotice.amount)}. Espera revision antes de enviar
+              <p className="mt-4 rounded border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+                Ya existe un aviso pendiente por {formatCurrency(pendingNotice.amount)}. Espera revisión antes de enviar
                 otro.
               </p>
             ) : null}
@@ -322,27 +322,27 @@ export function LiquidationsPage() {
                 type="number"
                 value={Number(overview.pending_balance.toFixed(2))}
                 readOnly
-                className="rounded-2xl border border-black/10 bg-zinc-100 px-4 py-3 text-zinc-600"
+                className="rounded border border-black/10 bg-zinc-100 px-4 py-3 text-zinc-600"
               />
               <input
                 type="date"
                 value={noticeForm.transfer_date}
                 onChange={(event) => setNoticeForm((current) => ({ ...current, transfer_date: event.target.value }))}
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 disabled={noticeFormDisabled}
               />
               <input
                 value={noticeForm.bank}
                 onChange={(event) => setNoticeForm((current) => ({ ...current, bank: event.target.value }))}
                 placeholder="Banco emisor"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 disabled={noticeFormDisabled}
               />
               <input
                 value={noticeForm.reference}
                 onChange={(event) => setNoticeForm((current) => ({ ...current, reference: event.target.value }))}
-                placeholder="Referencia o numero de transferencia"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                placeholder="Referencia o número de transferencia"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 disabled={noticeFormDisabled}
               />
               <textarea
@@ -350,22 +350,22 @@ export function LiquidationsPage() {
                 onChange={(event) => setNoticeForm((current) => ({ ...current, notes: event.target.value }))}
                 placeholder="Notas opcionales"
                 rows={3}
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 disabled={noticeFormDisabled}
               />
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
                 onChange={(event) => void handleProofUpload(event.target.files?.[0] ?? null)}
-                className="rounded-2xl border border-dashed border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600"
+                className="rounded border border-dashed border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600"
                 disabled={noticeFormDisabled}
               />
               {noticeForm.proof_url ? (
-                <div className="rounded-[22px] bg-zinc-50 p-4">
+                <div className="rounded bg-zinc-50 p-4">
                   <p className="text-sm font-semibold text-ink">{noticeForm.proof_original_name}</p>
                   <div className="mt-3">
                     {noticeForm.proof_content_type.startsWith("image/") ? (
-                      <img src={noticeForm.proof_url} alt="Comprobante" className="max-h-48 rounded-2xl object-contain" />
+                      <img src={noticeForm.proof_url} alt="Comprobante" className="max-h-48 rounded object-contain" />
                     ) : (
                       <a href={noticeForm.proof_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-brand-600">
                         Ver comprobante PDF
@@ -374,7 +374,7 @@ export function LiquidationsPage() {
                   </div>
                 </div>
               ) : null}
-              {noticeError ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{noticeError}</p> : null}
+              {noticeError ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{noticeError}</p> : null}
               <Button
                 type="submit"
                 disabled={
@@ -389,21 +389,21 @@ export function LiquidationsPage() {
             </form>
           </article>
 
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Cuenta corriente</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Acciones</p>
                 <div className="mt-2 flex items-center gap-2">
                   <SectionTitle title="Cargos y avisos" help="Consulta cargos del comercio y avisos ya enviados." />
                 </div>
               </div>
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+              <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
                 {charges.length} cargos
               </span>
             </div>
             <div className="mt-4 space-y-3">
               {charges.slice(0, 5).map((charge) => (
-                <div key={charge.id} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
+                <div key={charge.id} className="rounded bg-zinc-50 p-4 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold text-ink">Pedido #{charge.order_id}</p>
@@ -417,7 +417,7 @@ export function LiquidationsPage() {
                 </div>
               ))}
               {notices.map((notice) => (
-                <div key={notice.id} className="rounded-[22px] border border-black/5 bg-white p-4 text-sm">
+                <div key={notice.id} className="rounded border border-black/5 bg-white p-4 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold text-ink">{formatCurrency(notice.amount)}</p>
@@ -432,7 +432,7 @@ export function LiquidationsPage() {
                   {notice.proof_url ? (
                     <div className="mt-3">
                       {isImageProof(notice) ? (
-                        <img src={notice.proof_url} alt="Comprobante enviado" className="max-h-40 rounded-2xl object-contain" />
+                        <img src={notice.proof_url} alt="Comprobante enviado" className="max-h-40 rounded object-contain" />
                       ) : (
                         <a href={notice.proof_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-brand-600">
                           Ver comprobante adjunto
@@ -443,29 +443,29 @@ export function LiquidationsPage() {
                 </div>
               ))}
               {!charges.length && !notices.length ? (
-                <EmptyState title="Sin movimientos de plataforma" description="Los cargos y avisos apareceran aqui." />
+                <EmptyState title="Sin movimientos de plataforma" description="Los cargos y avisos aparecerán aquí." />
               ) : null}
             </div>
           </article>
         </section>
 
         <section className="space-y-4">
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Riders</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Repartidores</p>
                 <div className="mt-2 flex items-center gap-2">
                   <SectionTitle
-                    title="Pagos a riders"
-                    help="Registra el pago hecho al rider y revisa si ya lo confirmo."
+                    title="Pagos a repartidores"
+                    help="Registra el pago hecho al repartidor y revisa si ya lo confirmó."
                   />
                 </div>
               </div>
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
-                {riderSettlements.length} riders
+              <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+                {riderSettlements.length} repartidores
               </span>
             </div>
-            {paymentError ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{paymentError}</p> : null}
+            {paymentError ? <p className="mt-4 rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{paymentError}</p> : null}
             <div className="mt-4 space-y-4">
               {riderSettlements.map((settlement) => {
                 const draft = paymentDrafts[settlement.rider_user_id] ?? {
@@ -477,7 +477,7 @@ export function LiquidationsPage() {
                 const latestPayments = paymentsByRider.get(settlement.rider_user_id) ?? [];
                 const latestPayment = latestPayments[0] ?? null;
                 return (
-                  <article key={settlement.rider_user_id} className="rounded-[22px] bg-zinc-50 p-4">
+                  <article key={settlement.rider_user_id} className="rounded bg-zinc-50 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-ink">{settlement.rider_name}</p>
@@ -486,22 +486,22 @@ export function LiquidationsPage() {
                       {latestPayment ? <StatusBadge value={latestPayment.receiver_status} /> : null}
                     </div>
                     <div className="mt-4 grid gap-3 md:grid-cols-3">
-                      <div className="rounded-[18px] bg-white p-3">
+                      <div className="rounded bg-white p-3">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Ganado</p>
                         <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(settlement.rider_fee_earned_total)}</p>
                       </div>
-                      <div className="rounded-[18px] bg-white p-3">
+                      <div className="rounded bg-white p-3">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Pagado</p>
                         <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(settlement.rider_fee_paid_total)}</p>
                       </div>
-                      <div className="rounded-[18px] bg-white p-3">
+                      <div className="rounded bg-white p-3">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Pendiente</p>
                         <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(settlement.pending_amount)}</p>
                       </div>
                     </div>
                     {latestPayment ? (
                       <p className="mt-3 text-sm text-zinc-600">
-                        Ultimo pago: {formatCurrency(latestPayment.amount)} | {statusLabels[latestPayment.receiver_status] ?? latestPayment.receiver_status}
+                        Último pago: {formatCurrency(latestPayment.amount)} | {statusLabels[latestPayment.receiver_status] ?? latestPayment.receiver_status}
                       </p>
                     ) : null}
                     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[160px_220px_1fr_1fr_auto]">
@@ -517,7 +517,7 @@ export function LiquidationsPage() {
                           }))
                         }
                         placeholder="Monto"
-                        className="rounded-2xl border border-black/10 bg-white px-4 py-3"
+                        className="rounded border border-black/10 bg-white px-4 py-3"
                       />
                       <input
                         type="datetime-local"
@@ -528,7 +528,7 @@ export function LiquidationsPage() {
                             [settlement.rider_user_id]: { ...draft, paid_at: event.target.value }
                           }))
                         }
-                        className="rounded-2xl border border-black/10 bg-white px-4 py-3"
+                        className="rounded border border-black/10 bg-white px-4 py-3"
                       />
                       <input
                         value={draft.reference}
@@ -539,7 +539,7 @@ export function LiquidationsPage() {
                           }))
                         }
                         placeholder="Referencia"
-                        className="rounded-2xl border border-black/10 bg-white px-4 py-3"
+                        className="rounded border border-black/10 bg-white px-4 py-3"
                       />
                       <input
                         value={draft.notes}
@@ -550,7 +550,7 @@ export function LiquidationsPage() {
                           }))
                         }
                         placeholder="Notas"
-                        className="rounded-2xl border border-black/10 bg-white px-4 py-3"
+                        className="rounded border border-black/10 bg-white px-4 py-3"
                       />
                       <Button
                         type="button"
@@ -564,19 +564,19 @@ export function LiquidationsPage() {
                 );
               })}
               {!riderSettlements.length ? (
-                <EmptyState title="Sin riders para liquidar" description="Los pagos a riders apareceran aqui cuando existan entregas." />
+                <EmptyState title="Sin repartidores para liquidar" description="Los pagos a repartidores aparecerán aquí cuando existan entregas." />
               ) : null}
             </div>
           </article>
 
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Notificaciones</p>
             <div className="mt-2 flex items-center gap-2">
-              <SectionTitle title="Alertas" help="Aqui aparecen avisos recientes relacionados con tus liquidaciones." />
+              <SectionTitle title="Alertas" help="Aquí aparecen avisos recientes relacionados con tus liquidaciones." />
             </div>
             <div className="mt-4 space-y-3">
               {notifications.slice(0, 5).map((notification) => (
-                <div key={notification.id} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
+                <div key={notification.id} className="rounded bg-zinc-50 p-4 text-sm">
                   <p className="font-semibold text-ink">{notification.title}</p>
                   <p className="mt-2 text-zinc-600">{notification.body}</p>
                   <p className="mt-2 text-xs uppercase tracking-[0.18em] text-zinc-400">
@@ -590,21 +590,21 @@ export function LiquidationsPage() {
         </section>
       </div>
 
-      <section className="rounded-[28px] bg-white p-5 shadow-sm">
+      <section className="rounded bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Historial</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pagos y revisiones</p>
             <div className="mt-2 flex items-center gap-2">
               <SectionTitle title="Movimientos" help="Consulta el registro de avisos, revisiones y pagos." />
             </div>
           </div>
-          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+          <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
             {history.length} eventos
           </span>
         </div>
         <div className="mt-4 space-y-3">
           {history.map((entry) => (
-            <article key={entry.id} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
+            <article key={entry.id} className="rounded bg-zinc-50 p-4 text-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-ink">{entry.title}</p>
@@ -625,7 +625,7 @@ export function LiquidationsPage() {
               {entry.notes ? <p className="mt-2 text-zinc-600">{entry.notes}</p> : null}
             </article>
           ))}
-          {!history.length ? <EmptyState title="Sin historial" description="Los movimientos auditables apareceran en esta lista." /> : null}
+          {!history.length ? <EmptyState title="Sin historial" description="Los movimientos auditables aparecerán en esta lista." /> : null}
         </div>
       </section>
     </div>

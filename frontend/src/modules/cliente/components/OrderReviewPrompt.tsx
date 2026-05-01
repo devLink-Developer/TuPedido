@@ -34,7 +34,7 @@ function StarIcon({ active }: { active: boolean }) {
 
 function RatingField({ label, helper, value, onChange, name }: RatingFieldProps) {
   return (
-    <div className="rounded-[24px] border border-black/8 bg-zinc-50 px-4 py-4">
+    <div className="border border-[var(--kp-stroke)] bg-[#fffaf5] px-4 py-4" style={{ borderRadius: 18 }}>
       <p className="text-sm font-semibold text-ink">{label}</p>
       <p className="mt-1 text-sm text-zinc-500">{helper}</p>
       <div className="mt-4 flex flex-wrap gap-2" role="radiogroup" aria-label={label}>
@@ -48,11 +48,12 @@ function RatingField({ label, helper, value, onChange, name }: RatingFieldProps)
               aria-checked={value === starValue}
               aria-label={`${name} ${starValue} estrellas`}
               onClick={() => onChange(starValue)}
-              className={`rounded-full border px-3 py-2 transition ${
+              className={`border px-3 py-2 transition ${
                 active
                   ? "border-amber-300 bg-amber-50 text-amber-500"
                   : "border-black/10 bg-white text-zinc-300 hover:border-amber-200 hover:text-amber-400"
               }`}
+              style={{ borderRadius: 16 }}
             >
               <StarIcon active={active} />
             </button>
@@ -105,10 +106,10 @@ export function OrderReviewPrompt({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(17,12,11,0.56)] p-4 sm:items-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(92,52,24,0.24)] p-4 backdrop-blur-[2px] sm:items-center">
       <form
         onSubmit={(event) => void handleSubmit(event)}
-        className="w-full max-w-xl rounded-[32px] bg-white p-5 shadow-[0_28px_70px_rgba(17,12,11,0.32)] sm:p-6"
+        className="kp-install-banner w-full max-w-xl p-5 sm:p-6"
       >
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-500">Calificacion pendiente</p>
         <h2 className="mt-3 font-display text-[1.9rem] font-bold leading-[1.05] tracking-tight text-ink sm:text-3xl">
@@ -144,7 +145,7 @@ export function OrderReviewPrompt({
             <button
               type="button"
               onClick={() => setReviewEnabled(true)}
-              className="rounded-full border border-black/10 bg-zinc-50 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-brand-200 hover:text-ink"
+              className="kp-soft-action min-h-[44px] px-4 py-2 text-sm"
             >
               Agregar resena
             </button>
@@ -156,20 +157,20 @@ export function OrderReviewPrompt({
                 onChange={(event) => setReviewText(event.target.value)}
                 rows={4}
                 placeholder="Cuenta brevemente como fue tu experiencia."
-                className="w-full rounded-[24px] border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-ink outline-none transition focus:border-brand-500"
+                className="app-input min-h-[112px] text-sm"
               />
             </label>
           )}
         </div>
 
-        {submitError ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{submitError}</p> : null}
+        {submitError ? <p className="mt-4 rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{submitError}</p> : null}
 
         <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onSkip}
             disabled={submitting}
-            className="rounded-full border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:border-black/20 disabled:cursor-not-allowed disabled:text-zinc-400"
+            className="kp-soft-action px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
             Saltar por ahora
           </button>

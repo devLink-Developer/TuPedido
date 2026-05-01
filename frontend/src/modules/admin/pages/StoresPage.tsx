@@ -51,7 +51,7 @@ function getStoreAction(store: StoreSummary): { nextStatus: ManagedStoreStatus; 
       nextStatus: "suspended",
       label: "Suspender",
       busyLabel: "Suspendiendo...",
-      className: "rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white disabled:bg-rose-300"
+      className: "rounded bg-rose-500 px-4 py-2 text-sm font-semibold text-white disabled:bg-rose-300"
     };
   }
 
@@ -60,7 +60,7 @@ function getStoreAction(store: StoreSummary): { nextStatus: ManagedStoreStatus; 
       nextStatus: "approved",
       label: "Reanudar",
       busyLabel: "Reanudando...",
-      className: "rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white disabled:bg-brand-300"
+      className: "rounded bg-brand-500 px-4 py-2 text-sm font-semibold text-white disabled:bg-brand-300"
     };
   }
 
@@ -233,14 +233,14 @@ export function StoresPage() {
                 setForm(emptyStoreForm);
                 setFormOpen(true);
               }}
-              className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
+              className="rounded bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
             >
               Agregar comercio
             </button>
             <button
               type="button"
               onClick={() => void load({ silent: true })}
-              className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white"
+              className="rounded bg-white/10 px-4 py-2 text-sm font-semibold text-white"
             >
               Actualizar
             </button>
@@ -252,13 +252,13 @@ export function StoresPage() {
         <div className="space-y-4">
           <h2 className="text-xl font-bold">Solicitudes pendientes</h2>
           {pendingApplications.map((application) => (
-            <article key={application.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+            <article key={application.id} className="rounded bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-bold">{application.business_name}</h3>
                   <p className="text-sm text-zinc-600">{application.address}</p>
                 </div>
-                <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+                <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
                   {statusLabels[application.status] ?? application.status}
                 </span>
               </div>
@@ -273,7 +273,7 @@ export function StoresPage() {
                       await reviewMerchantApplication(token, application.id, { status });
                       await load({ silent: true });
                     }}
-                    className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white"
+                    className={status === "approved" ? "app-button min-h-[40px] px-4 py-2 text-sm" : "kp-soft-action min-h-[40px] px-4 py-2 text-sm"}
                   >
                     {statusLabels[status] ?? status}
                   </button>
@@ -289,7 +289,7 @@ export function StoresPage() {
                 <button
                   type="button"
                   onClick={() => void load({ silent: true })}
-                  className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
+                  className="rounded bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
                 >
                   Actualizar listado
                 </button>
@@ -303,13 +303,13 @@ export function StoresPage() {
           {manageableStores.map((store) => {
             const action = getStoreAction(store);
             return (
-              <article key={store.id} aria-busy={busyStoreId === store.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+              <article key={store.id} aria-busy={busyStoreId === store.id} className="rounded bg-white p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-bold">{store.name}</h3>
                     <p className="text-sm text-zinc-600">{store.address}</p>
                   </div>
-                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+                  <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
                     {statusLabels[store.status] ?? store.status}
                   </span>
                 </div>
@@ -339,8 +339,8 @@ export function StoresPage() {
       </div>
 
       {formOpen ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(17,24,39,0.48)] p-4 md:items-center">
-          <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[32px] bg-[linear-gradient(180deg,#fcf6ef_0%,#fffdfa_100%)] p-3 shadow-[0_32px_80px_rgba(24,19,18,0.28)] md:p-5">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(92,52,24,0.24)] p-4 backdrop-blur-[2px] md:items-center">
+          <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded bg-[linear-gradient(180deg,#fcf6ef_0%,#fffdfa_100%)] p-3 shadow-[0_32px_80px_rgba(24,19,18,0.28)] md:p-5">
             <div className="mb-4 flex items-center justify-between gap-3 px-2">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Alta directa</p>
@@ -352,18 +352,18 @@ export function StoresPage() {
                   setFormOpen(false);
                   setCreateError(null);
                 }}
-                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
+                className="kp-soft-action min-h-[40px] px-4 py-2 text-sm"
               >
                 Cerrar
               </button>
             </div>
 
-            <form onSubmit={(event) => void handleCreate(event)} className="grid gap-4 rounded-[28px] bg-white p-5 shadow-sm lg:grid-cols-2">
+            <form onSubmit={(event) => void handleCreate(event)} className="grid gap-4 rounded bg-white p-5 shadow-sm lg:grid-cols-2">
               <input
                 value={form.full_name}
                 onChange={(event) => setForm((current) => ({ ...current, full_name: event.target.value }))}
                 placeholder="Nombre del responsable"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 required
               />
               <input
@@ -371,7 +371,7 @@ export function StoresPage() {
                 value={form.email}
                 onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
                 placeholder="Email"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 required
               />
               <input
@@ -379,7 +379,7 @@ export function StoresPage() {
                 value={form.password}
                 onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
                 placeholder="Contrasena inicial"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 minLength={6}
                 required
               />
@@ -387,21 +387,21 @@ export function StoresPage() {
                 value={form.business_name}
                 onChange={(event) => setForm((current) => ({ ...current, business_name: event.target.value }))}
                 placeholder="Nombre comercial"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 required
               />
               <input
                 value={form.phone}
                 onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
                 placeholder="Telefono"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 required
               />
               <input
                 value={form.address}
                 onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
                 placeholder="Direccion"
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 required
               />
               <div className="grid gap-4 md:grid-cols-2 lg:col-span-2">
@@ -426,7 +426,7 @@ export function StoresPage() {
                 onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
                 placeholder="Descripcion del comercio"
                 rows={4}
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 lg:col-span-2"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3 lg:col-span-2"
                 required
               />
               <textarea
@@ -434,7 +434,7 @@ export function StoresPage() {
                 onChange={(event) => setForm((current) => ({ ...current, review_notes: event.target.value }))}
                 placeholder="Nota interna opcional"
                 rows={3}
-                className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 lg:col-span-2"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3 lg:col-span-2"
               />
 
               <div className="space-y-3 lg:col-span-2">
@@ -464,7 +464,7 @@ export function StoresPage() {
                 </div>
               </div>
 
-              {createError ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 lg:col-span-2">{createError}</p> : null}
+              {createError ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700 lg:col-span-2">{createError}</p> : null}
 
               <div className="flex flex-wrap gap-2 lg:col-span-2">
                 <Button type="submit" disabled={creating}>
@@ -476,7 +476,7 @@ export function StoresPage() {
                     setFormOpen(false);
                     setCreateError(null);
                   }}
-                  className="rounded-full bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700"
+                  className="rounded bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700"
                 >
                   Cancelar
                 </button>

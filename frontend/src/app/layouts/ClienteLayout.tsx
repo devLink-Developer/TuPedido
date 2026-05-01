@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 import { Link, useLocation, useMatch, useNavigate } from "react-router-dom";
+import { ShoppingBag } from "lucide-react";
 import { ActiveOrderBar } from "../../modules/cliente/components/ActiveOrderBar";
 import { OrderReviewPrompt } from "../../modules/cliente/components/OrderReviewPrompt";
 import { BrandMark } from "../../shared/components";
@@ -23,7 +24,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const lastScrollYRef = useRef(0);
   const { user, token, isAuthenticated, logout } = useAuthSession();
-  const { brandName, branding } = usePlatformBranding();
+  const { brandName } = usePlatformBranding();
   const { itemCount, storeName, total } = useCart();
   const selectedAddressId = useClienteStore((state) => state.selectedAddressId);
   const setSelectedAddressId = useClienteStore((state) => state.setSelectedAddressId);
@@ -241,7 +242,6 @@ export function ClienteLayout({ children }: PropsWithChildren) {
             <Link to="/c" aria-label={`Ir al catalogo de ${brandName}`} className="shrink-0">
               <BrandMark
                 brandName={brandName}
-                logoUrl={branding?.platform_logo_url ?? null}
                 imageClassName="h-9 max-w-[8.5rem] drop-shadow-[0_10px_20px_rgba(173,74,14,0.14)] sm:h-10 sm:max-w-[10rem]"
                 textClassName="text-[1.45rem] text-[#24130e]"
               />
@@ -347,18 +347,14 @@ export function ClienteLayout({ children }: PropsWithChildren) {
           <Link
             to="/c/carrito"
             aria-label={`Abrir carrito con ${itemCount} productos`}
-            className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 w-16 items-center justify-center border border-black/10 text-sm font-semibold text-white transition hover:opacity-95 md:hidden"
+            className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 w-16 items-center justify-center border border-[rgba(255,106,26,0.24)] bg-[linear-gradient(180deg,#ff7b23,#ff6414)] text-sm font-semibold text-white transition hover:-translate-y-0.5 md:hidden"
             style={{
-              backgroundImage: "linear-gradient(135deg, #ff7b46 0%, var(--catalog-accent) 48%, #be2600 100%)",
+              borderRadius: 24,
               boxShadow: "0 18px 40px -18px var(--catalog-accent-shadow)"
             }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
-              <path d="M4.5 6h1.25l1.1 7.05a1 1 0 0 0 .98.8h8.77a1 1 0 0 0 .97-.76L19 8.25H7.2" />
-              <circle cx="9.25" cy="18.25" r="1.35" />
-              <circle cx="16.75" cy="18.25" r="1.35" />
-            </svg>
-            <span className="absolute -right-1 -top-1 inline-flex min-w-6 items-center justify-center border border-white/15 bg-ink px-2 py-1 text-xs font-bold text-white">
+            <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+            <span className="absolute -right-1 -top-1 inline-flex min-w-6 items-center justify-center border border-white/40 bg-white px-2 py-1 text-xs font-bold text-[var(--kp-accent)] shadow-sm" style={{ borderRadius: 999 }}>
               {itemCount}
             </span>
           </Link>
@@ -373,14 +369,9 @@ export function ClienteLayout({ children }: PropsWithChildren) {
           >
             <div className="flex min-w-0 items-center gap-3">
               <span
-                className="flex h-11 w-11 shrink-0 items-center justify-center border border-black/10 text-white"
-                style={{ backgroundColor: "var(--catalog-accent)" }}
+                className="kp-install-icon flex h-11 w-11 shrink-0 items-center justify-center border border-[rgba(255,106,26,0.24)] bg-[var(--kp-accent-soft)] text-[var(--kp-accent)]"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
-                  <path d="M4.5 6h1.25l1.1 7.05a1 1 0 0 0 .98.8h8.77a1 1 0 0 0 .97-.76L19 8.25H7.2" />
-                  <circle cx="9.25" cy="18.25" r="1.35" />
-                  <circle cx="16.75" cy="18.25" r="1.35" />
-                </svg>
+                <ShoppingBag className="h-5 w-5" aria-hidden="true" />
               </span>
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Carrito activo</p>

@@ -17,21 +17,21 @@ import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync"
 
 const dashboardMessages: Record<string, { title: string; description: string }> = {
   pending_review: {
-    title: "Solicitud en revision",
+    title: "Solicitud en revisión",
     description:
-      "Puedes seguir ajustando catalogo, identidad y medios de cobro. El local seguira cerrado hasta la aprobacion."
+      "Puedes seguir ajustando catálogo, identidad y medios de cobro. El local seguirá cerrado hasta la aprobación."
   },
   approved: {
     title: "Listo para operar",
-    description: "Las estadisticas del comercio ya reflejan tus pedidos. La liquidacion ahora se gestiona desde el menu Liquidaciones."
+    description: "Las estadísticas del comercio ya reflejan tus pedidos. La liquidación se gestiona desde el menú Liquidaciones."
   },
   rejected: {
     title: "Alta rechazada",
-    description: "Corrige la informacion del comercio y vuelve a dejarlo listo antes de una nueva revision."
+    description: "Corrige la información del comercio y vuelve a dejarlo listo antes de una nueva revisión."
   },
   suspended: {
-    title: "Operacion suspendida",
-    description: "El panel sigue disponible para consulta y ajustes, pero el local no recibira nuevos pedidos."
+    title: "Operación suspendida",
+    description: "El panel sigue disponible para consulta y ajustes, pero el local no recibirá nuevos pedidos."
   }
 };
 
@@ -51,7 +51,7 @@ function PeriodPanel({
   cancellationCount: number;
 }) {
   return (
-    <article className="rounded-[28px] bg-white p-5 shadow-sm">
+    <article className="rounded bg-white p-5 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{label}</p>
       <p className="mt-3 font-display text-3xl font-bold tracking-tight text-ink">{formatCurrency(sales)}</p>
       <div className="mt-4 grid gap-2 text-sm text-zinc-600 sm:grid-cols-2">
@@ -117,18 +117,18 @@ export function DashboardPage() {
   if (loading) return <LoadingCard />;
   if (error) return <EmptyState title="Resumen no disponible" description={error} />;
   if (!store || !overview) {
-    return <EmptyState title="Comercio no disponible" description="No se pudo cargar la informacion principal del comercio." />;
+    return <EmptyState title="Comercio no disponible" description="No se pudo cargar la información principal del comercio." />;
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Comercio"
+        eyebrow="Finanzas"
         title={
           <span className="inline-flex items-center gap-3">
             <span>{store.name}</span>
             <HelpTooltip label="Ayuda sobre resumen" variant="inverse">
-              Mira tus ventas del dia, semana y mes. Los cobros y pagos se gestionan desde Liquidaciones.
+              Mira ventas por período, pedidos abiertos y saldo financiero. Los cobros y pagos se gestionan desde Liquidaciones.
             </HelpTooltip>
           </span>
         }
@@ -137,7 +137,7 @@ export function DashboardPage() {
           <div className="flex flex-wrap gap-2">
             <Link to="/m/liquidaciones">
               <Button type="button" className="bg-white text-ink shadow-none">
-                Ir a liquidaciones
+                Ir a Liquidaciones
               </Button>
             </Link>
             <Link to="/m/pedidos">
@@ -150,10 +150,10 @@ export function DashboardPage() {
       />
 
       {approvalMessage ? (
-        <section className="app-panel rounded-[28px] p-5">
+        <section className="app-panel rounded p-5">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Estado comercial</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Lectura ejecutiva</p>
               <h2 className="mt-2 text-2xl font-bold text-ink">{approvalMessage.title}</h2>
               <p className="mt-2 max-w-3xl text-sm leading-7 text-zinc-600">{approvalMessage.description}</p>
             </div>
@@ -185,29 +185,29 @@ export function DashboardPage() {
         <StatCard
           label="Ventas mes"
           value={formatCurrency(currentMonth?.sales ?? 0)}
-          description="Facturacion total del mes en curso."
+              description="Facturación total del mes en curso."
         />
         <StatCard
-          label="Fee pendiente"
+          label="Saldo pendiente"
           value={formatCurrency(outstandingBalance)}
-          description={`${overview.pending_notices_count} avisos pendientes de revision.`}
+          description={`${overview.pending_notices_count} avisos pendientes de revisión.`}
         />
         <StatCard
-          label="Fee liquidado"
+          label="Saldo liquidado"
           value={formatCurrency(overview.paid_balance)}
           description="Cobros ya aplicados a la cuenta corriente."
         />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-        <section className="app-panel rounded-[28px] p-5">
+        <section className="app-panel rounded p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Operacion</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Operación</p>
               <div className="mt-2 flex items-center gap-2">
-                <h2 className="text-xl font-bold text-ink">Pedidos que requieren atencion</h2>
-                <HelpTooltip label="Ayuda sobre pedidos que requieren atencion">
-                  Aqui ves primero los pedidos abiertos para resolverlos rapido.
+                <h2 className="text-xl font-bold text-ink">Pedidos que requieren atención</h2>
+                <HelpTooltip label="Ayuda sobre pedidos que requieren atención">
+                  Aquí ves primero los pedidos abiertos para resolverlos rápido.
                 </HelpTooltip>
               </div>
             </div>
@@ -218,7 +218,7 @@ export function DashboardPage() {
 
           <div className="mt-4 space-y-3">
             {openOrders.map((order) => (
-              <article key={order.id} className="rounded-[22px] bg-zinc-50 p-4 text-sm">
+              <article key={order.id} className="rounded bg-zinc-50 p-4 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="font-semibold text-ink">Pedido #{order.id}</p>
@@ -226,7 +226,7 @@ export function DashboardPage() {
                       {order.customer_name} | {formatDateTime(order.created_at)}
                     </p>
                   </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
+                  <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
                     {statusLabels[order.status] ?? order.status}
                   </span>
                 </div>
@@ -240,42 +240,42 @@ export function DashboardPage() {
             {!openOrders.length ? (
               <EmptyState
                 title="Sin pedidos abiertos"
-                description="Cuando entren nuevos pedidos o haya pedidos en curso apareceran aqui."
+                description="Cuando entren nuevos pedidos o haya pedidos en curso aparecerán aquí."
               />
             ) : null}
           </div>
         </section>
 
         <section className="space-y-4">
-          <article className="app-panel rounded-[28px] p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Cuenta corriente</p>
+          <article className="app-panel rounded p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Finanzas</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Resumen financiero</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-[22px] bg-[#fff6ef] p-4">
+              <div className="rounded bg-[#fff6ef] p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pendiente</p>
                 <p className="mt-2 text-2xl font-bold text-ink">{formatCurrency(outstandingBalance)}</p>
               </div>
-              <div className="rounded-[22px] bg-[#f6fbf7] p-4">
+              <div className="rounded bg-[#f6fbf7] p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Liquidado</p>
                 <p className="mt-2 text-2xl font-bold text-ink">{formatCurrency(overview.paid_balance)}</p>
               </div>
             </div>
             <div className="mt-4 space-y-2 text-sm text-zinc-600">
               <p>Pagos registrados: {overview.payments?.length ?? 0}</p>
-              <p>Ultimo cargo: {overview.last_charge_at ? formatDateTime(overview.last_charge_at) : "Sin cargos"}</p>
-              <p>Ultimo pago: {overview.last_payment_at ? formatDateTime(overview.last_payment_at) : "Sin pagos"}</p>
+              <p>Último cargo: {overview.last_charge_at ? formatDateTime(overview.last_charge_at) : "Sin cargos"}</p>
+              <p>Último pago: {overview.last_payment_at ? formatDateTime(overview.last_payment_at) : "Sin pagos"}</p>
             </div>
             <Link to="/m/liquidaciones" className="mt-4 inline-flex text-sm font-semibold text-brand-600">
               Administrar liquidaciones
             </Link>
           </article>
 
-          <article className="app-panel rounded-[28px] p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Proximo paso</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Mantener el panel al dia</h2>
+          <article className="app-panel rounded p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Próximo paso</p>
+            <h2 className="mt-2 text-xl font-bold text-ink">Mantener el panel al día</h2>
             <p className="mt-2 text-sm leading-7 text-zinc-600">
               Usa <strong>Promociones</strong> para combos, <strong>Pedidos</strong> para operar estados y{" "}
-              <strong>Liquidaciones</strong> para enviar comprobantes o registrar pagos a riders sin mezclar funciones.
+              <strong>Liquidaciones</strong> para enviar comprobantes o registrar pagos a repartidores sin mezclar funciones.
             </p>
           </article>
         </section>

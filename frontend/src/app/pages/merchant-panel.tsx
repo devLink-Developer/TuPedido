@@ -375,23 +375,23 @@ export function MerchantDashboardPage() {
       />
 
       {error ? <EmptyCard title="Error" description={error} /> : null}
-      {success ? <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{success}</div> : null}
+      {success ? <div className="rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{success}</div> : null}
 
       <div className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-[28px] bg-white p-5 shadow-sm">
+        <article className="rounded bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Saldo pendiente</p>
           <p className="mt-3 font-display text-3xl font-bold tracking-tight text-ink">{formatCurrency(overview?.pending_balance ?? 0)}</p>
           <p className="mt-2 text-sm text-zinc-600">{overview?.pending_charges_count ?? 0} cargos abiertos</p>
         </article>
-        <article className="rounded-[28px] bg-white p-5 shadow-sm">
+        <article className="rounded bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Neto comercio</p>
           <p className="mt-3 font-display text-3xl font-bold tracking-tight text-ink">{formatCurrency(Math.max((overview?.pending_balance ?? 0) - (store?.delivery_settings.delivery_fee ?? 0), 0))}</p>
           <p className="mt-2 text-sm text-zinc-600">Los pedidos muestran total cliente y neto sin el servicio.</p>
         </article>
-        <article className="rounded-[28px] bg-white p-5 shadow-sm">
+        <article className="rounded bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Mercado Pago</p>
           <p className="mt-3 font-display text-2xl font-bold tracking-tight text-ink">{connectStatus ?? store?.payment_settings.mercadopago_connection_status ?? "sin conectar"}</p>
-          <button type="button" onClick={() => void connectMercadoPago()} className="mt-4 rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white" disabled={saving}>
+          <button type="button" onClick={() => void connectMercadoPago()} className="mt-4 rounded bg-brand-500 px-4 py-2 text-sm font-semibold text-white" disabled={saving}>
             Conectar Mercado Pago
           </button>
         </article>
@@ -403,7 +403,7 @@ export function MerchantDashboardPage() {
             key={key}
             type="button"
             onClick={() => setActiveTab(key)}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${activeTab === key ? "bg-brand-500 text-white" : "bg-white text-zinc-600 shadow-sm"}`}
+            className={`rounded px-4 py-2 text-sm font-semibold transition ${activeTab === key ? "bg-brand-500 text-white" : "bg-white text-zinc-600 shadow-sm"}`}
           >
             {label}
           </button>
@@ -412,7 +412,7 @@ export function MerchantDashboardPage() {
 
       {activeTab === "overview" ? (
         <div className="grid gap-4 lg:grid-cols-2">
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Cuenta corriente</h3>
             <p className="mt-2 text-sm text-zinc-600">Servicio cobrado al comprador, liquidaciones pendientes y cargos por pedidos cash entregados.</p>
             <div className="mt-4 space-y-2 text-sm">
@@ -423,11 +423,11 @@ export function MerchantDashboardPage() {
               <p>Notices: {overview?.pending_notices_count ?? 0}</p>
             </div>
           </article>
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Movimientos recientes</h3>
             <div className="mt-4 space-y-3">
               {charges.slice(0, 4).map((charge) => (
-                <div key={charge.id} className="rounded-2xl bg-zinc-50 p-4 text-sm">
+                <div key={charge.id} className="rounded bg-zinc-50 p-4 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <span>Pedido #{charge.order_id}</span>
                     <strong>{formatCurrency(charge.service_fee)}</strong>
@@ -444,7 +444,7 @@ export function MerchantDashboardPage() {
       ) : null}
 
       {activeTab === "store" ? (
-        <form onSubmit={(event) => void saveStore(event)} className="space-y-4 rounded-[28px] bg-white p-5 shadow-sm">
+        <form onSubmit={(event) => void saveStore(event)} className="space-y-4 rounded bg-white p-5 shadow-sm">
           <h3 className="text-lg font-bold">Datos del comercio</h3>
           <div className="grid gap-3 md:grid-cols-2">
             {[
@@ -459,7 +459,7 @@ export function MerchantDashboardPage() {
                 <input
                   value={(storeForm as Record<string, string | boolean | number>)[key] as string}
                   onChange={(event) => setStoreForm((current) => ({ ...current, [key]: event.target.value }))}
-                  className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                  className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 />
               </label>
             ))}
@@ -468,7 +468,7 @@ export function MerchantDashboardPage() {
               <input
                 value={storeForm.latitude}
                 onChange={(event) => setStoreForm((current) => ({ ...current, latitude: event.target.value }))}
-                className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 placeholder="-34.56"
               />
             </label>
@@ -477,25 +477,25 @@ export function MerchantDashboardPage() {
               <input
                 value={storeForm.longitude}
                 onChange={(event) => setStoreForm((current) => ({ ...current, longitude: event.target.value }))}
-                className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 placeholder="-58.45"
               />
             </label>
           </div>
           <label className="space-y-2 text-sm font-semibold text-zinc-700">
             <span>Descripcion</span>
-            <textarea value={storeForm.description} onChange={(event) => setStoreForm((current) => ({ ...current, description: event.target.value }))} rows={4} className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
+            <textarea value={storeForm.description} onChange={(event) => setStoreForm((current) => ({ ...current, description: event.target.value }))} rows={4} className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3" />
           </label>
           <div className="grid gap-3 md:grid-cols-3">
             <label className="space-y-2 text-sm font-semibold text-zinc-700">
               <span>Minutos minimos</span>
-              <input type="number" value={storeForm.min_delivery_minutes} onChange={(event) => setStoreForm((current) => ({ ...current, min_delivery_minutes: parseNullableNumber(event.target.value) }))} className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
+              <input type="number" value={storeForm.min_delivery_minutes} onChange={(event) => setStoreForm((current) => ({ ...current, min_delivery_minutes: parseNullableNumber(event.target.value) }))} className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3" />
             </label>
             <label className="space-y-2 text-sm font-semibold text-zinc-700">
               <span>Minutos maximos</span>
-              <input type="number" value={storeForm.max_delivery_minutes} onChange={(event) => setStoreForm((current) => ({ ...current, max_delivery_minutes: parseNullableNumber(event.target.value) }))} className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
+              <input type="number" value={storeForm.max_delivery_minutes} onChange={(event) => setStoreForm((current) => ({ ...current, max_delivery_minutes: parseNullableNumber(event.target.value) }))} className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3" />
             </label>
-            <label className="flex items-center gap-2 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+            <label className="flex items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
               <input type="checkbox" checked={storeForm.accepting_orders} onChange={(event) => setStoreForm((current) => ({ ...current, accepting_orders: event.target.checked }))} />
               Recibir pedidos
             </label>
@@ -509,7 +509,7 @@ export function MerchantDashboardPage() {
                   key={category.id}
                   type="button"
                   onClick={() => setSelectedCategoryIds((current) => current.includes(category.id) ? current.filter((id) => id !== category.id) : [...current, category.id])}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold ${selectedCategoryIds.includes(category.id) ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"}`}
+                  className={`rounded px-4 py-2 text-sm font-semibold ${selectedCategoryIds.includes(category.id) ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"}`}
                 >
                   {category.name}
                 </button>
@@ -521,7 +521,7 @@ export function MerchantDashboardPage() {
             <h4 className="font-bold">Horario</h4>
             <div className="grid gap-3 md:grid-cols-2">
               {hours.map((hour, index) => (
-                <div key={hour.day_of_week} className="rounded-2xl bg-zinc-50 p-4">
+                <div key={hour.day_of_week} className="rounded bg-zinc-50 p-4">
                   <div className="mb-2 flex items-center justify-between">
                     <span className="font-semibold">{["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"][hour.day_of_week]}</span>
                     <label className="flex items-center gap-2 text-xs font-semibold">
@@ -530,8 +530,8 @@ export function MerchantDashboardPage() {
                     </label>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <input value={formatHour(hour.opens_at)} onChange={(event) => setHours((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, opens_at: timeFromInput(event.target.value) } : item))} className="rounded-xl border border-black/10 bg-white px-3 py-2" />
-                    <input value={formatHour(hour.closes_at)} onChange={(event) => setHours((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, closes_at: timeFromInput(event.target.value) } : item))} className="rounded-xl border border-black/10 bg-white px-3 py-2" />
+                    <input value={formatHour(hour.opens_at)} onChange={(event) => setHours((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, opens_at: timeFromInput(event.target.value) } : item))} className="rounded border border-black/10 bg-white px-3 py-2" />
+                    <input value={formatHour(hour.closes_at)} onChange={(event) => setHours((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, closes_at: timeFromInput(event.target.value) } : item))} className="rounded border border-black/10 bg-white px-3 py-2" />
                   </div>
                 </div>
               ))}
@@ -539,30 +539,30 @@ export function MerchantDashboardPage() {
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="flex items-center gap-2 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+            <label className="flex items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
               <input type="checkbox" checked={deliveryForm.delivery_enabled} onChange={(event) => setDeliveryForm((current) => ({ ...current, delivery_enabled: event.target.checked }))} />
               Delivery
             </label>
-            <label className="flex items-center gap-2 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+            <label className="flex items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
               <input type="checkbox" checked={deliveryForm.pickup_enabled} onChange={(event) => setDeliveryForm((current) => ({ ...current, pickup_enabled: event.target.checked }))} />
               Retiro
             </label>
-            <input type="number" value={deliveryForm.delivery_fee} onChange={(event) => setDeliveryForm((current) => ({ ...current, delivery_fee: parseNullableNumber(event.target.value) }))} placeholder="Costo de envio" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-            <input type="number" value={deliveryForm.min_order} onChange={(event) => setDeliveryForm((current) => ({ ...current, min_order: parseNullableNumber(event.target.value) }))} placeholder="Pedido minimo" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
+            <input type="number" value={deliveryForm.delivery_fee} onChange={(event) => setDeliveryForm((current) => ({ ...current, delivery_fee: parseNullableNumber(event.target.value) }))} placeholder="Costo de envio" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+            <input type="number" value={deliveryForm.min_order} onChange={(event) => setDeliveryForm((current) => ({ ...current, min_order: parseNullableNumber(event.target.value) }))} placeholder="Pedido minimo" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="flex items-center gap-2 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+            <label className="flex items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
               <input type="checkbox" checked={paymentForm.cash_enabled} onChange={(event) => setPaymentForm((current) => ({ ...current, cash_enabled: event.target.checked }))} />
               Efectivo
             </label>
-            <label className="flex items-center gap-2 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+            <label className="flex items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
               <input type="checkbox" checked={paymentForm.mercadopago_enabled} onChange={(event) => setPaymentForm((current) => ({ ...current, mercadopago_enabled: event.target.checked }))} />
               Mercado Pago
             </label>
           </div>
 
-          <button type="submit" disabled={saving} className="rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
+          <button type="submit" disabled={saving} className="rounded bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
             Guardar cambios
           </button>
         </form>
@@ -571,13 +571,13 @@ export function MerchantDashboardPage() {
       {activeTab === "orders" ? (
         <div className="space-y-4">
           {orders.map((order) => (
-            <article key={order.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+            <article key={order.id} className="rounded bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-bold">Pedido #{order.id}</h3>
                   <p className="text-sm text-zinc-600">{order.customer_name} | {order.store_name}</p>
                 </div>
-                <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[order.status] ?? order.status}</span>
+                <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[order.status] ?? order.status}</span>
               </div>
               <div className="mt-3 grid gap-2 text-sm text-zinc-600 md:grid-cols-4">
                 <p>Pago: {paymentMethodLabels[order.payment_method]}</p>
@@ -592,11 +592,11 @@ export function MerchantDashboardPage() {
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 {orderStatusOptions.map((status) => (
-                  <button key={status} type="button" onClick={async () => { if (!token) return; await updateMerchantOrderStatus(token, order.id, { status }); await load(); }} className="rounded-full bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-700">
+                  <button key={status} type="button" onClick={async () => { if (!token) return; await updateMerchantOrderStatus(token, order.id, { status }); await load(); }} className="rounded bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-700">
                     {statusLabels[status] ?? status}
                   </button>
                 ))}
-                <Link to={`/orders/${order.id}`} className="rounded-full bg-brand-500 px-3 py-2 text-xs font-semibold text-white">
+                <Link to={`/orders/${order.id}`} className="rounded bg-brand-500 px-3 py-2 text-xs font-semibold text-white">
                   Ver tracking
                 </Link>
               </div>
@@ -608,17 +608,17 @@ export function MerchantDashboardPage() {
 
       {activeTab === "products" ? (
         <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-          <form onSubmit={(event) => void saveProduct(event)} className="space-y-4 rounded-[28px] bg-white p-5 shadow-sm">
+          <form onSubmit={(event) => void saveProduct(event)} className="space-y-4 rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">{editingProductId ? "Editar producto" : "Nuevo producto"}</h3>
-            <input value={productForm.name} onChange={(event) => setProductForm((current) => ({ ...current, name: event.target.value }))} placeholder="Nombre" className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-            <textarea value={productForm.description} onChange={(event) => setProductForm((current) => ({ ...current, description: event.target.value }))} rows={4} placeholder="Descripcion" className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
+            <input value={productForm.name} onChange={(event) => setProductForm((current) => ({ ...current, name: event.target.value }))} placeholder="Nombre" className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+            <textarea value={productForm.description} onChange={(event) => setProductForm((current) => ({ ...current, description: event.target.value }))} rows={4} placeholder="Descripcion" className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3" />
             <div className="grid gap-3 md:grid-cols-2">
-              <input type="number" value={productForm.price} onChange={(event) => setProductForm((current) => ({ ...current, price: parseNullableNumber(event.target.value) }))} placeholder="Precio" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-              <input type="number" value={productForm.compare_at_price} onChange={(event) => setProductForm((current) => ({ ...current, compare_at_price: event.target.value }))} placeholder="Precio anterior" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-              <input value={productForm.image_url} onChange={(event) => setProductForm((current) => ({ ...current, image_url: event.target.value }))} placeholder="Imagen URL" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-              <input type="number" value={productForm.sort_order} onChange={(event) => setProductForm((current) => ({ ...current, sort_order: parseNullableNumber(event.target.value) }))} placeholder="Orden" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
+              <input type="number" value={productForm.price} onChange={(event) => setProductForm((current) => ({ ...current, price: parseNullableNumber(event.target.value) }))} placeholder="Precio" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+              <input type="number" value={productForm.compare_at_price} onChange={(event) => setProductForm((current) => ({ ...current, compare_at_price: event.target.value }))} placeholder="Precio anterior" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+              <input value={productForm.image_url} onChange={(event) => setProductForm((current) => ({ ...current, image_url: event.target.value }))} placeholder="Imagen URL" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+              <input type="number" value={productForm.sort_order} onChange={(event) => setProductForm((current) => ({ ...current, sort_order: parseNullableNumber(event.target.value) }))} placeholder="Orden" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
             </div>
-            <select value={productForm.product_category_id} onChange={(event) => setProductForm((current) => ({ ...current, product_category_id: event.target.value }))} className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3">
+            <select value={productForm.product_category_id} onChange={(event) => setProductForm((current) => ({ ...current, product_category_id: event.target.value }))} className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3">
               <option value="">Sin categoria</option>
               {productCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
             </select>
@@ -626,25 +626,25 @@ export function MerchantDashboardPage() {
               <input type="checkbox" checked={productForm.is_available} onChange={(event) => setProductForm((current) => ({ ...current, is_available: event.target.checked }))} />
               Disponible
             </label>
-            <button type="submit" disabled={saving} className="rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
+            <button type="submit" disabled={saving} className="rounded bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
               {editingProductId ? "Actualizar" : "Crear"}
             </button>
           </form>
           <div className="space-y-3">
             {products.map((product) => (
-              <article key={product.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+              <article key={product.id} className="rounded bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h4 className="font-bold">{product.name}</h4>
                     <p className="text-sm text-zinc-600">{formatCurrency(product.price)} | {product.product_category_name ?? "Sin categoria"}</p>
                   </div>
-                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{product.is_available ? "Activo" : "Pausado"}</span>
+                  <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{product.is_available ? "Activo" : "Pausado"}</span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => { setEditingProductId(product.id); setProductForm({ sku: buildSkuCandidate(product.name), name: product.name, brand: "", barcode: "", unit_label: "", description: product.description, price: product.price, compare_at_price: product.compare_at_price?.toString() ?? "", commercial_discount_type: "", commercial_discount_value: "", image_url: product.image_url ?? "", product_category_id: product.product_category_id?.toString() ?? "", product_subcategory_id: "", stock_quantity: "", max_per_order: "", is_available: product.is_available, sort_order: product.sort_order }); }} className="rounded-full bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-700">
+                  <button type="button" onClick={() => { setEditingProductId(product.id); setProductForm({ sku: buildSkuCandidate(product.name), name: product.name, brand: "", barcode: "", unit_label: "", description: product.description, price: product.price, compare_at_price: product.compare_at_price?.toString() ?? "", commercial_discount_type: "", commercial_discount_value: "", image_url: product.image_url ?? "", product_category_id: product.product_category_id?.toString() ?? "", product_subcategory_id: "", stock_quantity: "", max_per_order: "", is_available: product.is_available, sort_order: product.sort_order }); }} className="rounded bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-700">
                     Editar
                   </button>
-                  <button type="button" onClick={async () => { if (!token) return; await deleteMerchantProduct(token, product.id); await load(); }} className="rounded-full bg-rose-500 px-3 py-2 text-xs font-semibold text-white">
+                  <button type="button" onClick={async () => { if (!token) return; await deleteMerchantProduct(token, product.id); await load(); }} className="rounded bg-rose-500 px-3 py-2 text-xs font-semibold text-white">
                     Eliminar
                   </button>
                 </div>
@@ -656,25 +656,25 @@ export function MerchantDashboardPage() {
 
       {activeTab === "payments" ? (
         <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-          <form onSubmit={(event) => void saveNotice(event)} className="space-y-4 rounded-[28px] bg-white p-5 shadow-sm">
+          <form onSubmit={(event) => void saveNotice(event)} className="space-y-4 rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Avisar transferencia</h3>
-            <input type="number" value={noticeForm.amount} onChange={(event) => setNoticeForm((current) => ({ ...current, amount: parseNullableNumber(event.target.value) }))} placeholder="Monto" className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-            <input type="date" value={noticeForm.transfer_date} onChange={(event) => setNoticeForm((current) => ({ ...current, transfer_date: event.target.value }))} className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-            <input value={noticeForm.bank} onChange={(event) => setNoticeForm((current) => ({ ...current, bank: event.target.value }))} placeholder="Banco" className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-            <input value={noticeForm.reference} onChange={(event) => setNoticeForm((current) => ({ ...current, reference: event.target.value }))} placeholder="Referencia" className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-            <textarea value={noticeForm.notes} onChange={(event) => setNoticeForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notas" rows={4} className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf" onChange={(event) => void uploadNoticeProof(event.target.files?.[0] ?? null)} className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
+            <input type="number" value={noticeForm.amount} onChange={(event) => setNoticeForm((current) => ({ ...current, amount: parseNullableNumber(event.target.value) }))} placeholder="Monto" className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+            <input type="date" value={noticeForm.transfer_date} onChange={(event) => setNoticeForm((current) => ({ ...current, transfer_date: event.target.value }))} className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+            <input value={noticeForm.bank} onChange={(event) => setNoticeForm((current) => ({ ...current, bank: event.target.value }))} placeholder="Banco" className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+            <input value={noticeForm.reference} onChange={(event) => setNoticeForm((current) => ({ ...current, reference: event.target.value }))} placeholder="Referencia" className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+            <textarea value={noticeForm.notes} onChange={(event) => setNoticeForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notas" rows={4} className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf" onChange={(event) => void uploadNoticeProof(event.target.files?.[0] ?? null)} className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3" />
             {noticeForm.proof_url ? <p className="text-xs text-zinc-500">Comprobante cargado: {noticeForm.proof_original_name}</p> : null}
-            <button type="submit" disabled={saving} className="rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
+            <button type="submit" disabled={saving} className="rounded bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
               Enviar aviso
             </button>
           </form>
           <div className="space-y-4">
-            <article className="rounded-[28px] bg-white p-5 shadow-sm">
+            <article className="rounded bg-white p-5 shadow-sm">
               <h3 className="text-lg font-bold">Notices y pagos</h3>
               <div className="mt-4 space-y-3">
                 {notices.map((notice) => (
-                  <div key={notice.id} className="rounded-2xl bg-zinc-50 p-4 text-sm">
+                  <div key={notice.id} className="rounded bg-zinc-50 p-4 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <span>{notice.bank}</span>
                       <strong>{formatCurrency(notice.amount)}</strong>

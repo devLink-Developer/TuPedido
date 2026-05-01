@@ -180,7 +180,7 @@ export function CatalogPage() {
   return (
     <div className="space-y-6">
       <section
-        className="app-panel rounded-[38px] p-3 transition-[border-color,box-shadow,background] duration-300"
+        className="app-panel rounded p-3 transition-[border-color,box-shadow,background] duration-300"
         style={{
           borderColor: catalogTheme.accentBorder,
           backgroundImage: catalogTheme.bannerFrame,
@@ -196,7 +196,7 @@ export function CatalogPage() {
       </section>
 
       <div
-        className="app-panel grid gap-4 rounded-[30px] p-5 transition-[border-color,box-shadow,background] duration-300 md:grid-cols-[1.3fr_0.7fr]"
+        className="app-panel grid gap-4 rounded p-5 transition-[border-color,box-shadow,background] duration-300 md:grid-cols-[1.3fr_0.7fr]"
         style={{
           borderColor: catalogTheme.accentBorder,
           backgroundImage: catalogTheme.filterPanel,
@@ -235,7 +235,7 @@ export function CatalogPage() {
       </div>
 
       <section
-        className="app-panel rounded-[30px] p-4 transition-[border-color,box-shadow,background] duration-300"
+        className="kp-client-panel p-4 transition-[border-color,box-shadow,background] duration-300"
         style={{
           borderColor: catalogTheme.accentBorder,
           backgroundImage: catalogTheme.chipPanel,
@@ -255,19 +255,17 @@ export function CatalogPage() {
         </div>
 
         <div className="hide-scrollbar mt-4 flex flex-wrap gap-2 overflow-x-auto pb-1 sm:gap-3">
-          <button
-            type="button"
+          <RubroChip
+            label="Todos los rubros"
+            icon="grid"
+            color="#ff6a1a"
+            colorLight="#fff0e5"
+            selected={!categorySlug}
             onClick={() => {
               setCategorySlug("");
               updateQuery({ categorySlug: "" });
             }}
-            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-              !categorySlug ? "bg-ink text-white" : "bg-white/92 text-zinc-600"
-            }`}
-            style={!categorySlug ? undefined : { borderColor: catalogTheme.accentBorder }}
-          >
-            Todos los rubros
-          </button>
+          />
           {categories.map((category) => {
             const selected = categorySlug === category.slug;
             return (

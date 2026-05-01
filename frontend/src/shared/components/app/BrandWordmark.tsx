@@ -1,7 +1,7 @@
-import { resolveApiMediaUrl } from "../../services/api/client";
+import { KE_BRAND_NAME } from "../../config/brand";
 
 type BrandWordmarkProps = {
-  brandName: string;
+  brandName?: string;
   wordmarkUrl?: string | null;
   size?: "eyebrow" | "inline" | "title" | "hero";
   fit?: "contain" | "cover";
@@ -12,69 +12,41 @@ type BrandWordmarkProps = {
 };
 
 const sizeFrames: Record<NonNullable<BrandWordmarkProps["size"]>, string> = {
-  eyebrow: "h-6 w-[8rem] overflow-hidden sm:h-7 sm:w-[9rem]",
-  inline: "h-6 w-[8.25rem] overflow-hidden sm:h-7 sm:w-[9.5rem]",
-  title: "h-10 w-[11rem] overflow-hidden sm:h-12 sm:w-[13.5rem]",
-  hero: "h-14 w-[13.5rem] overflow-hidden sm:h-[4.75rem] sm:w-[17rem]",
+  eyebrow: "h-6 w-[7.25rem] sm:h-7 sm:w-[8.25rem]",
+  inline: "h-7 w-[8.25rem] sm:h-8 sm:w-[9.25rem]",
+  title: "h-10 w-[10rem] sm:h-11 sm:w-[11.5rem]",
+  hero: "h-14 w-[13rem] sm:h-16 sm:w-[15rem]",
 };
 
-const sizeTexts: Record<NonNullable<BrandWordmarkProps["size"]>, string> = {
-  eyebrow: "text-sm sm:text-base",
-  inline: "text-sm sm:text-base",
-  title: "text-2xl sm:text-3xl",
-  hero: "text-[2rem] sm:text-4xl",
+const spriteStyles: Record<NonNullable<BrandWordmarkProps["size"]>, { backgroundSize: string; backgroundPosition: string }> = {
+  eyebrow: { backgroundSize: "560px 373px", backgroundPosition: "-32px -9px" },
+  inline: { backgroundSize: "620px 413px", backgroundPosition: "-36px -10px" },
+  title: { backgroundSize: "706px 471px", backgroundPosition: "-41px -12px" },
+  hero: { backgroundSize: "930px 620px", backgroundPosition: "-54px -16px" },
 };
 
 export function BrandWordmark({
-  brandName,
-  wordmarkUrl,
+  brandName = KE_BRAND_NAME,
   size = "inline",
-  fit = "contain",
   className = "",
   frameClassName = "",
   imageClassName = "",
-  textClassName = "",
 }: BrandWordmarkProps) {
-  if (wordmarkUrl) {
-    return (
-      <span className={["inline-flex items-center", className].filter(Boolean).join(" ")}>
-        <span
-          className={[
-            "inline-flex shrink-0 items-center",
-            sizeFrames[size],
-            frameClassName,
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <img
-            src={resolveApiMediaUrl(wordmarkUrl)}
-            alt={brandName}
-            className={[
-              "inline-block h-full w-full max-w-none object-center",
-              fit === "cover" ? "object-cover" : "object-contain",
-              imageClassName,
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          />
-        </span>
-      </span>
-    );
-  }
-
   return (
-    <span
-      className={[
-        "inline-block align-baseline",
-        sizeTexts[size],
-        className,
-        textClassName,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      {brandName}
+    <span className={["inline-flex items-center", className].filter(Boolean).join(" ")}>
+      <span
+        aria-hidden="true"
+        className={[
+          "ke-brand-sprite shrink-0",
+          sizeFrames[size],
+          frameClassName,
+          imageClassName,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        style={spriteStyles[size]}
+      />
+      <span className="sr-only">{brandName}</span>
     </span>
   );
 }

@@ -1,41 +1,63 @@
 <svg width="1600" height="520" viewBox="0 0 1600 520" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1600" height="520" rx="52" fill="#1D1614"/>
-  <rect width="1600" height="520" rx="52" fill="url(#paint0_linear_120_12)"/>
-  <g opacity="0.24">
-    <path d="M0 74H1600" stroke="#FFF3EB"/>
-    <path d="M0 148H1600" stroke="#FFF3EB"/>
-    <path d="M0 222H1600" stroke="#FFF3EB"/>
-    <path d="M0 296H1600" stroke="#FFF3EB"/>
-    <path d="M0 370H1600" stroke="#FFF3EB"/>
-    <path d="M0 444H1600" stroke="#FFF3EB"/>
-    <path d="M114 0V520" stroke="#FFF3EB"/>
-    <path d="M228 0V520" stroke="#FFF3EB"/>
-    <path d="M342 0V520" stroke="#FFF3EB"/>
-    <path d="M456 0V520" stroke="#FFF3EB"/>
-    <path d="M570 0V520" stroke="#FFF3EB"/>
-    <path d="M684 0V520" stroke="#FFF3EB"/>
-    <path d="M798 0V520" stroke="#FFF3EB"/>
-    <path d="M912 0V520" stroke="#FFF3EB"/>
-    <path d="M1026 0V520" stroke="#FFF3EB"/>
-    <path d="M1140 0V520" stroke="#FFF3EB"/>
-    <path d="M1254 0V520" stroke="#FFF3EB"/>
-    <path d="M1368 0V520" stroke="#FFF3EB"/>
-    <path d="M1482 0V520" stroke="#FFF3EB"/>
+  <rect width="1600" height="520" rx="52" fill="#FFFDFB"/>
+  <rect x="1" y="1" width="1598" height="518" rx="51" stroke="#EADFD2" stroke-width="2"/>
+  <g opacity="0.42">
+    <path d="M0 74H1600" stroke="#FFE1CC"/>
+    <path d="M0 148H1600" stroke="#FFE1CC"/>
+    <path d="M0 222H1600" stroke="#FFE1CC"/>
+    <path d="M0 296H1600" stroke="#FFE1CC"/>
+    <path d="M0 370H1600" stroke="#FFE1CC"/>
+    <path d="M0 444H1600" stroke="#FFE1CC"/>
+    <path d="M114 0V520" stroke="#FFE1CC"/>
+    <path d="M228 0V520" stroke="#FFE1CC"/>
+    <path d="M342 0V520" stroke="#FFE1CC"/>
+    <path d="M456 0V520" stroke="#FFE1CC"/>
+    <path d="M570 0V520" stroke="#FFE1CC"/>
+    <path d="M684 0V520" stroke="#FFE1CC"/>
+    <path d="M798 0V520" stroke="#FFE1CC"/>
+    <path d="M912 0V520" stroke="#FFE1CC"/>
+    <path d="M1026 0V520" stroke="#FFE1CC"/>
+    <path d="M1140 0V520" stroke="#FFE1CC"/>
+    <path d="M1254 0V520" stroke="#FFE1CC"/>
+    <path d="M1368 0V520" stroke="#FFE1CC"/>
+    <path d="M1482 0V520" stroke="#FFE1CC"/>
   </g>
-  <circle cx="1356" cy="118" r="126" fill="#FF3D00" fill-opacity="0.18"/>
-  <circle cx="1498" cy="82" r="64" fill="#FFC9B4" fill-opacity="0.16"/>
-  <circle cx="1240" cy="390" r="164" fill="#B44A2D" fill-opacity="0.2"/>
-  <path d="M920 430C1004 353.768 1099.95 315.652 1207.85 315.652C1315.75 315.652 1446.47 384.435 1600 522V520H920V430Z" fill="url(#paint1_linear_120_12)"/>
-  <path d="M867 509C952.506 407.11 1056.68 356.165 1179.52 356.165C1302.37 356.165 1442.53 410.777 1600 520H867V509Z" fill="#F7E4D8" fill-opacity="0.08"/>
+  <circle cx="1290" cy="270" r="250" fill="#FFF0E5"/>
+  <circle cx="1334" cy="272" r="168" stroke="#FF6A1A" stroke-opacity="0.22" stroke-width="3"/>
+  <circle cx="1334" cy="272" r="100" stroke="#FF6A1A" stroke-opacity="0.28" stroke-width="3"/>
+  <circle cx="1334" cy="272" r="36" fill="#FF6A1A" fill-opacity="0.18"/>
+  <path d="M1340 118C1282 118 1234 164 1234 222C1234 310 1340 402 1340 402C1340 402 1446 310 1446 222C1446 164 1398 118 1340 118Z" fill="url(#pinGradient)"/>
+  <circle cx="1340" cy="224" r="38" fill="#3B2118" fill-opacity="0.92"/>
+  <rect x="86" y="78" width="220" height="62" rx="20" fill="#FFFFFF" stroke="#EADFD2"/>
+  <text x="113" y="119" fill="#FF6A1A" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="31" font-weight="800">KePedimos</text>
+  <text x="88" y="204" fill="#FF6A1A" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="22" font-weight="800" letter-spacing="8">CERCA TUYO</text>
+  <text x="88" y="276" fill="#151515" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="62" font-weight="800">Encontrá comercios</text>
+  <text x="88" y="336" fill="#5F646D" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="28" font-weight="500">Busqueda, envio o retiro con el mismo estilo visual del landing.</text>
+  <g>
+    <rect x="88" y="386" width="160" height="58" rx="29" fill="#FFFFFF" stroke="#EADFD2"/>
+    <text x="132" y="423" fill="#2C2F35" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="20" font-weight="700">Farmacia</text>
+    <circle cx="113" cy="415" r="11" stroke="#4F545C" stroke-width="3"/>
+    <path d="M113 408V422M106 415H120" stroke="#4F545C" stroke-width="3" stroke-linecap="round"/>
+    <rect x="268" y="386" width="156" height="58" rx="29" fill="#FFFFFF" stroke="#EADFD2"/>
+    <text x="312" y="423" fill="#2C2F35" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="20" font-weight="700">Almacén</text>
+    <path d="M292 407H304L309 416V425H288V416L292 407Z" stroke="#4F545C" stroke-width="3" stroke-linejoin="round"/>
+    <rect x="444" y="386" width="144" height="58" rx="29" fill="#FFFFFF" stroke="#EADFD2"/>
+    <text x="488" y="423" fill="#2C2F35" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="20" font-weight="700">Comida</text>
+    <path d="M468 406V427M462 407V416M474 407V416M469 417H462" stroke="#4F545C" stroke-width="3" stroke-linecap="round"/>
+    <rect x="608" y="386" width="144" height="58" rx="29" fill="#FFFFFF" stroke="#EADFD2"/>
+    <text x="652" y="423" fill="#2C2F35" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="20" font-weight="700">Bebidas</text>
+    <path d="M633 406H622L624 427H631L633 406Z" stroke="#4F545C" stroke-width="3" stroke-linejoin="round"/>
+  </g>
+  <rect x="1030" y="92" width="260" height="96" rx="24" fill="#FFFFFF" stroke="#EADFD2"/>
+  <text x="1060" y="135" fill="#151515" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="24" font-weight="800">Cena cerca</text>
+  <text x="1060" y="164" fill="#666D77" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="18" font-weight="500">Listo en minutos</text>
+  <rect x="956" y="326" width="282" height="96" rx="24" fill="#FFFFFF" stroke="#EADFD2"/>
+  <text x="986" y="369" fill="#151515" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="24" font-weight="800">Retiro disponible</text>
+  <text x="986" y="398" fill="#666D77" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="18" font-weight="500">Sin filas, sin espera</text>
   <defs>
-    <linearGradient id="paint0_linear_120_12" x1="0" y1="0" x2="1600" y2="520" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#241714"/>
-      <stop offset="0.48" stop-color="#3A241E"/>
-      <stop offset="1" stop-color="#5C2D1E"/>
-    </linearGradient>
-    <linearGradient id="paint1_linear_120_12" x1="920" y1="315.652" x2="1600" y2="522" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFB08E" stop-opacity="0.22"/>
-      <stop offset="1" stop-color="#FF3D00" stop-opacity="0.14"/>
+    <linearGradient id="pinGradient" x1="1340" y1="118" x2="1340" y2="402" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF9329"/>
+      <stop offset="1" stop-color="#FF5D10"/>
     </linearGradient>
   </defs>
 </svg>

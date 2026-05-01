@@ -132,12 +132,12 @@ export function PromoManager() {
     }
 
     if (!form.name.trim()) {
-      setFormError("Ingresa un nombre para la promocion.");
+      setFormError("Ingresá un nombre para la promoción.");
       setSaving(false);
       return;
     }
     if (validItems.length === 0) {
-      setFormError("Selecciona al menos un producto para armar el combo.");
+      setFormError("Seleccioná al menos un producto para armar el combo.");
       setSaving(false);
       return;
     }
@@ -147,12 +147,12 @@ export function PromoManager() {
       return;
     }
     if (!form.sale_price || Number(form.sale_price) < 0) {
-      setFormError("Define un precio de venta valido para el combo.");
+      setFormError("Definí un precio de venta válido para el combo.");
       setSaving(false);
       return;
     }
     if (Number(form.max_per_customer_per_day) <= 0) {
-      setFormError("El maximo por cliente por dia debe ser mayor a cero.");
+      setFormError("El máximo por cliente por día debe ser mayor a cero.");
       setSaving(false);
       return;
     }
@@ -180,7 +180,7 @@ export function PromoManager() {
       resetForm();
       await load();
     } catch (requestError) {
-      setFormError(requestError instanceof Error ? requestError.message : "No se pudo guardar la promocion");
+      setFormError(requestError instanceof Error ? requestError.message : "No se pudo guardar la promoción");
     } finally {
       setSaving(false);
     }
@@ -195,230 +195,67 @@ export function PromoManager() {
       }
       await load();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No se pudo eliminar la promocion");
+      setError(requestError instanceof Error ? requestError.message : "No se pudo eliminar la promoción");
     }
   }
 
   if (loading) {
-    return <div className="rounded-[28px] bg-white p-5 shadow-sm">Cargando promociones...</div>;
+    return <div className="rounded bg-white p-5 shadow-sm">Cargando promociones...</div>;
   }
 
   if (!products.length) {
     return (
       <EmptyState
         title="Primero crea productos"
-        description="Las promociones solo pueden armarse con productos ya configurados en el catalogo."
+        description="Las promociones solo pueden armarse con productos ya configurados en el catálogo."
       />
     );
   }
 
   return (
     <div className="space-y-5">
-      {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+      {error ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
 
-      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4 rounded-[28px] bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <section className="app-panel p-5">
+        <div className="flex flex-col gap-3 border-b border-[var(--color-border-default)] pb-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Combo</p>
-            <div className="mt-2 flex items-center gap-2">
-              <h2 className="text-xl font-bold text-ink">{editingId === null ? "Nueva promocion" : "Editar promocion"}</h2>
-              <HelpTooltip label="Ayuda sobre promocion">
-                Combina productos ya creados, define el precio final y el limite por cliente.
-              </HelpTooltip>
-            </div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Combos activos</p>
+            <h2 className="mt-2 text-xl font-bold text-ink">Promociones configuradas</h2>
+            <p className="mt-2 text-sm text-zinc-600">Priorizá los combos activos y editá el formulario cuando necesites ajustar precio o productos.</p>
           </div>
-          {editingId !== null ? (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="rounded-full bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700"
-            >
-              Cancelar edicion
-            </button>
-          ) : null}
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <input
-            value={form.name}
-            onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-            placeholder="Ej. Combo desayuno"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-          />
-          <input
-            type="number"
-            min={0}
-            step="0.01"
-            value={form.sale_price}
-            onChange={(event) => setForm((current) => ({ ...current, sale_price: event.target.value }))}
-            placeholder="Precio final del combo"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-          />
-          <input
-            type="number"
-            min={1}
-            value={form.max_per_customer_per_day}
-            onChange={(event) => setForm((current) => ({ ...current, max_per_customer_per_day: event.target.value }))}
-            placeholder="Maximo por cliente por dia"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-          />
-          <input
-            type="number"
-            min={0}
-            value={form.sort_order}
-            onChange={(event) => setForm((current) => ({ ...current, sort_order: event.target.value }))}
-            placeholder="Orden"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-          />
-          <textarea
-            value={form.description}
-            onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-            rows={3}
-            placeholder="Explica cuando conviene usar este combo o que incluye."
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
-          />
-        </div>
-
-        <label className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700">
-          <input
-            type="checkbox"
-            checked={form.is_active}
-            onChange={(event) => setForm((current) => ({ ...current, is_active: event.target.checked }))}
-          />
-          Promocion activa
-        </label>
-
-        <div className="space-y-3 rounded-[24px] bg-zinc-50 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Productos</p>
-              <div className="mt-2 flex items-center gap-2">
-                <h3 className="text-lg font-bold text-ink">Configura el combo</h3>
-                <HelpTooltip label="Ayuda sobre productos del combo">
-                  Agrega los productos y cantidades que forman parte de la promocion.
-                </HelpTooltip>
-              </div>
-            </div>
-            <Button
-              type="button"
-              className="bg-zinc-900 shadow-none"
-              onClick={() =>
-                setForm((current) => ({
-                  ...current,
-                  items: [...current.items, { product_id: "", quantity: "1", sort_order: String(current.items.length) }]
-                }))
-              }
-            >
-              Agregar producto
-            </Button>
-          </div>
-          <div className="space-y-3">
-            {form.items.map((item, index) => (
-              <div key={`${index}-${item.product_id}`} className="grid gap-3 rounded-[22px] bg-white p-4 md:grid-cols-[1fr_120px_120px_auto]">
-                <select
-                  value={item.product_id}
-                  onChange={(event) => updateItem(index, "product_id", event.target.value)}
-                  className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-                >
-                  <option value="">Selecciona un producto</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name} | {formatCurrency(product.final_price)}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  min={1}
-                  value={item.quantity}
-                  onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                  placeholder="Cantidad"
-                  className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-                />
-                <input
-                  type="number"
-                  min={0}
-                  value={item.sort_order}
-                  onChange={(event) => updateItem(index, "sort_order", event.target.value)}
-                  placeholder="Orden"
-                  className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeItem(index)}
-                  disabled={form.items.length === 1}
-                  className="rounded-full bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Quitar
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-[22px] bg-[#fff6ef] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Base del combo</p>
-            <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(baseComboTotal)}</p>
-          </div>
-          <div className="rounded-[22px] bg-[#f6fbf7] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Precio final</p>
-            <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(Number(form.sale_price || 0))}</p>
-          </div>
-          <div className="rounded-[22px] bg-[#f5f7fb] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Ahorro estimado</p>
-            <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(totalSavings)}</p>
-          </div>
-        </div>
-
-        {formError ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{formError}</p> : null}
-
-        <Button type="submit" disabled={saving}>
-          {saving ? "Guardando..." : editingId === null ? "Crear promocion" : "Guardar cambios"}
-        </Button>
-      </form>
-
-      <section className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Promociones activas</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Combos configurados</h2>
-          </div>
-          <span className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-600">
-            {promotions.length} promociones
-          </span>
+          <span className="app-chip text-xs text-zinc-600">{promotions.length} promociones</span>
         </div>
 
         {promotions.length ? (
-          <div className="space-y-4">
+          <div className="mt-4 space-y-4">
             {promotions.map((promotion) => (
-              <article key={promotion.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+              <article key={promotion.id} className="rounded border border-black/5 bg-white p-4 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-bold text-ink">{promotion.name}</h3>
                     {promotion.description ? <p className="mt-2 text-sm text-zinc-600">{promotion.description}</p> : null}
                   </div>
-                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+                  <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
                     {promotion.is_active ? "Activa" : "Pausada"}
                   </span>
                 </div>
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
-                  <div className="rounded-[20px] bg-zinc-50 p-4">
+                  <div className="rounded bg-zinc-50 p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Precio combo</p>
                     <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(promotion.sale_price)}</p>
                   </div>
-                  <div className="rounded-[20px] bg-zinc-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Maximo diario</p>
+                  <div className="rounded bg-zinc-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Máximo diario</p>
                     <p className="mt-2 text-lg font-bold text-ink">{promotion.max_per_customer_per_day}</p>
                   </div>
-                  <div className="rounded-[20px] bg-zinc-50 p-4">
+                  <div className="rounded bg-zinc-50 p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Actualizada</p>
                     <p className="mt-2 text-sm font-semibold text-ink">{formatDateTime(promotion.updated_at)}</p>
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {promotion.items.map((item) => (
-                    <span key={item.id} className="rounded-full bg-[#fff6ef] px-3 py-2 text-sm text-zinc-700">
+                    <span key={item.id} className="rounded bg-[#fff6ef] px-3 py-2 text-sm text-zinc-700">
                       {item.quantity} x {item.product_name}
                     </span>
                   ))}
@@ -426,7 +263,7 @@ export function PromoManager() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button
                     type="button"
-                    className="bg-zinc-900 shadow-none"
+                    className="shadow-none"
                     onClick={() => {
                       setEditingId(promotion.id);
                       setForm(toForm(promotion));
@@ -447,9 +284,173 @@ export function PromoManager() {
             ))}
           </div>
         ) : (
-          <EmptyState title="Sin promociones" description="Crea el primer combo para empezar a ofrecer promociones reales." />
+          <div className="mt-4">
+            <EmptyState title="Sin promociones" description="Crea el primer combo para empezar a ofrecer promociones reales." />
+          </div>
         )}
       </section>
+
+      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4 rounded bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Combo</p>
+            <div className="mt-2 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-ink">{editingId === null ? "Nueva promoción" : "Editar promoción"}</h2>
+              <HelpTooltip label="Ayuda sobre promoción">
+                Combiná productos ya creados, definí el precio final y el límite por cliente.
+              </HelpTooltip>
+            </div>
+          </div>
+          {editingId !== null ? (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700"
+            >
+              Cancelar edición
+            </button>
+          ) : null}
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <input
+            value={form.name}
+            onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+            placeholder="Ej. Combo desayuno"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
+          />
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={form.sale_price}
+            onChange={(event) => setForm((current) => ({ ...current, sale_price: event.target.value }))}
+            placeholder="Precio final del combo"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
+          />
+          <input
+            type="number"
+            min={1}
+            value={form.max_per_customer_per_day}
+            onChange={(event) => setForm((current) => ({ ...current, max_per_customer_per_day: event.target.value }))}
+            placeholder="Máximo por cliente por día"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
+          />
+          <input
+            type="number"
+            min={0}
+            value={form.sort_order}
+            onChange={(event) => setForm((current) => ({ ...current, sort_order: event.target.value }))}
+            placeholder="Orden"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
+          />
+          <textarea
+            value={form.description}
+            onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+            rows={3}
+            placeholder="Explicá cuándo conviene usar este combo o qué incluye."
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+          />
+        </div>
+
+        <label className="inline-flex items-center gap-2 rounded bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700">
+          <input
+            type="checkbox"
+            checked={form.is_active}
+            onChange={(event) => setForm((current) => ({ ...current, is_active: event.target.checked }))}
+          />
+          Promoción activa
+        </label>
+
+        <div className="space-y-3 rounded bg-zinc-50 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Productos</p>
+              <div className="mt-2 flex items-center gap-2">
+                <h3 className="text-lg font-bold text-ink">Configura el combo</h3>
+                <HelpTooltip label="Ayuda sobre productos del combo">
+                  Agregá los productos y cantidades que forman parte de la promoción.
+                </HelpTooltip>
+              </div>
+            </div>
+            <Button
+              type="button"
+              className="shadow-none"
+              onClick={() =>
+                setForm((current) => ({
+                  ...current,
+                  items: [...current.items, { product_id: "", quantity: "1", sort_order: String(current.items.length) }]
+                }))
+              }
+            >
+              Agregar producto
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {form.items.map((item, index) => (
+              <div key={`${index}-${item.product_id}`} className="grid gap-3 rounded bg-white p-4 md:grid-cols-[1fr_120px_120px_auto]">
+                <select
+                  value={item.product_id}
+                  onChange={(event) => updateItem(index, "product_id", event.target.value)}
+                  className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
+                >
+                  <option value="">Seleccioná un producto</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name} | {formatCurrency(product.final_price)}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min={1}
+                  value={item.quantity}
+                  onChange={(event) => updateItem(index, "quantity", event.target.value)}
+                  placeholder="Cantidad"
+                  className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
+                />
+                <input
+                  type="number"
+                  min={0}
+                  value={item.sort_order}
+                  onChange={(event) => updateItem(index, "sort_order", event.target.value)}
+                  placeholder="Orden"
+                  className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeItem(index)}
+                  disabled={form.items.length === 1}
+                  className="rounded bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Quitar
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded bg-[#fff6ef] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Base del combo</p>
+            <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(baseComboTotal)}</p>
+          </div>
+          <div className="rounded bg-[#f6fbf7] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Precio final</p>
+            <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(Number(form.sale_price || 0))}</p>
+          </div>
+          <div className="rounded bg-[#f5f7fb] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Ahorro estimado</p>
+            <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(totalSavings)}</p>
+          </div>
+        </div>
+
+        {formError ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{formError}</p> : null}
+
+        <Button type="submit" disabled={saving}>
+          {saving ? "Guardando..." : editingId === null ? "Crear promoción" : "Guardar cambios"}
+        </Button>
+      </form>
     </div>
   );
 }

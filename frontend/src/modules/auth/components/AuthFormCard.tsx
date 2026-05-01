@@ -103,7 +103,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
 
       <label className="block space-y-2">
         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Contrasena</span>
-        <div className="flex items-center gap-2 border border-[var(--color-border-default)] bg-white/92 px-4 py-1.5 shadow-sm">
+        <div className="app-input flex items-center gap-2 px-4 py-1.5">
           <input
             type={showPassword ? "text" : "password"}
             value={password}
@@ -115,7 +115,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
           <button
             type="button"
             onClick={() => setShowPassword((current) => !current)}
-            className="border border-[var(--color-border-default)] bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-600 transition hover:text-ink"
+            className="kp-soft-action min-h-[36px] px-3 py-1.5 text-xs uppercase tracking-[0.18em]"
           >
             {showPassword ? "Ocultar" : "Mostrar"}
           </button>
@@ -135,7 +135,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
       <div className="mt-5 border-t border-black/6 pt-5 text-center">
         <p className="text-sm text-zinc-500">{content.secondaryPrompt}</p>
         <Link
-          className="mt-3 inline-flex border border-[var(--color-border-default)] bg-white/84 px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.16em] text-zinc-700 transition hover:border-brand-200 hover:text-ink"
+          className="kp-soft-action mt-3 inline-flex min-h-[44px] px-5 py-2.5 text-sm uppercase tracking-[0.16em]"
           to={content.secondaryActionTo}
         >
           {content.secondaryActionLabel}
@@ -191,16 +191,16 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
         {formActions}
       </form>
 
-      <div className="app-panel-dark order-2 p-5 sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">{content.eyebrow}</p>
-        <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.03] tracking-tight sm:text-4xl">{content.titlePrefix}</h1>
-        <p className="mt-3 max-w-xl text-sm leading-7 text-white/72 sm:text-[15px]">
+      <div className="kp-install-banner order-2 p-5 sm:p-6">
+        <p className="app-chip text-[var(--kp-accent)]">{content.eyebrow}</p>
+        <h1 className="mt-4 font-display text-[2rem] font-bold leading-[1.03] tracking-tight text-ink sm:text-4xl">{content.titlePrefix}</h1>
+        <p className="mt-3 max-w-xl text-sm leading-7 text-zinc-600 sm:text-[15px]">
           {content.description}
         </p>
-        <div className="mt-6 grid gap-3 text-sm leading-6 text-white/78">
+        <div className="mt-6 grid gap-3 text-sm leading-6 text-zinc-700">
           {content.highlights.map((item, index) => (
-            <div key={item} className="border border-white/10 bg-white/6 px-4 py-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-brand-200/90">Paso {index + 1}</p>
+            <div key={item} className="border border-[var(--kp-stroke)] bg-white/82 px-4 py-4" style={{ borderRadius: 18 }}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[var(--kp-accent)]">Paso {index + 1}</p>
               <p className="mt-2">{item}</p>
             </div>
           ))}

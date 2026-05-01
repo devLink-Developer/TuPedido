@@ -7,7 +7,7 @@ import { AuthFormCard } from "./AuthFormCard";
 
 vi.mock("../../../shared/providers/PlatformBrandingProvider", () => ({
   usePlatformBranding: () => ({
-    brandName: "Kepedimos",
+    brandName: "KePedimos",
     wordmarkUrl: null
   })
 }));
@@ -35,7 +35,7 @@ describe("AuthFormCard", () => {
     const primaryAction = screen.getByRole("button", { name: "Ingresar" });
     expect(screen.getByText("No tienes cuenta?")).toBeInTheDocument();
     expect(secondaryAction).toHaveClass("inline-flex");
-    expect(secondaryAction).not.toHaveClass("rounded-full");
+    expect(secondaryAction).not.toHaveClass("rounded");
     expect(primaryAction.compareDocumentPosition(secondaryAction)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(screen.getByRole("heading", { name: "Iniciar sesion" })).toBeInTheDocument();
     expect(screen.getByText("Entra para ver tus pedidos y comprar sin vueltas.")).toBeInTheDocument();

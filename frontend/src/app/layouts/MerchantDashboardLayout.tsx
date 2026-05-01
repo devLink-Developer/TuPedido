@@ -1,30 +1,105 @@
 import type { PropsWithChildren } from "react";
+import type { LucideIcon } from "lucide-react";
+import { BadgePercent, BarChart3, Bike, ClipboardList, Menu, Package, Settings, WalletCards, X } from "lucide-react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useMerchantMobileHeader } from "../../modules/comercio/MerchantMobileHeaderContext";
 import { BrandMark } from "../../shared/components";
 import { useAuthSession, useRouteBoundDrawer } from "../../shared/hooks";
 import { usePlatformBranding } from "../../shared/providers/PlatformBrandingProvider";
 
-const navItems = [
-  { to: "/m/pedidos", label: "Pedidos" },
-  { to: "/m/riders", label: "Riders" },
-  { to: "/m/dashboard", label: "Resumen" },
-  { to: "/m/liquidaciones", label: "Liquidaciones" },
-  { to: "/m/productos", label: "Productos" },
-  { to: "/m/promociones", label: "Promociones" },
-  { to: "/m/configuracion", label: "Configuracion" }
+type MerchantNavItem = {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+type MerchantNavSection = {
+  label: string;
+  items: MerchantNavItem[];
+};
+
+const navSections: MerchantNavSection[] = [
+  {
+    label: "Operación",
+    items: [
+      { to: "/m/pedidos", label: "Pedidos", icon: ClipboardList },
+      { to: "/m/riders", label: "Repartidores", icon: Bike }
+    ]
+  },
+  {
+    label: "Comercial",
+    items: [
+      { to: "/m/productos", label: "Catálogo", icon: Package },
+      { to: "/m/promociones", label: "Promociones", icon: BadgePercent }
+    ]
+  },
+  {
+    label: "Finanzas",
+    items: [
+      { to: "/m/dashboard", label: "Resumen", icon: BarChart3 },
+      { to: "/m/liquidaciones", label: "Liquidaciones", icon: WalletCards }
+    ]
+  },
+  {
+    label: "Ajustes",
+    items: [{ to: "/m/configuracion", label: "Configuración", icon: Settings }]
+  }
 ];
+
+const navItems = navSections.flatMap((section) =>
+  section.items.map((item) => ({
+    ...item,
+    sectionLabel: section.label
+  }))
+);
+
+function MerchantNav({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <nav className="app-sidebar-nav mt-6 space-y-5" aria-label="Navegación de comercio">
+      {navSections.map((section) => (
+        <section key={section.label} aria-label={section.label}>
+          <p className="mb-2 px-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#ffcfb7]/62">
+            {section.label}
+          </p>
+          <div className="space-y-1">
+            {section.items.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === "/m/pedidos" || item.to === "/m/dashboard"}
+                  onClick={onNavigate}
+                  className={({ isActive }) =>
+                    [
+                      "flex min-h-[44px] items-center gap-3 border border-transparent px-4 py-2.5 text-[13px] font-semibold transition",
+                      isActive ? "app-sidebar-link-active" : "app-sidebar-link"
+                    ].join(" ")
+                  }
+                >
+                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{item.label}</span>
+                </NavLink>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+    </nav>
+  );
+}
 
 export function MerchantDashboardLayout({ children }: PropsWithChildren) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthSession();
-  const { brandName, branding } = usePlatformBranding();
+  const { brandName } = usePlatformBranding();
   const { open, setOpen, close } = useRouteBoundDrawer();
   const { mobileHeaderAction } = useMerchantMobileHeader();
-  const activeLabel =
-    navItems.find((item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`))?.label ??
-    "Panel operativo";
+  const activeItem = navItems.find((item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`));
+  const activeLabel = activeItem?.label ?? "Panel operativo";
+  const activeSectionLabel = activeItem?.sectionLabel ?? "Comercio";
 
   function handleLogout() {
     close();
@@ -41,13 +116,14 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
               <Link to="/m/dashboard" aria-label={`Ir al panel de ${brandName}`} className="inline-flex items-center">
                 <BrandMark
                   brandName={brandName}
-                  logoUrl={branding?.platform_logo_url ?? null}
                   imageClassName="h-10 max-w-[10rem] sm:h-11 sm:max-w-[11.5rem]"
                   textClassName="text-[1.5rem] text-[#24130e]"
                 />
               </Link>
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8f5f4e]">Comercio</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8f5f4e]">
+                  Comercio / {activeSectionLabel}
+                </p>
                 <h2 className="mt-1 truncate text-lg font-bold text-ink">{activeLabel}</h2>
               </div>
             </div>
@@ -61,7 +137,7 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
                 onClick={handleLogout}
                 className="inline-flex min-h-[44px] items-center border border-[var(--color-border-default)] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-brand-200 hover:text-ink"
               >
-                Cerrar sesion
+                Cerrar sesión
               </button>
             </div>
           </div>
@@ -73,29 +149,13 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ffcfb7]/70">Comercio</p>
             <h1 className="mt-3 font-display text-[2.15rem] font-bold tracking-tight">Panel operativo</h1>
             <p className="mt-3 max-w-[15rem] text-sm leading-6 text-white/62">
-              Gestiona pedidos, riders, promociones y liquidaciones con una sola jerarquía visual.
+              Gestiona pedidos, repartidores, promociones y liquidaciones con una sola jerarquía visual.
             </p>
-            <div className="app-sidebar-nav mt-6">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === "/m/pedidos" || item.to === "/m/dashboard"}
-                  className={({ isActive }) =>
-                    [
-                      "border border-transparent px-4 py-2.5 text-[13px] font-semibold transition",
-                      isActive ? "app-sidebar-link-active" : "app-sidebar-link"
-                    ].join(" ")
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </div>
+            <MerchantNav />
           </div>
 
           <div className="mt-6 border-t border-white/10 pt-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#ffcfb7]/60">Sesion</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#ffcfb7]/60">Sesión</p>
             <p className="mt-3 text-sm font-semibold text-white">{user?.full_name ?? "Comercio"}</p>
             <p className="mt-1 text-sm text-white/60">{user?.email ?? ""}</p>
             <button
@@ -103,7 +163,7 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
               onClick={handleLogout}
               className="mt-4 w-full border border-white/10 bg-white/5 px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-white hover:text-ink"
             >
-              Cerrar sesion
+              Cerrar sesión
             </button>
           </div>
         </aside>
@@ -118,24 +178,21 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
             ].join(" ")}
           >
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8f5f4e]">Comercio</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8f5f4e]">
+                Comercio / {activeSectionLabel}
+              </p>
               <h2 className="mt-1 text-lg font-bold text-ink">{activeLabel}</h2>
             </div>
             <div className={`flex shrink-0 items-center gap-2 ${mobileHeaderAction ? "self-start" : "self-end sm:self-auto"}`}>
               {mobileHeaderAction ? <div className="flex shrink-0 items-center">{mobileHeaderAction}</div> : null}
               <button
                 type="button"
-                aria-label="Abrir menu de comercio"
+                aria-label="Abrir menú de comercio"
                 aria-expanded={open}
                 onClick={() => setOpen(true)}
                 className="inline-flex h-10 w-10 items-center justify-center border border-[var(--color-border-default)] bg-white text-ink shadow-sm"
               >
-                <span className="sr-only">Menu</span>
-                <span className="space-y-1.5">
-                  <span className="block h-0.5 w-5 bg-current" />
-                  <span className="block h-0.5 w-5 bg-current" />
-                  <span className="block h-0.5 w-5 bg-current" />
-                </span>
+                <Menu className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
           </header>
@@ -147,15 +204,15 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
         <div className="fixed inset-0 z-50 md:hidden">
           <button
             type="button"
-            aria-label="Cerrar menu de comercio"
+            aria-label="Cerrar menú de comercio"
             onClick={close}
-            className="absolute inset-0 bg-[rgba(23,18,16,0.48)]"
+            className="absolute inset-0 bg-[rgba(92,52,24,0.24)] backdrop-blur-[2px]"
           />
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Menu de comercio"
-            className="app-sidebar absolute inset-y-0 left-0 flex w-[min(82vw,300px)] flex-col px-5 py-5 text-white"
+            aria-label="Menú de comercio"
+            className="app-sidebar absolute inset-y-0 left-0 flex w-[min(86vw,320px)] flex-col overflow-y-auto px-5 py-5 text-white"
           >
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -164,35 +221,18 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
               </div>
               <button
                 type="button"
-                aria-label="Cerrar menu de comercio"
+                aria-label="Cerrar menú de comercio"
                 onClick={close}
                 className="inline-flex h-10 w-10 items-center justify-center self-end border border-white/10 bg-white/5 text-white sm:self-auto"
               >
-                ×
+                <X className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
 
-            <nav className="app-sidebar-nav mt-6">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === "/m/pedidos" || item.to === "/m/dashboard"}
-                  onClick={close}
-                className={({ isActive }) =>
-                  [
-                    "border border-transparent px-4 py-2.5 text-[13px] font-semibold transition",
-                    isActive ? "app-sidebar-link-active" : "app-sidebar-link"
-                  ].join(" ")
-                }
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
+            <MerchantNav onNavigate={close} />
 
             <div className="mt-auto border-t border-white/10 pt-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#ffcfb7]/60">Sesion</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#ffcfb7]/60">Sesión</p>
               <p className="mt-3 text-sm font-semibold text-white">{user?.full_name ?? "Comercio"}</p>
               <p className="mt-1 text-sm text-white/60">{user?.email ?? ""}</p>
               <button
@@ -200,7 +240,7 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
                 onClick={handleLogout}
                 className="mt-4 w-full border border-white/10 bg-white/5 px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-white hover:text-ink"
               >
-                Cerrar sesion
+                Cerrar sesión
               </button>
             </div>
           </div>

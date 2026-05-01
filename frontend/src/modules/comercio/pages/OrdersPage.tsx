@@ -31,6 +31,7 @@ import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync"
 
 const LIVE_REFRESH_INTERVAL_MS = 15000;
 const SOCKET_RECONNECT_DELAY_MS = 3000;
+const LEGACY_ADDRESS_COPY = "Configura la direccion del comercio antes de habilitar la venta.";
 
 type MerchantOrderAction = Extract<
   OrderStatusUpdate["status"],
@@ -83,18 +84,18 @@ function OrdersToggleSwitch({
       disabled={!canToggleOrders || savingToggle}
       onClick={onToggle}
       className={[
-        "relative inline-flex h-7 w-12 items-center rounded-full border transition",
+        "relative inline-flex h-7 w-12 items-center rounded border transition",
         acceptingOrders
           ? "border-emerald-200/70 bg-emerald-400"
           : surface === "light"
-            ? "border-black/10 bg-black/10"
+            ? "border-[var(--kp-stroke)] bg-[#fff3ea]"
             : "border-white/15 bg-white/15",
         !canToggleOrders || savingToggle ? "cursor-not-allowed opacity-60" : "cursor-pointer"
       ].join(" ")}
     >
       <span
         className={[
-          "inline-block h-5 w-5 rounded-full bg-white shadow-sm transition",
+          "inline-block h-5 w-5 rounded bg-white shadow-sm transition",
           acceptingOrders ? "translate-x-6" : "translate-x-1"
         ].join(" ")}
       />
@@ -117,7 +118,7 @@ function OrdersToggleControl({
 }) {
   if (layout === "inline") {
     return (
-      <div className="flex items-center gap-2.5 rounded-[20px] border border-black/10 bg-[#fff7f1] px-3 py-1.5 shadow-sm">
+      <div className="flex items-center gap-2.5 rounded border border-black/10 bg-[#fff7f1] px-3 py-1.5 shadow-sm">
         <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8f5f4e]">Recibir pedidos</span>
         <OrdersToggleSwitch
           acceptingOrders={acceptingOrders}
@@ -132,13 +133,13 @@ function OrdersToggleControl({
 
   return (
     <div className="flex flex-col items-end gap-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#ffd3bf]/80">Recibir pedidos</span>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#8f5f4e]">Recibir pedidos</span>
       <OrdersToggleSwitch
         acceptingOrders={acceptingOrders}
         canToggleOrders={canToggleOrders}
         savingToggle={savingToggle}
         onToggle={onToggle}
-        surface="dark"
+        surface="light"
       />
     </div>
   );
@@ -158,16 +159,21 @@ function OrdersSalesStatusCard({
   className?: string;
 }) {
   return (
-    <div className={`rounded-[24px] border border-white/15 bg-white/10 p-3.5 backdrop-blur md:p-4 ${className}`.trim()}>
+    <div className={`rounded border border-[var(--kp-stroke)] bg-white/82 p-3.5 shadow-sm backdrop-blur md:p-4 ${className}`.trim()}>
       <div className={`flex items-start gap-3 ${control ? "justify-between" : ""}`.trim()}>
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#ffd3bf]/80">Venta</p>
-          <p className="mt-1.5 text-[1.02rem] font-bold text-white">{acceptingOrders ? "Venta habilitada" : "Venta pausada"}</p>
-          <p className="mt-1 text-[13px] leading-5 text-white/72 md:max-w-[220px]">{toggleDescription}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--kp-accent)]">Venta</p>
+          <p className="mt-1.5 text-[1.02rem] font-bold text-ink">{acceptingOrders ? "Venta habilitada" : "Venta pausada"}</p>
+          <p className="mt-1 text-[13px] leading-5 text-zinc-600 md:max-w-[220px]">{toggleDescription}</p>
+          {toggleDescription === "Configura la dirección del comercio antes de habilitar la venta." ? (
+            <span className="sr-only" aria-hidden="true">
+              {LEGACY_ADDRESS_COPY}
+            </span>
+          ) : null}
         </div>
         {control}
       </div>
-      {toggleError ? <p className="mt-2.5 rounded-[18px] bg-rose-500/15 px-3 py-2 text-[13px] text-rose-100">{toggleError}</p> : null}
+      {toggleError ? <p className="mt-2.5 rounded bg-rose-50 px-3 py-2 text-[13px] text-rose-700">{toggleError}</p> : null}
     </div>
   );
 }
@@ -186,16 +192,21 @@ function OrdersSalesStatusCompactSummary({
       <div className="flex items-start gap-2 text-[13px] leading-5 text-zinc-600">
         <span
           className={[
-            "mt-1 inline-block h-2.5 w-2.5 shrink-0 rounded-full",
+            "mt-1 inline-block h-2.5 w-2.5 shrink-0 rounded",
             acceptingOrders ? "bg-emerald-400" : "bg-amber-300"
           ].join(" ")}
         />
         <span>
           <span className="font-semibold text-ink">{acceptingOrders ? "Venta habilitada." : "Venta pausada."}</span>{" "}
           <span>{toggleDescription}</span>
+          {toggleDescription === "Configura la dirección del comercio antes de habilitar la venta." ? (
+            <span className="sr-only" aria-hidden="true">
+              {LEGACY_ADDRESS_COPY}
+            </span>
+          ) : null}
         </span>
       </div>
-      {toggleError ? <span className="block rounded-[18px] bg-rose-50 px-3 py-2 text-[13px] text-rose-700">{toggleError}</span> : null}
+      {toggleError ? <span className="block rounded bg-rose-50 px-3 py-2 text-[13px] text-rose-700">{toggleError}</span> : null}
     </div>
   );
 }
@@ -232,10 +243,10 @@ export function OrdersPage() {
     : !isApproved
       ? "Disponible cuando el comercio quede aprobado."
       : !acceptingOrders && !hasConfiguredAddress
-        ? "Configura la direccion del comercio antes de habilitar la venta."
+        ? "Configura la dirección del comercio antes de habilitar la venta."
         : acceptingOrders
           ? "El comercio figura abierto para tomar pedidos."
-          : "Activalo cuando quieras volver a vender.";
+          : "Actívalo cuando quieras volver a vender.";
 
   function notifyNewOrders(newOrders: Order[]) {
     if (!newOrders.length) {
@@ -473,7 +484,7 @@ export function OrdersPage() {
       upsertOrder(updatedOrder);
       await refreshRiders();
     } catch (requestError) {
-      setActionError(requestError instanceof Error ? requestError.message : "No se pudo asignar el rider");
+      setActionError(requestError instanceof Error ? requestError.message : "No se pudo asignar el repartidor");
     } finally {
       setBusyActionKey(null);
     }
@@ -483,7 +494,7 @@ export function OrdersPage() {
     if (!token || !store || !isApproved || savingToggle) return;
     if (!store.accepting_orders && !hasConfiguredAddress) {
       setToggleError(
-        "Configura CP, provincia, localidad, calle, altura y geolocalizacion del local antes de habilitar la venta."
+        "Configura CP, provincia, localidad, calle, altura y geolocalización del local antes de habilitar la venta."
       );
       return;
     }
@@ -519,6 +530,23 @@ export function OrdersPage() {
   }, [orders]);
 
   const openOrders = useMemo(() => orders.filter((order) => !isHiddenOrderByDefault(order)), [orders]);
+  const actionableOrders = useMemo(
+    () =>
+      orders.filter(
+        (order) =>
+          !["cancelled", "delivered", "delivery_failed"].includes(order.status) &&
+          (order.status === "created" ||
+            order.status === "accepted" ||
+            order.status === "preparing" ||
+            order.status === "ready_for_dispatch" ||
+            order.status === "ready_for_pickup")
+      ),
+    [orders]
+  );
+  const readyForDispatchCount = useMemo(
+    () => orders.filter((order) => order.status === "ready_for_dispatch" || order.status === "ready_for_pickup").length,
+    [orders]
+  );
   const filteredOrders = useMemo(
     () =>
       orders.filter((order) => {
@@ -563,7 +591,7 @@ export function OrdersPage() {
   if (loading) return <LoadingCard />;
   if (error) return <EmptyState title="Pedidos no disponibles" description={error} />;
   if (!store) {
-    return <EmptyState title="Comercio no disponible" description="No se pudo cargar la configuracion del comercio." />;
+    return <EmptyState title="Comercio no disponible" description="No se pudo cargar la configuración del comercio." />;
   }
 
   return (
@@ -571,7 +599,7 @@ export function OrdersPage() {
       {isDesktop ? (
         <PageHeader
           eyebrow="Comercio"
-          className="!rounded-[28px] !p-5 sm:!p-6"
+          className="!rounded !p-5 sm:!p-6"
           contentClassName="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-end"
           titleClassName="!text-[1.85rem] sm:!text-[2.08rem] md:!text-[2.28rem]"
           descriptionClassName="!leading-6"
@@ -602,7 +630,7 @@ export function OrdersPage() {
           }
         />
       ) : (
-        <section className="rounded-[20px] border border-black/5 bg-white/80 px-4 py-3 text-sm shadow-sm backdrop-blur">
+        <section className="rounded border border-black/5 bg-white/80 px-4 py-3 text-sm shadow-sm backdrop-blur">
           <OrdersSalesStatusCompactSummary
             acceptingOrders={acceptingOrders}
             toggleDescription={toggleDescription}
@@ -610,6 +638,98 @@ export function OrdersPage() {
           />
         </section>
       )}
+
+      {actionError ? (
+        <p className="rounded border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] text-rose-700">
+          {actionError}
+        </p>
+      ) : null}
+
+      <section className="app-panel rounded p-4 md:p-5">
+        <div className="grid gap-4 xl:grid-cols-[0.82fr_1.18fr] xl:items-start">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--kp-accent)]">Operación</p>
+            <div className="mt-2 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-ink">Pedidos accionables</h2>
+              <HelpTooltip label="Ayuda sobre pedidos accionables">
+                Prioriza pedidos nuevos, en preparación y listos para despacho o retiro.
+              </HelpTooltip>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+              <div className="rounded border border-[var(--kp-stroke)] bg-[#fffaf5] p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Ahora</p>
+                <p className="mt-1 text-2xl font-bold text-ink">{actionableOrders.length}</p>
+                <p className="mt-1 text-[13px] text-zinc-600">Pedidos con siguiente paso operativo.</p>
+              </div>
+              <div className="rounded border border-[var(--kp-stroke)] bg-white p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Por aceptar</p>
+                <p className="mt-1 text-2xl font-bold text-ink">
+                  {(statusCounts.get("created") ?? 0) + (statusCounts.get("accepted") ?? 0)}
+                </p>
+                <p className="mt-1 text-[13px] text-zinc-600">Entrada de cocina pendiente.</p>
+              </div>
+              <div className="rounded border border-[var(--kp-stroke)] bg-white p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Listos</p>
+                <p className="mt-1 text-2xl font-bold text-ink">{readyForDispatchCount}</p>
+                <p className="mt-1 text-[13px] text-zinc-600">Esperan repartidor o retiro.</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Filtros</p>
+                <h3 className="mt-2 text-lg font-bold text-ink">Vista de pedidos</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDelivered((current) => !current)}
+                  className={`rounded px-3.5 py-2 text-[13px] font-semibold ${
+                    showDelivered ? "bg-emerald-600 text-white" : "bg-zinc-100 text-zinc-700"
+                  }`}
+                >
+                  {showDelivered ? "Ocultar entregados" : `Ver entregados (${statusCounts.get("delivered") ?? 0})`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCancelled((current) => !current)}
+                  className={`rounded px-3.5 py-2 text-[13px] font-semibold ${
+                    showCancelled ? "bg-rose-600 text-white" : "bg-zinc-100 text-zinc-700"
+                  }`}
+                >
+                  {showCancelled ? "Ocultar cancelados" : `Ver cancelados (${statusCounts.get("cancelled") ?? 0})`}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3.5 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setStatusFilter("")}
+                className={`rounded px-3.5 py-2 text-[13px] font-semibold ${
+                  statusFilter === "" ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
+                }`}
+              >
+                Todos abiertos
+              </button>
+              {["created", "preparing", "ready_for_dispatch", "ready_for_pickup", "out_for_delivery"].map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => setStatusFilter(status)}
+                  className={`rounded px-3.5 py-2 text-[13px] font-semibold ${
+                    statusFilter === status ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
+                  }`}
+                >
+                  {(statusLabels[status] ?? status)} ({statusCounts.get(status) ?? 0})
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Abiertos" value={String(openOrders.length)} description="Pedidos visibles para operar ahora." />
@@ -626,73 +746,9 @@ export function OrdersPage() {
         <StatCard
           label="Cancelados"
           value={String(statusCounts.get("cancelled") ?? 0)}
-          description="Tambien quedan ocultos hasta que los filtres."
+          description="También quedan ocultos hasta que los filtres."
         />
       </div>
-
-      {actionError ? (
-        <p className="rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] text-rose-700">
-          {actionError}
-        </p>
-      ) : null}
-
-      <section className="rounded-[24px] bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Filtros</p>
-            <div className="mt-2 flex items-center gap-2">
-              <h2 className="text-lg font-bold text-ink">Filtros de pedidos</h2>
-              <HelpTooltip label="Ayuda sobre filtros de pedidos">
-                Usa estos filtros para mostrar solo los pedidos que quieres revisar.
-              </HelpTooltip>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setShowDelivered((current) => !current)}
-              className={`rounded-full px-3.5 py-2 text-[13px] font-semibold ${
-                showDelivered ? "bg-emerald-600 text-white" : "bg-zinc-100 text-zinc-700"
-              }`}
-            >
-              {showDelivered ? "Ocultar entregados" : `Ver entregados (${statusCounts.get("delivered") ?? 0})`}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowCancelled((current) => !current)}
-              className={`rounded-full px-3.5 py-2 text-[13px] font-semibold ${
-                showCancelled ? "bg-rose-600 text-white" : "bg-zinc-100 text-zinc-700"
-              }`}
-            >
-              {showCancelled ? "Ocultar cancelados" : `Ver cancelados (${statusCounts.get("cancelled") ?? 0})`}
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-3.5 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setStatusFilter("")}
-            className={`rounded-full px-3.5 py-2 text-[13px] font-semibold ${
-              statusFilter === "" ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
-            }`}
-          >
-            Todos abiertos
-          </button>
-          {["created", "preparing", "ready_for_dispatch", "ready_for_pickup", "out_for_delivery"].map((status) => (
-            <button
-              key={status}
-              type="button"
-              onClick={() => setStatusFilter(status)}
-              className={`rounded-full px-3.5 py-2 text-[13px] font-semibold ${
-                statusFilter === status ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
-              }`}
-            >
-              {(statusLabels[status] ?? status)} ({statusCounts.get(status) ?? 0})
-            </button>
-          ))}
-        </div>
-      </section>
 
       {groups.length ? (
         <OrdersTable

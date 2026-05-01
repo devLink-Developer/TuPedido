@@ -20,9 +20,7 @@ export function OnlineToggle({
           key={option.value}
           type="button"
           onClick={() => onChange(option.value)}
-          className={`rounded-full px-4 py-2 text-sm font-semibold ${
-            value === option.value ? "bg-ink text-white shadow-float" : "border border-black/10 bg-white text-zinc-700"
-          }`}
+          className={`kp-category-pill ${value === option.value ? "kp-category-pill-active" : ""}`}
         >
           {option.label}
         </button>

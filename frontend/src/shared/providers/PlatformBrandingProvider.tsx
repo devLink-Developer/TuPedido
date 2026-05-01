@@ -3,15 +3,14 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useState,
   type PropsWithChildren
 } from "react";
-import { fetchPlatformBranding } from "../services/api";
+import { KE_BRAND_NAME, KE_FAVICON_URL, KE_WORDMARK_POSTER_URL } from "../config/brand";
 import type { PlatformBranding } from "../types";
 
-const DEFAULT_BRAND_NAME = "Kepedimos";
-const DEFAULT_LOGO_URL = "/icons/icon-192.svg";
-const DEFAULT_FAVICON_URL = "/favicon.svg";
+const DEFAULT_BRAND_NAME = KE_BRAND_NAME;
+const DEFAULT_LOGO_URL = KE_WORDMARK_POSTER_URL;
+const DEFAULT_FAVICON_URL = KE_FAVICON_URL;
 
 type PlatformBrandingContextValue = {
   branding: PlatformBranding | null;
@@ -41,27 +40,8 @@ function ensureFaviconLink(rel: string) {
 }
 
 export function PlatformBrandingProvider({ children }: PropsWithChildren) {
-  const [branding, setBranding] = useState<PlatformBranding | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchPlatformBranding()
-      .then((result) => {
-        if (!cancelled) {
-          setBranding(result);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setBranding(null);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const faviconUrl = branding?.resolved_favicon_url || DEFAULT_FAVICON_URL;
+  const branding: PlatformBranding | null = null;
+  const faviconUrl = DEFAULT_FAVICON_URL;
 
   useEffect(() => {
     const iconLink = ensureFaviconLink("icon");
@@ -81,11 +61,11 @@ export function PlatformBrandingProvider({ children }: PropsWithChildren) {
     () => ({
       branding,
       brandName: DEFAULT_BRAND_NAME,
-      logoUrl: branding?.platform_logo_url || DEFAULT_LOGO_URL,
-      wordmarkUrl: branding?.platform_wordmark_url || null,
+      logoUrl: DEFAULT_LOGO_URL,
+      wordmarkUrl: DEFAULT_LOGO_URL,
       faviconUrl
     }),
-    [branding, faviconUrl]
+    [faviconUrl]
   );
 
   return <PlatformBrandingContext.Provider value={value}>{children}</PlatformBrandingContext.Provider>;

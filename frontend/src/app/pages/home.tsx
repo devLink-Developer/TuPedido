@@ -75,14 +75,14 @@ function CategoryShortcut({
     <button
       type="button"
       onClick={onClick}
-      className={`group flex min-w-[128px] shrink-0 flex-col rounded-[26px] border px-4 py-4 text-left transition ${
+      className={`group flex min-w-[128px] shrink-0 flex-col rounded border px-4 py-4 text-left transition ${
         active
           ? "border-brand-500 bg-[linear-gradient(135deg,#fff1e5,#ffe2cc)] shadow-float"
           : "border-black/8 bg-white hover:-translate-y-0.5 hover:shadow-sm"
       }`}
     >
       <span
-        className={`flex h-11 w-11 items-center justify-center rounded-[18px] text-sm font-black uppercase ${
+        className={`flex h-11 w-11 items-center justify-center rounded text-sm font-black uppercase ${
           active ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
         }`}
       >
@@ -123,7 +123,7 @@ function QuickCollectionCard({
       <span className={`mt-2 text-xs leading-5 ${active ? "text-white/74" : "text-zinc-500"}`}>{subtitle}</span>
     </>
   );
-  const className = `flex min-w-[220px] shrink-0 flex-col rounded-[28px] border px-4 py-4 text-left transition ${
+  const className = `flex min-w-[220px] shrink-0 flex-col rounded border px-4 py-4 text-left transition ${
     active
       ? "border-brand-500 bg-[linear-gradient(145deg,#fb923c,#c2410c)] text-white shadow-float"
       : "border-black/8 bg-white hover:-translate-y-0.5 hover:shadow-sm"
@@ -144,10 +144,10 @@ function MiniStoreCard({ store }: { store: StoreSummary }) {
   return (
     <Link
       to={`/stores/${store.slug}`}
-      className="group flex min-w-[260px] shrink-0 gap-3 rounded-[28px] border border-black/8 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lift"
+      className="group flex min-w-[260px] shrink-0 gap-3 rounded border border-black/8 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lift"
     >
       <div
-        className="h-24 w-24 shrink-0 rounded-[22px] bg-[linear-gradient(135deg,#1f1715,#8a3c12)]"
+        className="h-24 w-24 shrink-0 rounded bg-[linear-gradient(135deg,#1f1715,#8a3c12)]"
         style={
           store.cover_image_url
             ? {
@@ -166,15 +166,15 @@ function MiniStoreCard({ store }: { store: StoreSummary }) {
             </p>
             <h3 className="mt-1 truncate text-base font-black tracking-tight text-ink">{store.name}</h3>
           </div>
-          <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-bold text-zinc-700">
+          <span className="rounded bg-zinc-100 px-2.5 py-1 text-[11px] font-bold text-zinc-700">
             {store.rating.toFixed(1)}
           </span>
         </div>
         <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold">
-          <span className={`rounded-full px-2.5 py-1 ${store.is_open ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+          <span className={`rounded px-2.5 py-1 ${store.is_open ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
             {store.is_open ? "Abierto" : "Cerrado"}
           </span>
-          <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-zinc-600">{etaLabel(store)}</span>
+          <span className="rounded bg-zinc-100 px-2.5 py-1 text-zinc-600">{etaLabel(store)}</span>
         </div>
         <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-500">{store.description}</p>
       </div>
@@ -186,10 +186,10 @@ function StoreCard({ store }: { store: StoreSummary }) {
   return (
     <Link
       to={`/stores/${store.slug}`}
-      className="group overflow-hidden rounded-[30px] border border-white/80 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lift"
+      className="group overflow-hidden rounded border border-white/80 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lift"
     >
       <div
-        className="relative h-40 overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,#1f1715,#8a3c12)]"
+        className="relative h-40 overflow-hidden rounded bg-[linear-gradient(135deg,#1f1715,#8a3c12)]"
         style={
           store.cover_image_url
             ? {
@@ -203,17 +203,17 @@ function StoreCard({ store }: { store: StoreSummary }) {
         <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
           <div className="flex flex-wrap gap-2">
             <span
-              className={`rounded-full px-3 py-1 text-[11px] font-bold ${
+              className={`rounded px-3 py-1 text-[11px] font-bold ${
                 store.is_open ? "bg-white text-emerald-700" : "bg-white/92 text-rose-700"
               }`}
             >
               {store.is_open ? "Abierto ahora" : "Cerrado"}
             </span>
-            <span className="rounded-full bg-black/50 px-3 py-1 text-[11px] font-semibold text-white">
+            <span className="rounded bg-black/50 px-3 py-1 text-[11px] font-semibold text-white">
               {store.delivery_settings.delivery_enabled ? "Delivery" : "Retiro"}
             </span>
           </div>
-          <span className="rounded-full bg-white/94 px-3 py-1 text-[11px] font-bold text-ink">
+          <span className="rounded bg-white/94 px-3 py-1 text-[11px] font-bold text-ink">
             {store.rating.toFixed(1)}
           </span>
         </div>
@@ -228,15 +228,15 @@ function StoreCard({ store }: { store: StoreSummary }) {
 
       <div className="px-1 pb-1 pt-4">
         <div className="grid grid-cols-3 gap-2 text-xs font-semibold">
-          <div className="rounded-[18px] bg-zinc-50 px-3 py-3 text-zinc-700">
+          <div className="rounded bg-zinc-50 px-3 py-3 text-zinc-700">
             <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-400">Llegada</p>
             <p className="mt-1">{etaLabel(store)}</p>
           </div>
-          <div className="rounded-[18px] bg-zinc-50 px-3 py-3 text-zinc-700">
+          <div className="rounded bg-zinc-50 px-3 py-3 text-zinc-700">
             <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-400">Envio</p>
             <p className="mt-1">{deliveryPriceLabel(store)}</p>
           </div>
-          <div className="rounded-[18px] bg-zinc-50 px-3 py-3 text-zinc-700">
+          <div className="rounded bg-zinc-50 px-3 py-3 text-zinc-700">
             <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-400">Pago</p>
             <p className="mt-1">{paymentLabel(store)}</p>
           </div>
@@ -248,7 +248,7 @@ function StoreCard({ store }: { store: StoreSummary }) {
           <p className="line-clamp-1 text-xs font-medium text-zinc-500">
             {store.opening_note ?? (store.accepting_orders ? "Tomando pedidos" : "Pedidos pausados")}
           </p>
-          <span className="rounded-full bg-ink px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-white">
+          <span className="rounded bg-ink px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-white">
             Ver tienda
           </span>
         </div>
@@ -355,28 +355,28 @@ export function HomePage() {
 
   return (
     <div className="space-y-6 pb-[calc(var(--bottom-nav-height)+var(--mobile-cart-cta-height)+2.5rem+var(--safe-bottom))] md:space-y-7 md:pb-8">
-      <section className="rounded-[34px] border border-[#ead9ca] bg-white p-4 shadow-sm md:p-6">
+      <section className="rounded border border-[#ead9ca] bg-white p-4 shadow-sm md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#ead9ca] bg-[#fff7f1] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-700">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+          <div className="inline-flex items-center gap-2 rounded border border-[#ead9ca] bg-[#fff7f1] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-700">
+            <span className="h-2.5 w-2.5 rounded bg-emerald-500" />
             Pedir ahora
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
               to="/merchant-apply"
-              className="rounded-full border border-black/10 bg-zinc-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-700"
+              className="rounded border border-black/10 bg-zinc-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-700"
             >
               Vender
             </Link>
             <Link
               to="/delivery-apply"
-              className="rounded-full border border-black/10 bg-zinc-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-700"
+              className="rounded border border-black/10 bg-zinc-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-700"
             >
               Repartir
             </Link>
             <Link
               to={isAuthenticated && user ? roleHome[user.role] : "/login"}
-              className="rounded-full bg-ink px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white shadow-float"
+              className="rounded bg-ink px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white shadow-float"
             >
               {isAuthenticated && user ? "Mi cuenta" : "Ingresar"}
             </Link>
@@ -384,7 +384,7 @@ export function HomePage() {
         </div>
 
         <div className="mt-5 grid gap-4 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
-          <div className="rounded-[30px] bg-[linear-gradient(145deg,#1a1413,#2a1a16_48%,#4a220f)] p-4 text-white shadow-float md:p-5">
+          <div className="rounded bg-[linear-gradient(145deg,#1a1413,#2a1a16_48%,#4a220f)] p-4 text-white shadow-float md:p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#ffd2bd]/76">Comercios activos</p>
             <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.02] tracking-tight md:text-[2.55rem]">
               Pide en tiendas abiertas, con delivery o retiro.
@@ -393,14 +393,14 @@ export function HomePage() {
               Busca por rubro, filtra por entrega y entra directo a la tienda para armar tu pedido.
             </p>
 
-            <div className="mt-5 rounded-[28px] border border-white/10 bg-white/10 p-3 backdrop-blur">
+            <div className="mt-5 rounded border border-white/10 bg-white/10 p-3 backdrop-blur">
               <label className="block">
                 <span className="sr-only">Buscar comercio</span>
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Buscar comidas, farmacia, kiosco, despensa..."
-                  className="w-full rounded-[22px] border border-white/10 bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-brand-500"
+                  className="w-full rounded border border-white/10 bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-brand-500"
                 />
               </label>
 
@@ -414,7 +414,7 @@ export function HomePage() {
                     key={item.value || "all"}
                     type="button"
                     onClick={() => setDeliveryMode(item.value as "" | "delivery" | "pickup")}
-                    className={`whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                    className={`whitespace-nowrap rounded px-4 py-2.5 text-sm font-semibold transition ${
                       deliveryMode === item.value
                         ? "bg-white text-ink shadow-float"
                         : "border border-white/15 bg-white/10 text-white/88"
@@ -429,7 +429,7 @@ export function HomePage() {
                 <button
                   type="button"
                   onClick={() => setCategorySlug("")}
-                  className={`whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                  className={`whitespace-nowrap rounded px-4 py-2.5 text-sm font-semibold transition ${
                     !categorySlug ? "bg-brand-500 text-white shadow-float" : "bg-white/10 text-white/84"
                   }`}
                 >
@@ -440,7 +440,7 @@ export function HomePage() {
                     key={category.id}
                     type="button"
                     onClick={() => setCategorySlug(category.slug)}
-                    className={`whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                    className={`whitespace-nowrap rounded px-4 py-2.5 text-sm font-semibold transition ${
                       categorySlug === category.slug
                         ? "bg-brand-500 text-white shadow-float"
                         : "bg-white/10 text-white/84"
@@ -454,22 +454,22 @@ export function HomePage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-[28px] border border-[#ead9ca] bg-[#fff7f1] px-4 py-4">
+            <div className="rounded border border-[#ead9ca] bg-[#fff7f1] px-4 py-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Abiertos</p>
               <p className="mt-2 font-display text-3xl font-bold tracking-tight text-ink">{openStores}</p>
               <p className="mt-1 text-xs text-zinc-500">Tomando pedidos ahora</p>
             </div>
-            <div className="rounded-[28px] border border-[#ead9ca] bg-white px-4 py-4">
+            <div className="rounded border border-[#ead9ca] bg-white px-4 py-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Delivery</p>
               <p className="mt-2 font-display text-3xl font-bold tracking-tight text-ink">{deliveryStores}</p>
               <p className="mt-1 text-xs text-zinc-500">Con envio disponible</p>
             </div>
-            <div className="rounded-[28px] border border-[#ead9ca] bg-white px-4 py-4">
+            <div className="rounded border border-[#ead9ca] bg-white px-4 py-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Retiro</p>
               <p className="mt-2 font-display text-3xl font-bold tracking-tight text-ink">{pickupStores}</p>
               <p className="mt-1 text-xs text-zinc-500">Listos para pasar a buscar</p>
             </div>
-            <div className="rounded-[28px] border border-[#ead9ca] bg-white px-4 py-4">
+            <div className="rounded border border-[#ead9ca] bg-white px-4 py-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Pago online</p>
               <p className="mt-2 font-display text-3xl font-bold tracking-tight text-ink">{mpStores}</p>
               <p className="mt-1 text-xs text-zinc-500">Aceptan Mercado Pago</p>
@@ -552,13 +552,13 @@ export function HomePage() {
       ) : null}
 
       <section id="comercios-activos" className="space-y-4">
-        <div className="rounded-[30px] border border-[#ead9ca] bg-white/95 p-4 shadow-sm">
+        <div className="rounded border border-[#ead9ca] bg-white/95 p-4 shadow-sm">
           <SectionHeading
             eyebrow="Catalogo"
             title="Comercios activos"
             description="Abiertos primero, luego cerrados por proxima apertura. Entra directo a la tienda y arma tu pedido."
             action={
-              <span className="rounded-full bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-600">
+              <span className="rounded bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-600">
                 {stores.length} resultados
               </span>
             }
@@ -568,7 +568,7 @@ export function HomePage() {
               <button
                 type="button"
                 onClick={() => setCategorySlug("")}
-                className="rounded-full border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700"
+                className="rounded border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700"
               >
                 Rubro activo
               </button>
@@ -577,7 +577,7 @@ export function HomePage() {
               <button
                 type="button"
                 onClick={() => setDeliveryMode("")}
-                className="rounded-full border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700"
+                className="rounded border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700"
               >
                 {deliveryMode === "delivery" ? "Delivery" : "Retiro"}
               </button>
@@ -586,7 +586,7 @@ export function HomePage() {
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="rounded-full border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700"
+                className="rounded border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700"
               >
                 Buscar: {search}
               </button>
@@ -599,7 +599,7 @@ export function HomePage() {
                   setSearch("");
                   setDeliveryMode("");
                 }}
-                className="rounded-full border border-black/10 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-700"
+                className="rounded border border-black/10 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-700"
               >
                 Limpiar filtros
               </button>
@@ -628,7 +628,7 @@ export function HomePage() {
                         setSearch("");
                         setDeliveryMode("");
                       }}
-                      className="rounded-full bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-float"
+                      className="rounded bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-float"
                     >
                       Limpiar filtros
                     </button>
@@ -641,7 +641,7 @@ export function HomePage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-        <div id="registro-cliente" className="rounded-[32px] border border-[#ead9ca] bg-white p-5 shadow-sm md:p-6">
+        <div id="registro-cliente" className="rounded border border-[#ead9ca] bg-white p-5 shadow-sm md:p-6">
           {!isAuthenticated ? (
             <>
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Cuenta cliente</p>
@@ -659,7 +659,7 @@ export function HomePage() {
                     value={fullName}
                     onChange={(event) => setFullName(event.target.value)}
                     required
-                    className="w-full rounded-[22px] border border-black/10 bg-zinc-50 px-4 py-3 outline-none transition focus:border-brand-500"
+                    className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3 outline-none transition focus:border-brand-500"
                   />
                 </label>
                 <label className="block space-y-2">
@@ -669,12 +669,12 @@ export function HomePage() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     required
-                    className="w-full rounded-[22px] border border-black/10 bg-zinc-50 px-4 py-3 outline-none transition focus:border-brand-500"
+                    className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3 outline-none transition focus:border-brand-500"
                   />
                 </label>
                 <label className="block space-y-2">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Contrasena</span>
-                  <div className="flex items-center gap-2 rounded-[22px] border border-black/10 bg-zinc-50 px-4 py-1.5">
+                  <div className="flex items-center gap-2 rounded border border-black/10 bg-zinc-50 px-4 py-1.5">
                     <input
                       type={showPassword ? "text" : "password"}
                       value={password}
@@ -686,22 +686,22 @@ export function HomePage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword((current) => !current)}
-                      className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600"
+                      className="shrink-0 rounded bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600"
                     >
                       {showPassword ? "Ocultar" : "Mostrar"}
                     </button>
                   </div>
                 </label>
                 {submitError ? (
-                  <p className="rounded-[22px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{submitError}</p>
+                  <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{submitError}</p>
                 ) : null}
                 {submitSuccess ? (
-                  <p className="rounded-[22px] bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{submitSuccess}</p>
+                  <p className="rounded bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{submitSuccess}</p>
                 ) : null}
                 <button
                   type="submit"
                   disabled={submitting || sessionLoading}
-                  className="w-full rounded-full bg-[linear-gradient(135deg,#fb923c,#c2410c)] px-4 py-3 text-sm font-semibold text-white shadow-float transition disabled:cursor-not-allowed disabled:bg-zinc-300"
+                  className="w-full rounded bg-[linear-gradient(135deg,#fb923c,#c2410c)] px-4 py-3 text-sm font-semibold text-white shadow-float transition disabled:cursor-not-allowed disabled:bg-zinc-300"
                 >
                   {submitting || sessionLoading ? "Creando cuenta..." : "Crear cuenta cliente"}
                 </button>
@@ -728,13 +728,13 @@ export function HomePage() {
               <div className="mt-5 flex flex-wrap gap-2">
                 <Link
                   to={user ? roleHome[user.role] : "/"}
-                  className="rounded-full bg-ink px-4 py-3 text-sm font-semibold text-white shadow-float"
+                  className="rounded bg-ink px-4 py-3 text-sm font-semibold text-white shadow-float"
                 >
                   {user?.role === "customer" ? "Seguir comprando" : "Ir a mi panel"}
                 </Link>
                 <Link
                   to="/orders"
-                  className="rounded-full border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-zinc-700"
+                  className="rounded border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-zinc-700"
                 >
                   Ver pedidos
                 </Link>
@@ -743,27 +743,27 @@ export function HomePage() {
           )}
         </div>
 
-        <div className="rounded-[32px] border border-[#ead9ca] bg-white p-5 shadow-sm md:p-6">
+        <div className="rounded border border-[#ead9ca] bg-white p-5 shadow-sm md:p-6">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Cuenta y postulaciones</p>
           <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-ink">Otros accesos</h2>
           <div className="mt-5 space-y-3">
             <Link
               to={isAuthenticated && user ? roleHome[user.role] : "/login"}
-              className="flex items-center justify-between rounded-[24px] border border-black/10 bg-zinc-50 px-4 py-4 text-sm font-semibold text-zinc-700"
+              className="flex items-center justify-between rounded border border-black/10 bg-zinc-50 px-4 py-4 text-sm font-semibold text-zinc-700"
             >
               <span>{isAuthenticated && user ? "Ir a mi cuenta" : "Ingresar con mi cuenta"}</span>
               <span className="text-zinc-400">{">"}</span>
             </Link>
             <Link
               to="/merchant-apply"
-              className="flex items-center justify-between rounded-[24px] border border-black/10 bg-zinc-50 px-4 py-4 text-sm font-semibold text-zinc-700"
+              className="flex items-center justify-between rounded border border-black/10 bg-zinc-50 px-4 py-4 text-sm font-semibold text-zinc-700"
             >
               <span>Solicitud de vendedor</span>
               <span className="text-zinc-400">{">"}</span>
             </Link>
             <Link
               to="/delivery-apply"
-              className="flex items-center justify-between rounded-[24px] border border-black/10 bg-zinc-50 px-4 py-4 text-sm font-semibold text-zinc-700"
+              className="flex items-center justify-between rounded border border-black/10 bg-zinc-50 px-4 py-4 text-sm font-semibold text-zinc-700"
             >
               <span>Solicitud de rider</span>
               <span className="text-zinc-400">{">"}</span>
@@ -776,7 +776,7 @@ export function HomePage() {
         <div className="fixed bottom-[calc(var(--bottom-nav-height)+1rem+var(--safe-bottom))] left-4 right-4 z-30 md:hidden">
           <Link
             to="/cart"
-            className="mx-auto flex max-w-md items-center justify-between gap-3 rounded-[26px] bg-ink px-4 py-4 text-white shadow-[0_22px_44px_rgba(24,19,18,0.28)]"
+            className="mx-auto flex max-w-md items-center justify-between gap-3 rounded bg-ink px-4 py-4 text-white shadow-[0_22px_44px_rgba(24,19,18,0.28)]"
           >
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/55">Carrito activo</p>

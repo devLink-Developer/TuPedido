@@ -48,14 +48,14 @@ export function ActiveDelivery({
   ].filter(Boolean) as Array<{ id: string; latitude: number; longitude: number; color: string; label: string }>;
 
   return (
-    <article className="mesh-surface space-y-4 rounded-[32px] border border-white/80 p-5 shadow-lift">
+    <article className="mesh-surface space-y-4 rounded border border-white/80 p-5 shadow-lift">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pedido #{order.id}</p>
           <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-ink">{order.store_name}</h3>
           <p className="mt-2 text-sm text-zinc-600">{order.address_full ?? order.address_label ?? "Retiro en local"}</p>
         </div>
-        <div className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+        <div className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
           {statusLabels[order.delivery_status] ?? order.delivery_status}
         </div>
       </div>
@@ -63,15 +63,15 @@ export function ActiveDelivery({
       {points.length ? <LiveMap points={points} className="h-56" /> : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-[22px] bg-[#fff6ef] px-4 py-4">
+        <div className="rounded bg-[#fff6ef] px-4 py-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Total cliente</p>
           <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(order.pricing.total)}</p>
         </div>
-        <div className="rounded-[22px] bg-[#f6fbf7] px-4 py-4">
+        <div className="rounded bg-[#f6fbf7] px-4 py-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Ganancia rider</p>
           <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(order.rider_fee)}</p>
         </div>
-        <div className="rounded-[22px] bg-[#f5f7fb] px-4 py-4">
+        <div className="rounded bg-[#f5f7fb] px-4 py-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">ETA</p>
           <p className="mt-2 text-lg font-bold text-ink">{order.eta_minutes ? `${order.eta_minutes} min` : "Sin ETA"}</p>
         </div>
@@ -83,7 +83,7 @@ export function ActiveDelivery({
         ) : null}
         {order.delivery_status === "picked_up" || order.delivery_status === "near_customer" ? (
           <div className="flex flex-1 flex-wrap items-center gap-2">
-            <input value={otpCode} onChange={(event) => setOtpCode(event.target.value)} placeholder="OTP cliente" className="min-w-[160px] flex-1 rounded-full border border-black/10 bg-white px-4 py-3 text-sm" />
+            <input value={otpCode} onChange={(event) => setOtpCode(event.target.value)} placeholder="OTP cliente" className="min-w-[160px] flex-1 rounded border border-black/10 bg-white px-4 py-3 text-sm" />
             <Button type="button" disabled={loading} onClick={() => void onDeliver(otpCode)}>{loading ? "Cerrando..." : "Entregar"}</Button>
           </div>
         ) : null}

@@ -6,13 +6,13 @@ export function AvailableOrders({ orders }: { orders: Order[] }) {
   return (
     <div className="space-y-3">
       {orders.map((order) => (
-        <article key={order.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+        <article key={order.id} className="rounded bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-lg font-bold">{order.store_name}</h3>
               <p className="text-sm text-zinc-600">{order.address_full ?? "Retiro en local"}</p>
             </div>
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+            <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
               {statusLabels[order.delivery_status] ?? order.delivery_status}
             </span>
           </div>

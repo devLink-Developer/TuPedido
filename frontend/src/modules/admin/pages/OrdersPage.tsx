@@ -140,7 +140,7 @@ export function OrdersPage() {
           </span>
         }
         action={
-          <button type="button" onClick={() => void load()} className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white">
+          <button type="button" onClick={() => void load()} className="rounded bg-white/10 px-4 py-2 text-sm font-semibold text-white">
             Actualizar
           </button>
         }
@@ -154,7 +154,7 @@ export function OrdersPage() {
 
       <div className="grid gap-4 xl:grid-cols-3">
         {periodStats.map((period) => (
-          <article key={period.key} className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article key={period.key} className="rounded bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{period.label}</p>
             <p className="mt-3 font-display text-3xl font-bold tracking-tight text-ink">
               {formatCurrency(period.stats.sales)}
@@ -169,14 +169,14 @@ export function OrdersPage() {
         ))}
       </div>
 
-      <section className="rounded-[28px] bg-white p-4 shadow-sm">
+      <section className="rounded bg-white p-4 shadow-sm">
         <div className="grid gap-4 lg:grid-cols-4">
           <label className="space-y-1">
             <span className="block text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Comercio</span>
             <select
               value={storeFilter}
               onChange={(event) => setStoreFilter(event.target.value)}
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 outline-none"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 outline-none"
             >
               <option value="">Todos</option>
               {stores.map((store) => (
@@ -199,7 +199,7 @@ export function OrdersPage() {
                   setToDate(nextValue);
                 }
               }}
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 outline-none"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 outline-none"
             />
           </label>
           <label className="space-y-1">
@@ -215,7 +215,7 @@ export function OrdersPage() {
                   setFromDate(nextValue);
                 }
               }}
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 outline-none"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 outline-none"
             />
           </label>
           {hasCustomFilters ? (
@@ -223,7 +223,7 @@ export function OrdersPage() {
               <button
                 type="button"
                 onClick={resetFilters}
-                className="w-full rounded-full bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700"
+                className="w-full rounded bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700"
               >
                 Limpiar filtros
               </button>
@@ -238,7 +238,7 @@ export function OrdersPage() {
               <button
                 type="button"
                 onClick={() => setStatusFilter("")}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                className={`rounded px-4 py-2 text-sm font-semibold transition ${
                   statusFilter === "" ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
                 }`}
               >
@@ -249,7 +249,7 @@ export function OrdersPage() {
                   key={status}
                   type="button"
                   onClick={() => setStatusFilter(status)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  className={`rounded px-4 py-2 text-sm font-semibold transition ${
                     statusFilter === status ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
                   }`}
                 >
@@ -265,7 +265,7 @@ export function OrdersPage() {
               <button
                 type="button"
                 onClick={() => setPaymentMethodFilter("")}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                className={`rounded px-4 py-2 text-sm font-semibold transition ${
                   paymentMethodFilter === "" ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
                 }`}
               >
@@ -276,7 +276,7 @@ export function OrdersPage() {
                   key={paymentMethod}
                   type="button"
                   onClick={() => setPaymentMethodFilter(paymentMethod)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  className={`rounded px-4 py-2 text-sm font-semibold transition ${
                     paymentMethodFilter === paymentMethod ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
                   }`}
                 >
@@ -292,7 +292,7 @@ export function OrdersPage() {
               <button
                 type="button"
                 onClick={() => setDeliveryModeFilter("")}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                className={`rounded px-4 py-2 text-sm font-semibold transition ${
                   deliveryModeFilter === "" ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
                 }`}
               >
@@ -303,7 +303,7 @@ export function OrdersPage() {
                   key={deliveryMode}
                   type="button"
                   onClick={() => setDeliveryModeFilter(deliveryMode)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  className={`rounded px-4 py-2 text-sm font-semibold transition ${
                     deliveryModeFilter === deliveryMode ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700"
                   }`}
                 >
@@ -317,7 +317,7 @@ export function OrdersPage() {
 
       <div className="space-y-4">
         {filteredOrders.map((order) => (
-          <article key={order.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article key={order.id} className="rounded bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pedido #{order.id}</p>
@@ -326,7 +326,7 @@ export function OrdersPage() {
                   {order.customer_name} | {formatDateTime(order.created_at)}
                 </p>
               </div>
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+              <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
                 {statusLabels[order.status] ?? order.status}
               </span>
             </div>
@@ -353,7 +353,7 @@ export function OrdersPage() {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
+                  className="rounded bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
                 >
                   Ver todos
                 </button>

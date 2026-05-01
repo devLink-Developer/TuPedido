@@ -24,7 +24,7 @@ export function MobileShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useSession();
-  const { brandName, branding } = usePlatformBranding();
+  const { brandName } = usePlatformBranding();
   const { itemCount } = useCart();
   const quickLinks = !isAuthenticated
     ? [
@@ -82,7 +82,6 @@ export function MobileShell() {
             <Link to="/" aria-label={`Ir al inicio de ${brandName}`} className="relative inline-flex items-center">
               <BrandMark
                 brandName={brandName}
-                logoUrl={branding?.platform_logo_url ?? null}
                 imageClassName="h-12 max-w-[10.5rem] drop-shadow-[0_14px_28px_rgba(191,83,15,0.22)]"
                 textClassName="text-[2rem] text-white"
               />
@@ -163,7 +162,6 @@ export function MobileShell() {
                   <Link to="/" className="flex min-w-0 items-center gap-3">
                     <BrandMark
                       brandName={brandName}
-                      logoUrl={branding?.platform_logo_url ?? null}
                       imageClassName="h-9 max-w-[8.5rem] shrink-0 drop-shadow-[0_10px_20px_rgba(173,74,14,0.14)]"
                       textClassName="shrink-0 text-[1.4rem] text-[#24130e]"
                     />

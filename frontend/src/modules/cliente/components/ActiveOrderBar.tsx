@@ -85,14 +85,14 @@ export function ActiveOrderBar() {
 
   return (
     <section className="sticky top-[7.1rem] z-20 mb-6 md:top-28">
-      <div className="app-panel rounded-[28px] border-brand-100 bg-[linear-gradient(135deg,#fff7f2_0%,#fffdfb_100%)] p-4">
+      <div className="app-panel rounded border-brand-100 bg-[linear-gradient(135deg,#fff7f2_0%,#fffdfb_100%)] p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-600">Pedido en proceso</p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <h2 className="truncate text-lg font-bold text-ink">{featuredOrder.store_name}</h2>
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">#{featuredOrder.id}</span>
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
+              <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">#{featuredOrder.id}</span>
+              <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
                 {statusLabels[featuredOrder.status] ?? featuredOrder.status}
               </span>
             </div>
@@ -112,7 +112,7 @@ export function ActiveOrderBar() {
             {additionalActiveOrders ? (
               <Link
                 to="/c/pedidos"
-                className="rounded-full border border-[var(--color-border-default)] bg-white px-4 py-2 text-sm font-semibold text-zinc-700"
+                className="rounded border border-[var(--color-border-default)] bg-white px-4 py-2 text-sm font-semibold text-zinc-700"
               >
                 y {additionalActiveOrders} mas
               </Link>

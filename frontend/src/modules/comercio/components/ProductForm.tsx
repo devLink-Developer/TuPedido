@@ -126,19 +126,19 @@ export function ProductForm({
       return;
     }
     if (!form.description.trim()) {
-      setError("La descripcion del producto es obligatoria.");
+      setError("La descripción del producto es obligatoria.");
       return;
     }
     if (!form.price.trim() || Number(form.price) < 0) {
-      setError("Ingresa un precio valido.");
+      setError("Ingresa un precio válido.");
       return;
     }
     if (!form.product_category_id) {
-      setError("Selecciona una categoria para ordenar mejor el catalogo.");
+      setError("Seleccioná una categoría para ordenar mejor el catálogo.");
       return;
     }
     if (form.commercial_discount_type && !form.commercial_discount_value.trim()) {
-      setError("Completa el valor del descuento comercial.");
+      setError("Completá el valor del descuento comercial.");
       return;
     }
 
@@ -169,12 +169,12 @@ export function ProductForm({
   }
 
   return (
-    <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5 rounded-[28px] bg-white p-5 shadow-sm">
+    <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5 rounded bg-white p-5 shadow-sm">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Catalogo</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Catálogo</p>
         <h3 className="mt-2 text-2xl font-bold text-ink">{initialProduct ? "Editar producto" : "Nuevo producto"}</h3>
         <p className="mt-2 text-sm text-zinc-600">
-          Carga informacion comercial real: identificacion, precio de lista, descuento, stock e imagen.
+          Cargá información comercial real: identificación, precio de lista, descuento, stock e imagen.
         </p>
       </div>
 
@@ -188,7 +188,7 @@ export function ProductForm({
             value={form.name}
             onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
             placeholder="Nombre del producto"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
           />
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
@@ -205,26 +205,26 @@ export function ProductForm({
               value={form.sku}
               onChange={(event) => setForm((current) => ({ ...current, sku: event.target.value.toUpperCase() }))}
               placeholder="SKU-0001"
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
             />
           </div>
           <input
             value={form.brand}
             onChange={(event) => setForm((current) => ({ ...current, brand: event.target.value }))}
             placeholder="Marca"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
           />
           <input
             value={form.barcode}
             onChange={(event) => setForm((current) => ({ ...current, barcode: event.target.value }))}
-            placeholder="Codigo de barras"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            placeholder="Código de barras"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
           />
           <input
             value={form.unit_label}
             onChange={(event) => setForm((current) => ({ ...current, unit_label: event.target.value }))}
-            placeholder="Presentacion, ej. 500 g / 1 L"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            placeholder="Presentación, ej. 500 g / 1 L"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
           />
           <select
             value={form.product_category_id}
@@ -235,9 +235,9 @@ export function ProductForm({
                 product_subcategory_id: ""
               }))
             }
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
           >
-            <option value="">Selecciona una categoria</option>
+            <option value="">Seleccioná una categoría</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -248,14 +248,14 @@ export function ProductForm({
             value={form.product_subcategory_id}
             onChange={(event) => setForm((current) => ({ ...current, product_subcategory_id: event.target.value }))}
             disabled={!selectedCategory || !availableSubcategories.length}
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 disabled:bg-zinc-100"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3 disabled:bg-zinc-100"
           >
             <option value="">
               {!selectedCategory
-                ? "Primero elige una categoria"
+                ? "Primero elegí una categoría"
                 : availableSubcategories.length
-                  ? "Selecciona una subcategoria"
-                  : "Sin subcategorias creadas"}
+                  ? "Seleccioná una subcategoría"
+                  : "Sin subcategorías creadas"}
             </option>
             {availableSubcategories.map((subcategory) => (
               <option key={subcategory.id} value={subcategory.id}>
@@ -267,8 +267,8 @@ export function ProductForm({
             value={form.description}
             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
             rows={5}
-            placeholder="Descripcion comercial y detalles utiles para el cliente"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+            placeholder="Descripción comercial y detalles útiles para el cliente"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
           />
         </div>
       </section>
@@ -286,7 +286,7 @@ export function ProductForm({
             value={form.price}
             onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))}
             placeholder="Precio de lista"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
           />
           <input
             type="number"
@@ -295,7 +295,7 @@ export function ProductForm({
             value={form.compare_at_price}
             onChange={(event) => setForm((current) => ({ ...current, compare_at_price: event.target.value }))}
             placeholder="Precio de referencia opcional"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
           />
           <select
             value={form.commercial_discount_type}
@@ -305,7 +305,7 @@ export function ProductForm({
                 commercial_discount_type: event.target.value as ProductFormState["commercial_discount_type"]
               }))
             }
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
           >
             <option value="">Sin descuento comercial</option>
             <option value="percentage">Porcentaje</option>
@@ -319,10 +319,10 @@ export function ProductForm({
             disabled={!form.commercial_discount_type}
             onChange={(event) => setForm((current) => ({ ...current, commercial_discount_value: event.target.value }))}
             placeholder={form.commercial_discount_type === "percentage" ? "Porcentaje" : "Monto del descuento"}
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 disabled:bg-zinc-100"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3 disabled:bg-zinc-100"
           />
         </div>
-        <div className="rounded-[24px] border border-black/5 bg-zinc-50 px-4 py-4">
+        <div className="rounded border border-black/5 bg-zinc-50 px-4 py-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Precio final al cliente</p>
           <p className="mt-2 text-2xl font-black text-ink">{formatCurrency(pricePreview)}</p>
         </div>
@@ -330,8 +330,8 @@ export function ProductForm({
 
       <section className="space-y-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Operacion</p>
-          <h4 className="mt-2 text-lg font-bold text-ink">Disponibilidad y limites</h4>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Operación</p>
+          <h4 className="mt-2 text-lg font-bold text-ink">Disponibilidad y límites</h4>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           <input
@@ -340,15 +340,15 @@ export function ProductForm({
             value={form.stock_quantity}
             onChange={(event) => setForm((current) => ({ ...current, stock_quantity: event.target.value }))}
             placeholder="Stock controlado opcional"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
           />
           <input
             type="number"
             min="1"
             value={form.max_per_order}
             onChange={(event) => setForm((current) => ({ ...current, max_per_order: event.target.value }))}
-            placeholder="Maximo por pedido"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            placeholder="Máximo por pedido"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
           />
           <input
             type="number"
@@ -356,9 +356,9 @@ export function ProductForm({
             value={form.sort_order}
             onChange={(event) => setForm((current) => ({ ...current, sort_order: event.target.value }))}
             placeholder="Orden"
-            className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
           />
-          <label className="flex items-center gap-2 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+          <label className="flex items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
             <input
               type="checkbox"
               checked={form.is_available}
@@ -383,7 +383,7 @@ export function ProductForm({
         />
       </section>
 
-      {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+      {error ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
 
       <Button type="submit" disabled={loading} className="w-full">
         {loading ? "Guardando..." : initialProduct ? "Actualizar producto" : "Crear producto"}

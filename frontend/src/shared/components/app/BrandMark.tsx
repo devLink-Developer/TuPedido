@@ -1,7 +1,7 @@
-import { resolveApiMediaUrl } from "../../services/api/client";
+import { KE_BRAND_NAME } from "../../config/brand";
 
 type BrandMarkProps = {
-  brandName: string;
+  brandName?: string;
   logoUrl?: string | null;
   className?: string;
   imageClassName?: string;
@@ -9,40 +9,22 @@ type BrandMarkProps = {
 };
 
 export function BrandMark({
-  brandName,
-  logoUrl,
+  brandName = KE_BRAND_NAME,
   className = "",
   imageClassName = "",
-  textClassName = "",
 }: BrandMarkProps) {
-  if (logoUrl) {
-    return (
-      <span className={className}>
-        <img
-          src={resolveApiMediaUrl(logoUrl)}
-          alt={brandName}
-          className={[
-            "block h-11 w-auto max-w-[11rem] object-contain",
-            imageClassName,
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        />
-      </span>
-    );
-  }
-
   return (
-    <span
-      className={[
-        "font-display text-2xl font-black tracking-tight text-[#1d120e]",
-        className,
-        textClassName,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      {brandName}
+    <span className={["inline-flex items-center", className].filter(Boolean).join(" ")}>
+      <span
+        aria-hidden="true"
+        className={[
+          "ke-brand-sprite h-9 w-[8.5rem] sm:h-10 sm:w-[9.5rem]",
+          imageClassName,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      />
+      <span className="sr-only">{brandName}</span>
     </span>
   );
 }

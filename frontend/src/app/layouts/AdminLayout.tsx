@@ -17,7 +17,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthSession();
-  const { brandName, branding } = usePlatformBranding();
+  const { brandName } = usePlatformBranding();
   const { open, setOpen, close } = useRouteBoundDrawer();
   const activeLabel =
     navItems.find((item) =>
@@ -39,7 +39,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
               <Link to="/a" aria-label={`Ir al panel admin de ${brandName}`} className="inline-flex items-center">
                 <BrandMark
                   brandName={brandName}
-                  logoUrl={branding?.platform_logo_url ?? null}
                   imageClassName="h-10 max-w-[10rem] sm:h-11 sm:max-w-[11.5rem]"
                   textClassName="text-[1.5rem] text-[#24130e]"
                 />
@@ -137,7 +136,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
             type="button"
             aria-label="Cerrar menu admin"
             onClick={close}
-            className="absolute inset-0 bg-[rgba(17,24,39,0.48)]"
+            className="absolute inset-0 bg-[rgba(92,52,24,0.24)] backdrop-blur-[2px]"
           />
           <div
             role="dialog"

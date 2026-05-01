@@ -7,6 +7,17 @@ import { MerchantMobileHeaderProvider, useMerchantMobileHeader } from "../../mod
 import { MerchantDashboardLayout } from "./MerchantDashboardLayout";
 
 const logoutMock = vi.fn();
+const menuButtonLabel = /Abrir men[uú] de comercio/;
+const menuDialogLabel = /Men[uú] de comercio/;
+const logoutLabel = /Cerrar sesi[oó]n/;
+const configuracionLabel = /Configuraci[oó]n/;
+
+const expectedMerchantMenuGroups = [
+  { group: /Operaci[oó]n/, links: ["Pedidos", "Repartidores"] },
+  { group: "Comercial", links: ["Catálogo", "Promociones"] },
+  { group: "Finanzas", links: ["Resumen", "Liquidaciones"] },
+  { group: "Ajustes", links: [configuracionLabel] }
+];
 
 vi.mock("../../shared/hooks", async () => {
   const actual = await vi.importActual<typeof import("../../shared/hooks")>("../../shared/hooks");
@@ -75,7 +86,7 @@ describe("MerchantDashboardLayout", () => {
   it("usa un header mobile apilado para no comprimir el titulo", () => {
     renderLayout();
 
-    const openButton = screen.getByRole("button", { name: "Abrir menu de comercio" });
+    const openButton = screen.getByRole("button", { name: menuButtonLabel });
     expect(openButton.parentElement).toHaveClass("self-end", "sm:self-auto");
     expect(openButton.closest("header")).toHaveClass("flex-col", "sm:flex-row");
   });
@@ -85,19 +96,19 @@ describe("MerchantDashboardLayout", () => {
 
     renderLayout("/m/pedidos", {
       mobileHeaderAction: (
-        <button type="button" className="rounded-full px-3 py-2">
+        <button type="button" className="rounded px-3 py-2">
           Recibir pedidos
         </button>
       )
     });
 
-    const openButton = screen.getByRole("button", { name: "Abrir menu de comercio" });
+    const openButton = screen.getByRole("button", { name: menuButtonLabel });
     expect(screen.getByRole("button", { name: "Recibir pedidos" })).toBeInTheDocument();
     expect(openButton.closest("header")).toHaveClass("justify-between");
 
     await user.click(openButton);
 
-    expect(screen.getByRole("dialog", { name: "Menu de comercio" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: menuDialogLabel })).toBeInTheDocument();
   });
 
   it("abre el drawer mobile y lo cierra al navegar", async () => {
@@ -105,17 +116,33 @@ describe("MerchantDashboardLayout", () => {
 
     renderLayout();
 
-    expect(screen.queryByRole("dialog", { name: "Menu de comercio" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: menuDialogLabel })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Abrir menu de comercio" }));
+    await user.click(screen.getByRole("button", { name: menuButtonLabel }));
 
-    const dialog = screen.getByRole("dialog", { name: "Menu de comercio" });
+    const dialog = screen.getByRole("dialog", { name: menuDialogLabel });
     expect(within(dialog).getByText("Comercio Demo")).toBeInTheDocument();
 
-    await user.click(within(dialog).getByRole("link", { name: "Configuracion" }));
+    await user.click(within(dialog).getByRole("link", { name: configuracionLabel }));
 
     expect(await screen.findByText("configuracion page")).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Menu de comercio" })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: menuDialogLabel })).not.toBeInTheDocument());
+  });
+
+  it("expone el menu mobile agrupado de comercio", async () => {
+    const user = userEvent.setup();
+
+    renderLayout();
+
+    await user.click(screen.getByRole("button", { name: menuButtonLabel }));
+    const dialog = screen.getByRole("dialog", { name: menuDialogLabel });
+
+    expectedMerchantMenuGroups.forEach(({ group, links }) => {
+      expect(within(dialog).getAllByText(group).length).toBeGreaterThan(0);
+      links.forEach((linkName) => {
+        expect(within(dialog).getByRole("link", { name: linkName })).toBeInTheDocument();
+      });
+    });
   });
 
   it("expone cerrar sesion dentro del drawer mobile", async () => {
@@ -123,10 +150,10 @@ describe("MerchantDashboardLayout", () => {
 
     renderLayout();
 
-    await user.click(screen.getByRole("button", { name: "Abrir menu de comercio" }));
-    const dialog = screen.getByRole("dialog", { name: "Menu de comercio" });
+    await user.click(screen.getByRole("button", { name: menuButtonLabel }));
+    const dialog = screen.getByRole("dialog", { name: menuDialogLabel });
 
-    await user.click(within(dialog).getByRole("button", { name: "Cerrar sesion" }));
+    await user.click(within(dialog).getByRole("button", { name: logoutLabel }));
 
     expect(logoutMock).toHaveBeenCalledTimes(1);
     expect(await screen.findByText("login page")).toBeInTheDocument();

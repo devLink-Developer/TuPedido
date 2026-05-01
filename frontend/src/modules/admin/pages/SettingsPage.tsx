@@ -31,7 +31,6 @@ import { hexToRgba, isHexColor, normalizeHexColor, resolveCategoryPalette } from
 import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
 import { statusLabels } from "../../../shared/utils/labels";
 import { Button } from "../../../shared/ui/Button";
-import { resolveApiMediaUrl } from "../../../shared/services/api/client";
 
 type CategoryFormState = {
   name: string;
@@ -145,10 +144,6 @@ export function SettingsPage() {
   const [categoryForm, setCategoryForm] = useState<CategoryFormState>(emptyCategoryForm);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [serviceFee, setServiceFee] = useState("0");
-  const [platformLogoUrl, setPlatformLogoUrl] = useState("");
-  const [platformWordmarkUrl, setPlatformWordmarkUrl] = useState("");
-  const [platformFaviconUrl, setPlatformFaviconUrl] = useState("");
-  const [platformUseLogoAsFavicon, setPlatformUseLogoAsFavicon] = useState(false);
   const [catalogBannerImageUrl, setCatalogBannerImageUrl] = useState("");
   const [catalogBannerWidth, setCatalogBannerWidth] = useState(String(CATALOG_BANNER_RECOMMENDATION.width));
   const [catalogBannerHeight, setCatalogBannerHeight] = useState(String(CATALOG_BANNER_RECOMMENDATION.height));
@@ -162,14 +157,12 @@ export function SettingsPage() {
   const [providerFieldErrors, setProviderFieldErrors] = useState<Partial<Record<keyof MercadoPagoProviderFormState, string>>>({});
   const [showClientSecret, setShowClientSecret] = useState(false);
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
-  const [brandingSaving, setBrandingSaving] = useState(false);
   const [bannerSaving, setBannerSaving] = useState(false);
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [serviceError, setServiceError] = useState<string | null>(null);
   const [providerError, setProviderError] = useState<string | null>(null);
-  const [brandingError, setBrandingError] = useState<string | null>(null);
   const [bannerError, setBannerError] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
@@ -211,10 +204,6 @@ export function SettingsPage() {
         mode: paymentProviderResult.mode
       });
       setServiceFee(platformResult.service_fee_amount.toFixed(2));
-      setPlatformLogoUrl(platformResult.platform_logo_url ?? "");
-      setPlatformWordmarkUrl(platformResult.platform_wordmark_url ?? "");
-      setPlatformFaviconUrl(platformResult.platform_favicon_url ?? "");
-      setPlatformUseLogoAsFavicon(Boolean(platformResult.platform_use_logo_as_favicon));
       setCatalogBannerImageUrl(platformResult.catalog_banner_image_url ?? "");
       setCatalogBannerWidth(String(platformResult.catalog_banner_width ?? CATALOG_BANNER_RECOMMENDATION.width));
       setCatalogBannerHeight(String(platformResult.catalog_banner_height ?? CATALOG_BANNER_RECOMMENDATION.height));
@@ -413,27 +402,6 @@ export function SettingsPage() {
     }
   }
 
-  async function handlePlatformBrandingSave(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!token || !platformSettings) return;
-    setBrandingSaving(true);
-    setBrandingError(null);
-    try {
-      await updatePlatformSettings(token, {
-        service_fee_amount: platformSettings.service_fee_amount,
-        platform_logo_url: platformLogoUrl.trim() || null,
-        platform_wordmark_url: platformWordmarkUrl.trim() || null,
-        platform_favicon_url: platformFaviconUrl.trim() || null,
-        platform_use_logo_as_favicon: platformUseLogoAsFavicon
-      });
-      await load();
-    } catch (requestError) {
-      setBrandingError(requestError instanceof Error ? requestError.message : "No se pudo guardar la identidad");
-    } finally {
-      setBrandingSaving(false);
-    }
-  }
-
   async function handlePaymentSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!token) return;
@@ -485,7 +453,7 @@ export function SettingsPage() {
         description="Administra rubros, el fee global cobrado al comprador y la revision de liquidaciones de cuenta corriente."
       />
 
-      <section className="rounded-[28px] bg-white p-5 shadow-sm">
+      <section className="rounded bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Configuracion</p>
@@ -494,7 +462,7 @@ export function SettingsPage() {
               Define nombre, color, icono, orden y estado. Estos cambios impactan en home, filtros y badges de comercios sin tocar codigo.
             </p>
           </div>
-          <span className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-600">
+          <span className="rounded bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-600">
             {categories.filter((category) => category.is_active).length} activos / {categories.length} totales
           </span>
         </div>
@@ -502,7 +470,7 @@ export function SettingsPage() {
         <div className="mt-5 grid gap-5 xl:grid-cols-[420px_1fr]">
           <form
             onSubmit={(event) => void handleCategorySubmit(event)}
-            className="space-y-4 rounded-[24px] border border-black/5 bg-zinc-50 p-4"
+            className="space-y-4 rounded border border-black/5 bg-zinc-50 p-4"
           >
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
@@ -518,7 +486,7 @@ export function SettingsPage() {
                 value={categoryForm.name}
                 onChange={(event) => setCategoryForm((current) => ({ ...current, name: event.target.value }))}
                 placeholder="Farmacia"
-                className="rounded-2xl border border-black/10 bg-white px-4 py-3"
+                className="rounded border border-black/10 bg-white px-4 py-3"
                 required
               />
               <textarea
@@ -526,7 +494,7 @@ export function SettingsPage() {
                 onChange={(event) => setCategoryForm((current) => ({ ...current, description: event.target.value }))}
                 placeholder="Describe el tipo de comercios que representa este rubro."
                 rows={3}
-                className="rounded-2xl border border-black/10 bg-white px-4 py-3"
+                className="rounded border border-black/10 bg-white px-4 py-3"
               />
             </div>
 
@@ -537,7 +505,7 @@ export function SettingsPage() {
                   type="color"
                   value={normalizeHexColor(categoryForm.color)}
                   onChange={(event) => setCategoryForm((current) => ({ ...current, color: event.target.value.toUpperCase() }))}
-                  className="h-12 w-full cursor-pointer rounded-2xl border border-black/10 bg-white p-1"
+                  className="h-12 w-full cursor-pointer rounded border border-black/10 bg-white p-1"
                 />
               </label>
               <label className="space-y-2 text-sm font-semibold text-zinc-600">
@@ -546,7 +514,7 @@ export function SettingsPage() {
                   value={categoryForm.color}
                   onChange={(event) => setCategoryForm((current) => ({ ...current, color: event.target.value.toUpperCase() }))}
                   placeholder="#FF7043"
-                  className="rounded-2xl border border-black/10 bg-white px-4 py-3"
+                  className="rounded border border-black/10 bg-white px-4 py-3"
                   required
                 />
               </label>
@@ -558,7 +526,7 @@ export function SettingsPage() {
                   key={color}
                   type="button"
                   onClick={() => setCategoryForm((current) => ({ ...current, color }))}
-                  className="h-10 w-10 rounded-full border-2 transition"
+                  className="h-10 w-10 rounded border-2 transition"
                   style={{
                     backgroundColor: color,
                     borderColor: categoryForm.color === color ? "#2B2B2B" : "rgba(43, 43, 43, 0.08)"
@@ -577,7 +545,7 @@ export function SettingsPage() {
                     setCategoryForm((current) => ({ ...current, color_light: event.target.value.toUpperCase() }))
                   }
                   placeholder="#FBE9E7"
-                  className="rounded-2xl border border-black/10 bg-white px-4 py-3"
+                  className="rounded border border-black/10 bg-white px-4 py-3"
                 />
               </label>
               <label className="space-y-2 text-sm font-semibold text-zinc-600">
@@ -586,7 +554,7 @@ export function SettingsPage() {
                   value={categoryForm.icon}
                   onChange={(event) => setCategoryForm((current) => ({ ...current, icon: event.target.value }))}
                   placeholder="FX o emoji"
-                  className="rounded-2xl border border-black/10 bg-white px-4 py-3"
+                  className="rounded border border-black/10 bg-white px-4 py-3"
                 />
               </label>
               <label className="space-y-2 text-sm font-semibold text-zinc-600">
@@ -596,10 +564,10 @@ export function SettingsPage() {
                   min={0}
                   value={categoryForm.sort_order}
                   onChange={(event) => setCategoryForm((current) => ({ ...current, sort_order: event.target.value }))}
-                  className="rounded-2xl border border-black/10 bg-white px-4 py-3"
+                  className="rounded border border-black/10 bg-white px-4 py-3"
                 />
               </label>
-              <label className="flex items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-zinc-700">
+              <label className="flex items-center gap-3 rounded border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-zinc-700">
                 <input
                   type="checkbox"
                   checked={categoryForm.is_active}
@@ -610,7 +578,7 @@ export function SettingsPage() {
             </div>
 
             <div
-              className="rounded-[24px] border p-4"
+              className="rounded border p-4"
               style={{
                 backgroundColor: categoryPreview.colorLight,
                 borderColor: hexToRgba(categoryPreview.color, 0.16)
@@ -621,7 +589,7 @@ export function SettingsPage() {
               </p>
               <div className="mt-4 flex items-center gap-3">
                 <span
-                  className="flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-black"
+                  className="flex h-12 w-12 items-center justify-center rounded text-sm font-black"
                   style={{ backgroundColor: hexToRgba(categoryPreview.color, 0.14), color: categoryPreview.color }}
                 >
                   {previewLabel(categoryForm.name, categoryForm.icon)}
@@ -637,7 +605,7 @@ export function SettingsPage() {
               </div>
             </div>
 
-            {categoryError ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{categoryError}</p> : null}
+            {categoryError ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{categoryError}</p> : null}
 
             <div className="flex flex-wrap gap-2">
               <Button type="submit" disabled={categorySaving}>
@@ -647,7 +615,7 @@ export function SettingsPage() {
                 <button
                   type="button"
                   onClick={resetCategoryEditor}
-                  className="rounded-full bg-white px-4 py-3 text-sm font-semibold text-zinc-700 shadow-sm"
+                  className="rounded bg-white px-4 py-3 text-sm font-semibold text-zinc-700 shadow-sm"
                 >
                   Cancelar
                 </button>
@@ -661,7 +629,7 @@ export function SettingsPage() {
               return (
                 <article
                   key={category.id}
-                  className="rounded-[24px] border p-4 shadow-sm"
+                  className="rounded border p-4 shadow-sm"
                   style={{
                     background: `linear-gradient(180deg, ${palette.colorLight}, #FFFFFF)`,
                     borderColor: hexToRgba(palette.color, 0.14)
@@ -671,7 +639,7 @@ export function SettingsPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className="flex h-10 w-10 items-center justify-center rounded-2xl text-xs font-black"
+                          className="flex h-10 w-10 items-center justify-center rounded text-xs font-black"
                           style={{ backgroundColor: hexToRgba(palette.color, 0.14), color: palette.color }}
                         >
                           {previewLabel(category.name, category.icon ?? "")}
@@ -684,13 +652,13 @@ export function SettingsPage() {
                         </div>
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-                        <span className="rounded-full bg-white px-3 py-1 text-zinc-700 shadow-sm">{category.color}</span>
-                        <span className="rounded-full bg-white px-3 py-1 text-zinc-700 shadow-sm">Orden {category.sort_order}</span>
-                        <span className="rounded-full bg-white px-3 py-1 text-zinc-700 shadow-sm">
+                        <span className="rounded bg-white px-3 py-1 text-zinc-700 shadow-sm">{category.color}</span>
+                        <span className="rounded bg-white px-3 py-1 text-zinc-700 shadow-sm">Orden {category.sort_order}</span>
+                        <span className="rounded bg-white px-3 py-1 text-zinc-700 shadow-sm">
                           {category.is_active ? "Activo" : "Inactivo"}
                         </span>
                         {category.icon ? (
-                          <span className="rounded-full bg-white px-3 py-1 text-zinc-700 shadow-sm">Icono {category.icon}</span>
+                          <span className="rounded bg-white px-3 py-1 text-zinc-700 shadow-sm">Icono {category.icon}</span>
                         ) : null}
                       </div>
                     </div>
@@ -703,7 +671,7 @@ export function SettingsPage() {
                           setCategoryForm(toCategoryForm(category));
                           setCategoryError(null);
                         }}
-                        className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
+                        className="rounded bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
                       >
                         Editar
                       </button>
@@ -711,7 +679,7 @@ export function SettingsPage() {
                         <button
                           type="button"
                           onClick={() => void handleCategoryDeactivate(category.id)}
-                          className="rounded-full bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700"
+                          className="rounded bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700"
                         >
                           Desactivar
                         </button>
@@ -719,7 +687,7 @@ export function SettingsPage() {
                         <button
                           type="button"
                           onClick={() => void handleCategoryReactivate(category)}
-                          className="rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700"
+                          className="rounded bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700"
                         >
                           Reactivar
                         </button>
@@ -740,7 +708,7 @@ export function SettingsPage() {
         </div>
       </section>
 
-      <form onSubmit={(event) => void handleMercadoPagoProviderSave(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
+      <form onSubmit={(event) => void handleMercadoPagoProviderSave(event)} className="rounded bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pagos</p>
@@ -749,7 +717,7 @@ export function SettingsPage() {
               Configura una sola vez la app OAuth de Mercado Pago para que cada comercio conecte su cuenta.
             </p>
           </div>
-          <div className="rounded-2xl bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+          <div className="rounded bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
             <p className="font-semibold text-ink">{paymentProvider.enabled ? "Provider activo" : "Provider inactivo"}</p>
             <p className="mt-1">Modo actual: {paymentProvider.mode === "production" ? "Produccion" : "Sandbox"}</p>
             <p className="mt-1">Secret configurado: {paymentProvider.client_secret_masked ? "Si" : "No"}</p>
@@ -767,7 +735,7 @@ export function SettingsPage() {
                   client_id: event.target.value
                 }))
               }
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
               placeholder="Ej: 7906728616621997"
               aria-invalid={Boolean(providerFieldErrors.client_id)}
             />
@@ -798,7 +766,7 @@ export function SettingsPage() {
                   client_secret: event.target.value
                 }))
               }
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
               placeholder={paymentProvider.client_secret_masked ? "Dejar vacio para conservar el actual" : "Ingresa el secret"}
               aria-invalid={Boolean(providerFieldErrors.client_secret)}
             />
@@ -829,7 +797,7 @@ export function SettingsPage() {
                   webhook_secret: event.target.value
                 }))
               }
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
               placeholder={paymentProvider.webhook_secret_masked ? "Dejar vacio para conservar el actual" : "Secret de Webhooks"}
               aria-invalid={Boolean(providerFieldErrors.webhook_secret)}
             />
@@ -848,7 +816,7 @@ export function SettingsPage() {
                   redirect_uri: event.target.value
                 }))
               }
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
               placeholder={paymentProvider.oauth_callback_url ?? "https://.../api/v1/oauth/mercadopago/callback"}
               aria-invalid={Boolean(providerFieldErrors.redirect_uri)}
             />
@@ -858,18 +826,18 @@ export function SettingsPage() {
               </p>
             ) : null}
             {paymentProvider.redirect_uri_internal && paymentProvider.oauth_callback_url && !paymentProvider.oauth_callback_url.includes("localhost") ? (
-              <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs font-normal text-amber-800" role="alert">
+              <p className="rounded bg-amber-50 px-3 py-2 text-xs font-normal text-amber-800" role="alert">
                 El Redirect URI actual usa localhost. Para conectar comercios desde una URL publica, guarda el callback detectado aqui y registralo igual en la app de Mercado Pago.
               </p>
             ) : null}
             {!paymentProvider.simulated && isPublicHttpUrl(mercadoPagoForm.redirect_uri) ? (
-              <p className="rounded-2xl bg-rose-50 px-3 py-2 text-xs font-normal text-rose-800" role="alert">
+              <p className="rounded bg-rose-50 px-3 py-2 text-xs font-normal text-rose-800" role="alert">
                 Mercado Pago no acepta callbacks OAuth publicos con HTTP. Configura un dominio con HTTPS y registra exactamente esa URL en la app.
               </p>
             ) : null}
             {providerFieldErrors.redirect_uri ? <p className="text-xs font-normal text-rose-700">{providerFieldErrors.redirect_uri}</p> : null}
           </label>
-          <div className="space-y-2 rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 md:col-span-2">
+          <div className="space-y-2 rounded border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 md:col-span-2">
             <p className="font-semibold text-zinc-700">Webhook URL</p>
             <p className="break-all font-mono text-xs text-zinc-600">{paymentProvider.webhook_url ?? "Configura BACKEND_BASE_URL para calcularla."}</p>
             <p className="text-xs">Usa esta URL en la app de Mercado Pago para validar notificaciones con x-signature.</p>
@@ -884,13 +852,13 @@ export function SettingsPage() {
                   mode: event.target.value as "sandbox" | "production"
                 }))
               }
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
             >
               <option value="sandbox">Sandbox</option>
               <option value="production">Produccion</option>
             </select>
           </label>
-          <label className="flex items-center gap-3 rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+          <label className="flex items-center gap-3 rounded border border-black/10 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
             <input
               type="checkbox"
               checked={mercadoPagoForm.enabled}
@@ -904,8 +872,8 @@ export function SettingsPage() {
             Activar Mercado Pago
           </label>
         </div>
-        {providerError ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{providerError}</p> : null}
-        {providerMessage ? <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{providerMessage}</p> : null}
+        {providerError ? <p className="mt-4 rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{providerError}</p> : null}
+        {providerMessage ? <p className="mt-4 rounded bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{providerMessage}</p> : null}
         <div className="mt-4 flex flex-wrap gap-2">
           <Button type="submit" disabled={providerSaving}>
             {providerSaving ? "Guardando..." : "Guardar Mercado Pago"}
@@ -914,132 +882,48 @@ export function SettingsPage() {
       </form>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <form onSubmit={(event) => void handlePlatformBrandingSave(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
+        <section className="app-panel p-5">
           <h3 className="text-lg font-bold text-ink">Identidad visual</h3>
-          <p className="mt-2 text-sm text-zinc-600">
-            Configura los assets de marca por separado: logo de navbar, wordmark para reemplazar el texto de marca y favicon del navegador.
+          <p className="mt-2 text-sm leading-6 text-zinc-600">
+            La marca publica del producto queda fija como KePedimos para mantener consistencia entre landing,
+            catalogo, paneles y PWA.
           </p>
-          <div className="mt-4 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-4">
-              <ImageAssetField
-                label="Logo principal / navbar"
-                value={platformLogoUrl}
-                onChange={setPlatformLogoUrl}
-                folder="platform-branding"
-                placeholder="https://..."
-                description="Usa un logo horizontal o wordmark, por ejemplo logo_3, para que la marca se vea limpia y grande en el navbar."
-                previewClassName="h-32 w-full object-contain bg-white p-5"
-                emptyLabel="Sin logo configurado para navbar"
-              />
-              <ImageAssetField
-                label="Wordmark / logo_3"
-                value={platformWordmarkUrl}
-                onChange={setPlatformWordmarkUrl}
-                folder="platform-branding"
-                placeholder="https://..."
-                description="Esta imagen reemplaza el texto de marca en accesos, titulos y bloques donde la marca aparece inline."
-                previewClassName="h-24 w-full object-contain bg-white p-4"
-                emptyLabel="Sin wordmark configurado"
-              />
-              <ImageAssetField
-                label="Favicon"
-                value={platformFaviconUrl}
-                onChange={setPlatformFaviconUrl}
-                folder="platform-branding"
-                placeholder="https://..."
-                description="Se usa en la pestaña del navegador cuando no reutilizas el logo."
-                previewClassName="h-32 w-full object-contain bg-white p-5"
-                emptyLabel="Sin favicon configurado"
-              />
-              <label className="flex items-center gap-3 rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
-                <input
-                  type="checkbox"
-                  checked={platformUseLogoAsFavicon}
-                  onChange={(event) => setPlatformUseLogoAsFavicon(event.target.checked)}
-                />
-                Usar logo como favicon
-              </label>
+          <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_0.9fr]">
+            <div className="space-y-3 text-sm text-zinc-600">
+              <div className="border border-[var(--color-border-default)] bg-white px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Marca visible</p>
+                <p className="mt-2 text-lg font-bold text-ink">KePedimos</p>
+              </div>
+              <div className="border border-[var(--color-border-default)] bg-white px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Assets</p>
+                <p className="mt-2 leading-6">Wordmark, logo de navegacion y favicon usan los archivos versionados del frontend.</p>
+              </div>
+              <div className="border border-[var(--color-border-default)] bg-brand-50 px-4 py-3 text-brand-900">
+                Los campos de carga de identidad quedan deshabilitados por decision de producto.
+              </div>
             </div>
-            <div className="space-y-3">
+            <div className="border border-[var(--color-border-default)] bg-zinc-50 p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Preview</p>
-              <div className="rounded-[24px] border border-black/5 bg-zinc-50 p-5">
-                <div className="rounded-[22px] border border-black/5 bg-[rgba(255,251,246,0.94)] px-4 py-3 shadow-sm">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      {platformLogoUrl ? (
-                        <img src={resolveApiMediaUrl(platformLogoUrl)} alt="Logo principal" className="h-10 w-auto max-w-[12rem] object-contain" />
-                      ) : (
-                        <BrandWordmark brandName="Marca" wordmarkUrl={platformWordmarkUrl} size="title" textClassName="font-display text-2xl font-black tracking-tight text-[#24130e]" />
-                      )}
-                    </div>
-                    <span className="rounded-full border border-black/10 bg-white/90 px-3 py-2 text-xs font-semibold text-zinc-700">
-                      Ingresar
-                    </span>
-                  </div>
+              <div className="mt-4 border border-[var(--color-border-default)] bg-white px-4 py-3">
+                <div className="flex items-center justify-between gap-4">
+                  <BrandWordmark size="title" />
+                  <span className="border border-[var(--color-border-default)] bg-white px-3 py-2 text-xs font-semibold text-zinc-700">
+                    Ingresar
+                  </span>
                 </div>
-                <div className="mt-4 flex items-center gap-4">
-                  <div className="flex h-14 min-w-0 flex-1 items-center overflow-hidden rounded-[1.2rem] bg-white px-4 shadow-sm">
-                    {platformLogoUrl ? (
-                      <img src={resolveApiMediaUrl(platformLogoUrl)} alt="Logo de la app" className="h-9 w-auto max-w-full object-contain" />
-                    ) : (
-                      <BrandWordmark brandName="Marca" wordmarkUrl={platformWordmarkUrl} size="inline" frameClassName="w-[8.5rem]" textClassName="font-display text-xl font-black tracking-tight text-zinc-400" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-ink">Logo principal</p>
-                    <p className="text-sm text-zinc-500">Asi se vera en navbar y cabeceras principales.</p>
-                  </div>
-                </div>
-                <div className="mt-5 rounded-[22px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] px-4 py-4 text-white">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-200">Acceso</p>
-                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 font-display text-2xl font-bold leading-tight">
-                    <span>Ingresar a</span>
-                    <BrandWordmark
-                      brandName="Marca"
-                      wordmarkUrl={platformWordmarkUrl}
-                      size="hero"
-                      fit="contain"
-                      className="min-w-0"
-                      frameClassName="h-[5.25rem] w-[15rem] sm:h-[6.5rem] sm:w-[18rem]"
-                      imageClassName="drop-shadow-[0_12px_24px_rgba(249,115,22,0.28)]"
-                    />
-                  </div>
-                </div>
-                <div className="mt-5 flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm">
-                    {platformUseLogoAsFavicon ? (
-                      platformLogoUrl ? (
-                        <img src={resolveApiMediaUrl(platformLogoUrl)} alt="Favicon resuelto" className="h-full w-full object-contain p-1.5" />
-                      ) : (
-                        <span className="text-[10px] font-semibold text-zinc-400">Logo</span>
-                      )
-                    ) : platformFaviconUrl ? (
-                      <img src={resolveApiMediaUrl(platformFaviconUrl)} alt="Favicon configurado" className="h-full w-full object-contain p-1.5" />
-                    ) : (
-                      <span className="text-[10px] font-semibold text-zinc-400">Fav</span>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-ink">Favicon resuelto</p>
-                    <p className="text-sm text-zinc-500">
-                      {platformUseLogoAsFavicon
-                        ? "La app usara el logo principal como favicon."
-                        : "La app usara la imagen dedicada de favicon."}
-                    </p>
-                  </div>
+              </div>
+              <div className="kp-install-banner mt-4 px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--kp-accent)]">Acceso</p>
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 font-display text-2xl font-bold leading-tight text-ink">
+                  <span>Ingresar a</span>
+                  <BrandWordmark size="hero" className="min-w-0" />
                 </div>
               </div>
             </div>
           </div>
-          {brandingError ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{brandingError}</p> : null}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button type="submit" disabled={brandingSaving}>
-              {brandingSaving ? "Guardando..." : "Guardar identidad"}
-            </Button>
-          </div>
-        </form>
+        </section>
 
-        <form onSubmit={(event) => void handleServiceFeeSave(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
+        <form onSubmit={(event) => void handleServiceFeeSave(event)} className="rounded bg-white p-5 shadow-sm">
           <h3 className="text-lg font-bold text-ink">Tarifa global de servicio</h3>
           <p className="mt-2 text-sm text-zinc-600">Valor actual: {formatCurrency(platformSettings.service_fee_amount)}</p>
           <div className="mt-4 grid gap-3">
@@ -1049,16 +933,16 @@ export function SettingsPage() {
               step="0.01"
               value={serviceFee}
               onChange={(event) => setServiceFee(event.target.value)}
-              className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
             />
-            {serviceError ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{serviceError}</p> : null}
+            {serviceError ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{serviceError}</p> : null}
             <Button type="submit" disabled={serviceSaving}>
               {serviceSaving ? "Guardando..." : "Guardar tarifa"}
             </Button>
           </div>
         </form>
 
-        <form onSubmit={(event) => void handleCatalogBannerSave(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
+        <form onSubmit={(event) => void handleCatalogBannerSave(event)} className="rounded bg-white p-5 shadow-sm">
           <h3 className="text-lg font-bold text-ink">Banner del catalogo cliente</h3>
           <p className="mt-2 text-sm text-zinc-600">
             Reemplaza por completo el texto de la cabecera en <code>/c</code>. Puedes definir imagen, tamano base y relacion visual
@@ -1086,7 +970,7 @@ export function SettingsPage() {
                     step="1"
                     value={catalogBannerWidth}
                     onChange={(event) => setCatalogBannerWidth(event.target.value)}
-                    className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                    className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
                   />
                 </label>
                 <label className="space-y-2">
@@ -1097,7 +981,7 @@ export function SettingsPage() {
                     step="1"
                     value={catalogBannerHeight}
                     onChange={(event) => setCatalogBannerHeight(event.target.value)}
-                    className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                    className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
                   />
                 </label>
               </div>
@@ -1111,7 +995,7 @@ export function SettingsPage() {
               <CatalogBanner imageUrl={catalogBannerImageUrl} width={previewBannerDimensions.width} height={previewBannerDimensions.height} />
             </div>
           </div>
-          {bannerError ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{bannerError}</p> : null}
+          {bannerError ? <p className="mt-4 rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{bannerError}</p> : null}
           <div className="mt-4 flex flex-wrap gap-2">
             <Button type="submit" disabled={bannerSaving}>
               {bannerSaving ? "Guardando..." : "Guardar banner"}
@@ -1119,7 +1003,7 @@ export function SettingsPage() {
             <button
               type="button"
               onClick={() => setCatalogBannerImageUrl("")}
-              className="rounded-full bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700"
+              className="rounded bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700"
             >
               Quitar banner
             </button>
@@ -1128,7 +1012,7 @@ export function SettingsPage() {
 
       </div>
 
-      <section className="rounded-[28px] border border-[#d9e6ff] bg-[#f6f9ff] p-5 text-sm text-[#38558a] shadow-sm">
+      <section className="rounded border border-[#d9e6ff] bg-[#f6f9ff] p-5 text-sm text-[#38558a] shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#6a88bf]">Liquidaciones</p>
         <h3 className="mt-2 text-lg font-bold text-ink">La operatoria se movio a su menu propio</h3>
         <p className="mt-2 leading-7">

@@ -198,7 +198,7 @@ export function DashboardPage() {
 
       <div className="grid gap-4 xl:grid-cols-3">
         {periodStats.map((period) => (
-          <article key={period.key} className="app-panel rounded-[28px] p-5">
+          <article key={period.key} className="app-panel rounded p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{period.label}</p>
             <p className="mt-3 font-display text-3xl font-bold tracking-tight text-ink">
               {formatCurrency(period.stats.sales)}
@@ -213,13 +213,13 @@ export function DashboardPage() {
         ))}
       </div>
 
-      <section className="app-panel rounded-[28px] p-5">
+      <section className="app-panel rounded p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Ranking por comercio</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Ventas por comercio</h2>
           </div>
-          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+          <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
             top {storeRanking.length}
           </span>
         </div>

@@ -56,7 +56,7 @@ export function ForcePasswordChangeCard() {
               logout();
               navigate("/login", { replace: true });
             }}
-            className="w-full border border-[var(--color-border-default)] bg-white/84 px-4 py-2 text-center text-sm font-semibold uppercase tracking-[0.16em] text-zinc-700 sm:w-auto"
+            className="kp-soft-action min-h-[44px] w-full px-4 py-2 text-center text-sm uppercase tracking-[0.16em] sm:w-auto"
           >
             Cerrar sesion
           </button>
@@ -107,20 +107,20 @@ export function ForcePasswordChangeCard() {
         </Button>
       </form>
 
-      <div className="app-panel-dark order-2 p-5 sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">Seguridad</p>
-        <h1 className="mt-3 font-display text-[2rem] font-bold leading-[1.03] tracking-tight sm:text-4xl">
+      <div className="kp-install-banner order-2 p-5 sm:p-6">
+        <p className="app-chip text-[var(--kp-accent)]">Seguridad</p>
+        <h1 className="mt-4 font-display text-[2rem] font-bold leading-[1.03] tracking-tight text-ink sm:text-4xl">
           Cambia tu contrasena para continuar
         </h1>
-        <p className="mt-3 text-sm leading-7 text-white/72">
+        <p className="mt-3 text-sm leading-7 text-zinc-600">
           Restablecimos el acceso de {user?.full_name ?? "tu cuenta"}. Antes de seguir debes definir una nueva
           contrasena personal.
         </p>
-        <div className="mt-6 grid gap-3 text-sm leading-6 text-white/78">
-          <div className="border border-white/10 bg-white/6 px-4 py-4">
+        <div className="mt-6 grid gap-3 text-sm leading-6 text-zinc-700">
+          <div className="border border-[var(--kp-stroke)] bg-white/82 px-4 py-4" style={{ borderRadius: 18 }}>
             Ingresa la contrasena temporal que recibiste. Desde el panel admin se restablece como <strong>12345678</strong>.
           </div>
-          <div className="border border-white/10 bg-white/6 px-4 py-4">
+          <div className="border border-[var(--kp-stroke)] bg-white/82 px-4 py-4" style={{ borderRadius: 18 }}>
             Cuando confirmes la nueva contrasena, recuperas el acceso normal a tu cuenta.
           </div>
         </div>

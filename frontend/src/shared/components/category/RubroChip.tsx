@@ -1,4 +1,6 @@
 import type { ButtonHTMLAttributes, CSSProperties, HTMLAttributes } from "react";
+import type { LucideIcon } from "lucide-react";
+import { BadgePlus, Grid2X2, ShoppingBag, Store, UtensilsCrossed } from "lucide-react";
 import { resolveCategoryPalette } from "../../utils/categoryTheme";
 
 type RubroChipBaseProps = {
@@ -25,10 +27,24 @@ function joinClasses(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-function resolveIconToken(label: string, icon: string | null | undefined) {
-  const trimmed = (icon ?? "").trim();
-  if (trimmed) return trimmed.length <= 2 ? trimmed : trimmed.slice(0, 2);
-  return (label.trim().slice(0, 1) || "R").toUpperCase();
+function normalizeIconSource(label: string, icon: string | null | undefined) {
+  return `${icon ?? ""} ${label}`
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+export function resolveRubroIcon(label: string, icon?: string | null): LucideIcon {
+  const value = normalizeIconSource(label, icon);
+
+  if (/farm|pharma|botica|salud|medic|remedio|badgeplus/.test(value)) return BadgePlus;
+  if (/almacen|mercado|market|despensa|kiosco|tienda|store/.test(value)) return Store;
+  if (/comida|food|rest|rotiseria|pizza|burger|sushi|cafe|utensil/.test(value)) return UtensilsCrossed;
+  if (/bebida|drink|bar|cerve|vino|licor|gaseosa|shoppingbag/.test(value)) return ShoppingBag;
+  if (/mas|todos|todo|grid|rubro|categoria/.test(value)) return Grid2X2;
+
+  return Grid2X2;
 }
 
 function buildChipStyle({
@@ -50,27 +66,16 @@ function buildChipStyle({
 
 function ChipContent({
   label,
-  icon,
-  selected,
-  size
+  icon
 }: {
   label: string;
   icon?: string | null;
-  selected: boolean;
-  size: "sm" | "md";
 }) {
+  const Icon = resolveRubroIcon(label, icon);
+
   return (
     <>
-      <span
-        aria-hidden="true"
-        className={joinClasses(
-          "inline-flex items-center justify-center rounded-full px-1 font-black leading-none transition-colors",
-          size === "sm" ? "h-5 min-w-5 text-[9px]" : "h-5 min-w-5 text-[10px]",
-          selected ? "bg-white/15 text-white" : "bg-[var(--rubro-color-light)] text-[var(--rubro-color)]"
-        )}
-      >
-        {resolveIconToken(label, icon)}
-      </span>
+      <Icon aria-hidden="true" strokeWidth={2.1} />
       <span>{label}</span>
     </>
   );
@@ -78,7 +83,7 @@ function ChipContent({
 
 export function RubroChip(props: RubroChipButtonProps | RubroChipSpanProps) {
   const { as = "button", label, color, colorLight, icon, selected = false, size = "md", className = "" } = props;
-  const sizeClass = size === "sm" ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm";
+  const sizeClass = size === "sm" ? "kp-category-pill-compact" : "";
 
   if (as === "span") {
     const {
@@ -97,14 +102,14 @@ export function RubroChip(props: RubroChipButtonProps | RubroChipSpanProps) {
       <span
         {...spanProps}
         className={joinClasses(
-          "inline-flex items-center gap-2 rounded-full border-solid font-semibold leading-none",
+          "kp-category-pill kp-category-pill-static",
           sizeClass,
-          selected ? "border-0 bg-[var(--rubro-color)] text-white" : "border bg-transparent text-[var(--rubro-color)] border-[var(--rubro-color)]",
+          selected && "kp-category-pill-active",
           className
         )}
         style={buildChipStyle({ color, colorLight, style })}
       >
-        <ChipContent label={label} icon={icon} selected={selected} size={size} />
+        <ChipContent label={label} icon={icon} />
       </span>
     );
   }
@@ -128,15 +133,14 @@ export function RubroChip(props: RubroChipButtonProps | RubroChipSpanProps) {
       type={type ?? "button"}
       aria-pressed={selected}
       className={joinClasses(
-        "inline-flex items-center gap-2 rounded-full border-solid font-semibold leading-none transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rubro-color)] disabled:cursor-not-allowed disabled:opacity-60",
+        "kp-category-pill disabled:cursor-not-allowed disabled:opacity-60",
         sizeClass,
-        selected ? "border-0 bg-[var(--rubro-color)] text-white" : "border bg-transparent text-[var(--rubro-color)] border-[var(--rubro-color)]",
-        selected ? "hover:opacity-90" : "hover:bg-[var(--rubro-color-light)] hover:text-[var(--rubro-color)]",
+        selected && "kp-category-pill-active",
         className
       )}
       style={buildChipStyle({ color, colorLight, style })}
     >
-      <ChipContent label={label} icon={icon} selected={selected} size={size} />
+      <ChipContent label={label} icon={icon} />
     </button>
   );
 }

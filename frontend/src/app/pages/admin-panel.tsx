@@ -50,7 +50,7 @@ function getStoreAction(store: StoreSummary): { nextStatus: ManagedStoreStatus; 
     return {
       nextStatus: "suspended",
       label: "Suspender",
-      className: "rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white"
+      className: "rounded bg-zinc-900 px-4 py-2 text-sm font-semibold text-white"
     };
   }
 
@@ -58,7 +58,7 @@ function getStoreAction(store: StoreSummary): { nextStatus: ManagedStoreStatus; 
     return {
       nextStatus: "approved",
       label: "Reanudar",
-      className: "rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
+      className: "rounded bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
     };
   }
 
@@ -415,7 +415,7 @@ export function AdminDashboardPage() {
 
       <div className="flex flex-wrap gap-2">
         {tabs.map(([key, label]) => (
-          <button key={key} type="button" onClick={() => setActiveTab(key)} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${activeTab === key ? "bg-brand-500 text-white" : "bg-white text-zinc-600 shadow-sm"}`}>
+          <button key={key} type="button" onClick={() => setActiveTab(key)} className={`rounded px-4 py-2 text-sm font-semibold transition ${activeTab === key ? "bg-brand-500 text-white" : "bg-white text-zinc-600 shadow-sm"}`}>
             {label}
           </button>
         ))}
@@ -424,11 +424,11 @@ export function AdminDashboardPage() {
       {activeTab === "delivery" ? (
         <div className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
-            <article className="rounded-[28px] bg-white p-5 shadow-sm">
+            <article className="rounded bg-white p-5 shadow-sm">
               <h3 className="text-lg font-bold">Solicitudes de repartidores</h3>
               <div className="mt-4 space-y-3">
                 {deliveryApplications.map((application) => (
-                  <div key={application.id} className="rounded-2xl bg-zinc-50 p-4 text-sm">
+                  <div key={application.id} className="rounded bg-zinc-50 p-4 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <strong>{application.user_name}</strong>
@@ -439,13 +439,13 @@ export function AdminDashboardPage() {
                     <textarea
                       value={reviewNotes[application.id] ?? application.review_notes ?? ""}
                       onChange={(event) => setReviewNotes((current) => ({ ...current, [application.id]: event.target.value }))}
-                      className="mt-3 w-full rounded-2xl border border-black/10 bg-white px-3 py-2"
+                      className="mt-3 w-full rounded border border-black/10 bg-white px-3 py-2"
                       rows={3}
                       placeholder="Notas de revisión"
                     />
                     <div className="mt-3 flex flex-wrap gap-2">
                       {(["approved", "rejected", "suspended"] as const).map((status) => (
-                        <button key={status} type="button" onClick={() => void reviewDeliveryApplication(application.id, status)} className="rounded-full bg-zinc-900 px-3 py-2 text-xs font-semibold text-white">
+                        <button key={status} type="button" onClick={() => void reviewDeliveryApplication(application.id, status)} className="rounded bg-zinc-900 px-3 py-2 text-xs font-semibold text-white">
                           {statusLabels[status] ?? status}
                         </button>
                       ))}
@@ -456,11 +456,11 @@ export function AdminDashboardPage() {
               </div>
             </article>
 
-            <article className="rounded-[28px] bg-white p-5 shadow-sm">
+            <article className="rounded bg-white p-5 shadow-sm">
               <h3 className="text-lg font-bold">Riders activos</h3>
               <div className="mt-4 space-y-3">
                 {riders.map((rider) => (
-                  <div key={rider.user_id} className="rounded-2xl bg-zinc-50 p-4 text-sm">
+                  <div key={rider.user_id} className="rounded bg-zinc-50 p-4 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <strong>{rider.full_name}</strong>
                       <span>{rider.availability}</span>
@@ -477,31 +477,31 @@ export function AdminDashboardPage() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-            <form onSubmit={(event) => void saveDeliveryZone(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
+            <form onSubmit={(event) => void saveDeliveryZone(event)} className="rounded bg-white p-5 shadow-sm">
               <h3 className="text-lg font-bold">Zonas y tarifas</h3>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <input value={zoneForm.name} onChange={(event) => setZoneForm((current) => ({ ...current, name: event.target.value }))} placeholder="Nombre de zona" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-                <input value={zoneForm.radius_km} onChange={(event) => setZoneForm((current) => ({ ...current, radius_km: event.target.value }))} placeholder="Radio km" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-                <input value={zoneForm.center_latitude} onChange={(event) => setZoneForm((current) => ({ ...current, center_latitude: event.target.value }))} placeholder="Latitud" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-                <input value={zoneForm.center_longitude} onChange={(event) => setZoneForm((current) => ({ ...current, center_longitude: event.target.value }))} placeholder="Longitud" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-                <input value={zoneForm.bicycle_delivery_fee_customer} onChange={(event) => setZoneForm((current) => ({ ...current, bicycle_delivery_fee_customer: event.target.value }))} placeholder="Cliente bici" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-                <input value={zoneForm.bicycle_rider_fee} onChange={(event) => setZoneForm((current) => ({ ...current, bicycle_rider_fee: event.target.value }))} placeholder="Rider bici" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-                <input value={zoneForm.motorcycle_delivery_fee_customer} onChange={(event) => setZoneForm((current) => ({ ...current, motorcycle_delivery_fee_customer: event.target.value }))} placeholder="Cliente moto" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-                <input value={zoneForm.motorcycle_rider_fee} onChange={(event) => setZoneForm((current) => ({ ...current, motorcycle_rider_fee: event.target.value }))} placeholder="Rider moto" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-                <input value={zoneForm.car_delivery_fee_customer} onChange={(event) => setZoneForm((current) => ({ ...current, car_delivery_fee_customer: event.target.value }))} placeholder="Cliente auto" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-                <input value={zoneForm.car_rider_fee} onChange={(event) => setZoneForm((current) => ({ ...current, car_rider_fee: event.target.value }))} placeholder="Rider auto" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
+                <input value={zoneForm.name} onChange={(event) => setZoneForm((current) => ({ ...current, name: event.target.value }))} placeholder="Nombre de zona" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+                <input value={zoneForm.radius_km} onChange={(event) => setZoneForm((current) => ({ ...current, radius_km: event.target.value }))} placeholder="Radio km" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+                <input value={zoneForm.center_latitude} onChange={(event) => setZoneForm((current) => ({ ...current, center_latitude: event.target.value }))} placeholder="Latitud" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+                <input value={zoneForm.center_longitude} onChange={(event) => setZoneForm((current) => ({ ...current, center_longitude: event.target.value }))} placeholder="Longitud" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+                <input value={zoneForm.bicycle_delivery_fee_customer} onChange={(event) => setZoneForm((current) => ({ ...current, bicycle_delivery_fee_customer: event.target.value }))} placeholder="Cliente bici" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+                <input value={zoneForm.bicycle_rider_fee} onChange={(event) => setZoneForm((current) => ({ ...current, bicycle_rider_fee: event.target.value }))} placeholder="Rider bici" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+                <input value={zoneForm.motorcycle_delivery_fee_customer} onChange={(event) => setZoneForm((current) => ({ ...current, motorcycle_delivery_fee_customer: event.target.value }))} placeholder="Cliente moto" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+                <input value={zoneForm.motorcycle_rider_fee} onChange={(event) => setZoneForm((current) => ({ ...current, motorcycle_rider_fee: event.target.value }))} placeholder="Rider moto" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+                <input value={zoneForm.car_delivery_fee_customer} onChange={(event) => setZoneForm((current) => ({ ...current, car_delivery_fee_customer: event.target.value }))} placeholder="Cliente auto" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+                <input value={zoneForm.car_rider_fee} onChange={(event) => setZoneForm((current) => ({ ...current, car_rider_fee: event.target.value }))} placeholder="Rider auto" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
               </div>
-              <textarea value={zoneForm.description} onChange={(event) => setZoneForm((current) => ({ ...current, description: event.target.value }))} rows={3} placeholder="Descripción" className="mt-3 w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
+              <textarea value={zoneForm.description} onChange={(event) => setZoneForm((current) => ({ ...current, description: event.target.value }))} rows={3} placeholder="Descripción" className="mt-3 w-full rounded border border-black/10 bg-zinc-50 px-4 py-3" />
               <label className="mt-3 flex items-center gap-2 text-sm font-semibold text-zinc-700">
                 <input type="checkbox" checked={zoneForm.is_active} onChange={(event) => setZoneForm((current) => ({ ...current, is_active: event.target.checked }))} />
                 Zona activa
               </label>
-              <button type="submit" disabled={saving} className="mt-4 rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white">
+              <button type="submit" disabled={saving} className="mt-4 rounded bg-brand-500 px-4 py-3 text-sm font-semibold text-white">
                 Guardar zona
               </button>
             </form>
 
-            <article className="rounded-[28px] bg-white p-5 shadow-sm">
+            <article className="rounded bg-white p-5 shadow-sm">
               <h3 className="text-lg font-bold">Zonas cargadas</h3>
               <div className="mt-4 space-y-3">
                 {deliveryZones.map((zone) => (
@@ -525,7 +525,7 @@ export function AdminDashboardPage() {
                         car_rider_fee: String(zone.rates.find((rate) => rate.vehicle_type === "car")?.rider_fee ?? 0)
                       })
                     }
-                    className="block w-full rounded-2xl bg-zinc-50 p-4 text-left text-sm"
+                    className="block w-full rounded bg-zinc-50 p-4 text-left text-sm"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <strong>{zone.name}</strong>
@@ -539,11 +539,11 @@ export function AdminDashboardPage() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <article className="rounded-[28px] bg-white p-5 shadow-sm">
+            <article className="rounded bg-white p-5 shadow-sm">
               <h3 className="text-lg font-bold">Dispatch</h3>
               <div className="mt-4 space-y-3">
                 {deliveryDispatch.map((order) => (
-                  <div key={order.id} className="rounded-2xl bg-zinc-50 p-4 text-sm">
+                  <div key={order.id} className="rounded bg-zinc-50 p-4 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <strong>Pedido #{order.id}</strong>
                       <span>{statusLabels[order.delivery_status] ?? order.delivery_status}</span>
@@ -551,7 +551,7 @@ export function AdminDashboardPage() {
                     <p className="mt-1 text-zinc-500">{order.store_name} · {order.customer_name}</p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {riders.map((rider) => (
-                        <button key={rider.user_id} type="button" onClick={() => void assignDispatchOrder(order.id, rider.user_id)} className="rounded-full bg-zinc-900 px-3 py-2 text-xs font-semibold text-white">
+                        <button key={rider.user_id} type="button" onClick={() => void assignDispatchOrder(order.id, rider.user_id)} className="rounded bg-zinc-900 px-3 py-2 text-xs font-semibold text-white">
                           {rider.full_name}
                         </button>
                       ))}
@@ -562,11 +562,11 @@ export function AdminDashboardPage() {
             </article>
 
             <div className="space-y-4">
-              <article className="rounded-[28px] bg-white p-5 shadow-sm">
+              <article className="rounded bg-white p-5 shadow-sm">
                 <h3 className="text-lg font-bold">Liquidación riders</h3>
                 <div className="mt-4 space-y-3">
                   {deliverySettlements.map((item) => (
-                    <div key={item.rider_user_id} className="rounded-2xl bg-zinc-50 p-4 text-sm">
+                    <div key={item.rider_user_id} className="rounded bg-zinc-50 p-4 text-sm">
                       <div className="flex items-center justify-between gap-3">
                         <strong>{item.rider_name}</strong>
                         <span>{item.vehicle_type}</span>
@@ -577,16 +577,16 @@ export function AdminDashboardPage() {
                 </div>
               </article>
 
-              <form onSubmit={(event) => void saveDeliveryPayment(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
+              <form onSubmit={(event) => void saveDeliveryPayment(event)} className="rounded bg-white p-5 shadow-sm">
                 <h3 className="text-lg font-bold">Registrar liquidación</h3>
                 <div className="mt-4 grid gap-3">
-                  <select value={deliveryPaymentForm.rider_user_id} onChange={(event) => setDeliveryPaymentForm((current) => ({ ...current, rider_user_id: event.target.value }))} className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3">
+                  <select value={deliveryPaymentForm.rider_user_id} onChange={(event) => setDeliveryPaymentForm((current) => ({ ...current, rider_user_id: event.target.value }))} className="rounded border border-black/10 bg-zinc-50 px-4 py-3">
                     {deliverySettlements.map((item) => <option key={item.rider_user_id} value={item.rider_user_id}>{item.rider_name}</option>)}
                   </select>
-                  <input type="number" min="0" step="0.01" value={deliveryPaymentForm.amount} onChange={(event) => setDeliveryPaymentForm((current) => ({ ...current, amount: event.target.value }))} placeholder="Monto" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-                  <input value={deliveryPaymentForm.reference} onChange={(event) => setDeliveryPaymentForm((current) => ({ ...current, reference: event.target.value }))} placeholder="Referencia" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-                  <textarea value={deliveryPaymentForm.notes} onChange={(event) => setDeliveryPaymentForm((current) => ({ ...current, notes: event.target.value }))} rows={3} placeholder="Notas" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-                  <button type="submit" disabled={saving} className="rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white">
+                  <input type="number" min="0" step="0.01" value={deliveryPaymentForm.amount} onChange={(event) => setDeliveryPaymentForm((current) => ({ ...current, amount: event.target.value }))} placeholder="Monto" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+                  <input value={deliveryPaymentForm.reference} onChange={(event) => setDeliveryPaymentForm((current) => ({ ...current, reference: event.target.value }))} placeholder="Referencia" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+                  <textarea value={deliveryPaymentForm.notes} onChange={(event) => setDeliveryPaymentForm((current) => ({ ...current, notes: event.target.value }))} rows={3} placeholder="Notas" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+                  <button type="submit" disabled={saving} className="rounded bg-brand-500 px-4 py-3 text-sm font-semibold text-white">
                     Registrar liquidación
                   </button>
                 </div>
@@ -597,7 +597,7 @@ export function AdminDashboardPage() {
       ) : null}
 
       {activeTab === "settings" ? (
-        <form onSubmit={(event) => void savePlatformSettings(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
+        <form onSubmit={(event) => void savePlatformSettings(event)} className="rounded bg-white p-5 shadow-sm">
           <h3 className="text-lg font-bold">Servicio global al comprador</h3>
           <p className="mt-2 text-sm text-zinc-600">Este valor aplica a toda compra confirmada y se muestra en carrito, checkout y pedidos.</p>
           <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
@@ -607,9 +607,9 @@ export function AdminDashboardPage() {
               step="0.01"
               value={serviceFee}
               onChange={(event) => setServiceFee(event.target.value)}
-              className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
             />
-            <button type="submit" disabled={saving} className="rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
+            <button type="submit" disabled={saving} className="rounded bg-brand-500 px-4 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
               Guardar
             </button>
           </div>
@@ -619,11 +619,11 @@ export function AdminDashboardPage() {
 
       {activeTab === "settlements" ? (
         <div className="grid gap-4 lg:grid-cols-2">
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Comercios con saldo</h3>
             <div className="mt-4 space-y-3">
               {settlementStores.map((store) => (
-                <div key={store.id} className="rounded-2xl bg-zinc-50 p-4 text-sm">
+                <div key={store.id} className="rounded bg-zinc-50 p-4 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <strong>{store.store_name}</strong>
                     <span>{formatCurrency(store.pending_balance)}</span>
@@ -637,26 +637,26 @@ export function AdminDashboardPage() {
             </div>
           </article>
 
-          <form onSubmit={(event) => void saveSettlementPayment(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
+          <form onSubmit={(event) => void saveSettlementPayment(event)} className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Cargar pago manual</h3>
             <div className="mt-4 grid gap-3">
-              <select value={paymentForm.store_id} onChange={(event) => setPaymentForm((current) => ({ ...current, store_id: event.target.value }))} className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3">
+              <select value={paymentForm.store_id} onChange={(event) => setPaymentForm((current) => ({ ...current, store_id: event.target.value }))} className="rounded border border-black/10 bg-zinc-50 px-4 py-3">
                 {settlementStores.map((store) => <option key={store.id} value={store.id}>{store.store_name}</option>)}
               </select>
-              <input type="number" min="0" step="0.01" value={paymentForm.amount} onChange={(event) => setPaymentForm((current) => ({ ...current, amount: event.target.value }))} placeholder="Monto" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-              <input value={paymentForm.reference} onChange={(event) => setPaymentForm((current) => ({ ...current, reference: event.target.value }))} placeholder="Referencia" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-              <textarea value={paymentForm.notes} onChange={(event) => setPaymentForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notas" rows={4} className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-              <button type="submit" disabled={saving} className="rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
+              <input type="number" min="0" step="0.01" value={paymentForm.amount} onChange={(event) => setPaymentForm((current) => ({ ...current, amount: event.target.value }))} placeholder="Monto" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+              <input value={paymentForm.reference} onChange={(event) => setPaymentForm((current) => ({ ...current, reference: event.target.value }))} placeholder="Referencia" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+              <textarea value={paymentForm.notes} onChange={(event) => setPaymentForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notas" rows={4} className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+              <button type="submit" disabled={saving} className="rounded bg-brand-500 px-4 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
                 Registrar pago
               </button>
             </div>
           </form>
 
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Avisos pendientes</h3>
             <div className="mt-4 space-y-3">
               {settlementNotices.map((notice) => (
-                <div key={notice.id} className="rounded-2xl bg-zinc-50 p-4 text-sm">
+                <div key={notice.id} className="rounded bg-zinc-50 p-4 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <strong>{notice.store_name ?? "Comercio"}</strong>
                     <span>{formatCurrency(notice.amount)}</span>
@@ -666,17 +666,17 @@ export function AdminDashboardPage() {
                     value={noticeNotes[notice.id] ?? notice.reviewed_notes ?? ""}
                     onChange={(event) => setNoticeNotes((current) => ({ ...current, [notice.id]: event.target.value }))}
                     rows={2}
-                    className="mt-3 w-full rounded-2xl border border-black/10 bg-white px-4 py-3"
+                    className="mt-3 w-full rounded border border-black/10 bg-white px-4 py-3"
                     placeholder="Notas de revision"
                   />
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <button type="button" onClick={() => void reviewNotice(notice.id, "approved")} className="rounded-full bg-emerald-500 px-3 py-2 text-xs font-semibold text-white" disabled={saving}>
+                    <button type="button" onClick={() => void reviewNotice(notice.id, "approved")} className="rounded bg-emerald-500 px-3 py-2 text-xs font-semibold text-white" disabled={saving}>
                       Aprobar
                     </button>
-                    <button type="button" onClick={() => void reviewNotice(notice.id, "rejected")} className="rounded-full bg-rose-500 px-3 py-2 text-xs font-semibold text-white" disabled={saving}>
+                    <button type="button" onClick={() => void reviewNotice(notice.id, "rejected")} className="rounded bg-rose-500 px-3 py-2 text-xs font-semibold text-white" disabled={saving}>
                       Rechazar
                     </button>
-                    <button type="button" onClick={() => void reviewNotice(notice.id, "pending")} className="rounded-full bg-zinc-900 px-3 py-2 text-xs font-semibold text-white" disabled={saving}>
+                    <button type="button" onClick={() => void reviewNotice(notice.id, "pending")} className="rounded bg-zinc-900 px-3 py-2 text-xs font-semibold text-white" disabled={saving}>
                       Pendiente
                     </button>
                   </div>
@@ -686,11 +686,11 @@ export function AdminDashboardPage() {
             </div>
           </article>
 
-          <article className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Pagos aplicados</h3>
             <div className="mt-4 space-y-3">
               {settlementPayments.map((payment) => (
-                <div key={payment.id} className="rounded-2xl bg-zinc-50 p-4 text-sm">
+                <div key={payment.id} className="rounded bg-zinc-50 p-4 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <strong>{payment.store_name ?? "Comercio"}</strong>
                     <span>{formatCurrency(payment.amount)}</span>
@@ -708,19 +708,19 @@ export function AdminDashboardPage() {
 
       {activeTab === "categories" ? (
         <div className="space-y-4">
-          <form onSubmit={(event) => void handleCategoryCreate(event)} className="rounded-[28px] bg-white p-5 shadow-sm">
+          <form onSubmit={(event) => void handleCategoryCreate(event)} className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Nueva categoria</h3>
             <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-              <input value={categoryName} onChange={(event) => setCategoryName(event.target.value)} placeholder="Farmacias" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-              <input value={categoryDescription} onChange={(event) => setCategoryDescription(event.target.value)} placeholder="Salud y cuidado" className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3" />
-              <button type="submit" disabled={saving} className="rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
+              <input value={categoryName} onChange={(event) => setCategoryName(event.target.value)} placeholder="Farmacias" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+              <input value={categoryDescription} onChange={(event) => setCategoryDescription(event.target.value)} placeholder="Salud y cuidado" className="rounded border border-black/10 bg-zinc-50 px-4 py-3" />
+              <button type="submit" disabled={saving} className="rounded bg-brand-500 px-4 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
                 Crear
               </button>
             </div>
           </form>
           <div className="grid gap-3 md:grid-cols-2">
             {categories.map((category) => (
-              <article key={category.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+              <article key={category.id} className="rounded bg-white p-5 shadow-sm">
                 <h4 className="font-bold">{category.name}</h4>
                 <p className="mt-2 text-sm text-zinc-600">{category.slug}</p>
                 <p className="mt-1 text-sm text-zinc-500">{category.description ?? "Sin descripcion"}</p>
@@ -733,35 +733,35 @@ export function AdminDashboardPage() {
       {activeTab === "applications" ? (
         <div className="space-y-4">
           {applications.map((application) => (
-            <article key={application.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+            <article key={application.id} className="rounded bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-bold">{application.business_name}</h3>
                   <p className="text-sm text-zinc-600">{application.address}</p>
                 </div>
-                <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[application.status] ?? application.status}</span>
+                <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[application.status] ?? application.status}</span>
               </div>
               <p className="mt-3 text-sm text-zinc-600">{application.description}</p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-zinc-500">
                 {application.requested_category_names.map((name) => (
-                  <span key={name} className="rounded-full bg-zinc-100 px-3 py-1">{name}</span>
+                  <span key={name} className="rounded bg-zinc-100 px-3 py-1">{name}</span>
                 ))}
               </div>
               <textarea
                 value={reviewNotes[application.id] ?? application.review_notes ?? ""}
                 onChange={(event) => setReviewNotes((current) => ({ ...current, [application.id]: event.target.value }))}
                 rows={3}
-                className="mt-4 w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="mt-4 w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 placeholder="Notas de revision"
               />
               <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" onClick={() => void handleReview(application.id, "approved")} className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white" disabled={saving}>
+                <button type="button" onClick={() => void handleReview(application.id, "approved")} className="rounded bg-emerald-500 px-4 py-2 text-sm font-semibold text-white" disabled={saving}>
                   Aprobar
                 </button>
-                <button type="button" onClick={() => void handleReview(application.id, "rejected")} className="rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white" disabled={saving}>
+                <button type="button" onClick={() => void handleReview(application.id, "rejected")} className="rounded bg-rose-500 px-4 py-2 text-sm font-semibold text-white" disabled={saving}>
                   Rechazar
                 </button>
-                <button type="button" onClick={() => void handleReview(application.id, "suspended")} className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white" disabled={saving}>
+                <button type="button" onClick={() => void handleReview(application.id, "suspended")} className="rounded bg-zinc-900 px-4 py-2 text-sm font-semibold text-white" disabled={saving}>
                   Suspender
                 </button>
               </div>
@@ -776,13 +776,13 @@ export function AdminDashboardPage() {
           {manageableStores.map((store) => {
             const action = getStoreAction(store);
             return (
-              <article key={store.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+              <article key={store.id} className="rounded bg-white p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-bold">{store.name}</h3>
                     <p className="text-sm text-zinc-600">{store.address}</p>
                   </div>
-                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[store.status] ?? store.status}</span>
+                  <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[store.status] ?? store.status}</span>
                 </div>
                 <p className="mt-3 text-sm text-zinc-600">{store.description}</p>
                 {action ? (
@@ -807,13 +807,13 @@ export function AdminDashboardPage() {
       {activeTab === "orders" ? (
         <div className="space-y-4">
           {orders.map((order) => (
-            <article key={order.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+            <article key={order.id} className="rounded bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-bold">Pedido #{order.id}</h3>
                   <p className="text-sm text-zinc-600">{order.store_name} - {order.customer_name}</p>
                 </div>
-                <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[order.status] ?? order.status}</span>
+                <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[order.status] ?? order.status}</span>
               </div>
               <div className="mt-4 grid gap-2 text-sm text-zinc-600 md:grid-cols-4">
                 <span>{paymentMethodLabels[order.payment_method]}</span>

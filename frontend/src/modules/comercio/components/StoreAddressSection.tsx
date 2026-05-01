@@ -182,13 +182,13 @@ export function StoreAddressSection({
 
   async function handlePostalCodeLookup() {
     if (!token) {
-      setLookupError("Tu sesion vencio. Vuelve a iniciar sesion para buscar codigos postales.");
+      setLookupError("Tu sesión venció. Vuelve a iniciar sesión para buscar códigos postales.");
       return;
     }
 
     const postalCode = extractArgentinePostalCode(form.postal_code);
     if (!postalCode) {
-      setLookupError("Ingresa un codigo postal argentino valido de 4 digitos.");
+      setLookupError("Ingresa un código postal argentino válido de 4 dígitos.");
       return;
     }
 
@@ -211,7 +211,7 @@ export function StoreAddressSection({
       );
     } catch (requestError) {
       setLocalities([]);
-      setLookupError(requestError instanceof Error ? requestError.message : "No se pudo validar el codigo postal.");
+      setLookupError(requestError instanceof Error ? requestError.message : "No se pudo validar el código postal.");
     } finally {
       setLookupLoading(false);
     }
@@ -263,12 +263,12 @@ export function StoreAddressSection({
       });
       setGeocodingSuccess(
         result.street_name && result.street_number
-          ? `Direccion detectada desde el mapa: ${result.street_name} ${result.street_number}`
+          ? `Dirección detectada desde el mapa: ${result.street_name} ${result.street_number}`
           : result.street_name
             ? `Calle detectada desde el mapa: ${result.street_name}. Completa la altura si falta.`
             : result.display_name
-              ? `Ubicacion detectada desde el mapa: ${result.display_name}`
-              : "Ubicacion tomada desde el mapa."
+              ? `Ubicación detectada desde el mapa: ${result.display_name}`
+              : "Ubicación tomada desde el mapa."
       );
     } catch (requestError) {
       setGeocodingError(
@@ -284,7 +284,7 @@ export function StoreAddressSection({
   async function handleGeocode(mode: "manual" | "auto" = "manual", options?: { force?: boolean }) {
     if (!token) {
       if (mode === "manual") {
-        setGeocodingError("Tu sesion vencio. Vuelve a iniciar sesion para ubicar la direccion.");
+        setGeocodingError("Tu sesión venció. Vuelve a iniciar sesión para ubicar la dirección.");
       }
       return null;
     }
@@ -292,7 +292,7 @@ export function StoreAddressSection({
     const currentRequest = buildAddressGeocodeRequest(formRef.current);
     if (!currentRequest) {
       if (mode === "manual") {
-        setGeocodingError("Primero valida el CP, elige una localidad y completa calle y altura.");
+        setGeocodingError("Primero validá el CP, elige una localidad y completa calle y altura.");
       }
       return null;
     }
@@ -356,11 +356,11 @@ export function StoreAddressSection({
         onChange(nextValue);
         lastResolvedGeocodeKeyRef.current = currentGeocodeKey;
         setGeocodingSuccess(
-          result.display_name ? `Ubicacion encontrada: ${result.display_name}` : "Direccion ubicada correctamente en el mapa."
+          result.display_name ? `Ubicación encontrada: ${result.display_name}` : "Dirección ubicada correctamente en el mapa."
         );
         return nextValue;
       } catch (requestError) {
-        setGeocodingError(requestError instanceof Error ? requestError.message : "No se pudo ubicar la direccion del local.");
+        setGeocodingError(requestError instanceof Error ? requestError.message : "No se pudo ubicar la dirección del local.");
         return null;
       } finally {
         if (inFlightGeocodeKeyRef.current === currentGeocodeKey) {
@@ -405,10 +405,10 @@ export function StoreAddressSection({
     <section className="space-y-4">
       {showHeader ? (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Direccion del local</p>
-          <h2 className="mt-2 text-xl font-bold text-ink">Ubicacion comercial</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Dirección del local</p>
+          <h2 className="mt-2 text-xl font-bold text-ink">Ubicación comercial</h2>
           <p className="mt-2 text-sm text-zinc-600">
-            Configura CP, provincia, localidad, calle y altura para geolocalizar el local. El delivery solo se puede activar con esta direccion completa.
+            Configura CP, provincia, localidad, calle y altura para geolocalizar el local. El delivery solo se puede activar con esta dirección completa.
           </p>
         </div>
       ) : null}
@@ -434,7 +434,7 @@ export function StoreAddressSection({
               );
             }}
             placeholder="CP"
-            className="min-w-0 flex-1 rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+            className="min-w-0 flex-1 rounded border border-black/10 bg-zinc-50 px-4 py-3"
           />
           <Button type="button" onClick={() => void handlePostalCodeLookup()} disabled={lookupLoading || !token} className="px-4 py-3 text-sm">
             {lookupLoading ? "Buscando..." : "Buscar CP"}
@@ -445,7 +445,7 @@ export function StoreAddressSection({
           value={form.province}
           readOnly
           placeholder="Provincia"
-          className="rounded-2xl border border-black/10 bg-zinc-100 px-4 py-3 text-zinc-700"
+          className="rounded border border-black/10 bg-zinc-100 px-4 py-3 text-zinc-700"
         />
 
         <select
@@ -454,9 +454,9 @@ export function StoreAddressSection({
             handleLocalityChange(event.target.value);
           }}
           disabled={!localities.length}
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+          className="rounded border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
         >
-          <option value="">{localities.length ? "Selecciona una localidad" : "Primero busca el CP"}</option>
+          <option value="">{localities.length ? "Seleccioná una localidad" : "Primero busca el CP"}</option>
           {localities.map((locality) => (
             <option key={locality.name} value={locality.name}>
               {locality.name}
@@ -473,7 +473,7 @@ export function StoreAddressSection({
           }}
           placeholder="Calle"
           disabled={!canEditStreet}
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+          className="rounded border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
         />
 
         <input
@@ -486,14 +486,14 @@ export function StoreAddressSection({
           onBlur={() => void handleStreetNumberBlur()}
           placeholder="Altura"
           disabled={!canEditStreet}
-          className="rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+          className="rounded border border-black/10 bg-zinc-50 px-4 py-3 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
         />
 
-        <div className="rounded-[24px] bg-zinc-50 p-4 text-sm text-zinc-600 md:col-span-2">
+        <div className="rounded bg-zinc-50 p-4 text-sm text-zinc-600 md:col-span-2">
           <div>
-            <p className="font-semibold text-ink">Geolocalizacion automatica del local</p>
+            <p className="font-semibold text-ink">Geolocalización automática del local</p>
             <p className="mt-1">
-              Al salir del campo de altura ubicamos el local automaticamente. Si hace falta, puedes ajustar el pin en el mapa antes de guardar.
+              Al salir del campo de altura ubicamos el local automáticamente. Si hace falta, puedes ajustar el pin en el mapa antes de guardar.
             </p>
             {canGeocode && geocoding ? <p className="mt-2 text-xs font-semibold text-brand-600">Ubicando local...</p> : null}
           </div>
@@ -508,9 +508,9 @@ export function StoreAddressSection({
         />
       </div>
 
-      {lookupError ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{lookupError}</p> : null}
-      {geocodingError ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{geocodingError}</p> : null}
-      {geocodingSuccess ? <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{geocodingSuccess}</p> : null}
+      {lookupError ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{lookupError}</p> : null}
+      {geocodingError ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{geocodingError}</p> : null}
+      {geocodingSuccess ? <p className="rounded bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{geocodingSuccess}</p> : null}
     </section>
   );
 }

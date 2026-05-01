@@ -40,7 +40,7 @@ function getStatusTone(status: string) {
     background: "bg-[linear-gradient(135deg,#fff7f2_0%,#fffdfb_100%)]",
     border: "border-brand-100",
     eyebrow: "text-brand-600",
-    badge: "bg-ink text-white"
+    badge: "bg-brand-100 text-brand-700"
   };
 }
 
@@ -310,7 +310,7 @@ export function OrderPage() {
         description={`${order.store_name} - ${formatDateTime(order.created_at)}`}
       />
 
-      <section className={`rounded-[28px] border ${statusTone.border} ${statusTone.background} p-4 shadow-sm sm:p-5`}>
+      <section className={`rounded border ${statusTone.border} ${statusTone.background} p-4 shadow-sm sm:p-5`}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${statusTone.eyebrow}`}>
@@ -320,7 +320,7 @@ export function OrderPage() {
               <h2 className="font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight text-ink sm:text-3xl">
                 {statusLabel}
               </h2>
-              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone.badge}`}>
+              <span className={`rounded px-3 py-1 text-xs font-semibold ${statusTone.badge}`}>
                 {trackingAvailabilityLabel}
               </span>
             </div>
@@ -330,28 +330,28 @@ export function OrderPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">Pedido #{order.id}</span>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
+            <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">Pedido #{order.id}</span>
+            <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
               {formatDeliveryModeLabel(order)}
             </span>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
+            <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
               {paymentStatusLabel}
             </span>
           </div>
         </div>
 
         <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <div className="rounded-2xl bg-white/90 px-4 py-3 text-sm text-zinc-600">
+          <div className="rounded bg-white/90 px-4 py-3 text-sm text-zinc-600">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Pago</p>
             <p className="mt-2 font-semibold text-ink">{paymentMethodLabels[order.payment_method]}</p>
             <p className="mt-1">{paymentStatusLabel}</p>
           </div>
-          <div className="rounded-2xl bg-white/90 px-4 py-3 text-sm text-zinc-600">
+          <div className="rounded bg-white/90 px-4 py-3 text-sm text-zinc-600">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Entrega</p>
             <p className="mt-2 font-semibold text-ink">{deliverySummary.title}</p>
             <p className="mt-1">{deliverySummary.description}</p>
           </div>
-          <div className="rounded-2xl bg-white/90 px-4 py-3 text-sm text-zinc-600">
+          <div className="rounded bg-white/90 px-4 py-3 text-sm text-zinc-600">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Seguimiento</p>
             <p className="mt-2 font-semibold text-ink">{trackingAvailabilityLabel}</p>
             <p className="mt-1">
@@ -367,16 +367,16 @@ export function OrderPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-4">
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="rounded bg-white p-5 shadow-sm">
             <div className="flex flex-wrap gap-2">
               <StatusPill value={order.status} />
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+              <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
                 {paymentMethodLabels[order.payment_method]}
               </span>
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+              <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
                 {formatDeliveryModeLabel(order)}
               </span>
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+              <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
                 {paymentStatusLabel}
               </span>
             </div>
@@ -389,11 +389,11 @@ export function OrderPage() {
 
           {liveTracking?.tracking_enabled ? <OrderTracking order={order} tracking={liveTracking} /> : null}
 
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Items</h3>
             <div className="mt-4 space-y-3">
               {order.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between gap-4 rounded-2xl bg-zinc-50 px-4 py-3 text-sm">
+                <div key={item.id} className="flex items-center justify-between gap-4 rounded bg-zinc-50 px-4 py-3 text-sm">
                   <div>
                     <p className="font-semibold">{item.product_name}</p>
                     <p className="text-zinc-500">{item.quantity} x {formatCurrency(item.unit_price)}</p>
@@ -408,7 +408,7 @@ export function OrderPage() {
 
         <aside className="space-y-4">
           <CheckoutSummary pricing={order.pricing} title="Totales" />
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Entrega y pago</h3>
             <div className="mt-4 space-y-2 text-sm text-zinc-600">
               <p>Pago: {paymentStatusLabel}</p>

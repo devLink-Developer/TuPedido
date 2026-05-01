@@ -1,3 +1,4 @@
+import { Download, Smartphone, X } from "lucide-react";
 import { useState } from "react";
 import { PlatformWordmark } from "./PlatformWordmark";
 import { useUiStore } from "../../stores";
@@ -10,18 +11,21 @@ export function PwaInstallBanner() {
   if (!installPromptEvent) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-[28px] bg-ink p-4 text-white shadow-[0_26px_60px_rgba(24,19,18,0.32)]">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-200">App</p>
-      <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-6 text-white/80">
-        <span>Instala</span>
-        <PlatformWordmark
-          size="inline"
-          frameClassName="w-[8.75rem]"
-          textClassName="text-sm"
-        />
-        <span>para abrir la app mas rapido y seguir tus pedidos desde cualquier momento.</span>
-      </p>
-      <div className="mt-3 flex gap-2">
+    <div className="kp-install-banner fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-xl p-4 sm:p-5">
+      <div className="flex items-start gap-4">
+        <span className="kp-install-icon hidden h-12 w-12 shrink-0 items-center justify-center border border-[rgba(255,106,26,0.24)] bg-[var(--kp-accent-soft)] text-[var(--kp-accent)] sm:inline-flex">
+          <Smartphone className="h-6 w-6" aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--kp-accent)]">App</p>
+          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-6 text-[var(--kp-ink-soft)]">
+            <span>Instala</span>
+            <PlatformWordmark size="inline" frameClassName="w-[8.75rem]" textClassName="text-sm" />
+            <span>para abrir mas rapido y seguir tus pedidos desde cualquier momento.</span>
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
         <button
           type="button"
           disabled={loading}
@@ -32,15 +36,17 @@ export function PwaInstallBanner() {
             setInstallPromptEvent(null);
             setLoading(false);
           }}
-          className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white"
+          className="app-button min-h-[48px] px-4 py-2 text-sm"
         >
+          <Download className="h-4 w-4" aria-hidden="true" />
           {loading ? "Abriendo..." : "Instalar"}
         </button>
         <button
           type="button"
           onClick={() => setInstallPromptEvent(null)}
-          className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80"
+          className="kp-soft-action min-h-[48px] px-4 py-2 text-sm"
         >
+          <X className="h-4 w-4" aria-hidden="true" />
           Mas tarde
         </button>
       </div>

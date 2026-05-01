@@ -50,7 +50,7 @@ const emptyAddressForm: AddressFormState = {
 };
 
 function StatusPill({ value }: { value: string }) {
-  return <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[value] ?? value}</span>;
+  return <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[value] ?? value}</span>;
 }
 
 function hasMercadoPago(paymentSettings: StoreDetail["payment_settings"]) {
@@ -100,7 +100,7 @@ export function CartPage() {
         title="Carrito vacio"
         description="Explora comercios adheridos y arma tu pedido desde una tienda que ya este lista para vender."
         action={
-          <Link to="/" className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white">
+          <Link to="/" className="rounded bg-brand-500 px-4 py-2 text-sm font-semibold text-white">
             Ver comercios
           </Link>
         }
@@ -115,7 +115,7 @@ export function CartPage() {
         title={cart.store_name ?? "Tu carrito"}
         description="El carrito vive en el backend y se mantiene sincronizado en todos los dispositivos."
         action={
-          <button className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white" onClick={() => void clear()}>
+          <button className="rounded bg-zinc-900 px-4 py-2 text-sm font-semibold text-white" onClick={() => void clear()}>
             Vaciar carrito
           </button>
         }
@@ -123,7 +123,7 @@ export function CartPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="rounded bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Entrega</p>
             <div className="mt-3 flex gap-2">
               {(["delivery", "pickup"] as const).map((mode) => (
@@ -131,7 +131,7 @@ export function CartPage() {
                   key={mode}
                   type="button"
                   onClick={() => void setDeliveryMode(mode)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  className={`rounded px-4 py-2 text-sm font-semibold transition ${
                     cart.delivery_mode === mode ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-600"
                   }`}
                 >
@@ -142,7 +142,7 @@ export function CartPage() {
           </div>
 
           {cart.items.map((item) => (
-            <article key={item.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+            <article key={item.id} className="rounded bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-bold">{item.product_name}</h3>
@@ -152,10 +152,10 @@ export function CartPage() {
                 <p className="text-lg font-black">{formatCurrency(item.unit_price * item.quantity)}</p>
               </div>
               <div className="mt-4 flex items-center justify-between gap-3">
-                <div className="inline-flex items-center rounded-full bg-zinc-100 p-1">
+                <div className="inline-flex items-center rounded bg-zinc-100 p-1">
                   <button
                     type="button"
-                    className="rounded-full px-3 py-2 text-sm font-semibold text-zinc-600"
+                    className="rounded px-3 py-2 text-sm font-semibold text-zinc-600"
                     onClick={() => void adjust(item.id, item.quantity - 1)}
                     disabled={savingItemId === item.id}
                   >
@@ -164,14 +164,14 @@ export function CartPage() {
                   <span className="min-w-10 px-3 text-center text-sm font-bold">{item.quantity}</span>
                   <button
                     type="button"
-                    className="rounded-full px-3 py-2 text-sm font-semibold text-zinc-600"
+                    className="rounded px-3 py-2 text-sm font-semibold text-zinc-600"
                     onClick={() => void adjust(item.id, item.quantity + 1)}
                     disabled={savingItemId === item.id}
                   >
                     +
                   </button>
                 </div>
-                <button type="button" className="rounded-full bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700" onClick={() => void removeItem(item.id)}>
+                <button type="button" className="rounded bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700" onClick={() => void removeItem(item.id)}>
                   Quitar
                 </button>
               </div>
@@ -180,7 +180,7 @@ export function CartPage() {
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Resumen</h3>
             <div className="mt-4 space-y-3 text-sm text-zinc-600">
               <div className="flex items-center justify-between">
@@ -200,7 +200,7 @@ export function CartPage() {
                 <span>{formatCurrency(cart.total)}</span>
               </div>
             </div>
-            <button type="button" onClick={() => navigate("/checkout")} className="mt-4 w-full rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white">
+            <button type="button" onClick={() => navigate("/checkout")} className="mt-4 w-full rounded bg-brand-500 px-4 py-3 text-sm font-semibold text-white">
               Ir a pagar
             </button>
           </div>
@@ -296,14 +296,14 @@ export function AddressesPage() {
     <div className="space-y-6">
       <PageHeader eyebrow="Direcciones" title="Tus direcciones" description="Mantenelas listas para el checkout y el backend las usa como origen del envio." />
       <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-        <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4 rounded-[28px] bg-white p-5 shadow-sm">
+        <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4 rounded bg-white p-5 shadow-sm">
           <h3 className="text-lg font-bold">{editingId ? "Editar direccion" : "Nueva direccion"}</h3>
           <label className="block space-y-2">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Etiqueta</span>
             <input
               value={form.label}
               onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
             />
           </label>
           <label className="block space-y-2">
@@ -311,7 +311,7 @@ export function AddressesPage() {
             <input
               value={form.street}
               onChange={(event) => setForm((current) => ({ ...current, street: event.target.value }))}
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
             />
           </label>
           <label className="block space-y-2">
@@ -320,7 +320,7 @@ export function AddressesPage() {
               value={form.details}
               onChange={(event) => setForm((current) => ({ ...current, details: event.target.value }))}
               rows={4}
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
             />
           </label>
           <div className="grid gap-3 md:grid-cols-2">
@@ -329,7 +329,7 @@ export function AddressesPage() {
               <input
                 value={form.latitude}
                 onChange={(event) => setForm((current) => ({ ...current, latitude: event.target.value }))}
-                className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 placeholder="-34.56"
               />
             </label>
@@ -338,7 +338,7 @@ export function AddressesPage() {
               <input
                 value={form.longitude}
                 onChange={(event) => setForm((current) => ({ ...current, longitude: event.target.value }))}
-                className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 placeholder="-58.45"
               />
             </label>
@@ -347,13 +347,13 @@ export function AddressesPage() {
             <input type="checkbox" checked={form.is_default} onChange={(event) => setForm((current) => ({ ...current, is_default: event.target.checked }))} />
             Usar como direccion principal
           </label>
-          {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+          {error ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
           <div className="flex gap-2">
-            <button type="submit" disabled={saving} className="rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
+            <button type="submit" disabled={saving} className="rounded bg-brand-500 px-4 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
               {saving ? "Guardando..." : "Guardar"}
             </button>
             {editingId ? (
-              <button type="button" onClick={resetForm} className="rounded-full bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700">
+              <button type="button" onClick={resetForm} className="rounded bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700">
                 Cancelar
               </button>
             ) : null}
@@ -363,7 +363,7 @@ export function AddressesPage() {
         <div className="space-y-3">
           {loading ? <LoadingCard /> : null}
           {addresses.map((address) => (
-            <article key={address.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+            <article key={address.id} className="rounded bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-bold">{address.label}</h3>
@@ -373,13 +373,13 @@ export function AddressesPage() {
                     {address.latitude !== null && address.longitude !== null ? `${address.latitude}, ${address.longitude}` : "Sin pin de mapa"}
                   </p>
                 </div>
-                {address.is_default ? <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Principal</span> : null}
+                {address.is_default ? <span className="rounded bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Principal</span> : null}
               </div>
               <div className="mt-4 flex gap-2">
-                <button type="button" onClick={() => startEdit(address)} className="rounded-full bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700">
+                <button type="button" onClick={() => startEdit(address)} className="rounded bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700">
                   Editar
                 </button>
-                <button type="button" onClick={() => void handleDelete(address.id)} className="rounded-full bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700">
+                <button type="button" onClick={() => void handleDelete(address.id)} className="rounded bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700">
                   Eliminar
                 </button>
               </div>
@@ -425,7 +425,7 @@ export function OrdersPage() {
       {error ? <EmptyCard title="No se pudieron cargar los pedidos" description={error} /> : null}
       <div className="space-y-4">
         {orders.map((order) => (
-          <Link key={order.id} to={`/orders/${order.id}`} className="block rounded-[28px] bg-white p-5 shadow-sm transition hover:-translate-y-0.5">
+          <Link key={order.id} to={`/orders/${order.id}`} className="block rounded bg-white p-5 shadow-sm transition hover:-translate-y-0.5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold">{order.store_name}</h3>
@@ -433,7 +433,7 @@ export function OrdersPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <StatusPill value={order.status} />
-                <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{paymentMethodLabels[order.payment_method]}</span>
+                <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{paymentMethodLabels[order.payment_method]}</span>
               </div>
             </div>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-zinc-600">
@@ -559,14 +559,14 @@ export function OrderDetailPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-4">
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="rounded bg-white p-5 shadow-sm">
             <div className="flex flex-wrap gap-2">
               <StatusPill value={order.status} />
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{paymentMethodLabels[order.payment_method]}</span>
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{order.delivery_mode === "delivery" ? "Envio" : "Retiro"}</span>
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[order.payment_status] ?? order.payment_status}</span>
+              <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{paymentMethodLabels[order.payment_method]}</span>
+              <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{order.delivery_mode === "delivery" ? "Envio" : "Retiro"}</span>
+              <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">{statusLabels[order.payment_status] ?? order.payment_status}</span>
               {order.delivery_provider === "platform" ? (
-                <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+                <span className="rounded bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
                   {statusLabels[liveTracking.delivery_status] ?? liveTracking.delivery_status}
                 </span>
               ) : null}
@@ -584,19 +584,19 @@ export function OrderDetailPage() {
                 </p>
               ) : null}
               {order.payment_method === "mercadopago" && order.payment_reference && mercadoPagoSimulated ? (
-                <Link className="inline-flex rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white" to={`/payments/mercadopago/simulated?reference=${encodeURIComponent(order.payment_reference)}`}>
+                <Link className="inline-flex rounded bg-brand-500 px-4 py-2 text-sm font-semibold text-white" to={`/payments/mercadopago/simulated?reference=${encodeURIComponent(order.payment_reference)}`}>
                   Abrir simulador
                 </Link>
               ) : null}
             </div>
             {order.payment_method === "mercadopago" ? (
-              <div className={`mt-4 rounded-2xl px-4 py-3 text-sm ${order.payment_status === "approved" ? "bg-emerald-50 text-emerald-800" : order.payment_status === "pending" ? "bg-amber-50 text-amber-800" : "bg-rose-50 text-rose-800"}`}>
+              <div className={`mt-4 rounded px-4 py-3 text-sm ${order.payment_status === "approved" ? "bg-emerald-50 text-emerald-800" : order.payment_status === "pending" ? "bg-amber-50 text-amber-800" : "bg-rose-50 text-rose-800"}`}>
                 {paymentStatusMessage(order.payment_status)}
               </div>
             ) : null}
           </div>
           {order.delivery_provider === "platform" ? (
-            <div className="rounded-[28px] bg-white p-5 shadow-sm">
+            <div className="rounded bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-bold">Seguimiento en vivo</h3>
@@ -607,17 +607,17 @@ export function OrderDetailPage() {
                   </p>
                 </div>
                 {liveTracking.eta_minutes ? (
-                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">{liveTracking.eta_minutes} min</span>
+                  <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">{liveTracking.eta_minutes} min</span>
                 ) : null}
               </div>
               {mapPoints.length ? <LiveMap points={mapPoints} className="mt-4 h-60" /> : null}
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+                <div className="rounded bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
                   <p className="font-semibold text-ink">Rider</p>
                   <p className="mt-1">{liveTracking.assigned_rider_name ?? "Sin rider asignado"}</p>
                   {liveTracking.assigned_rider_phone_masked ? <p>{liveTracking.assigned_rider_phone_masked}</p> : null}
                 </div>
-                <div className="rounded-2xl bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+                <div className="rounded bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
                   <p className="font-semibold text-ink">Entrega segura</p>
                   <p className="mt-1">{liveTracking.otp_required ? "Entrega con OTP activo" : "Sin OTP requerido"}</p>
                   {liveTracking.otp_code ? <p className="mt-1 font-semibold text-brand-700">Código: {liveTracking.otp_code}</p> : null}
@@ -629,17 +629,17 @@ export function OrderDetailPage() {
                 </div>
               </div>
               {liveTracking.tracking_stale ? (
-                <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <p className="mt-4 rounded bg-amber-50 px-4 py-3 text-sm text-amber-800">
                   El GPS del rider quedó desactualizado. Se muestra la última ubicación conocida.
                 </p>
               ) : null}
             </div>
           ) : null}
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Items</h3>
             <div className="mt-4 space-y-3">
               {order.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between gap-4 rounded-2xl bg-zinc-50 px-4 py-3 text-sm">
+                <div key={item.id} className="flex items-center justify-between gap-4 rounded bg-zinc-50 px-4 py-3 text-sm">
                   <div>
                     <p className="font-semibold">{item.product_name}</p>
                     <p className="text-zinc-500">
@@ -655,7 +655,7 @@ export function OrderDetailPage() {
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Totales</h3>
             <div className="mt-4 space-y-3 text-sm text-zinc-600">
               <div className="flex items-center justify-between">
@@ -676,13 +676,13 @@ export function OrderDetailPage() {
               </div>
             </div>
           </div>
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Linea temporal</h3>
             <div className="mt-4 space-y-2">
               {[...orderStatusOptions, "assignment_pending", "assigned", "heading_to_store", "picked_up", "near_customer"].map((status) => (
                 <div
                   key={status}
-                  className={`rounded-2xl px-4 py-3 text-sm ${status === order.status || status === liveTracking.delivery_status ? "bg-brand-500 text-white" : "bg-zinc-50 text-zinc-600"}`}
+                  className={`rounded px-4 py-3 text-sm ${status === order.status || status === liveTracking.delivery_status ? "bg-brand-500 text-white" : "bg-zinc-50 text-zinc-600"}`}
                 >
                   {statusLabels[status] ?? status}
                 </div>
@@ -804,17 +804,17 @@ export function MerchantApplyPage() {
         />
 
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="mesh-surface rounded-[28px] border border-white/80 p-5 shadow-lift">
+          <div className="mesh-surface rounded border border-white/80 p-5 shadow-lift">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Paso 1</p>
             <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink">Cuenta cliente</h3>
             <p className="mt-3 text-sm leading-7 text-zinc-600">Crea tu acceso o entra con tu cuenta actual para continuar desde esta misma ruta.</p>
           </div>
-          <div className="mesh-surface rounded-[28px] border border-white/80 p-5 shadow-lift">
+          <div className="mesh-surface rounded border border-white/80 p-5 shadow-lift">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Paso 2</p>
             <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink">Solicitud</h3>
             <p className="mt-3 text-sm leading-7 text-zinc-600">Completa los datos del negocio y selecciona los rubros donde quieres aparecer.</p>
           </div>
-          <div className="mesh-surface rounded-[28px] border border-white/80 p-5 shadow-lift">
+          <div className="mesh-surface rounded border border-white/80 p-5 shadow-lift">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Paso 3</p>
             <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink">Revision admin</h3>
             <p className="mt-3 text-sm leading-7 text-zinc-600">El equipo revisa la solicitud y, si la aprueba, el comercio pasa a tener panel propio.</p>
@@ -822,19 +822,19 @@ export function MerchantApplyPage() {
         </div>
 
         <div className="grid gap-5 lg:grid-cols-[1.02fr_0.98fr]">
-          <form onSubmit={(event) => void handleAuthSubmit(event)} className="mesh-surface space-y-4 rounded-[30px] border border-white/80 p-5 shadow-lift">
+          <form onSubmit={(event) => void handleAuthSubmit(event)} className="mesh-surface space-y-4 rounded border border-white/80 p-5 shadow-lift">
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setAuthMode("register")}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${authMode === "register" ? "bg-brand-500 text-white" : "bg-white text-zinc-600 shadow-sm"}`}
+                className={`rounded px-4 py-2 text-sm font-semibold transition ${authMode === "register" ? "bg-brand-500 text-white" : "bg-white text-zinc-600 shadow-sm"}`}
               >
                 Crear cuenta cliente
               </button>
               <button
                 type="button"
                 onClick={() => setAuthMode("login")}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${authMode === "login" ? "bg-brand-500 text-white" : "bg-white text-zinc-600 shadow-sm"}`}
+                className={`rounded px-4 py-2 text-sm font-semibold transition ${authMode === "login" ? "bg-brand-500 text-white" : "bg-white text-zinc-600 shadow-sm"}`}
               >
                 Ya tengo cuenta
               </button>
@@ -846,7 +846,7 @@ export function MerchantApplyPage() {
                 <input
                   value={authForm.full_name}
                   onChange={(event) => setAuthForm((current) => ({ ...current, full_name: event.target.value }))}
-                  className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                  className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
                   required
                 />
               </label>
@@ -858,7 +858,7 @@ export function MerchantApplyPage() {
                 type="email"
                 value={authForm.email}
                 onChange={(event) => setAuthForm((current) => ({ ...current, email: event.target.value }))}
-                className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 required
               />
             </label>
@@ -870,23 +870,23 @@ export function MerchantApplyPage() {
                 minLength={6}
                 value={authForm.password}
                 onChange={(event) => setAuthForm((current) => ({ ...current, password: event.target.value }))}
-                className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
                 required
               />
             </label>
 
-            {authError ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{authError}</p> : null}
+            {authError ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{authError}</p> : null}
 
             <button
               type="submit"
               disabled={saving || sessionLoading}
-              className="rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:bg-zinc-300"
+              className="rounded bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:bg-zinc-300"
             >
               {saving || sessionLoading ? "Procesando..." : authMode === "register" ? "Continuar con la solicitud" : "Ingresar y continuar"}
             </button>
           </form>
 
-          <div className="rounded-[30px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-5 text-white shadow-lift">
+          <div className="rounded bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-5 text-white shadow-lift">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#ffd0ba]/70">Rubros disponibles</p>
             <h3 className="mt-3 font-display text-3xl font-bold tracking-tight">Donde puede aparecer tu negocio</h3>
             <p className="mt-3 text-sm leading-7 text-white/70">
@@ -894,7 +894,7 @@ export function MerchantApplyPage() {
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {categories.map((category) => (
-                <span key={category.id} className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/82">
+                <span key={category.id} className="rounded bg-white/10 px-4 py-2 text-sm font-semibold text-white/82">
                   {category.name}
                 </span>
               ))}
@@ -917,17 +917,17 @@ export function MerchantApplyPage() {
       />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="mesh-surface rounded-[28px] border border-white/80 p-5 shadow-lift">
+        <div className="mesh-surface rounded border border-white/80 p-5 shadow-lift">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Operacion</p>
           <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink">Panel del comercio</h3>
           <p className="mt-3 text-sm leading-7 text-zinc-600">Gestion de pedidos, horarios, estado abierto o cerrado y configuracion del local desde un mismo lugar.</p>
         </div>
-        <div className="mesh-surface rounded-[28px] border border-white/80 p-5 shadow-lift">
+        <div className="mesh-surface rounded border border-white/80 p-5 shadow-lift">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Ventas</p>
           <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink">Catalogo visible</h3>
           <p className="mt-3 text-sm leading-7 text-zinc-600">Tu negocio aparece dentro del rubro correcto con fichas visuales pensadas para captar pedidos.</p>
         </div>
-        <div className="mesh-surface rounded-[28px] border border-white/80 p-5 shadow-lift">
+        <div className="mesh-surface rounded border border-white/80 p-5 shadow-lift">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Cobro</p>
           <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink">Pagos y entrega</h3>
           <p className="mt-3 text-sm leading-7 text-zinc-600">Configura envio, retiro, efectivo y Mercado Pago segun como opere tu negocio.</p>
@@ -935,8 +935,8 @@ export function MerchantApplyPage() {
       </div>
 
       <form onSubmit={(event) => void handleSubmit(event)} className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="mesh-surface space-y-4 rounded-[30px] border border-white/80 p-5 shadow-lift">
-          <div className="rounded-[24px] bg-[#fff7f0] px-4 py-4 text-sm leading-7 text-zinc-600">
+        <div className="mesh-surface space-y-4 rounded border border-white/80 p-5 shadow-lift">
+          <div className="rounded bg-[#fff7f0] px-4 py-4 text-sm leading-7 text-zinc-600">
             Cuanto mejor presentes el local, mas facil sera aprobarlo y dejarlo listo para captar pedidos desde la portada y el directorio.
           </div>
           <label className="block space-y-2">
@@ -944,7 +944,7 @@ export function MerchantApplyPage() {
             <input
               value={form.business_name}
               onChange={(event) => setForm((current) => ({ ...current, business_name: event.target.value }))}
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
             />
           </label>
           <label className="block space-y-2">
@@ -953,7 +953,7 @@ export function MerchantApplyPage() {
               value={form.description}
               onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
               rows={4}
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
             />
           </label>
           <label className="block space-y-2">
@@ -961,7 +961,7 @@ export function MerchantApplyPage() {
             <input
               value={form.address}
               onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
             />
           </label>
           <label className="block space-y-2">
@@ -969,7 +969,7 @@ export function MerchantApplyPage() {
             <input
               value={form.phone}
               onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-              className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+              className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
             />
           </label>
           <div className="grid gap-4 md:grid-cols-2">
@@ -978,7 +978,7 @@ export function MerchantApplyPage() {
               <input
                 value={form.logo_url}
                 onChange={(event) => setForm((current) => ({ ...current, logo_url: event.target.value }))}
-                className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
               />
             </label>
             <label className="block space-y-2">
@@ -986,13 +986,13 @@ export function MerchantApplyPage() {
               <input
                 value={form.cover_image_url}
                 onChange={(event) => setForm((current) => ({ ...current, cover_image_url: event.target.value }))}
-                className="w-full rounded-2xl border border-black/10 bg-zinc-50 px-4 py-3"
+                className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
               />
             </label>
           </div>
         </div>
 
-        <div className="rounded-[30px] bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-5 text-white shadow-lift">
+        <div className="rounded bg-[linear-gradient(180deg,#221816_0%,#171210_100%)] p-5 text-white shadow-lift">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#ffd0ba]/70">Solicitud</p>
           <h3 className="mt-3 font-display text-3xl font-bold tracking-tight">Rubros solicitados</h3>
           <p className="mt-3 text-sm leading-7 text-white/70">
@@ -1004,7 +1004,7 @@ export function MerchantApplyPage() {
                 key={category.id}
                 type="button"
                 onClick={() => toggleCategory(category.id)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                className={`rounded px-4 py-2 text-sm font-semibold transition ${
                   selectedCategoryIds.includes(category.id) ? "bg-[linear-gradient(135deg,#fb923c,#c2410c)] text-white shadow-float" : "bg-white/10 text-white/76"
                 }`}
               >
@@ -1013,14 +1013,14 @@ export function MerchantApplyPage() {
             ))}
           </div>
           <div className="grid gap-3 text-sm text-white/70">
-            <div className="rounded-[22px] border border-white/10 bg-white/5 px-4 py-4">Panel para pedidos, estado del local, envio, retiro y configuracion comercial.</div>
-            <div className="rounded-[22px] border border-white/10 bg-white/5 px-4 py-4">Cobro en efectivo y opcion de Mercado Pago con tus propias credenciales.</div>
+            <div className="rounded border border-white/10 bg-white/5 px-4 py-4">Panel para pedidos, estado del local, envio, retiro y configuracion comercial.</div>
+            <div className="rounded border border-white/10 bg-white/5 px-4 py-4">Cobro en efectivo y opcion de Mercado Pago con tus propias credenciales.</div>
           </div>
-          {error ? <p className="rounded-[22px] bg-rose-500/15 px-4 py-3 text-sm text-rose-100">{error}</p> : null}
+          {error ? <p className="rounded bg-rose-500/15 px-4 py-3 text-sm text-rose-100">{error}</p> : null}
           <button
             type="submit"
             disabled={saving}
-            className="rounded-full bg-[linear-gradient(135deg,#fb923c,#c2410c)] px-4 py-3 text-sm font-semibold text-white shadow-float disabled:bg-zinc-400"
+            className="rounded bg-[linear-gradient(135deg,#fb923c,#c2410c)] px-4 py-3 text-sm font-semibold text-white shadow-float disabled:bg-zinc-400"
           >
             {saving ? "Enviando..." : "Enviar postulacion"}
           </button>
@@ -1031,7 +1031,7 @@ export function MerchantApplyPage() {
       <div className="space-y-3">
         {loading ? <LoadingCard /> : null}
         {applications.map((application) => (
-          <article key={application.id} className="rounded-[28px] bg-white p-5 shadow-sm">
+          <article key={application.id} className="rounded bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold">{application.business_name}</h3>
@@ -1042,7 +1042,7 @@ export function MerchantApplyPage() {
             <p className="mt-3 text-sm text-zinc-600">{application.description}</p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-zinc-500">
               {application.requested_category_names.map((name) => (
-                <span key={name} className="rounded-full bg-zinc-100 px-3 py-1">
+                <span key={name} className="rounded bg-zinc-100 px-3 py-1">
                   {name}
                 </span>
               ))}
@@ -1163,7 +1163,7 @@ export function CheckoutPage() {
         title="No hay items para pagar"
         description="Primero agregá productos al carrito."
         action={
-          <Link className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white" to="/">
+          <Link className="rounded bg-brand-500 px-4 py-2 text-sm font-semibold text-white" to="/">
             Volver al inicio
           </Link>
         }
@@ -1178,14 +1178,14 @@ export function CheckoutPage() {
       <PageHeader eyebrow="Checkout" title="Confirmar pedido" description="Selecciona direccion, metodo de pago y confirma desde el backend." />
       <form onSubmit={(event) => void handleSubmit(event)} className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Entrega</h3>
             <p className="mt-1 text-sm text-zinc-500">{checkoutCart.delivery_mode === "delivery" ? "Envio a domicilio" : "Retiro en local"}</p>
             {checkoutCart.delivery_mode === "delivery" ? (
               <div className="mt-4 space-y-3">
                 {addresses.length ? (
                   addresses.map((address) => (
-                    <label key={address.id} className="flex items-start gap-3 rounded-2xl border border-black/5 p-4">
+                    <label key={address.id} className="flex items-start gap-3 rounded border border-black/5 p-4">
                       <input type="radio" checked={selectedAddressId === address.id} onChange={() => setSelectedAddressId(address.id)} className="mt-1" />
                       <div>
                         <p className="font-semibold">{address.label}</p>
@@ -1202,7 +1202,7 @@ export function CheckoutPage() {
                     title="No tenes direcciones"
                     description="Creá una dirección para recibir el pedido."
                     action={
-                      <Link className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white" to="/addresses">
+                      <Link className="rounded bg-brand-500 px-4 py-2 text-sm font-semibold text-white" to="/addresses">
                         Mis direcciones
                       </Link>
                     }
@@ -1212,7 +1212,7 @@ export function CheckoutPage() {
             ) : null}
           </div>
 
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Pago</h3>
             <div className="mt-4 flex flex-wrap gap-2">
               {availableMethods.map((method) => (
@@ -1220,7 +1220,7 @@ export function CheckoutPage() {
                   key={method}
                   type="button"
                   onClick={() => setPaymentMethod(method)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  className={`rounded px-4 py-2 text-sm font-semibold transition ${
                     paymentMethod === method ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-600"
                   }`}
                 >
@@ -1234,7 +1234,7 @@ export function CheckoutPage() {
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-[28px] bg-white p-5 shadow-sm">
+          <div className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Pedido</h3>
             <div className="mt-4 space-y-3 text-sm text-zinc-600">
               {checkoutCart.items.map((item) => (
@@ -1262,12 +1262,12 @@ export function CheckoutPage() {
                 <span>{formatCurrency(checkoutCart.total)}</span>
               </div>
             </div>
-            {error ? <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
-            <button type="submit" disabled={submitting || redirectingToPayment || !availableMethods.length} className="mt-4 w-full rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
+            {error ? <p className="mt-4 rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+            <button type="submit" disabled={submitting || redirectingToPayment || !availableMethods.length} className="mt-4 w-full rounded bg-brand-500 px-4 py-3 text-sm font-semibold text-white disabled:bg-zinc-300">
               {redirectingToPayment ? "Redirigiendo a Mercado Pago..." : submitting ? "Procesando..." : "Confirmar pedido"}
             </button>
             {checkoutCart.delivery_mode === "delivery" && selectedAddress && (selectedAddress.latitude === null || selectedAddress.longitude === null) ? (
-              <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <p className="mt-3 rounded bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 Esa direccion no tiene coordenadas. Editala antes de pedir tracking en vivo.
               </p>
             ) : null}

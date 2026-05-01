@@ -69,7 +69,7 @@ export function OrdersPage() {
               <Link
                 key={order.id}
                 to={`/c/pedido/${order.id}`}
-                className="block overflow-hidden rounded-[28px] bg-white shadow-sm ring-1 ring-black/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(255,61,0,0.1)]"
+                className="block overflow-hidden rounded bg-white shadow-sm ring-1 ring-black/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(255,61,0,0.1)]"
               >
                 <div className="h-1 w-full bg-[linear-gradient(90deg,#fb923c,#c2410c)]" />
                 <div className="p-5">
@@ -82,7 +82,7 @@ export function OrdersPage() {
 
                   <div className="flex flex-wrap gap-2">
                     <StatusPill value={order.status} />
-                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+                    <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
                       {paymentMethodLabels[order.payment_method]}
                     </span>
                   </div>
