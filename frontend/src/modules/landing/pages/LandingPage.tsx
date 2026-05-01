@@ -194,7 +194,7 @@ export function LandingPage() {
           </div>
         </div>
 
-        <div className="kp-shell">
+        <div className="kp-shell kp-value-shell">
           <div className="kp-value-strip">
             {valueItems.map(([title, description, Icon]) => (
               <article key={title} className="kp-value-item">

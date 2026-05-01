@@ -600,7 +600,8 @@ textarea.rounded {
   --kp-accent-soft: #fff0e5;
   --kp-shadow-lg: 0 26px 72px rgba(126, 89, 41, 0.14);
   --kp-shadow-md: 0 18px 40px rgba(126, 89, 41, 0.1);
-  --kp-header-height: 104px;
+  --kp-content-max: 1536px;
+  --kp-header-height: 76px;
   --kp-poster-crop: 10.15625%;
   --kp-poster-gap: 18px;
   --kp-poster-visible-ratio: 1.67;
@@ -611,7 +612,7 @@ textarea.rounded {
 }
 
 .kp-shell {
-  width: min(1368px, calc(100% - 64px));
+  width: min(var(--kp-content-max), calc(100% - 64px));
   margin: 0 auto;
 }
 
@@ -638,7 +639,7 @@ textarea.rounded {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
   min-height: var(--kp-header-height);
 }
 
@@ -648,20 +649,20 @@ textarea.rounded {
 }
 
 .kp-header-brand {
-  width: 218px !important;
-  height: 62px !important;
-  background-position: -89px -27px !important;
-  background-size: 1536px 1024px !important;
+  width: 158px !important;
+  height: 45px !important;
+  background-position: -64px -20px !important;
+  background-size: 1114px 743px !important;
 }
 
 .kp-site-nav {
   display: flex;
   justify-content: center;
-  gap: 56px;
+  gap: 44px;
 }
 
 .kp-site-nav a {
-  font-size: 1.02rem;
+  font-size: 0.95rem;
   font-weight: 500;
   color: var(--kp-ink-strong);
   transition: color 0.2s ease;
@@ -676,6 +677,16 @@ textarea.rounded {
 .kp-final-actions {
   display: flex;
   gap: 16px;
+}
+
+.kp-header-actions {
+  gap: 10px;
+}
+
+.kp-header-actions .kp-button {
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 0.9rem;
 }
 
 .kp-button {
@@ -740,7 +751,7 @@ textarea.rounded {
 
 .kp-hero-poster-media {
   position: relative;
-  width: min(100%, 1536px, calc((100svh - var(--kp-header-height) - var(--kp-poster-gap)) * var(--kp-poster-visible-ratio)));
+  width: min(100%, var(--kp-content-max), calc((100svh - var(--kp-header-height) - var(--kp-poster-gap)) * var(--kp-poster-visible-ratio)));
   margin: 0 auto;
   transform: translateY(calc(-1 * var(--kp-poster-crop)));
   transform-origin: top center;
@@ -1181,9 +1192,15 @@ textarea.rounded {
   border-radius: 42px;
 }
 
+.kp-value-shell {
+  width: min(var(--kp-content-max), calc(100% - 64px));
+}
+
 .kp-value-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  justify-self: stretch;
   margin-top: 42px;
   overflow: hidden;
   border: 1px solid var(--kp-stroke);
@@ -1575,21 +1592,25 @@ textarea.rounded {
   }
 
   .kp-shell {
-    width: min(100% - 32px, 1368px);
+    width: min(100% - 32px, var(--kp-content-max));
+  }
+
+  .kp-value-shell {
+    width: min(100% - 32px, var(--kp-content-max));
   }
 
   .kp-header-shell {
     grid-template-columns: 1fr;
     justify-items: center;
-    gap: 18px;
-    padding: 22px 0;
+    gap: 12px;
+    padding: 14px 0;
   }
 
   .kp-header-brand {
-    width: 190px !important;
-    height: 54px !important;
-    background-position: -77px -23px !important;
-    background-size: 1339px 893px !important;
+    width: 160px !important;
+    height: 45px !important;
+    background-position: -65px -20px !important;
+    background-size: 1128px 752px !important;
   }
 
   .kp-site-nav,
@@ -1599,7 +1620,7 @@ textarea.rounded {
   }
 
   .kp-site-nav {
-    gap: 28px;
+    gap: 22px;
   }
 
   .kp-hero-shell {
@@ -1647,7 +1668,11 @@ textarea.rounded {
 
 @media (max-width: 560px) {
   .kp-shell {
-    width: min(100% - 24px, 1368px);
+    width: min(100% - 24px, var(--kp-content-max));
+  }
+
+  .kp-value-shell {
+    width: min(100% - 24px, var(--kp-content-max));
   }
 
   .kp-header-actions,
