@@ -98,6 +98,43 @@ STORE_OPTIONS = (
     selectinload(Store.products).selectinload(Product.product_subcategory),
 )
 
+
+CUSTOMER_STATUS_NOTIFICATIONS = {
+    "preparing": (
+        "order.preparing",
+        "Pedido en preparacion",
+        "{store_name} ya esta preparando tu pedido.",
+    ),
+    "ready_for_pickup": (
+        "order.ready_for_pickup",
+        "Pedido listo para retirar",
+        "Tu pedido en {store_name} ya esta listo para retirar.",
+    ),
+    "delivered": (
+        "order.delivered",
+        "Pedido entregado",
+        "Gracias por pedir en {store_name}.",
+    ),
+}
+
+
+def _notify_customer_order_status(db: Session, order: StoreOrder) -> None:
+    notification = CUSTOMER_STATUS_NOTIFICATIONS.get(order.status)
+    if notification is None:
+        return
+    event_type, title, body_template = notification
+    store_name = order.store_name_snapshot or getattr(order.store, "name", None) or "el comercio"
+    create_notifications(
+        db,
+        user_ids=[order.user_id],
+        order_id=order.id,
+        event_type=event_type,
+        title=title,
+        body=body_template.format(store_name=store_name),
+        payload={"order_id": order.id, "status": order.status},
+    )
+
+
 def _order_options(db: Session) -> tuple[object, ...]:
     return build_order_options(
         db,
@@ -1159,6 +1196,8 @@ def update_order_status(
         cancel_delivery_order(db, order=order, reason=f"{store.name} canceló el pedido.")
     else:
         order.status = payload.status
+    if order.status != previous_status and payload.status not in {"ready_for_dispatch", "cancelled"}:
+        _notify_customer_order_status(db, order)
     db.commit()
     db.refresh(order)
     publish_order_snapshot(order, event_type="order.updated")

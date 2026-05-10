@@ -11,6 +11,7 @@ from app.db.session import get_db
 from app.models.delivery import NotificationEvent, PushSubscription
 from app.models.user import User
 from app.schemas.delivery import PushSubscriptionWrite
+from app.services.push_notifications import is_expo_push_token
 
 router = APIRouter()
 
@@ -64,9 +65,13 @@ def create_push_subscription(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
-    endpoint = payload.endpoint.strip()
-    p256dh = (payload.keys or {}).get("p256dh")
-    auth = (payload.keys or {}).get("auth")
+    endpoint = (payload.push_token or payload.endpoint or "").strip()
+    keys = payload.keys or {}
+    p256dh = keys.get("p256dh")
+    auth = keys.get("auth")
+    if is_expo_push_token(endpoint):
+        p256dh = p256dh or "expo"
+        auth = auth or "expo"
     if not endpoint or not p256dh or not auth:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid push subscription payload")
 

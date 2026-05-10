@@ -22,8 +22,8 @@ const categories: Array<{ label: string; icon: IconName }> = [
 ];
 
 const valueItems: Array<{ title: string; text: string; icon: IconName }> = [
-  { title: "Comercios cercanos", text: "Opciones reales cerca tuyo.", icon: "location-outline" },
-  { title: "Envío o retiro", text: "Elegí cómo recibirlo.", icon: "bag-handle-outline" },
+  { title: "Comercios cercanos", text: "Opciones reales cerca de vos.", icon: "location-outline" },
+  { title: "Envío o retiro", text: "Elegí cómo lo recibís.", icon: "bag-handle-outline" },
   { title: "Compará mejor", text: "Menos vueltas para decidir.", icon: "search-outline" }
 ];
 
@@ -61,7 +61,7 @@ export function LandingScreen({ navigation }: Props) {
           <Text style={styles.titleAccent}>Sin vueltas.</Text>
         </Text>
         <Text style={styles.description}>
-          Encontrá comercios de tu zona, compará opciones y elegí envío o retiro en minutos.
+          Encontrá comercios en tu zona, compará opciones y elegí envío o retiro en minutos.
         </Text>
       </View>
 
@@ -126,7 +126,7 @@ export function LandingScreen({ navigation }: Props) {
             <Ionicons name="navigate-outline" size={18} color="#FFFFFF" />
           </View>
           <View style={styles.mapTextBlock}>
-            <Text style={styles.mapTitle}>Pedido cerca tuyo</Text>
+            <Text style={styles.mapTitle}>Pedido cerca de vos</Text>
             <Text style={styles.mapText}>Entrá, elegí y seguí el estado desde la app.</Text>
           </View>
         </View>
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm
   },
   posterPanel: {
-    height: 220,
+    height: 164,
     overflow: "hidden",
     borderRadius: radii.xl,
     backgroundColor: colors.surface,

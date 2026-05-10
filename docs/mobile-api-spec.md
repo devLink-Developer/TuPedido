@@ -1000,7 +1000,18 @@ Body:
 }
 ```
 
-Nota para app nativa Android: la app pide permiso `POST_NOTIFICATIONS` y puede mostrar notificaciones locales mientras el proceso esta vivo. Para recibir notificaciones con la app cerrada completamente hace falta envio push remoto desde backend mediante FCM/Expo Push y registrar el token nativo del dispositivo.
+Para Android nativo con Expo Push, registrar tambien el token remoto:
+
+```json
+{
+  "push_token": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+  "push_provider": "expo",
+  "platform": "android",
+  "user_agent": "kepedimos-android"
+}
+```
+
+Nota para app nativa Android: la app pide permiso `POST_NOTIFICATIONS`. Para recibir notificaciones con la app cerrada completamente hace falta envio push remoto desde backend mediante Expo Push y registrar el token nativo del dispositivo.
 
 ## WebSockets
 

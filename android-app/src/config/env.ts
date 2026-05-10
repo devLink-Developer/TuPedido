@@ -6,6 +6,10 @@ export const DEFAULT_API_BASE_URL = `${DEFAULT_BACKEND_ROOT_URL}/api/v1`;
 type ExpoExtra = {
   apiBaseUrl?: string;
   backendRootUrl?: string;
+  expoProjectId?: string;
+  eas?: {
+    projectId?: string;
+  };
   mapInitialRegion?: {
     latitude: number;
     longitude: number;
@@ -32,6 +36,16 @@ export const BACKEND_ROOT_URL =
   cleanUrl(extra.backendRootUrl) ??
   API_BASE_URL.replace(/\/api\/v1\/?$/, "") ??
   DEFAULT_BACKEND_ROOT_URL;
+
+function cleanText(value: string | undefined | null): string | null {
+  const trimmed = value?.trim();
+  return trimmed || null;
+}
+
+export const EXPO_PROJECT_ID =
+  cleanText(process.env.EXPO_PUBLIC_EXPO_PROJECT_ID) ??
+  cleanText(extra.expoProjectId) ??
+  cleanText(extra.eas?.projectId);
 
 export const MAP_INITIAL_REGION = extra.mapInitialRegion ?? {
   latitude: -31.4201,

@@ -5,6 +5,7 @@ import logging
 
 from app.db.session import SessionLocal
 from app.services.delivery import expire_pending_offers, mark_stale_tracking
+from app.services.push_notifications import process_queued_push_notifications
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,8 @@ def run_delivery_maintenance_once() -> None:
     try:
         expired = expire_pending_offers(db)
         stale = mark_stale_tracking(db)
-        if expired or stale:
+        push_processed = process_queued_push_notifications(db)
+        if expired or stale or push_processed:
             db.commit()
     except Exception:
         db.rollback()

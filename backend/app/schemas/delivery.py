@@ -182,9 +182,12 @@ class NotificationRead(BaseModel):
 
 
 class PushSubscriptionWrite(BaseModel):
-    endpoint: str
-    keys: dict[str, str]
+    endpoint: str | None = None
+    keys: dict[str, str] | None = None
     user_agent: str | None = None
+    push_token: str | None = None
+    push_provider: str | None = None
+    platform: str | None = None
 
 
 class RiderSettlementNotice(BaseModel):

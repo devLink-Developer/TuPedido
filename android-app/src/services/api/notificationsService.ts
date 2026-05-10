@@ -19,4 +19,22 @@ export function markAllNotificationsRead(token: string): Promise<AppNotification
   });
 }
 
+export function registerPushSubscription(
+  token: string,
+  payload: {
+    push_token: string;
+    endpoint?: string;
+    keys?: Record<string, string>;
+    push_provider?: string;
+    platform?: string;
+    user_agent?: string;
+  }
+): Promise<{ id: number; endpoint: string; created_at: string | null }> {
+  return apiRequest<{ id: number; endpoint: string; created_at: string | null }>("/notifications/push-subscriptions", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload)
+  });
+}
+
 export { buildNotificationsSocketUrl };

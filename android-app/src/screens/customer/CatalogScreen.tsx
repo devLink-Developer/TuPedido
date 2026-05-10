@@ -133,7 +133,7 @@ export function CatalogScreen(_props: Props) {
               </View>
               <View>
                 <Text style={styles.greeting}>{user ? `Hola, ${firstName}` : "Pedí cerca"}</Text>
-                <Text style={styles.headerSubtitle}>Comercios, farmacias y compras cerca tuyo.</Text>
+                <Text style={styles.headerSubtitle}>Comercios, farmacias y compras cerca de vos.</Text>
               </View>
             </View>
 
@@ -206,7 +206,7 @@ export function CatalogScreen(_props: Props) {
 
             {error ? <StateMessage title="Catálogo no disponible" description={error} actionLabel="Reintentar" onAction={() => void load()} /> : null}
 
-            <SectionHeader size="compact" title="Cerca tuyo" description="Filtrá por rubro y elegí dónde pedir." />
+            <SectionHeader size="compact" title="Cerca de vos" description="Filtrá por rubro y elegí dónde pedir." />
           </View>
         }
         ListEmptyComponent={!loading && !error ? <StateMessage title="Sin comercios" description="No hay resultados para la búsqueda actual." /> : null}

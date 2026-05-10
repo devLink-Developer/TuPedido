@@ -1,6 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useRef, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { AppState } from "react-native";
-import { ensureNativeNotificationPermissions, scheduleReviewReminderNotification, showNativeNotification } from "../notifications/nativeNotifications";
+import {
+  registerRemotePushNotifications,
+  scheduleReviewReminderNotification,
+  showNativeNotification
+} from "../notifications/nativeNotifications";
 import { useRealtimeNotifications } from "../hooks/useRealtimeNotifications";
 import { useAppFeedback } from "./AppFeedbackContext";
 import { useAuth } from "./AuthContext";
@@ -24,7 +28,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!token || !user) return;
-    void ensureNativeNotificationPermissions().catch(() => undefined);
+    void registerRemotePushNotifications(token).catch(() => undefined);
   }, [token, user]);
 
   useEffect(() => {
