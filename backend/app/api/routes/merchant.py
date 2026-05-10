@@ -65,6 +65,7 @@ from app.services.delivery import (
     publish_order_snapshot,
     rider_has_active_order,
 )
+from app.services.catalog_realtime import publish_catalog_store_changed
 from app.services.mercadopago import (
     MercadoPagoAPIError,
     ensure_provider_operable,
@@ -291,6 +292,7 @@ def update_store(
         store.delivery_settings.delivery_enabled = False
     db.commit()
     db.refresh(store)
+    publish_catalog_store_changed(store)
     mercadopago_provider = get_or_create_mercadopago_provider(db)
     return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
 
@@ -313,6 +315,7 @@ def update_store_categories(
     ]
     db.commit()
     db.refresh(store)
+    publish_catalog_store_changed(store)
     mercadopago_provider = get_or_create_mercadopago_provider(db)
     return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
 
@@ -336,6 +339,7 @@ def update_store_hours(
     ]
     db.commit()
     db.refresh(store)
+    publish_catalog_store_changed(store)
     mercadopago_provider = get_or_create_mercadopago_provider(db)
     return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
 
@@ -364,6 +368,7 @@ def update_delivery_settings(
     settings.min_order = payload.min_order
     db.commit()
     db.refresh(store)
+    publish_catalog_store_changed(store)
     mercadopago_provider = get_or_create_mercadopago_provider(db)
     return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
 

@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     geocoding_base_url: str = "https://nominatim.openstreetmap.org"
     geocoding_user_agent: str = "Kepedimos/0.1 (+https://kepedimos.local)"
     address_lookup_timeout_seconds: float = 10.0
+    openrouteservice_api_key: str | None = None
+    openrouteservice_base_url: str = "https://api.openrouteservice.org"
+    openrouteservice_timeout_seconds: float = 10.0
     redis_url: str = "redis://redis:6379/0"
     delivery_offer_timeout_seconds: int = 20
     delivery_tracking_stale_seconds: int = 30

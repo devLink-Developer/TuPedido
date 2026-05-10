@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "KePedimos",
+    "slug": "kepedimos-android",
+    "version": "1.0.9",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.kepedimos.android",
+      "versionCode": 10,
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.POST_NOTIFICATIONS"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#EA580C"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-location",
+      "./plugins/withAndroidNetworkSecurity",
+      "expo-font"
+    ],
+    "extra": {
+      "apiBaseUrl": "http://200.58.107.187:8016/api/v1",
+      "backendRootUrl": "http://200.58.107.187:8016",
+      "mapInitialRegion": {
+        "latitude": -31.4201,
+        "longitude": -64.1888,
+        "latitudeDelta": 0.08,
+        "longitudeDelta": 0.08
+      }
+    }
+  }
+}

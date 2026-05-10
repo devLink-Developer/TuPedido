@@ -20,6 +20,7 @@ from app.api.routes import (
     orders,
     payments,
     realtime,
+    routing,
 )
 
 router = APIRouter()
@@ -41,4 +42,5 @@ router.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
 router.include_router(orders.router, prefix="/orders", tags=["orders"])
 router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 router.include_router(payments.router, prefix="/payments", tags=["payments"])
+router.include_router(routing.router, prefix="/routing", tags=["routing"])
 router.include_router(realtime.router, tags=["realtime"])

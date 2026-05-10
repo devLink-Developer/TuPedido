@@ -98,6 +98,17 @@ async def notifications_me_socket(websocket: WebSocket) -> None:
         db.close()
 
 
+@router.websocket("/ws/catalog/stores")
+async def catalog_stores_socket(websocket: WebSocket) -> None:
+    try:
+        await realtime_hub.connect_catalog(websocket)
+        await websocket.send_json({"type": "catalog.connected"})
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await realtime_hub.disconnect(websocket)
+
+
 @router.websocket("/ws/orders/{order_id}")
 async def order_tracking_socket(websocket: WebSocket, order_id: int) -> None:
     user = _get_user_from_token(websocket.query_params.get("token"))

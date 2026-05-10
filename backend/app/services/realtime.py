@@ -9,9 +9,15 @@ from fastapi import WebSocket
 
 class RealtimeHub:
     def __init__(self) -> None:
+        self._catalog_connections: set[WebSocket] = set()
         self._order_connections: dict[int, set[WebSocket]] = defaultdict(set)
         self._user_connections: dict[int, set[WebSocket]] = defaultdict(set)
         self._lock = asyncio.Lock()
+
+    async def connect_catalog(self, websocket: WebSocket) -> None:
+        await websocket.accept()
+        async with self._lock:
+            self._catalog_connections.add(websocket)
 
     async def connect_order(self, order_id: int, websocket: WebSocket) -> None:
         await websocket.accept()
@@ -25,10 +31,14 @@ class RealtimeHub:
 
     async def disconnect(self, websocket: WebSocket) -> None:
         async with self._lock:
+            self._catalog_connections.discard(websocket)
             for connections in self._order_connections.values():
                 connections.discard(websocket)
             for connections in self._user_connections.values():
                 connections.discard(websocket)
+
+    async def broadcast_catalog(self, payload: dict[str, Any]) -> None:
+        await self._broadcast(self._catalog_connections, payload)
 
     async def broadcast_order(self, order_id: int, payload: dict[str, Any]) -> None:
         await self._broadcast(self._order_connections.get(order_id, set()), payload)
@@ -49,6 +59,7 @@ class RealtimeHub:
         if stale:
             async with self._lock:
                 for socket in stale:
+                    self._catalog_connections.discard(socket)
                     for connections in self._order_connections.values():
                         connections.discard(socket)
                     for connections in self._user_connections.values():

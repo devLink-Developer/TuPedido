@@ -1,0 +1,102 @@
+import { useState } from "react";
+import { Image, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { brandAssets } from "../../assets/brand";
+import { AppButton } from "../../components/AppButton";
+import { BrandWordmark } from "../../components/BrandWordmark";
+import { Card } from "../../components/Card";
+import { Screen } from "../../components/Screen";
+import { TextField } from "../../components/TextField";
+import { colors, radii, shadow, spacing } from "../../theme";
+import { useAppFeedback } from "../../state/AppFeedbackContext";
+import { useAuth } from "../../state/AuthContext";
+import type { AuthStackParamList } from "../../navigation/types";
+import { friendlyErrorMessage } from "../../utils/apiMessages";
+
+type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
+
+export function LoginScreen({ navigation }: Props) {
+  const { login, loading } = useAuth();
+  const { showError } = useAppFeedback();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  async function handleLogin() {
+    try {
+      await login(email.trim(), password);
+    } catch (error) {
+      showError("No se pudo iniciar sesión", friendlyErrorMessage(error, "Revisá tus datos e intentá nuevamente."));
+    }
+  }
+
+  return (
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <Screen contentContainerStyle={styles.content}>
+        <View style={styles.hero}>
+          <View style={styles.logoFrame}>
+            <Image source={brandAssets.logo} style={styles.logo} resizeMode="cover" accessibilityLabel="Logo de KePedimos" />
+          </View>
+          <BrandWordmark height={45} width={196} />
+          <Text style={styles.title}>Entrá a tu cuenta</Text>
+          <Text style={styles.description}>Seguí tus pedidos, guardá direcciones y administrá tus entregas desde la app.</Text>
+        </View>
+
+        <Card style={styles.form}>
+          <TextField label="Email" leftIcon="mail-outline" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" textContentType="emailAddress" />
+          <TextField label="Contraseña" leftIcon="lock-closed-outline" value={password} onChangeText={setPassword} secureTextEntry textContentType="password" />
+          <AppButton title="Iniciar sesión" icon="log-in-outline" onPress={handleLogin} loading={loading} fullWidth />
+          <AppButton title="Crear cuenta cliente" icon="person-add-outline" onPress={() => navigation.navigate("Register")} variant="ghost" fullWidth />
+        </Card>
+      </Screen>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  flex: {
+    flex: 1
+  },
+  content: {
+    flexGrow: 1,
+    justifyContent: "center",
+    gap: spacing.lg
+  },
+  hero: {
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingTop: spacing.lg
+  },
+  logoFrame: {
+    width: 118,
+    height: 118,
+    borderRadius: 32,
+    overflow: "hidden",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadow.medium
+  },
+  logo: {
+    width: "100%",
+    height: "100%"
+  },
+  title: {
+    color: colors.text,
+    fontSize: 23,
+    lineHeight: 29,
+    fontWeight: "900",
+    textAlign: "center",
+    marginTop: spacing.sm
+  },
+  description: {
+    color: colors.mutedText,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+    paddingHorizontal: spacing.md
+  },
+  form: {
+    gap: spacing.md,
+    borderRadius: radii.lg
+  }
+});

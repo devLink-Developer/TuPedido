@@ -35,6 +35,7 @@ from app.schemas.auth import UserRead
 from app.schemas.catalog import CategoryCreate, CategoryUpdate
 from app.schemas.merchant import MerchantApplicationReviewUpdate
 from app.services.category_colors import resolve_category_palette
+from app.services.catalog_realtime import publish_catalog_store_changed
 from app.services.mercadopago import get_or_create_mercadopago_provider
 from app.services.media import normalize_media_url
 from app.services.order_runtime import build_order_options
@@ -268,6 +269,7 @@ def create_store(
     db.commit()
     created_store = db.scalar(select(Store).options(*STORE_OPTIONS).where(Store.id == store.id))
     assert created_store is not None
+    publish_catalog_store_changed(created_store, event_type="catalog.stores.created")
     mercadopago_provider = get_or_create_mercadopago_provider(db)
     return serialize_store_detail(
         created_store,
@@ -309,6 +311,8 @@ def review_application(
         application.review_notes = "Solicitud rechazada. Revisa los datos y vuelve a postularte cuando estes listo."
     elif payload.status == "suspended":
         application.review_notes = "Solicitud suspendida temporalmente. Contacta al equipo para continuar el proceso."
+
+    affected_store: Store | None = None
 
     if payload.status == "approved":
         if not application.requested_category_ids:
@@ -357,18 +361,24 @@ def review_application(
             StoreCategoryLink(store_id=store.id, category_id=category.id, is_primary=index == 0)
             for index, category in enumerate(categories)
         ]
+        affected_store = store
         application.user.role = "merchant"
     elif payload.status == "rejected" and application.user.role != "admin":
         if application.store is not None:
             application.store.status = "rejected"
             application.store.accepting_orders = False
+            affected_store = application.store
         application.user.role = "customer"
     elif payload.status == "suspended" and application.store is not None:
         application.store.status = "suspended"
         application.store.accepting_orders = False
+        affected_store = application.store
 
     db.commit()
     db.refresh(application)
+    if affected_store is not None:
+        db.refresh(affected_store)
+        publish_catalog_store_changed(affected_store)
     return serialize_application(attach_requested_categories(db, application)).model_dump()
 
 
@@ -400,6 +410,7 @@ def update_store_status(
         store.accepting_orders = False
     db.commit()
     db.refresh(store)
+    publish_catalog_store_changed(store)
     mercadopago_provider = get_or_create_mercadopago_provider(db)
     return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
 
