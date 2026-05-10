@@ -92,6 +92,8 @@ class StorePaymentSettingsRead(BaseModel):
     mercadopago_onboarding_completed: bool = False
     mercadopago_oauth_connected_at: datetime | None = None
     mercadopago_mp_user_id: str | None = None
+    mercadopago_account_status: str | None = None
+    mercadopago_last_error: str | None = None
 
 
 class ProductSubcategoryRead(BaseModel):

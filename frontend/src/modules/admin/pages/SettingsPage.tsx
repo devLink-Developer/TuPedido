@@ -44,11 +44,14 @@ type CategoryFormState = {
 
 type MercadoPagoProviderFormState = {
   client_id: string;
+  public_key: string;
   client_secret: string;
   webhook_secret: string;
   redirect_uri: string;
   enabled: boolean;
   mode: "sandbox" | "production";
+  commission_mode: "percentage" | "fixed";
+  commission_value: string;
 };
 
 const emptyCategoryForm: CategoryFormState = {
@@ -63,11 +66,14 @@ const emptyCategoryForm: CategoryFormState = {
 
 const emptyMercadoPagoProviderForm: MercadoPagoProviderFormState = {
   client_id: "",
+  public_key: "",
   client_secret: "",
   webhook_secret: "",
   redirect_uri: "",
   enabled: false,
-  mode: "sandbox"
+  mode: "sandbox",
+  commission_mode: "fixed",
+  commission_value: ""
 };
 
 const suggestedColors = ["#FF7043", "#29B6F6", "#66BB6A", "#AB47BC", "#EF5350", "#FFCA28", "#8D6E63", "#26A69A"];
@@ -178,6 +184,16 @@ export function SettingsPage() {
     () => formatCatalogBannerRatio(previewBannerDimensions.width, previewBannerDimensions.height),
     [previewBannerDimensions.height, previewBannerDimensions.width]
   );
+  const commissionPreview = useMemo(() => {
+    const sampleGross = 10000;
+    const value = toNumber(mercadoPagoForm.commission_value, 0);
+    const fee = mercadoPagoForm.commission_mode === "percentage" ? sampleGross * (value / 100) : value;
+    return {
+      gross: sampleGross,
+      fee: Math.min(Math.max(fee, 0), sampleGross),
+      net: sampleGross - Math.min(Math.max(fee, 0), sampleGross)
+    };
+  }, [mercadoPagoForm.commission_mode, mercadoPagoForm.commission_value]);
 
   async function load() {
     if (!token) return;
@@ -197,11 +213,17 @@ export function SettingsPage() {
       setPaymentProvider(paymentProviderResult);
       setMercadoPagoForm({
         client_id: paymentProviderResult.client_id ?? "",
+        public_key: paymentProviderResult.public_key ?? "",
         client_secret: "",
         webhook_secret: "",
         redirect_uri: paymentProviderResult.redirect_uri ?? "",
         enabled: paymentProviderResult.enabled,
-        mode: paymentProviderResult.mode
+        mode: paymentProviderResult.mode,
+        commission_mode: paymentProviderResult.commission_mode ?? "fixed",
+        commission_value:
+          paymentProviderResult.commission_value !== null && paymentProviderResult.commission_value !== undefined
+            ? String(paymentProviderResult.commission_value)
+            : String(platformResult.service_fee_amount)
       });
       setServiceFee(platformResult.service_fee_amount.toFixed(2));
       setCatalogBannerImageUrl(platformResult.catalog_banner_image_url ?? "");
@@ -326,6 +348,9 @@ export function SettingsPage() {
       if (isMercadoPagoCredentialToken(mercadoPagoForm.client_id)) {
         nextErrors.client_id = "Usa el Client ID/Application ID de OAuth, no la Public Key ni el Access Token.";
       }
+      if (!paymentProvider.simulated && !mercadoPagoForm.public_key.trim()) {
+        nextErrors.public_key = "La Public Key del integrador es obligatoria para Card Payment Brick.";
+      }
       if (!mercadoPagoForm.client_secret.trim() && !paymentProvider.client_secret_masked) {
         nextErrors.client_secret = "El Client Secret es obligatorio.";
       }
@@ -337,6 +362,12 @@ export function SettingsPage() {
       }
       if (!paymentProvider.simulated && isPublicHttpUrl(mercadoPagoForm.redirect_uri)) {
         nextErrors.redirect_uri = "Mercado Pago requiere HTTPS para callbacks OAuth publicos.";
+      }
+      if (!mercadoPagoForm.commission_value.trim()) {
+        nextErrors.commission_value = "Define la comision que retendra la plataforma.";
+      }
+      if (mercadoPagoForm.commission_mode === "percentage" && toNumber(mercadoPagoForm.commission_value, 0) > 100) {
+        nextErrors.commission_value = "La comision porcentual no puede superar 100%.";
       }
     }
     if (Object.keys(nextErrors).length) {
@@ -357,11 +388,14 @@ export function SettingsPage() {
     try {
       await updateAdminMercadoPagoProvider(token, {
         client_id: mercadoPagoForm.client_id.trim() || null,
+        public_key: mercadoPagoForm.public_key.trim() || null,
         client_secret: mercadoPagoForm.client_secret.trim() || null,
         webhook_secret: mercadoPagoForm.webhook_secret.trim() || null,
         redirect_uri: mercadoPagoForm.redirect_uri.trim() || null,
         enabled: mercadoPagoForm.enabled,
-        mode: mercadoPagoForm.mode
+        mode: mercadoPagoForm.mode,
+        commission_mode: mercadoPagoForm.commission_mode,
+        commission_value: mercadoPagoForm.commission_value.trim() ? Number(mercadoPagoForm.commission_value) : null
       });
       setProviderMessage("Configuracion de Mercado Pago guardada.");
       await load();
@@ -720,8 +754,12 @@ export function SettingsPage() {
           <div className="rounded bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
             <p className="font-semibold text-ink">{paymentProvider.enabled ? "Provider activo" : "Provider inactivo"}</p>
             <p className="mt-1">Modo actual: {paymentProvider.mode === "production" ? "Produccion" : "Sandbox"}</p>
+            <p className="mt-1">Public key: {paymentProvider.public_key_masked ? "Si" : "No"}</p>
             <p className="mt-1">Secret configurado: {paymentProvider.client_secret_masked ? "Si" : "No"}</p>
             <p className="mt-1">Webhook secret: {paymentProvider.webhook_configured ? "Si" : "No"}</p>
+            <p className="mt-1">
+              Comision: {paymentProvider.commission_mode === "percentage" ? `${paymentProvider.commission_value ?? 0}%` : formatCurrency(paymentProvider.commission_value ?? platformSettings.service_fee_amount)}
+            </p>
           </div>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -743,6 +781,28 @@ export function SettingsPage() {
               Debe ser el Client ID/Application ID de OAuth. No pegues la Public Key ni el Access Token que empiezan con APP_USR, TEST o PROD.
             </p>
             {providerFieldErrors.client_id ? <p className="text-xs font-normal text-rose-700">{providerFieldErrors.client_id}</p> : null}
+          </label>
+          <label className="space-y-2 text-sm font-semibold text-zinc-600">
+            Public Key del integrador
+            <input
+              value={mercadoPagoForm.public_key}
+              onChange={(event) =>
+                setMercadoPagoForm((current) => ({
+                  ...current,
+                  public_key: event.target.value
+                }))
+              }
+              className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
+              placeholder="APP_USR-... o TEST-..."
+              aria-invalid={Boolean(providerFieldErrors.public_key)}
+            />
+            <p className="text-xs font-normal text-zinc-500">
+              Esta clave publica inicializa Card Payment Brick. No se usa para cobrar; el backend cobra con el token OAuth del comercio.
+            </p>
+            {paymentProvider.public_key_masked ? (
+              <p className="text-xs font-normal text-zinc-500">Valor actual enmascarado: {paymentProvider.public_key_masked}</p>
+            ) : null}
+            {providerFieldErrors.public_key ? <p className="text-xs font-normal text-rose-700">{providerFieldErrors.public_key}</p> : null}
           </label>
           <label className="space-y-2 text-sm font-semibold text-zinc-600">
             <span className="flex items-center justify-between gap-3">
@@ -858,6 +918,49 @@ export function SettingsPage() {
               <option value="production">Produccion</option>
             </select>
           </label>
+          <div className="grid gap-3 rounded border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2 md:grid-cols-[220px_1fr]">
+            <label className="space-y-2 text-sm font-semibold text-zinc-600">
+              Modo de comision
+              <select
+                value={mercadoPagoForm.commission_mode}
+                onChange={(event) =>
+                  setMercadoPagoForm((current) => ({
+                    ...current,
+                    commission_mode: event.target.value as "percentage" | "fixed"
+                  }))
+                }
+                className="w-full rounded border border-black/10 bg-white px-4 py-3"
+              >
+                <option value="fixed">Monto fijo</option>
+                <option value="percentage">Porcentaje</option>
+              </select>
+            </label>
+            <label className="space-y-2 text-sm font-semibold text-zinc-600">
+              Valor de comision
+              <input
+                type="number"
+                min="0"
+                max={mercadoPagoForm.commission_mode === "percentage" ? "100" : undefined}
+                step="0.01"
+                value={mercadoPagoForm.commission_value}
+                onChange={(event) =>
+                  setMercadoPagoForm((current) => ({
+                    ...current,
+                    commission_value: event.target.value
+                  }))
+                }
+                className="w-full rounded border border-black/10 bg-white px-4 py-3"
+                aria-invalid={Boolean(providerFieldErrors.commission_value)}
+              />
+              {providerFieldErrors.commission_value ? <p className="text-xs font-normal text-rose-700">{providerFieldErrors.commission_value}</p> : null}
+            </label>
+            <div className="rounded bg-white px-4 py-3 text-sm text-zinc-600 md:col-span-2">
+              <p className="font-semibold text-ink">Preview con pedido de {formatCurrency(commissionPreview.gross)}</p>
+              <p className="mt-1">
+                Comercio recibe {formatCurrency(commissionPreview.net)} y marketplace retiene {formatCurrency(commissionPreview.fee)}.
+              </p>
+            </div>
+          </div>
           <label className="flex items-center gap-3 rounded border border-black/10 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
             <input
               type="checkbox"

@@ -32,6 +32,7 @@ def configure_environment() -> None:
     os.environ["MERCADOPAGO_SIMULATED"] = "false"
     os.environ["MERCADOPAGO_CLIENT_ID"] = "SMOKE-CLIENT-ID"
     os.environ["MERCADOPAGO_CLIENT_SECRET"] = "SMOKE-CLIENT-SECRET"
+    os.environ["MERCADOPAGO_PUBLIC_KEY"] = "TEST-SMOKE-PUBLIC-KEY"
     os.environ["MERCADOPAGO_WEBHOOK_SECRET"] = WEBHOOK_SECRET
     os.environ["MERCADOPAGO_REDIRECT_URI"] = "http://localhost:8016/api/v1/oauth/mercadopago/callback"
     os.environ["FRONTEND_BASE_URL"] = "http://localhost:8015"

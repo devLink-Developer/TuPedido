@@ -33,8 +33,12 @@ class PaymentTransactionRead(BaseModel):
     preference_id: str | None = None
     payment_id: str | None = None
     status: str
+    provider_status: str | None = None
     status_detail: str | None = None
     amount_total: float
+    gross_amount: float
+    marketplace_fee: float
+    net_amount: float
     currency: str
     requested_marketplace_fee: float
     approved_marketplace_fee: float | None = None
@@ -44,6 +48,8 @@ class PaymentTransactionRead(BaseModel):
     mp_user_id: str | None = None
     live_mode: bool | None = None
     checkout_url: str | None = None
+    last_sync_at: datetime | None = None
+    last_error: str | None = None
     created_at: datetime
     updated_at: datetime | None = None
 
@@ -160,4 +166,50 @@ class OrderStatusUpdate(BaseModel):
 
 class MercadoPagoWebhookPayload(BaseModel):
     reference: str
-    status: Literal["pending", "approved", "rejected", "cancelled"]
+    status: Literal["pending", "approved", "paid", "processing", "rejected", "refunded", "cancelled", "chargeback"]
+
+
+class MercadoPagoPaymentSessionRead(BaseModel):
+    session_token: str
+    public_key: str
+    order_id: int
+    store_id: int
+    store_name: str
+    external_reference: str
+    amount: float
+    marketplace_fee: float
+    net_amount: float
+    currency: str = "ARS"
+    status: str
+    mode: str
+    simulated: bool
+    expires_at: datetime | None = None
+
+
+class MercadoPagoCardPaymentPayerIdentification(BaseModel):
+    type: str | None = None
+    number: str | None = None
+
+
+class MercadoPagoCardPaymentPayer(BaseModel):
+    email: str
+    identification: MercadoPagoCardPaymentPayerIdentification | None = None
+
+
+class MercadoPagoCardPaymentRequest(BaseModel):
+    session_token: str
+    token: str | None = None
+    issuer_id: str | int | None = None
+    payment_method_id: str
+    transaction_amount: float
+    installments: int = Field(default=1, ge=1)
+    payer: MercadoPagoCardPaymentPayer
+
+
+class MercadoPagoCardPaymentResponse(BaseModel):
+    order_id: int
+    payment_id: str | None = None
+    status: str
+    provider_status: str | None = None
+    status_detail: str | None = None
+    external_reference: str

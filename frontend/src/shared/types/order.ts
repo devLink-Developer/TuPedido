@@ -38,8 +38,12 @@ export type PaymentTransaction = {
   preference_id: string | null;
   payment_id: string | null;
   status: string;
+  provider_status: string | null;
   status_detail: string | null;
   amount_total: number;
+  gross_amount: number;
+  marketplace_fee: number;
+  net_amount: number;
   currency: string;
   requested_marketplace_fee: number;
   approved_marketplace_fee: number | null;
@@ -49,8 +53,52 @@ export type PaymentTransaction = {
   mp_user_id: string | null;
   live_mode: boolean | null;
   checkout_url: string | null;
+  last_sync_at: string | null;
+  last_error: string | null;
   created_at: string;
   updated_at: string | null;
+};
+
+export type MercadoPagoPaymentSession = {
+  session_token: string;
+  public_key: string;
+  order_id: number;
+  store_id: number;
+  store_name: string;
+  external_reference: string;
+  amount: number;
+  marketplace_fee: number;
+  net_amount: number;
+  currency: string;
+  status: string;
+  mode: string;
+  simulated: boolean;
+  expires_at: string | null;
+};
+
+export type MercadoPagoCardPaymentPayload = {
+  session_token: string;
+  token?: string | null;
+  issuer_id?: string | number | null;
+  payment_method_id: string;
+  transaction_amount: number;
+  installments: number;
+  payer: {
+    email: string;
+    identification?: {
+      type?: string | null;
+      number?: string | null;
+    } | null;
+  };
+};
+
+export type MercadoPagoCardPaymentResult = {
+  order_id: number;
+  payment_id: string | null;
+  status: string;
+  provider_status: string | null;
+  status_detail: string | null;
+  external_reference: string;
 };
 
 export type Order = {

@@ -217,7 +217,7 @@ export function CheckoutScreen({ navigation }: Props) {
             );
           })}
         </View>
-        {paymentMethod === "mercadopago" ? <Text style={styles.hint}>Se abrirá Mercado Pago dentro de la app y después actualizaremos el pedido.</Text> : null}
+        {paymentMethod === "mercadopago" ? <Text style={styles.hint}>Se abrirá el pago con tarjeta dentro de la app y después actualizaremos el pedido.</Text> : null}
       </Card>
 
       <Card style={styles.card}>

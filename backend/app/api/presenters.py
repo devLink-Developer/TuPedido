@@ -117,6 +117,13 @@ def serialize_store_payment_settings(
         if account and bool(getattr(account, "connected", False))
         else None,
         mercadopago_mp_user_id=getattr(account, "mp_user_id", None) if account else None,
+        mercadopago_account_status=getattr(account, "status", None) if account else None,
+        mercadopago_last_error=(
+            getattr(account, "last_oauth_error", None)
+            or getattr(account, "last_refresh_error", None)
+            if account
+            else None
+        ),
     )
 
 
@@ -621,6 +628,8 @@ def serialize_payment_provider(provider: object, *, base_url: str | None = None)
     return PaymentProviderRead(
         provider=getattr(provider, "provider", "mercadopago"),
         client_id=getattr(provider, "client_id", None),
+        public_key=getattr(provider, "public_key", None),
+        public_key_masked=mask_secret(getattr(provider, "public_key", None)),
         client_secret_masked="********" if getattr(provider, "client_secret_encrypted", None) else None,
         webhook_secret_masked="********" if provider_webhook_secret_configured(provider) else None,
         webhook_url=build_webhook_url(),
@@ -630,6 +639,12 @@ def serialize_payment_provider(provider: object, *, base_url: str | None = None)
         redirect_uri=getattr(provider, "redirect_uri", None),
         enabled=bool(getattr(provider, "enabled", False)),
         mode=str(getattr(provider, "mode", "sandbox") or "sandbox"),
+        commission_mode=str(getattr(provider, "commission_mode", "fixed") or "fixed"),
+        commission_value=(
+            float(getattr(provider, "commission_value"))
+            if getattr(provider, "commission_value", None) is not None
+            else None
+        ),
         simulated=bool(settings.mercadopago_simulated),
         updated_at=getattr(provider, "updated_at", None),
     )
@@ -644,8 +659,14 @@ def serialize_payment_transaction(transaction: object) -> PaymentTransactionRead
         preference_id=getattr(transaction, "preference_id", None),
         payment_id=getattr(transaction, "payment_id", None),
         status=getattr(transaction, "status", "pending"),
+        provider_status=getattr(transaction, "provider_status", None),
         status_detail=getattr(transaction, "status_detail", None),
         amount_total=float(getattr(transaction, "amount_total", 0) or 0),
+        gross_amount=float(getattr(transaction, "gross_amount", getattr(transaction, "amount_total", 0)) or 0),
+        marketplace_fee=float(
+            getattr(transaction, "marketplace_fee", getattr(transaction, "requested_marketplace_fee", 0)) or 0
+        ),
+        net_amount=float(getattr(transaction, "net_amount", 0) or 0),
         currency=getattr(transaction, "currency", "ARS"),
         requested_marketplace_fee=float(getattr(transaction, "requested_marketplace_fee", 0) or 0),
         approved_marketplace_fee=(
@@ -659,6 +680,8 @@ def serialize_payment_transaction(transaction: object) -> PaymentTransactionRead
         mp_user_id=getattr(transaction, "mp_user_id", None),
         live_mode=getattr(transaction, "live_mode", None),
         checkout_url=getattr(transaction, "checkout_url", None),
+        last_sync_at=getattr(transaction, "last_sync_at", None),
+        last_error=getattr(transaction, "last_error", None),
         created_at=getattr(transaction, "created_at"),
         updated_at=getattr(transaction, "updated_at", None),
     )

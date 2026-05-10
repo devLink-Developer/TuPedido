@@ -199,6 +199,8 @@ export type PlatformSettingsUpdate = {
 export type PaymentProviderConfig = {
   provider: "mercadopago";
   client_id: string | null;
+  public_key: string | null;
+  public_key_masked: string | null;
   client_secret_masked: string | null;
   webhook_secret_masked: string | null;
   webhook_url: string | null;
@@ -208,17 +210,22 @@ export type PaymentProviderConfig = {
   redirect_uri: string | null;
   enabled: boolean;
   mode: "sandbox" | "production";
+  commission_mode: "percentage" | "fixed";
+  commission_value: number | null;
   simulated: boolean;
   updated_at?: string | null;
 };
 
 export type PaymentProviderUpdate = {
   client_id?: string | null;
+  public_key?: string | null;
   client_secret?: string | null;
   webhook_secret?: string | null;
   redirect_uri?: string | null;
   enabled: boolean;
   mode: "sandbox" | "production";
+  commission_mode: "percentage" | "fixed";
+  commission_value?: number | null;
 };
 
 export type MercadoPagoConnectResponse = {

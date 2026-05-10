@@ -2,6 +2,9 @@ import type {
   CheckoutRequest,
   CheckoutResponse,
   CreateOrderReviewPayload,
+  MercadoPagoCardPaymentPayload,
+  MercadoPagoCardPaymentResult,
+  MercadoPagoPaymentSession,
   Order,
   OrderTracking,
   PaymentTransaction,
@@ -25,6 +28,19 @@ export async function checkout(token: string, payload: CheckoutRequest): Promise
   return apiRequest<CheckoutResponse>("/checkout", {
     method: "POST",
     token,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function fetchMercadoPagoPaymentSession(sessionToken: string): Promise<MercadoPagoPaymentSession> {
+  return apiRequest<MercadoPagoPaymentSession>(`/payments/mercadopago/session/${encodeURIComponent(sessionToken)}`);
+}
+
+export async function createMercadoPagoCardPayment(
+  payload: MercadoPagoCardPaymentPayload
+): Promise<MercadoPagoCardPaymentResult> {
+  return apiRequest<MercadoPagoCardPaymentResult>("/payments/mercadopago/card-payment", {
+    method: "POST",
     body: JSON.stringify(payload)
   });
 }

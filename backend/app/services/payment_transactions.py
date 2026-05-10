@@ -82,11 +82,13 @@ def create_payment_transaction(
     order: object,
     store: object,
     external_reference: str,
+    marketplace_fee: object | None = None,
     idempotency_key: str | None = None,
 ) -> PaymentTransaction:
     account = get_store_payment_account(store)
     amount_total = _money(getattr(order, "total", 0))
     service_fee = _money(getattr(order, "service_fee", 0))
+    resolved_marketplace_fee = _money(marketplace_fee if marketplace_fee is not None else service_fee)
     delivery_fee = _money(getattr(order, "delivery_fee_customer", getattr(order, "delivery_fee", 0)) or 0)
     transaction = PaymentTransaction(
         order_id=getattr(order, "id"),
@@ -96,9 +98,12 @@ def create_payment_transaction(
         idempotency_key=(idempotency_key or "").strip() or None,
         status="pending",
         amount_total=amount_total,
+        gross_amount=amount_total,
+        marketplace_fee=resolved_marketplace_fee,
+        net_amount=amount_total - resolved_marketplace_fee,
         currency=PAYMENT_CURRENCY,
-        requested_marketplace_fee=service_fee,
-        seller_expected_amount=amount_total - service_fee,
+        requested_marketplace_fee=resolved_marketplace_fee,
+        seller_expected_amount=amount_total - resolved_marketplace_fee,
         delivery_fee_amount=delivery_fee,
         service_fee_amount=service_fee,
         mp_user_id=getattr(account, "mp_user_id", None) if account else None,
@@ -113,6 +118,12 @@ def attach_preference(transaction: PaymentTransaction, preference: dict[str, Any
     transaction.preference_id = str(preference.get("id") or "") or transaction.preference_id
     transaction.checkout_url = str(preference.get("checkout_url") or "") or transaction.checkout_url
     transaction.preference_raw_json = _serialize_json(preference.get("raw") or preference)
+
+
+def attach_payment_session(transaction: PaymentTransaction, *, checkout_url: str, token: str, expires_at: datetime) -> None:
+    transaction.checkout_url = checkout_url
+    transaction.payment_session_token = token
+    transaction.payment_session_expires_at = expires_at
 
 
 def attach_simulated_checkout(transaction: PaymentTransaction, checkout_url: str) -> None:
@@ -130,14 +141,16 @@ def record_payment_result(
     if payment_id is not None:
         transaction.payment_id = str(payment_id)
     transaction.status = status_value
+    transaction.provider_status = str(payment.get("status") or "") or transaction.provider_status
     transaction.status_detail = str(payment.get("status_detail") or "") or None
     transaction.approved_marketplace_fee = _extract_marketplace_fee(payment)
     transaction.raw_payment_json = _serialize_json(payment)
     live_mode = payment.get("live_mode")
     if live_mode is not None:
         transaction.live_mode = bool(live_mode)
-    if status_value == "approved" and transaction.approved_at is None:
+    if status_value == "paid" and transaction.approved_at is None:
         transaction.approved_at = datetime.now(UTC)
+    transaction.last_error = None
 
 
 def validate_payment_matches_transaction(
@@ -182,10 +195,10 @@ def validate_payment_matches_transaction(
         raise PaymentValidationError("Mercado Pago payment mode does not match the transaction mode")
 
     marketplace_fee = _extract_marketplace_fee(payment)
-    if status_value == "approved" and marketplace_fee is None:
-        raise PaymentValidationError("Mercado Pago payment did not include marketplace_fee")
+    if status_value == "paid" and marketplace_fee is None:
+        raise PaymentValidationError("Mercado Pago payment did not include application_fee")
     if marketplace_fee is not None and marketplace_fee != _money(transaction.requested_marketplace_fee):
-        raise PaymentValidationError("Mercado Pago marketplace_fee does not match the service fee")
+        raise PaymentValidationError("Mercado Pago application_fee does not match the marketplace commission")
 
     if getattr(order, "id", None) != transaction.order_id or getattr(store, "id", None) != transaction.store_id:
         raise PaymentValidationError("Mercado Pago payment does not match the local order/store")

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { WebView, type WebViewNavigation } from "react-native-webview";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -13,10 +13,34 @@ export function PaymentWebViewScreen({ route, navigation }: Props) {
   const { checkoutUrl, orderId } = route.params;
   const [loading, setLoading] = useState(true);
 
+  const shouldReturnToOrder = useCallback(
+    (url: string) => {
+      if (url.includes(`/c/pedido/${orderId}`) || url.includes(`/orders/${orderId}`) || url.includes(`order_id=${orderId}`)) {
+        return true;
+      }
+      try {
+        const parsed = new URL(url);
+        const result = parsed.searchParams.get("payment_result") ?? parsed.searchParams.get("status");
+        return parsed.pathname.includes("/payments/mercadopago/card") && ["paid", "approved", "pending", "processing"].includes(result ?? "");
+      } catch {
+        return false;
+      }
+    },
+    [orderId]
+  );
+
   function maybeReturnToOrder(navState: WebViewNavigation) {
-    if (navState.url.includes(`/c/pedido/${orderId}`) || navState.url.includes(`order_id=${orderId}`)) {
+    if (shouldReturnToOrder(navState.url)) {
       navigation.replace("OrderDetail", { orderId });
     }
+  }
+
+  function handleShouldStartLoad(request: { url: string }) {
+    if (shouldReturnToOrder(request.url)) {
+      navigation.replace("OrderDetail", { orderId });
+      return false;
+    }
+    return true;
   }
 
   return (
@@ -28,8 +52,15 @@ export function PaymentWebViewScreen({ route, navigation }: Props) {
       {loading ? <ActivityIndicator style={styles.loader} color={colors.primary} /> : null}
       <WebView
         source={{ uri: checkoutUrl }}
+        originWhitelist={["http://*", "https://*", "mercadopago://*"]}
+        javaScriptEnabled
+        domStorageEnabled
+        thirdPartyCookiesEnabled
+        sharedCookiesEnabled
+        mixedContentMode="compatibility"
         onLoadEnd={() => setLoading(false)}
         onNavigationStateChange={maybeReturnToOrder}
+        onShouldStartLoadWithRequest={handleShouldStartLoad}
         startInLoadingState
         style={styles.webview}
       />

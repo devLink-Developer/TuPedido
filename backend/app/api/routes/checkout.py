@@ -26,9 +26,14 @@ from app.services.cart_ops import (
 )
 from app.services.delivery import bootstrap_delivery_order, publish_order_snapshot, snapshot_delivery_quote
 from app.services.mercadopago import MercadoPagoAPIError, create_checkout_preference
+from app.modules.payments.mercadopago.commission_service import calculate_marketplace_fee
+from app.modules.payments.mercadopago.payment_service import (
+    build_card_payment_checkout_url,
+    build_card_payment_session_token,
+)
 from app.services.payment_transactions import (
+    attach_payment_session,
     attach_preference,
-    attach_simulated_checkout,
     create_payment_transaction,
 )
 from app.services.promotions import persist_order_promotions
@@ -209,16 +214,16 @@ def validate_checkout_split_payload(
         Decimal("0.00"),
     ).quantize(MONEY_QUANTIZER, rounding=ROUND_HALF_UP)
 
-    if actual_marketplace_fee != service_fee:
-        raise MercadoPagoAPIError("Marketplace fee must match the order service fee")
+    if actual_marketplace_fee < 0 or actual_marketplace_fee > order_total:
+        raise MercadoPagoAPIError("Marketplace fee must be between zero and the order total")
     if items_total != order_total:
         raise MercadoPagoAPIError("Mercado Pago preference items total must match the order total")
     if actual_delivery_fee != expected_delivery_fee:
         raise MercadoPagoAPIError("Delivery fee must remain on the merchant side of the split")
     if actual_service_item_total != service_fee:
         raise MercadoPagoAPIError("Service fee must remain charged to the buyer and mapped to marketplace_fee")
-    if items_total - actual_marketplace_fee != order_total - service_fee:
-        raise MercadoPagoAPIError("Seller settlement amount does not match the expected split payout")
+    if items_total - actual_marketplace_fee < 0:
+        raise MercadoPagoAPIError("Seller settlement amount cannot be negative")
 
 
 @router.post("", response_model=CheckoutResponse, status_code=status.HTTP_201_CREATED)
@@ -344,11 +349,17 @@ def checkout(
         payment_reference = f"mp_{uuid.uuid4().hex[:18]}"
         order.payment_reference = payment_reference
         try:
+            marketplace_fee = calculate_marketplace_fee(
+                db,
+                gross_amount=order.total,
+                fallback_fixed_fee=order.service_fee,
+            )
             payment_transaction = create_payment_transaction(
                 db,
                 order=order,
                 store=store,
                 external_reference=payment_reference,
+                marketplace_fee=marketplace_fee,
                 idempotency_key=idempotency_key,
             )
         except IntegrityError as exc:
@@ -370,12 +381,15 @@ def checkout(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Checkout already exists for this idempotency key",
             ) from exc
-        if settings.mercadopago_simulated:
-            checkout_url = (
-                f"{settings.frontend_base_url}/payments/mercadopago/simulated"
-                f"?reference={payment_reference}&order_id={order.id}"
+        if not settings.mercadopago_checkout_pro_fallback_enabled:
+            session_token, expires_at = build_card_payment_session_token(payment_transaction)
+            checkout_url = build_card_payment_checkout_url(session_token)
+            attach_payment_session(
+                payment_transaction,
+                checkout_url=checkout_url,
+                token=session_token,
+                expires_at=expires_at,
             )
-            attach_simulated_checkout(payment_transaction, checkout_url)
         else:
             primary_items = build_payment_items(order, allow_negative_promotion_item=True)
             fallback_items = (
@@ -383,9 +397,9 @@ def checkout(
                 if _money(order.financial_discount_total) > 0
                 else None
             )
-            validate_checkout_split_payload(order, items=primary_items, marketplace_fee=float(order.service_fee))
+            validate_checkout_split_payload(order, items=primary_items, marketplace_fee=float(marketplace_fee))
             if fallback_items is not None:
-                validate_checkout_split_payload(order, items=fallback_items, marketplace_fee=float(order.service_fee))
+                validate_checkout_split_payload(order, items=fallback_items, marketplace_fee=float(marketplace_fee))
             try:
                 preference = create_checkout_preference(
                     store=store,
@@ -393,7 +407,7 @@ def checkout(
                     order_id=order.id,
                     reference=payment_reference,
                     items=primary_items,
-                    marketplace_fee=float(order.service_fee),
+                    marketplace_fee=float(marketplace_fee),
                     fallback_items=fallback_items,
                 )
             except MercadoPagoAPIError as exc:

@@ -57,6 +57,8 @@ export type StorePaymentSettings = {
   mercadopago_onboarding_completed?: boolean;
   mercadopago_oauth_connected_at?: string | null;
   mercadopago_mp_user_id?: string | null;
+  mercadopago_account_status?: string | null;
+  mercadopago_last_error?: string | null;
 };
 
 export type StoreSummary = {

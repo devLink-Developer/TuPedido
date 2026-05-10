@@ -33,9 +33,13 @@ export const statusLabels: Record<string, string> = {
   delivery_failed: "Entrega fallida",
   cancelled: "Cancelado",
   pending: "Pendiente",
+  processing: "Procesando",
   pending_review: "Pendiente de revision",
   approved: "Aprobado",
+  paid: "Pagado",
   rejected: "Rechazado",
+  refunded: "Reembolsado",
+  chargeback: "Contracargo",
   suspended: "Suspendido"
 };
 

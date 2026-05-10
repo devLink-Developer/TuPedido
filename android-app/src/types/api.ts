@@ -62,6 +62,8 @@ export type StorePaymentSettings = {
   mercadopago_onboarding_completed?: boolean;
   mercadopago_oauth_connected_at?: string | null;
   mercadopago_mp_user_id?: string | null;
+  mercadopago_account_status?: string | null;
+  mercadopago_last_error?: string | null;
 };
 
 export type StoreSummary = {
@@ -361,8 +363,12 @@ export type PaymentTransaction = {
   preference_id: string | null;
   payment_id: string | null;
   status: string;
+  provider_status: string | null;
   status_detail: string | null;
   amount_total: number;
+  gross_amount: number;
+  marketplace_fee: number;
+  net_amount: number;
   currency: string;
   requested_marketplace_fee: number;
   approved_marketplace_fee: number | null;
@@ -372,6 +378,8 @@ export type PaymentTransaction = {
   mp_user_id: string | null;
   live_mode: boolean | null;
   checkout_url: string | null;
+  last_sync_at: string | null;
+  last_error: string | null;
   created_at: string;
   updated_at: string | null;
 };

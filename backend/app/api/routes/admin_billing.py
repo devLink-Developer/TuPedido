@@ -214,8 +214,11 @@ def update_mercadopago_payment_provider(
 ) -> PaymentProviderRead:
     provider = get_or_create_mercadopago_provider(db)
     provider.client_id = (payload.client_id or "").strip() or None
+    provider.public_key = (payload.public_key or "").strip() or None
     provider.redirect_uri = (payload.redirect_uri or "").strip() or None
     provider.mode = payload.mode
+    provider.commission_mode = payload.commission_mode
+    provider.commission_value = payload.commission_value
     provider.enabled = payload.enabled
     if "client_secret" in payload.model_fields_set and (payload.client_secret or "").strip():
         provider.client_secret_encrypted = encrypt_sensitive_value(payload.client_secret.strip())
@@ -228,6 +231,11 @@ def update_mercadopago_payment_provider(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Client ID, Client Secret and Redirect URI are required when Mercado Pago is enabled",
+        )
+    if provider.enabled and not settings.mercadopago_simulated and not provider.public_key:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Public Key is required for Mercado Pago Card Payment Brick",
         )
     if provider.enabled and not is_mercadopago_oauth_client_id(provider.client_id):
         raise HTTPException(
@@ -243,6 +251,11 @@ def update_mercadopago_payment_provider(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Webhook Secret is required when Mercado Pago is enabled for real payments",
+        )
+    if provider.commission_mode == "percentage" and provider.commission_value is not None and provider.commission_value > 100:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Percentage commission cannot exceed 100",
         )
 
     db.commit()

@@ -17,6 +17,7 @@ def configure_environment() -> None:
     os.environ["MERCADOPAGO_SIMULATED"] = "false"
     os.environ["MERCADOPAGO_CLIENT_ID"] = "SMOKE-CLIENT-ID"
     os.environ["MERCADOPAGO_CLIENT_SECRET"] = "SMOKE-CLIENT-SECRET"
+    os.environ["MERCADOPAGO_PUBLIC_KEY"] = "TEST-SMOKE-PUBLIC-KEY"
     os.environ["MERCADOPAGO_WEBHOOK_SECRET"] = "SMOKE-WEBHOOK-SECRET"
     os.environ["MERCADOPAGO_REDIRECT_URI"] = "http://localhost:8016/api/v1/oauth/mercadopago/callback"
     os.environ["FRONTEND_BASE_URL"] = "http://localhost:8015"
@@ -64,9 +65,12 @@ def main() -> None:
             headers=admin_headers,
             json={
                 "client_id": provider_payload["client_id"],
+                "public_key": provider_payload["public_key"],
                 "redirect_uri": provider_payload["redirect_uri"],
                 "enabled": False,
                 "mode": provider_payload["mode"],
+                "commission_mode": provider_payload["commission_mode"],
+                "commission_value": provider_payload["commission_value"],
             },
         )
         disable_provider.raise_for_status()
@@ -87,9 +91,12 @@ def main() -> None:
             headers=admin_headers,
             json={
                 "client_id": provider_payload["client_id"],
+                "public_key": provider_payload["public_key"],
                 "redirect_uri": provider_payload["redirect_uri"],
                 "enabled": True,
                 "mode": provider_payload["mode"],
+                "commission_mode": provider_payload["commission_mode"],
+                "commission_value": provider_payload["commission_value"],
             },
         )
         restore_provider.raise_for_status()

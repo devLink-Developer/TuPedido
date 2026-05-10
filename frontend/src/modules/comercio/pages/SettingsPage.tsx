@@ -731,6 +731,33 @@ export function SettingsPage() {
                   <p>
                     Onboarding: <span className="font-semibold text-ink">{mercadopagoOnboardingCompleted ? "Completo" : "Pendiente"}</span>
                   </p>
+                  <p>
+                    Estado tecnico: <span className="font-semibold text-ink">{store.payment_settings.mercadopago_account_status ?? mercadopagoConnectionStatus}</span>
+                  </p>
+                  <p>
+                    Cobro online: <span className="font-semibold text-ink">{mercadopagoCanOperate ? "Listo" : "No operativo"}</span>
+                  </p>
+                </div>
+                {store.payment_settings.mercadopago_last_error ? (
+                  <p className="rounded border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                    Ultimo error: {store.payment_settings.mercadopago_last_error}
+                  </p>
+                ) : null}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/m/pedidos")}
+                    className="rounded bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
+                  >
+                    Ver pagos en pedidos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/m/liquidaciones")}
+                    className="rounded bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
+                  >
+                    Ver comisiones
+                  </button>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">

@@ -158,11 +158,14 @@ def get_or_create_mercadopago_provider(db: Session) -> PaymentProvider:
         select(PaymentProvider).where(PaymentProvider.provider == MERCADOPAGO_PROVIDER)
     )
     if provider is not None:
+        if not getattr(provider, "public_key", None) and settings.mercadopago_public_key:
+            provider.public_key = settings.mercadopago_public_key
         return provider
 
     provider = PaymentProvider(
         provider=MERCADOPAGO_PROVIDER,
         client_id=settings.mercadopago_client_id,
+        public_key=settings.mercadopago_public_key,
         client_secret_encrypted=encrypt_sensitive_value(settings.mercadopago_client_secret)
         if settings.mercadopago_client_secret
         else None,
@@ -172,6 +175,7 @@ def get_or_create_mercadopago_provider(db: Session) -> PaymentProvider:
         redirect_uri=settings.mercadopago_redirect_uri,
         enabled=_provider_enabled_from_settings(),
         mode="sandbox",
+        commission_mode="fixed",
     )
     db.add(provider)
     db.flush()
@@ -183,6 +187,7 @@ def is_provider_operable(provider: PaymentProvider | None) -> bool:
         provider
         and provider.enabled
         and provider.client_id
+        and (settings.mercadopago_simulated or getattr(provider, "public_key", None) or settings.mercadopago_public_key)
         and provider.client_secret_encrypted
         and (settings.mercadopago_simulated or provider_webhook_secret_configured(provider))
         and provider.redirect_uri
@@ -196,6 +201,8 @@ def ensure_provider_operable(provider: PaymentProvider | None) -> PaymentProvide
         raise MercadoPagoAPIError("Mercado Pago is disabled by the platform configuration")
     if not provider.client_id or not provider.client_secret_encrypted or not provider.redirect_uri:
         raise MercadoPagoAPIError("Mercado Pago is not configured by the platform")
+    if not settings.mercadopago_simulated and not (getattr(provider, "public_key", None) or settings.mercadopago_public_key):
+        raise MercadoPagoAPIError("Mercado Pago integrator public key is not configured by the platform")
     if not is_mercadopago_oauth_client_id(provider.client_id):
         raise MercadoPagoAPIError(
             "Mercado Pago Client ID must be the OAuth Application ID, not a Public Key or Access Token"
@@ -270,6 +277,11 @@ def mercadopago_connection_status(store: object, provider: PaymentProvider | Non
     account = get_store_payment_account(store)
     if account is None:
         return "disconnected"
+    account_status = str(getattr(account, "status", "") or "").lower()
+    if account_status == "revoked":
+        return "disconnected"
+    if account_status == "expired":
+        return "reconnect_required"
     if bool(getattr(account, "reconnect_required", False)):
         return "reconnect_required"
     if (
@@ -370,6 +382,7 @@ def _persist_reconnect_required(store_id: int) -> None:
         )
         if account is None:
             return
+        account.status = "expired"
         account.reconnect_required = True
         account.connected = False
         db.commit()
@@ -415,6 +428,9 @@ def store_oauth_credentials(store: object, data: dict[str, Any]) -> None:
     account.connected = True
     account.onboarding_completed = True
     account.reconnect_required = False
+    account.status = "active"
+    account.last_oauth_error = None
+    account.last_refresh_error = None
 
 
 def disconnect_store_account(store: object) -> None:
@@ -430,6 +446,7 @@ def disconnect_store_account(store: object) -> None:
     account.connected = False
     account.onboarding_completed = False
     account.reconnect_required = False
+    account.status = "revoked"
 
 
 def build_oauth_code_verifier() -> str:
@@ -593,11 +610,19 @@ def refresh_store_access_token(store: object) -> str:
         )
     except httpx.HTTPError as exc:
         _persist_reconnect_required(store_id)
+        account = get_store_payment_account(store)
+        if account is not None:
+            account.last_refresh_error = str(exc)
+            account.status = "expired"
         logger.exception("mercadopago_refresh_failed", extra={"store_id": store_id})
         raise MercadoPagoAPIError(f"Mercado Pago token refresh failed: {exc}") from exc
 
     if response.status_code != 200:
         _persist_reconnect_required(store_id)
+        account = get_store_payment_account(store)
+        if account is not None:
+            account.last_refresh_error = response.text[:1000]
+            account.status = "expired"
         logger.warning(
             "mercadopago_refresh_rejected",
             extra={"store_id": store_id, "status_code": response.status_code},
@@ -607,6 +632,10 @@ def refresh_store_access_token(store: object) -> str:
         )
 
     store_oauth_credentials(store, response.json())
+    account = get_store_payment_account(store)
+    if account is not None:
+        account.last_refresh_at = _now_utc()
+        account.last_refresh_error = None
     return get_store_access_token(store)
 
 
@@ -677,12 +706,12 @@ def _request_with_store_token_retry(
 def build_notification_url(store_id: int, reference: str) -> str:
     base = settings.backend_base_url.rstrip("/")
     query = urlencode({"store_id": store_id, "reference": reference})
-    return f"{base}{settings.api_prefix}/payments/mercadopago/webhook?{query}"
+    return f"{base}{settings.api_prefix}/webhooks/mercadopago?{query}"
 
 
 def build_webhook_url() -> str:
     base = settings.backend_base_url.rstrip("/")
-    return f"{base}{settings.api_prefix}/payments/mercadopago/webhook"
+    return f"{base}{settings.api_prefix}/webhooks/mercadopago"
 
 
 def build_order_return_url(order_id: int) -> str:
@@ -773,12 +802,18 @@ def fetch_payment(payment_id: str | int, store: object) -> dict[str, Any]:
 
 def normalize_payment_status(status: str | None) -> str:
     normalized = (status or "").strip().lower()
-    if normalized == "approved":
-        return "approved"
-    if normalized in {"pending", "in_process", "authorized", "in_mediation"}:
+    if normalized in {"approved", "paid"}:
+        return "paid"
+    if normalized == "pending":
         return "pending"
+    if normalized in {"in_process", "authorized", "in_mediation"}:
+        return "processing"
     if normalized == "cancelled":
         return "cancelled"
-    if normalized in {"rejected", "refunded", "charged_back"}:
+    if normalized == "refunded":
+        return "refunded"
+    if normalized == "charged_back":
+        return "chargeback"
+    if normalized == "rejected":
         return "rejected"
     return "pending"

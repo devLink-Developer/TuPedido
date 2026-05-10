@@ -45,6 +45,8 @@ def configure_environment() -> None:
     os.environ["MERCADOPAGO_SIMULATED"] = "false"
     os.environ["MERCADOPAGO_CLIENT_ID"] = "SMOKE-CLIENT-ID"
     os.environ["MERCADOPAGO_CLIENT_SECRET"] = "SMOKE-CLIENT-SECRET"
+    os.environ["MERCADOPAGO_PUBLIC_KEY"] = "TEST-SMOKE-PUBLIC-KEY"
+    os.environ["MERCADOPAGO_CHECKOUT_PRO_FALLBACK_ENABLED"] = "true"
     os.environ["MERCADOPAGO_WEBHOOK_SECRET"] = WEBHOOK_SECRET
     os.environ["MERCADOPAGO_REDIRECT_URI"] = "http://localhost:8016/api/v1/oauth/mercadopago/callback"
     os.environ["FRONTEND_BASE_URL"] = "http://localhost:8015"
@@ -118,7 +120,7 @@ def _approve_checkout_order(
         headers=_webhook_headers(payment_id),
     )
     webhook.raise_for_status()
-    assert webhook.json()["payment_status"] == "approved"
+    assert webhook.json()["payment_status"] == "paid"
 
 
 def _run_delivery_split_scenario(client, mp) -> None:
@@ -183,7 +185,7 @@ def _run_delivery_split_scenario(client, mp) -> None:
 
         approved_order = client.get(f"/api/v1/orders/{checkout_payload['order_id']}", headers=customer_headers)
         approved_order.raise_for_status()
-        assert approved_order.json()["payment_status"] == "approved"
+        assert approved_order.json()["payment_status"] == "paid"
     finally:
         mp.httpx.request = original_request
 

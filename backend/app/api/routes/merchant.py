@@ -1154,10 +1154,10 @@ def update_order_status(
             detail="Platform delivery orders must be moved by the assigned rider",
         )
     if payload.status == "preparing":
-        if order.payment_method == "mercadopago" and order.payment_status != "approved":
+        if order.payment_method == "mercadopago" and order.payment_status not in {"approved", "paid"}:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Mercado Pago orders must be approved before they can be accepted",
+                detail="Mercado Pago orders must be paid before they can be accepted",
             )
         if order.status not in {"created", "accepted", "preparing"}:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Order cannot be moved to preparing")

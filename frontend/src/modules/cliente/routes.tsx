@@ -4,6 +4,7 @@ import { CartDrawer } from "./components/CartDrawer";
 import { CartPage } from "./pages/CartPage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { CheckoutPage } from "./pages/CheckoutPage";
+import { MercadoPagoCardPaymentPage } from "./pages/MercadoPagoCardPaymentPage";
 import { OrderPage } from "./pages/OrderPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -32,6 +33,10 @@ export function ClienteCartRoute() {
 
 export function ClienteCheckoutRoute() {
   return <CheckoutPage />;
+}
+
+export function MercadoPagoCardPaymentRoute() {
+  return <MercadoPagoCardPaymentPage />;
 }
 
 export function ClienteOrderRoute() {

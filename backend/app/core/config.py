@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     backend_base_url: str = "http://localhost:8016"
     jwt_secret: str = "kepedimos-dev-secret"
     jwt_algorithm: str = "HS256"
+    sensitive_data_keys: str | None = None
+    active_key_id: str = "default"
     access_token_expire_minutes: int = 1440
     seed_demo_data: bool = True
     bootstrap_admin_enabled: bool = True
@@ -38,8 +40,12 @@ class Settings(BaseSettings):
     mercadopago_client_id: str | None = None
     mercadopago_client_secret: str | None = None
     mercadopago_webhook_secret: str | None = None
+    mercadopago_public_key: str | None = None
     mercadopago_webhook_signature_tolerance_seconds: int = 300
     mercadopago_redirect_uri: str | None = None
+    mercadopago_checkout_pro_fallback_enabled: bool = False
+    mercadopago_payment_session_expire_minutes: int = 30
+    mercadopago_card_payment_base_url: str | None = None
     osrm_base_url: str = "https://router.project-osrm.org"
     map_style_url: str = "https://demotiles.maplibre.org/style.json"
     address_lookup_base_url: str = "https://api.zippopotam.us"

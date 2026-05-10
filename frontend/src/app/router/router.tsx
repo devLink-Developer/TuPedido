@@ -29,6 +29,7 @@ import {
   LazyComercioSettingsRoute,
   LazyForcePasswordChangeRoute,
   LazyLandingRoute,
+  LazyMercadoPagoCardPaymentRoute,
   LazyLoginRoute,
   LazyMercadoPagoSimulatedRoute,
   LazyMerchantRegistrationRoute,
@@ -64,6 +65,7 @@ export const router = createBrowserRouter([
         )
       },
       { path: "payments/mercadopago/simulated", element: <LazyMercadoPagoSimulatedRoute /> },
+      { path: "payments/mercadopago/card", element: <LazyMercadoPagoCardPaymentRoute /> },
       {
         path: "cambiar-contrasena",
         element: (

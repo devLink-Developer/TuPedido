@@ -23,6 +23,10 @@ export const LazyMercadoPagoSimulatedRoute = createLazyRoute(
   () => import("../../app/pages/public"),
   "MercadoPagoSimulatedPage"
 );
+export const LazyMercadoPagoCardPaymentRoute = createLazyRoute(
+  () => import("../../modules/cliente/routes"),
+  "MercadoPagoCardPaymentRoute"
+);
 
 export const LazyForcePasswordChangeRoute = createLazyRoute(
   () => import("../../modules/auth/routes"),

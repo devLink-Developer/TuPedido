@@ -4,6 +4,7 @@ import asyncio
 import logging
 
 from app.db.session import SessionLocal
+from app.modules.payments.mercadopago.sync_service import run_mercadopago_maintenance_once
 from app.services.delivery import expire_pending_offers, mark_stale_tracking
 from app.services.push_notifications import process_queued_push_notifications
 
@@ -16,7 +17,8 @@ def run_delivery_maintenance_once() -> None:
         expired = expire_pending_offers(db)
         stale = mark_stale_tracking(db)
         push_processed = process_queued_push_notifications(db)
-        if expired or stale or push_processed:
+        mercadopago_result = run_mercadopago_maintenance_once(db)
+        if expired or stale or push_processed or any(mercadopago_result.values()):
             db.commit()
     except Exception:
         db.rollback()
