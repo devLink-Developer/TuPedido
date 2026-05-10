@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { AdminLayout } from "../../app/layouts/AdminLayout";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LiquidationsPage } from "./pages/LiquidationsPage";
+import { MercadoPagoPage } from "./pages/MercadoPagoPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { StoresPage } from "./pages/StoresPage";
@@ -33,6 +34,10 @@ export function AdminStoresRoute() {
 
 export function AdminOrdersRoute() {
   return <OrdersPage />;
+}
+
+export function AdminMercadoPagoRoute() {
+  return <MercadoPagoPage />;
 }
 
 export function AdminSettingsRoute() {

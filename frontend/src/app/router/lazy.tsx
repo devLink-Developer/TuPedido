@@ -108,4 +108,8 @@ export const LazyAdminLiquidationsRoute = createLazyRoute(
 export const LazyAdminUsersRoute = createLazyRoute(() => import("../../modules/admin/routes"), "AdminUsersRoute");
 export const LazyAdminStoresRoute = createLazyRoute(() => import("../../modules/admin/routes"), "AdminStoresRoute");
 export const LazyAdminOrdersRoute = createLazyRoute(() => import("../../modules/admin/routes"), "AdminOrdersRoute");
+export const LazyAdminMercadoPagoRoute = createLazyRoute(
+  () => import("../../modules/admin/routes"),
+  "AdminMercadoPagoRoute"
+);
 export const LazyAdminSettingsRoute = createLazyRoute(() => import("../../modules/admin/routes"), "AdminSettingsRoute");

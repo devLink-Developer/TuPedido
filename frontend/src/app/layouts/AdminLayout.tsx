@@ -10,6 +10,7 @@ const navItems = [
   { to: "/a/usuarios", label: "Usuarios" },
   { to: "/a/comercios", label: "Comercios" },
   { to: "/a/pedidos", label: "Pedidos" },
+  { to: "/a/mercadopago", label: "Mercado Pago" },
   { to: "/a/configuracion", label: "Configuracion" }
 ];
 

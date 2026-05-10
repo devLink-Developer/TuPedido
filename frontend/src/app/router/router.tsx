@@ -6,6 +6,7 @@ import { RouteErrorBoundary } from "./RouteErrorBoundary";
 import {
   LazyAdminDashboardRoute,
   LazyAdminLiquidationsRoute,
+  LazyAdminMercadoPagoRoute,
   LazyAdminModuleLayoutRoute,
   LazyAdminOrdersRoute,
   LazyAdminSettingsRoute,
@@ -147,6 +148,7 @@ export const router = createBrowserRouter([
               { path: "usuarios", element: <LazyAdminUsersRoute /> },
               { path: "comercios", element: <LazyAdminStoresRoute /> },
               { path: "pedidos", element: <LazyAdminOrdersRoute /> },
+              { path: "mercadopago", element: <LazyAdminMercadoPagoRoute /> },
               { path: "configuracion", element: <LazyAdminSettingsRoute /> }
             ]
           }
