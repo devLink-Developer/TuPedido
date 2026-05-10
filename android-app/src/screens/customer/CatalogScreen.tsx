@@ -61,7 +61,7 @@ export function CatalogScreen(_props: Props) {
   const refreshStores = useCallback(async () => {
     const nextStores = await fetchStores(storeQueryParams);
     setStores(nextStores);
-    if (token) await refreshCart().catch(() => null);
+    if (token) await refreshCart({ silent: true }).catch(() => null);
   }, [refreshCart, storeQueryParams, token]);
 
   const load = useCallback(async () => {
@@ -78,7 +78,7 @@ export function CatalogScreen(_props: Props) {
       setBranding(nextBranding);
       setBanner(nextBanner);
       setStores(nextStores);
-      if (token) await refreshCart().catch(() => null);
+      if (token) await refreshCart({ silent: true }).catch(() => null);
     } catch (loadError) {
       setError(friendlyErrorMessage(loadError, "No pudimos cargar el catálogo"));
     } finally {
@@ -161,7 +161,7 @@ export function CatalogScreen(_props: Props) {
                       onPress={() => setDeliveryFilter(filter.key)}
                       style={({ pressed }) => [styles.deliveryFilter, active && styles.deliveryFilterActive, pressed && styles.categoryPressed]}
                     >
-                      <Text style={[styles.deliveryFilterText, active && styles.deliveryFilterTextActive]}>{filter.label}</Text>
+                      <Text style={[styles.deliveryFilterText, active && styles.deliveryFilterTextActive]} numberOfLines={1}>{filter.label}</Text>
                     </Pressable>
                   );
                 })}
@@ -184,7 +184,7 @@ export function CatalogScreen(_props: Props) {
                     onPress={() => setSelectedCategory(item.slug || undefined)}
                     style={({ pressed }) => [styles.category, active && styles.categoryActive, pressed && styles.categoryPressed]}
                   >
-                    <Text style={[styles.categoryText, active && styles.categoryTextActive]}>{item.name}</Text>
+                    <Text style={[styles.categoryText, active && styles.categoryTextActive]} numberOfLines={1}>{item.name}</Text>
                   </Pressable>
                 );
               }}
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   deliveryFilter: {
     flex: 1,
-    minHeight: 44,
+    minHeight: 36,
     borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: colors.border,
@@ -288,6 +288,7 @@ const styles = StyleSheet.create({
   },
   deliveryFilterText: {
     color: colors.text,
+    fontSize: 13,
     fontWeight: "900"
   },
   deliveryFilterTextActive: {
@@ -298,8 +299,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs
   },
   category: {
-    minHeight: 44,
-    paddingHorizontal: spacing.md,
+    width: 96,
+    minHeight: 36,
+    paddingHorizontal: spacing.sm,
     borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: colors.border,
@@ -316,6 +318,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     color: colors.text,
+    fontSize: 13,
     fontWeight: "800"
   },
   categoryTextActive: {

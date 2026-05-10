@@ -9,6 +9,7 @@ import { useAuth } from "../state/AuthContext";
 import { AppFeedbackProvider } from "../state/AppFeedbackContext";
 import { CartProvider } from "../state/CartContext";
 import { NotificationsProvider } from "../state/NotificationsContext";
+import { OrderReviewPromptProvider } from "../state/OrderReviewPromptContext";
 import type { AuthStackParamList, CustomerTabsParamList, DeliveryTabsParamList, RootStackParamList } from "./types";
 import { homeForRole } from "./roleRouting";
 import { LandingScreen } from "../screens/auth/LandingScreen";
@@ -132,43 +133,45 @@ export function RootNavigator() {
     <CartProvider>
       <AppFeedbackProvider>
         <NotificationsProvider>
-          <NavigationContainer theme={navigationTheme}>
-          <RootStack.Navigator
-          screenOptions={{
-            headerTintColor: colors.text,
-            headerTitleStyle: { color: colors.text, fontWeight: "800", fontSize: 20 },
-            headerStyle: { backgroundColor: colors.surface },
-            headerShadowVisible: false,
-            contentStyle: { backgroundColor: colors.background }
-          }}
-        >
-          {!user ? (
-            <>
-              <RootStack.Screen name="Auth" component={AuthStackNavigator} options={{ headerShown: false }} />
-              <RootStack.Screen name="PublicCatalog" component={PublicCatalogScreen} options={{ headerShown: false }} />
-              <RootStack.Screen name="StoreDetail" component={StoreDetailScreen} options={{ title: "Comercio" }} />
-            </>
-          ) : home === "CustomerTabs" ? (
-            <>
-              <RootStack.Screen name="CustomerTabs" component={CustomerTabsNavigator} options={{ headerShown: false }} />
-              <RootStack.Screen name="StoreDetail" component={StoreDetailScreen} options={{ title: "Comercio" }} />
-              <RootStack.Screen name="Cart" component={CartScreen} options={{ title: "Carrito" }} />
-              <RootStack.Screen name="Checkout" component={CheckoutScreen} options={{ title: "Confirmar pedido" }} />
-              <RootStack.Screen name="OrderDetail" component={OrderDetailScreen} options={{ title: "Pedido" }} />
-              <RootStack.Screen name="PaymentWebView" component={PaymentWebViewScreen} options={{ headerShown: false }} />
-              <RootStack.Screen name="Notifications" component={NotificationsScreen} options={{ title: "Notificaciones" }} />
-            </>
-          ) : home === "DeliveryTabs" ? (
-            <>
-              <RootStack.Screen name="DeliveryTabs" component={DeliveryTabsNavigator} options={{ headerShown: false }} />
-              <RootStack.Screen name="DeliveryOrderDetail" component={DeliveryOrderDetailScreen} options={{ title: "Entrega" }} />
-              <RootStack.Screen name="Notifications" component={NotificationsScreen} options={{ title: "Notificaciones" }} />
-            </>
-          ) : (
-            <RootStack.Screen name="UnsupportedRole" component={UnsupportedRoleScreen} options={{ headerShown: false }} />
-          )}
-          </RootStack.Navigator>
-          </NavigationContainer>
+          <OrderReviewPromptProvider>
+            <NavigationContainer theme={navigationTheme}>
+              <RootStack.Navigator
+                screenOptions={{
+                  headerTintColor: colors.text,
+                  headerTitleStyle: { color: colors.text, fontWeight: "800", fontSize: 20 },
+                  headerStyle: { backgroundColor: colors.surface },
+                  headerShadowVisible: false,
+                  contentStyle: { backgroundColor: colors.background }
+                }}
+              >
+                {!user ? (
+                  <>
+                    <RootStack.Screen name="Auth" component={AuthStackNavigator} options={{ headerShown: false }} />
+                    <RootStack.Screen name="PublicCatalog" component={PublicCatalogScreen} options={{ headerShown: false }} />
+                    <RootStack.Screen name="StoreDetail" component={StoreDetailScreen} options={{ title: "Comercio" }} />
+                  </>
+                ) : home === "CustomerTabs" ? (
+                  <>
+                    <RootStack.Screen name="CustomerTabs" component={CustomerTabsNavigator} options={{ headerShown: false }} />
+                    <RootStack.Screen name="StoreDetail" component={StoreDetailScreen} options={{ title: "Comercio" }} />
+                    <RootStack.Screen name="Cart" component={CartScreen} options={{ title: "Carrito" }} />
+                    <RootStack.Screen name="Checkout" component={CheckoutScreen} options={{ title: "Confirmar pedido" }} />
+                    <RootStack.Screen name="OrderDetail" component={OrderDetailScreen} options={{ title: "Pedido" }} />
+                    <RootStack.Screen name="PaymentWebView" component={PaymentWebViewScreen} options={{ headerShown: false }} />
+                    <RootStack.Screen name="Notifications" component={NotificationsScreen} options={{ title: "Notificaciones" }} />
+                  </>
+                ) : home === "DeliveryTabs" ? (
+                  <>
+                    <RootStack.Screen name="DeliveryTabs" component={DeliveryTabsNavigator} options={{ headerShown: false }} />
+                    <RootStack.Screen name="DeliveryOrderDetail" component={DeliveryOrderDetailScreen} options={{ title: "Entrega" }} />
+                    <RootStack.Screen name="Notifications" component={NotificationsScreen} options={{ title: "Notificaciones" }} />
+                  </>
+                ) : (
+                  <RootStack.Screen name="UnsupportedRole" component={UnsupportedRoleScreen} options={{ headerShown: false }} />
+                )}
+              </RootStack.Navigator>
+            </NavigationContainer>
+          </OrderReviewPromptProvider>
         </NotificationsProvider>
       </AppFeedbackProvider>
     </CartProvider>

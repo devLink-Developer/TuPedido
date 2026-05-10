@@ -41,6 +41,7 @@ export function DeliveryOrderDetailScreen({ route }: Props) {
   const [tracking, setTracking] = useState<OrderTracking | null>(null);
   const [directions, setDirections] = useState<DirectionsRead | null>(null);
   const [otp, setOtp] = useState("");
+  const [otpFeedback, setOtpFeedback] = useState<string | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
   const { data: order, setData: setOrder, loading, error, reload } = useAsyncLoad<Order>(
     async () => {
@@ -113,6 +114,13 @@ export function DeliveryOrderDetailScreen({ route }: Props) {
   const updateOrder = useCallback(
     async (action: "accept" | "pickup" | "deliver") => {
       if (!token || !order) return;
+      setOtpFeedback(null);
+      if (action === "deliver" && order.otp_required && !otp.trim()) {
+        const message = "Ingresá el código de entrega que ve el cliente.";
+        setOtpFeedback(message);
+        showError("Falta el código", message);
+        return;
+      }
       try {
         const nextOrder =
           action === "accept"
@@ -123,7 +131,9 @@ export function DeliveryOrderDetailScreen({ route }: Props) {
         setOrder(nextOrder);
         if (action === "deliver") await stopDeliveryLocationTracking();
       } catch (actionError) {
-        showError("Acción no disponible", friendlyErrorMessage(actionError));
+        const message = friendlyErrorMessage(actionError);
+        if (action === "deliver") setOtpFeedback(message);
+        showError(action === "deliver" ? "No pudimos confirmar la entrega" : "Acción no disponible", message);
       }
     },
     [order, otp, setOrder, showError, token]
@@ -198,7 +208,22 @@ export function DeliveryOrderDetailScreen({ route }: Props) {
 
       <Card style={styles.card}>
         <Text style={styles.subTitle}>Entrega</Text>
-        {order.otp_required ? <TextField label="Código OTP" value={otp} onChangeText={setOtp} keyboardType="number-pad" /> : <Text style={styles.meta}>Este pedido no requiere OTP.</Text>}
+        {order.otp_required ? (
+          <>
+            <TextField
+              label="Código de entrega"
+              value={otp}
+              onChangeText={(value) => {
+                setOtp(value);
+                setOtpFeedback(null);
+              }}
+              keyboardType="number-pad"
+            />
+            {otpFeedback ? <Text style={styles.otpError}>{otpFeedback}</Text> : null}
+          </>
+        ) : (
+          <Text style={styles.meta}>Este pedido no requiere código.</Text>
+        )}
         <AppButton title="Marcar entregado" icon="checkmark-done-outline" onPress={() => void updateOrder("deliver")} fullWidth />
       </Card>
 
@@ -245,6 +270,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm
+  },
+  otpError: {
+    color: colors.danger,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: 12,
+    padding: spacing.md,
+    fontWeight: "800",
+    lineHeight: 18
   },
   line: {
     flexDirection: "row",

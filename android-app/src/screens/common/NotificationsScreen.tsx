@@ -7,7 +7,7 @@ import { Screen } from "../../components/Screen";
 import { SectionHeader } from "../../components/SectionHeader";
 import { StateMessage } from "../../components/StateMessage";
 import type { RootStackParamList } from "../../navigation/types";
-import { markNotificationRead } from "../../services/api";
+import { markAllNotificationsRead, markNotificationRead } from "../../services/api";
 import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useAuth } from "../../state/AuthContext";
 import { useNotificationsState } from "../../state/NotificationsContext";
@@ -20,8 +20,9 @@ type Navigation = NativeStackNavigationProp<RootStackParamList>;
 export function NotificationsScreen() {
   const navigation = useNavigation<Navigation>();
   const { token, user } = useAuth();
-  const { showError } = useAppFeedback();
+  const { showError, showSuccess } = useAppFeedback();
   const { notifications, setNotifications, error } = useNotificationsState();
+  const unreadCount = notifications.filter((item) => !item.is_read).length;
 
   async function markRead(id: number) {
     if (!token) return;
@@ -30,6 +31,17 @@ export function NotificationsScreen() {
       setNotifications((current) => current.map((item) => (item.id === id ? updated : item)));
     } catch (markError) {
       showError("No se pudo marcar", friendlyErrorMessage(markError));
+    }
+  }
+
+  async function markAllRead() {
+    if (!token || unreadCount === 0) return;
+    try {
+      const updated = await markAllNotificationsRead(token);
+      setNotifications(updated);
+      showSuccess("Notificaciones leídas", "Marcamos todas tus novedades como leídas.");
+    } catch (markError) {
+      showError("No se pudieron marcar", friendlyErrorMessage(markError));
     }
   }
 
@@ -45,7 +57,14 @@ export function NotificationsScreen() {
   return (
     <Screen noScroll>
       <View style={styles.wrap}>
-        <SectionHeader size="large" title="Notificaciones" description={error ?? "Novedades de tus pedidos y tu cuenta."} />
+        <View style={styles.headerRow}>
+          <View style={styles.headerCopy}>
+            <SectionHeader size="large" title="Notificaciones" description={error ?? "Novedades de tus pedidos y tu cuenta."} />
+          </View>
+          {unreadCount ? (
+            <AppButton title="Marcar todas" icon="checkmark-done-outline" onPress={() => void markAllRead()} variant="ghost" />
+          ) : null}
+        </View>
         <FlatList
           data={notifications}
           keyExtractor={(item) => String(item.id)}
@@ -89,6 +108,16 @@ const styles = StyleSheet.create({
   list: {
     gap: spacing.md,
     paddingBottom: spacing.xl
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+    marginBottom: spacing.md
+  },
+  headerCopy: {
+    flex: 1,
+    minWidth: 0
   },
   pressed: {
     opacity: 0.78

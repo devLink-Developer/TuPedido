@@ -19,7 +19,7 @@ def configure_environment() -> None:
     os.environ.setdefault("BACKEND_BASE_URL", "http://localhost:8016")
 
 
-def _seed_reviewable_orders() -> tuple[int, int]:
+def _seed_reviewable_orders() -> tuple[int, int, int]:
     from app.db.session import SessionLocal
     from app.models.order import StoreOrder
     from app.models.store import Store
@@ -131,8 +131,37 @@ def _seed_reviewable_orders() -> tuple[int, int]:
             review_prompt_enabled=False,
         )
         db.add(historical_order)
+        recent_order = StoreOrder(
+            user_id=customer.id,
+            store_id=store.id,
+            address_id=address.id,
+            delivery_mode="pickup",
+            payment_method="cash",
+            payment_status="approved",
+            customer_name_snapshot=customer.full_name,
+            store_name_snapshot=store.name,
+            store_slug_snapshot=store.slug,
+            store_address_snapshot=store.address,
+            address_label_snapshot=address.label,
+            address_full_snapshot=f"{address.street} {address.details}",
+            subtotal=700,
+            commercial_discount_total=0,
+            financial_discount_total=0,
+            delivery_fee=0,
+            service_fee=0,
+            delivery_fee_customer=0,
+            rider_fee=0,
+            total=700,
+            status="delivered",
+            delivery_status="delivered",
+            delivery_provider="pickup",
+            otp_required=False,
+            delivered_at=now - timedelta(minutes=2),
+            review_prompt_enabled=True,
+        )
+        db.add(recent_order)
         db.commit()
-        return first_order.id, second_order.id
+        return first_order.id, second_order.id, recent_order.id
     finally:
         db.close()
 
@@ -145,6 +174,7 @@ def run_smoke() -> None:
     from app.models.delivery import DeliveryProfile
     from app.models.order import OrderReview
     from app.models.store import Store
+    from app.models.user import User
 
     DB_PATH.unlink(missing_ok=True)
 
@@ -157,7 +187,7 @@ def run_smoke() -> None:
         token = login.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
-        first_order_id, second_order_id = _seed_reviewable_orders()
+        first_order_id, second_order_id, recent_order_id = _seed_reviewable_orders()
 
         pending = client.get("/api/v1/orders/pending-review", headers=headers)
         pending.raise_for_status()
@@ -184,6 +214,13 @@ def run_smoke() -> None:
             json={"store_rating": 4},
         )
         assert missing_rider.status_code == 400, missing_rider.text
+
+        too_early = client.post(
+            f"/api/v1/orders/{recent_order_id}/review",
+            headers=headers,
+            json={"store_rating": 5, "review_text": "Todavia no deberia habilitarse."},
+        )
+        assert too_early.status_code == 409, too_early.text
 
         submit_second = client.post(
             f"/api/v1/orders/{second_order_id}/review",

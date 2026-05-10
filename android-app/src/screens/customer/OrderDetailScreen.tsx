@@ -7,12 +7,12 @@ import { MapPreview } from "../../components/MapPreview";
 import { Screen } from "../../components/Screen";
 import { SectionHeader } from "../../components/SectionHeader";
 import { StateMessage } from "../../components/StateMessage";
-import { TextField } from "../../components/TextField";
 import { useAsyncLoad } from "../../hooks/useAsyncLoad";
 import { useOrderRealtime } from "../../hooks/useOrderRealtime";
-import { createOrderReview, fetchDirections, fetchOrder, fetchOrderPayment, fetchOrderTracking } from "../../services/api";
+import { fetchDirections, fetchOrder, fetchOrderPayment, fetchOrderTracking } from "../../services/api";
 import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useAuth } from "../../state/AuthContext";
+import { useOrderReviewPrompt } from "../../state/OrderReviewPromptContext";
 import { colors, spacing } from "../../theme";
 import type { DirectionsRead, Order, OrderTracking, RouteCoordinate, RouteProfile } from "../../types/api";
 import type { RootStackParamList } from "../../navigation/types";
@@ -21,6 +21,7 @@ import { formatCurrency, formatDateTime } from "../../utils/format";
 import { labelForStatus, paymentMethodLabels } from "../../utils/labels";
 
 type Props = NativeStackScreenProps<RootStackParamList, "OrderDetail">;
+const REVIEW_PROMPT_DELAY_MS = 10 * 60 * 1000;
 
 function toRouteCoordinate(latitude: number | null | undefined, longitude: number | null | undefined): RouteCoordinate | null {
   if (typeof latitude !== "number" || typeof longitude !== "number") return null;
@@ -36,13 +37,11 @@ function routeProfileForVehicle(vehicle: string | null | undefined): RouteProfil
 export function OrderDetailScreen({ route, navigation }: Props) {
   const { orderId } = route.params;
   const { token } = useAuth();
-  const { showDialog, showError, showSuccess } = useAppFeedback();
+  const { showDialog, showError } = useAppFeedback();
+  const { openReviewPrompt } = useOrderReviewPrompt();
   const [tracking, setTracking] = useState<OrderTracking | null>(null);
   const [directions, setDirections] = useState<DirectionsRead | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
-  const [reviewText, setReviewText] = useState("");
-  const [storeRating, setStoreRating] = useState("5");
-  const [riderRating, setRiderRating] = useState("5");
   const { data: order, setData: setOrder, loading, error, reload } = useAsyncLoad<Order>(
     async () => {
       if (!token) throw new Error("Sesión no disponible");
@@ -123,19 +122,15 @@ export function OrderDetailScreen({ route, navigation }: Props) {
     }
   }, [orderId, reload, showDialog, showError, token]);
 
-  async function submitReview() {
-    if (!token || !order) return;
-    try {
-      await createOrderReview(token, order.id, {
-        store_rating: Number(storeRating) || 5,
-        rider_rating: Number(riderRating) || null,
-        review_text: reviewText.trim() || null
-      });
-      showSuccess("Gracias", "Tu calificación fue guardada.");
-      await reload();
-    } catch (reviewError) {
-      showError("No se pudo guardar", friendlyErrorMessage(reviewError));
-    }
+  function openOrderReview() {
+    if (!order) return;
+    openReviewPrompt({
+      order_id: order.id,
+      store_name: order.store_name,
+      delivered_at: order.delivered_at,
+      rider_name: order.assigned_rider_name,
+      requires_rider_rating: Boolean(order.assigned_rider_id)
+    });
   }
 
   if (loading && !order) {
@@ -204,13 +199,16 @@ export function OrderDetailScreen({ route, navigation }: Props) {
 
       {order.status === "delivered" ? (
         <Card style={styles.card}>
-          <Text style={styles.subTitle}>Calificar pedido</Text>
-          <View style={styles.ratingRow}>
-            <TextField label="Comercio" value={storeRating} onChangeText={setStoreRating} keyboardType="number-pad" />
-            <TextField label="Repartidor" value={riderRating} onChangeText={setRiderRating} keyboardType="number-pad" />
-          </View>
-          <TextField label="Comentario" value={reviewText} onChangeText={setReviewText} multiline />
-          <AppButton title="Enviar calificación" icon="star-outline" onPress={() => void submitReview()} />
+          <Text style={styles.subTitle}>Calificar experiencia</Text>
+          <Text style={styles.meta}>
+            La solicitud se habilita 10 minutos después de recibir el pedido para que puedas revisarlo con calma.
+          </Text>
+          <AppButton
+            title="Calificar ahora"
+            icon="star-outline"
+            onPress={openOrderReview}
+            disabled={!order.delivered_at || Date.now() - new Date(order.delivered_at).getTime() < REVIEW_PROMPT_DELAY_MS}
+          />
         </Card>
       ) : null}
 
@@ -270,9 +268,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "900",
     marginTop: spacing.sm
-  },
-  ratingRow: {
-    flexDirection: "row",
-    gap: spacing.md
   }
 });

@@ -20,6 +20,7 @@ from app.schemas.order import (
 from app.services.order_runtime import build_order_options
 from app.services.order_reviews import (
     find_oldest_pending_review_order,
+    is_review_available,
     normalize_review_text,
     recalculate_rider_rating,
     recalculate_store_rating,
@@ -111,6 +112,8 @@ def create_order_review(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Order is not delivered")
     if not order.review_prompt_enabled:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Order review is not enabled")
+    if not is_review_available(order):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Order review is not available yet")
     if db.scalar(select(OrderReview.id).where(OrderReview.order_id == order.id)) is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Order review already exists")
 

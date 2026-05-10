@@ -42,6 +42,22 @@ def mark_notification_read(
     return serialize_notification(notification).model_dump()
 
 
+@router.put("/read-all")
+def mark_all_notifications_read(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[dict[str, object]]:
+    notifications = db.scalars(
+        select(NotificationEvent)
+        .where(NotificationEvent.user_id == user.id)
+        .order_by(NotificationEvent.created_at.desc(), NotificationEvent.id.desc())
+    ).all()
+    for notification in notifications:
+        notification.is_read = True
+    db.commit()
+    return [serialize_notification(notification).model_dump() for notification in notifications]
+
+
 @router.post("/push-subscriptions", status_code=status.HTTP_201_CREATED)
 def create_push_subscription(
     payload: PushSubscriptionWrite,

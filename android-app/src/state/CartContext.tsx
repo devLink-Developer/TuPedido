@@ -7,7 +7,7 @@ type CartContextValue = {
   cart: Cart | null;
   loading: boolean;
   itemCount: number;
-  refreshCart: () => Promise<Cart | null>;
+  refreshCart: (options?: { silent?: boolean }) => Promise<Cart | null>;
   setCart: (cart: Cart | null) => void;
 };
 
@@ -18,18 +18,18 @@ export function CartProvider({ children }: PropsWithChildren) {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const refreshCart = useCallback(async () => {
+  const refreshCart = useCallback(async (options?: { silent?: boolean }) => {
     if (!token || user?.role !== "customer") {
       setCart(null);
       return null;
     }
-    setLoading(true);
+    if (!options?.silent) setLoading(true);
     try {
       const nextCart = await fetchCartRequest(token);
       setCart(nextCart);
       return nextCart;
     } finally {
-      setLoading(false);
+      if (!options?.silent) setLoading(false);
     }
   }, [token, user?.role]);
 

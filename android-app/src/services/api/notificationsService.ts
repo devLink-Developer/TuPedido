@@ -12,4 +12,11 @@ export function markNotificationRead(token: string, notificationId: number): Pro
   });
 }
 
+export function markAllNotificationsRead(token: string): Promise<AppNotification[]> {
+  return apiRequest<AppNotification[]>("/notifications/read-all", {
+    method: "PUT",
+    token
+  });
+}
+
 export { buildNotificationsSocketUrl };

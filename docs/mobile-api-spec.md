@@ -889,6 +889,8 @@ GET /orders/pending-review
 Authorization: Bearer <access_token>
 ```
 
+Solo devuelve pedidos entregados con review pendiente cuando ya pasaron 10 minutos desde `delivered_at`.
+
 Response si hay review pendiente:
 
 ```json
@@ -920,11 +922,17 @@ Body:
 {
   "store_rating": 5,
   "rider_rating": 5,
-  "review_text": "Muy buen servicio"
+  "review_text": "Pedido: Muy rico\nRepartidor: Muy buen servicio"
 }
 ```
 
 Response: `204 No Content`.
+
+Notas:
+
+- `store_rating` y `rider_rating` aceptan valores de 1 a 5.
+- `rider_rating` es requerido si el pedido tuvo repartidor asignado.
+- El backend rechaza la review antes de los 10 minutos posteriores a la entrega.
 
 ## Notificaciones
 
@@ -963,6 +971,15 @@ PUT /notifications/{notification_id}/read
 Authorization: Bearer <access_token>
 ```
 
+### Marcar todas como leidas
+
+```http
+PUT /notifications/read-all
+Authorization: Bearer <access_token>
+```
+
+Response: lista de notificaciones actualizadas.
+
 ### Registrar push subscription
 
 ```http
@@ -982,6 +999,8 @@ Body:
   "user_agent": "mobile-app"
 }
 ```
+
+Nota para app nativa Android: la app pide permiso `POST_NOTIFICATIONS` y puede mostrar notificaciones locales mientras el proceso esta vivo. Para recibir notificaciones con la app cerrada completamente hace falta envio push remoto desde backend mediante FCM/Expo Push y registrar el token nativo del dispositivo.
 
 ## WebSockets
 

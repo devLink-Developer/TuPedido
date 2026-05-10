@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { AppState } from "react-native";
+import { ensureNativeNotificationPermissions, scheduleReviewReminderNotification, showNativeNotification } from "../notifications/nativeNotifications";
 import { useRealtimeNotifications } from "../hooks/useRealtimeNotifications";
 import { useAppFeedback } from "./AppFeedbackContext";
 import { useAuth } from "./AuthContext";
@@ -21,6 +23,11 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const unreadCount = useMemo(() => notifications.filter((item) => !item.is_read).length, [notifications]);
 
   useEffect(() => {
+    if (!token || !user) return;
+    void ensureNativeNotificationPermissions().catch(() => undefined);
+  }, [token, user]);
+
+  useEffect(() => {
     const nextIds = new Set(notifications.map((item) => item.id));
     if (!seenIdsRef.current) {
       seenIdsRef.current = nextIds;
@@ -31,11 +38,18 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     const freshUnread = notifications.find((item) => !item.is_read && !previousIds.has(item.id));
     seenIdsRef.current = nextIds;
     if (freshUnread) {
-      showDialog({
-        title: freshUnread.title || "Novedad del pedido",
-        message: freshUnread.body || "Tu pedido tuvo una actualización.",
-        variant: "info"
-      });
+      if (freshUnread.event_type === "order.delivered" && freshUnread.order_id) {
+        void scheduleReviewReminderNotification(freshUnread.order_id, "tu pedido").catch(() => undefined);
+      }
+      if (AppState.currentState === "active") {
+        showDialog({
+          title: freshUnread.title || "Novedad del pedido",
+          message: freshUnread.body || "Tu pedido tuvo una actualización.",
+          variant: "info"
+        });
+      } else {
+        void showNativeNotification(freshUnread).catch(() => undefined);
+      }
     }
   }, [notifications, showDialog]);
 

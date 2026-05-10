@@ -5,6 +5,8 @@ const KNOWN_MESSAGES: Array<[RegExp, string]> = [
   ],
   [/invalid credentials|incorrect email|wrong password|credenciales/i, "Email o contraseña incorrectos."],
   [/already registered|already exists|email.*exists|duplicate/i, "Ya existe una cuenta con ese email."],
+  [/invalid delivery otp|invalid otp|otp/i, "El código de entrega no es correcto. Revisalo con el cliente e intentá nuevamente."],
+  [/order review is not available yet/i, "La calificación se habilita 10 minutos después de recibir el pedido."],
   [/store is closed|not accepting orders/i, "El comercio no está recibiendo pedidos en este momento."],
   [/product.*not.*available|unavailable/i, "Ese producto no está disponible en este momento."],
   [/unauthorized|invalid token|missing bearer|not authenticated/i, "Tu sesión venció. Iniciá sesión nuevamente para continuar."],

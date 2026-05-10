@@ -42,7 +42,7 @@ export function CheckoutScreen({ navigation }: Props) {
     if (!token) return;
     setLoading(true);
     try {
-      const [nextCart, nextAddresses] = await Promise.all([refreshCart(), fetchAddresses(token)]);
+      const [nextCart, nextAddresses] = await Promise.all([refreshCart({ silent: true }), fetchAddresses(token)]);
       setAddresses(nextAddresses);
       if (nextCart?.store_slug) {
         const store = await fetchStore(nextCart.store_slug).catch(() => null);
@@ -121,7 +121,7 @@ export function CheckoutScreen({ navigation }: Props) {
         payment_method: paymentMethod,
         idempotency_key: makeIdempotencyKey()
       });
-      await refreshCart().catch(() => null);
+      await refreshCart({ silent: true }).catch(() => null);
       if (result.checkout_url) {
         navigation.replace("PaymentWebView", { checkoutUrl: result.checkout_url, orderId: result.order_id });
       } else {
