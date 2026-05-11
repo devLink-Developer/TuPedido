@@ -302,7 +302,11 @@ def _build_settlement_history(
 def get_store(user: User = Depends(require_merchant), db: Session = Depends(get_db)) -> dict[str, object]:
     store = get_merchant_store(db, user.id)
     mercadopago_provider = get_or_create_mercadopago_provider(db)
-    return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
+    return serialize_store_detail(
+        store,
+        mercadopago_provider=mercadopago_provider,
+        merchant_view=True,
+    ).model_dump()
 
 
 @router.put("/store")
@@ -338,7 +342,11 @@ def update_store(
     db.refresh(store)
     publish_catalog_store_changed(store)
     mercadopago_provider = get_or_create_mercadopago_provider(db)
-    return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
+    return serialize_store_detail(
+        store,
+        mercadopago_provider=mercadopago_provider,
+        merchant_view=True,
+    ).model_dump()
 
 
 @router.put("/store/categories")
@@ -361,7 +369,11 @@ def update_store_categories(
     db.refresh(store)
     publish_catalog_store_changed(store)
     mercadopago_provider = get_or_create_mercadopago_provider(db)
-    return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
+    return serialize_store_detail(
+        store,
+        mercadopago_provider=mercadopago_provider,
+        merchant_view=True,
+    ).model_dump()
 
 
 @router.put("/store/hours")
@@ -385,7 +397,11 @@ def update_store_hours(
     db.refresh(store)
     publish_catalog_store_changed(store)
     mercadopago_provider = get_or_create_mercadopago_provider(db)
-    return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
+    return serialize_store_detail(
+        store,
+        mercadopago_provider=mercadopago_provider,
+        merchant_view=True,
+    ).model_dump()
 
 
 @router.put("/store/delivery-settings")
@@ -427,7 +443,11 @@ def update_delivery_settings(
     db.refresh(store)
     publish_catalog_store_changed(store)
     mercadopago_provider = get_or_create_mercadopago_provider(db)
-    return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
+    return serialize_store_detail(
+        store,
+        mercadopago_provider=mercadopago_provider,
+        merchant_view=True,
+    ).model_dump()
 
 
 @router.put("/store/payment-settings")
@@ -459,7 +479,11 @@ def update_payment_settings(
     settings.mercadopago_enabled = payload.mercadopago_enabled
     db.commit()
     db.refresh(store)
-    return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()
+    return serialize_store_detail(
+        store,
+        mercadopago_provider=mercadopago_provider,
+        merchant_view=True,
+    ).model_dump()
 
 
 @router.get("/promotions", response_model=list[PromotionRead])

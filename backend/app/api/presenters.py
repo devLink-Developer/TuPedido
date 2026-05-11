@@ -54,7 +54,7 @@ from app.services.promotions import deserialize_items_snapshot
 from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
 from app.services.product_pricing import serialize_product_pricing
 from app.services.store_address import store_delivery_is_enabled, store_pickup_is_enabled
-from app.services.store_coverage import effective_coverage_polygon
+from app.services.store_coverage import effective_coverage_polygon, safe_coverage_polygon
 from app.services.settlements import (
     charge_outstanding_amount,
     charge_paid_amount,
@@ -83,20 +83,43 @@ def serialize_category(category: object) -> CategoryRead:
     )
 
 
-def serialize_store_delivery_settings(store: object) -> StoreDeliverySettingsRead:
+def serialize_store_delivery_settings(
+    store: object, *, merchant_view: bool = False
+) -> StoreDeliverySettingsRead:
     settings = getattr(store, "delivery_settings", None)
+    if merchant_view:
+        delivery_enabled = bool(getattr(settings, "delivery_enabled", False)) if settings else False
+        pickup_enabled = bool(getattr(settings, "pickup_enabled", False)) if settings else False
+        delivery_area_polygon = (
+            safe_coverage_polygon(getattr(settings, "delivery_area_polygon_json", None))
+            if settings
+            else []
+        )
+        pickup_area_polygon = (
+            safe_coverage_polygon(getattr(settings, "pickup_area_polygon_json", None))
+            if settings
+            else []
+        )
+    else:
+        delivery_enabled = store_delivery_is_enabled(store)
+        pickup_enabled = store_pickup_is_enabled(store)
+        delivery_area_polygon = effective_coverage_polygon(store, "delivery")
+        pickup_area_polygon = effective_coverage_polygon(store, "pickup")
+
     return StoreDeliverySettingsRead(
-        delivery_enabled=store_delivery_is_enabled(store),
-        pickup_enabled=store_pickup_is_enabled(store),
+        delivery_enabled=delivery_enabled,
+        pickup_enabled=pickup_enabled,
         delivery_fee=float(settings.delivery_fee) if settings else 0,
         free_delivery_min_order=float(settings.free_delivery_min_order)
         if settings and getattr(settings, "free_delivery_min_order", None) is not None
         else None,
         rider_fee=float(getattr(settings, "rider_fee", 0) or 0) if settings else 0,
         min_order=float(settings.min_order) if settings else 0,
-        delivery_area_polygon=effective_coverage_polygon(store, "delivery"),
-        pickup_area_polygon=effective_coverage_polygon(store, "pickup"),
-        pickup_area_uses_delivery_area=bool(getattr(settings, "pickup_area_uses_delivery_area", False)) if settings else False,
+        delivery_area_polygon=delivery_area_polygon,
+        pickup_area_polygon=pickup_area_polygon,
+        pickup_area_uses_delivery_area=bool(
+            getattr(settings, "pickup_area_uses_delivery_area", False)
+        ) if settings else False,
     )
 
 
@@ -249,7 +272,10 @@ def serialize_promotion(promotion: object) -> PromotionRead:
 
 
 def serialize_store_summary(
-    store: object, *, mercadopago_provider: object | None = None
+    store: object,
+    *,
+    mercadopago_provider: object | None = None,
+    merchant_view: bool = False,
 ) -> StoreSummaryRead:
     primary_category_id, primary_category, primary_category_slug, categories = _category_metadata(store)
     category_ids = [link.category_id for link in getattr(store, "category_links", []) or []]
@@ -280,15 +306,22 @@ def serialize_store_summary(
         primary_category=primary_category,
         primary_category_slug=primary_category_slug,
         categories=categories,
-        delivery_settings=serialize_store_delivery_settings(store),
+        delivery_settings=serialize_store_delivery_settings(store, merchant_view=merchant_view),
         payment_settings=serialize_store_payment_settings(store, mercadopago_provider=mercadopago_provider),
     )
 
 
 def serialize_store_detail(
-    store: object, *, mercadopago_provider: object | None = None
+    store: object,
+    *,
+    mercadopago_provider: object | None = None,
+    merchant_view: bool = False,
 ) -> StoreDetailRead:
-    summary = serialize_store_summary(store, mercadopago_provider=mercadopago_provider)
+    summary = serialize_store_summary(
+        store,
+        mercadopago_provider=mercadopago_provider,
+        merchant_view=merchant_view,
+    )
     return StoreDetailRead(
         **summary.model_dump(),
         product_categories=[serialize_product_category(item) for item in store.product_categories],
