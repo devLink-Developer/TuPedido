@@ -459,23 +459,34 @@ def build_oauth_code_challenge(code_verifier: str) -> str:
     return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
 
-def build_oauth_state(*, store_id: int, user_id: int, frontend_origin: str | None = None) -> str:
+def build_oauth_state(
+    *, store_id: int, user_id: int, frontend_origin: str | None = None, code_verifier: str | None = None
+) -> str:
     payload = {
         "kind": "mercadopago_oauth",
         "provider": MERCADOPAGO_PROVIDER,
         "store_id": store_id,
         "user_id": user_id,
         "frontend_origin": normalize_frontend_origin(frontend_origin),
-        "exp": _now_utc() + timedelta(minutes=OAUTH_STATE_EXPIRATION_MINUTES),
+        "exp": int((_now_utc() + timedelta(minutes=OAUTH_STATE_EXPIRATION_MINUTES)).timestamp()),
     }
-    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+    if code_verifier:
+        payload["code_verifier"] = code_verifier
+    return encrypt_sensitive_value(json.dumps(payload, separators=(",", ":")))
 
 
 def decode_oauth_state(state: str) -> dict[str, Any]:
+    state = state.strip().strip('"')
     try:
         payload = jwt.decode(state, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-    except JWTError as exc:
-        raise MercadoPagoAPIError("Mercado Pago OAuth state is invalid") from exc
+    except JWTError:
+        try:
+            payload = json.loads(decrypt_sensitive_value(state))
+        except (ValueError, json.JSONDecodeError) as exc:
+            raise MercadoPagoAPIError("Mercado Pago OAuth state is invalid") from exc
+        expires_at = payload.get("exp")
+        if not isinstance(expires_at, int | float) or datetime.fromtimestamp(expires_at, UTC) < _now_utc():
+            raise MercadoPagoAPIError("Mercado Pago OAuth state is invalid")
     if payload.get("kind") != "mercadopago_oauth" or payload.get("provider") != MERCADOPAGO_PROVIDER:
         raise MercadoPagoAPIError("Mercado Pago OAuth state is invalid")
     return payload
@@ -517,22 +528,6 @@ def decode_oauth_session_token(value: str) -> dict[str, Any]:
 def oauth_connect_entrypoint(*, base_url: str | None = None) -> str:
     resolved_base_url = resolve_public_backend_base_url(base_url)
     return f"{resolved_base_url}{settings.api_prefix}/oauth/mercadopago/connect"
-
-
-def oauth_connect_entrypoint_for_redirect_uri(redirect_uri: str | None, *, fallback_base_url: str | None = None) -> str:
-    if redirect_uri:
-        try:
-            parsed = urlsplit(redirect_uri)
-        except ValueError:
-            parsed = None
-        if parsed and parsed.scheme in {"http", "https"} and parsed.netloc:
-            callback_tail = "/oauth/mercadopago/callback"
-            if parsed.path.endswith(callback_tail):
-                connect_path = f"{parsed.path[: -len(callback_tail)]}/oauth/mercadopago/connect"
-            else:
-                connect_path = f"{settings.api_prefix}/oauth/mercadopago/connect"
-            return f"{parsed.scheme}://{parsed.netloc}{connect_path}"
-    return oauth_connect_entrypoint(base_url=fallback_base_url)
 
 
 def build_oauth_callback_url(*, base_url: str | None = None) -> str:
