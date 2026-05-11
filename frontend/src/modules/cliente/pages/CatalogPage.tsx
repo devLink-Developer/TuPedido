@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CatalogBanner, EmptyState, LoadingCard, RubroChip } from "../../../shared/components";
-import { fetchCatalogBanner, fetchStores } from "../../../shared/services/api";
+import { useAuthSession } from "../../../shared/hooks";
+import { fetchAddresses, fetchCatalogBanner, fetchStores } from "../../../shared/services/api";
 import { useCategoryStore, useClienteStore } from "../../../shared/stores";
 import type { CatalogBanner as CatalogBannerData, StoreSummary } from "../../../shared/types";
 import { subscribeCatalogStoresChanged } from "../../../shared/utils/catalogStores";
@@ -15,17 +16,23 @@ export function CatalogPage() {
   const categorySlug = useClienteStore((state) => state.categorySlug);
   const search = useClienteStore((state) => state.search);
   const deliveryMode = useClienteStore((state) => state.deliveryMode);
+  const customerLocation = useClienteStore((state) => state.customerLocation);
   const setCategorySlug = useClienteStore((state) => state.setCategorySlug);
   const setSearch = useClienteStore((state) => state.setSearch);
   const setDeliveryMode = useClienteStore((state) => state.setDeliveryMode);
+  const setCustomerLocation = useClienteStore((state) => state.setCustomerLocation);
+  const { token, isAuthenticated } = useAuthSession();
   const categories = useCategoryStore((state) => state.categories);
   const categoryLoading = useCategoryStore((state) => state.loading);
   const loadCategories = useCategoryStore((state) => state.loadCategories);
   const [stores, setStores] = useState<StoreSummary[]>([]);
   const [catalogBanner, setCatalogBanner] = useState<CatalogBannerData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(true);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const filtersRef = useRef({ categorySlug: "", search: "", deliveryMode: "" as "" | "delivery" | "pickup" });
+  const locationRef = useRef(customerLocation);
   const requestIdRef = useRef(0);
   const hasLoadedStoresRef = useRef(false);
   const selectedCategory = useMemo(
@@ -35,6 +42,7 @@ export function CatalogPage() {
   const catalogTheme = useMemo(() => buildCatalogTheme(selectedCategory), [selectedCategory]);
 
   filtersRef.current = { categorySlug, search, deliveryMode };
+  locationRef.current = customerLocation;
 
   useEffect(() => {
     setCategorySlug(searchParams.get("category") ?? "");
@@ -46,6 +54,51 @@ export function CatalogPage() {
   useEffect(() => {
     void loadCategories().catch(() => {});
   }, [loadCategories]);
+
+  useEffect(() => {
+    if (customerLocation) {
+      setLocationLoading(false);
+      setLocationError(null);
+      return;
+    }
+    if (!isAuthenticated || !token) {
+      setLocationLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLocationLoading(true);
+    fetchAddresses(token)
+      .then((addressList) => {
+        if (cancelled) return;
+        const geolocatedAddresses = addressList.filter(
+          (address) => address.latitude !== null && address.longitude !== null
+        );
+        const selectedAddress = geolocatedAddresses.find((address) => address.is_default) ?? geolocatedAddresses[0];
+        if (selectedAddress?.latitude !== null && selectedAddress?.longitude !== null) {
+          setCustomerLocation({
+            latitude: selectedAddress.latitude,
+            longitude: selectedAddress.longitude,
+            source: "address"
+          });
+          setLocationError(null);
+        }
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          setLocationError(requestError instanceof Error ? requestError.message : "No se pudo leer tu direccion");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLocationLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [customerLocation, isAuthenticated, setCustomerLocation, token]);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +121,16 @@ export function CatalogPage() {
   async function loadStores(options?: { silent?: boolean }) {
     const requestId = ++requestIdRef.current;
     const { categorySlug: nextCategorySlug, search: nextSearch, deliveryMode: nextDeliveryMode } = filtersRef.current;
+    const nextLocation = locationRef.current;
+
+    if (!nextLocation) {
+      if (!options?.silent) {
+        setLoading(false);
+        setError(null);
+        setStores([]);
+      }
+      return;
+    }
 
     if (!options?.silent) {
       setLoading(true);
@@ -78,7 +141,9 @@ export function CatalogPage() {
       const items = await fetchStores({
         categorySlug: nextCategorySlug || undefined,
         search: nextSearch || undefined,
-        deliveryMode: nextDeliveryMode || undefined
+        deliveryMode: nextDeliveryMode || undefined,
+        latitude: nextLocation.latitude,
+        longitude: nextLocation.longitude
       });
 
       if (requestId !== requestIdRef.current) {
@@ -106,7 +171,31 @@ export function CatalogPage() {
 
   useEffect(() => {
     void loadStores();
-  }, [categorySlug, deliveryMode, search]);
+  }, [categorySlug, customerLocation, deliveryMode, search]);
+
+  function requestGpsLocation() {
+    if (!navigator.geolocation) {
+      setLocationError("Tu navegador no permite obtener ubicacion GPS.");
+      return;
+    }
+    setLocationLoading(true);
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCustomerLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          source: "gps"
+        });
+        setLocationLoading(false);
+      },
+      () => {
+        setLocationError("No pudimos obtener tu ubicacion. Revisa permisos o carga una direccion.");
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 }
+    );
+  }
 
   useEffect(() => {
     const root = document.documentElement;
@@ -286,10 +375,22 @@ export function CatalogPage() {
         </div>
       </section>
 
-      {loading || categoryLoading ? <LoadingCard /> : null}
+      {locationLoading || loading || categoryLoading ? <LoadingCard /> : null}
       {error ? <EmptyState title="No se pudo cargar el listado" description={error} /> : null}
 
-      {!loading && !categoryLoading && !error ? (
+      {!locationLoading && !customerLocation ? (
+        <EmptyState
+          title="Define tu ubicacion"
+          description={locationError ?? "Necesitamos tu direccion o ubicacion GPS para mostrar comercios que lleguen hasta tu zona."}
+          action={
+            <button type="button" onClick={requestGpsLocation} className="app-button min-h-[48px] px-4 py-2 text-sm">
+              Usar mi ubicacion
+            </button>
+          }
+        />
+      ) : null}
+
+      {!locationLoading && !loading && !categoryLoading && !error && customerLocation ? (
         stores.length ? (
           <StoreList stores={stores} selectedCategoryId={selectedCategory?.id ?? null} theme={catalogTheme} />
         ) : (

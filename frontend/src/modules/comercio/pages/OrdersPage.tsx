@@ -26,12 +26,14 @@ import { playNotificationTone } from "../../../shared/utils/notificationSound";
 import { statusLabels } from "../../../shared/utils/labels";
 import { useMerchantMobileHeader } from "../MerchantMobileHeaderContext";
 import { hasStoreAddressConfiguration, toStoreAddressFormState } from "../components/StoreAddressSection";
+import { hasAnyCoverageArea } from "../components/StoreCoverageSection";
 import { OrdersTable } from "../components/OrdersTable";
 import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync";
 
 const LIVE_REFRESH_INTERVAL_MS = 15000;
 const SOCKET_RECONNECT_DELAY_MS = 3000;
 const LEGACY_ADDRESS_COPY = "Configura la direccion del comercio antes de habilitar la venta.";
+const COVERAGE_COPY = "Configura al menos una zona de alcance para envio o retiro antes de habilitar la venta.";
 
 type MerchantOrderAction = Extract<
   OrderStatusUpdate["status"],
@@ -165,11 +167,6 @@ function OrdersSalesStatusCard({
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--kp-accent)]">Venta</p>
           <p className="mt-1.5 text-[1.02rem] font-bold text-ink">{acceptingOrders ? "Venta habilitada" : "Venta pausada"}</p>
           <p className="mt-1 text-[13px] leading-5 text-zinc-600 md:max-w-[220px]">{toggleDescription}</p>
-          {toggleDescription === "Configura la dirección del comercio antes de habilitar la venta." ? (
-            <span className="sr-only" aria-hidden="true">
-              {LEGACY_ADDRESS_COPY}
-            </span>
-          ) : null}
         </div>
         {control}
       </div>
@@ -199,11 +196,6 @@ function OrdersSalesStatusCompactSummary({
         <span>
           <span className="font-semibold text-ink">{acceptingOrders ? "Venta habilitada." : "Venta pausada."}</span>{" "}
           <span>{toggleDescription}</span>
-          {toggleDescription === "Configura la dirección del comercio antes de habilitar la venta." ? (
-            <span className="sr-only" aria-hidden="true">
-              {LEGACY_ADDRESS_COPY}
-            </span>
-          ) : null}
         </span>
       </div>
       {toggleError ? <span className="block rounded bg-rose-50 px-3 py-2 text-[13px] text-rose-700">{toggleError}</span> : null}
@@ -236,14 +228,17 @@ export function OrdersPage() {
   const isApproved = store?.status === "approved";
   const acceptingOrders = isApproved ? store?.accepting_orders ?? false : false;
   const hasConfiguredAddress = store ? hasStoreAddressConfiguration(toStoreAddressFormState(store)) : false;
-  const canEnableOrders = isApproved && hasConfiguredAddress;
-  const canToggleOrders = isApproved && (acceptingOrders || hasConfiguredAddress);
+  const hasConfiguredCoverage = store ? hasAnyCoverageArea(store.delivery_settings) : false;
+  const canEnableOrders = isApproved && hasConfiguredAddress && hasConfiguredCoverage;
+  const canToggleOrders = isApproved && (acceptingOrders || (hasConfiguredAddress && hasConfiguredCoverage));
   const toggleDescription = !store
     ? ""
     : !isApproved
       ? "Disponible cuando el comercio quede aprobado."
       : !acceptingOrders && !hasConfiguredAddress
-        ? "Configura la dirección del comercio antes de habilitar la venta."
+        ? LEGACY_ADDRESS_COPY
+        : !acceptingOrders && !hasConfiguredCoverage
+          ? COVERAGE_COPY
         : acceptingOrders
           ? "El comercio figura abierto para tomar pedidos."
           : "Actívalo cuando quieras volver a vender.";
@@ -496,6 +491,15 @@ export function OrdersPage() {
       setToggleError(
         "Configura CP, provincia, localidad, calle, altura y geolocalización del local antes de habilitar la venta."
       );
+      return;
+    }
+
+    if (!store.accepting_orders && !hasConfiguredCoverage) {
+      setToggleError(COVERAGE_COPY);
+      return;
+    }
+    if (!store.accepting_orders && !canEnableOrders) {
+      setToggleError(COVERAGE_COPY);
       return;
     }
 

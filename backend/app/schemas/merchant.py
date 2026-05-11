@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
+from app.schemas.catalog import CoveragePointRead
+
 
 class MerchantApplicationCreate(BaseModel):
     business_name: str
@@ -73,6 +75,9 @@ class StoreDeliverySettingsUpdate(BaseModel):
     free_delivery_min_order: float | None = Field(default=None, ge=0)
     rider_fee: float = Field(default=0, ge=0)
     min_order: float = 0
+    delivery_area_polygon: list[CoveragePointRead] = Field(default_factory=list)
+    pickup_area_polygon: list[CoveragePointRead] = Field(default_factory=list)
+    pickup_area_uses_delivery_area: bool = False
 
 
 class StorePaymentSettingsUpdate(BaseModel):

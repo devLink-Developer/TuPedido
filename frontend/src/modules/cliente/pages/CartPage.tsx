@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
 import { useCart } from "../../../shared/hooks";
+import { useClienteStore } from "../../../shared/stores";
 import { formatCurrency } from "../../../shared/utils/format";
 import { CheckoutSummary } from "../components/CheckoutSummary";
 
@@ -11,6 +12,7 @@ const DELIVERY_MODES = [
 
 export function CartPage() {
   const { cart, loading, error, updateItem, removeItem, setDeliveryMode, clear } = useCart();
+  const customerLocation = useClienteStore((state) => state.customerLocation);
   const navigate = useNavigate();
   const availableDeliveryModes = DELIVERY_MODES.filter(({ key }) =>
     key === "delivery" ? cart?.delivery_settings.delivery_enabled : cart?.delivery_settings.pickup_enabled
@@ -57,7 +59,7 @@ export function CartPage() {
                   <button
                     key={mode.key}
                     type="button"
-                    onClick={() => void setDeliveryMode(mode.key)}
+                    onClick={() => void setDeliveryMode(mode.key, customerLocation)}
                     className={`kp-category-pill ${cart.delivery_mode === mode.key ? "kp-category-pill-active" : ""}`}
                   >
                     {mode.label}
@@ -67,6 +69,11 @@ export function CartPage() {
                 <p className="text-sm text-zinc-500">Este comercio no tiene modalidades de entrega disponibles.</p>
               )}
             </div>
+            {!customerLocation ? (
+              <p className="mt-3 text-sm text-amber-700">
+                Define tu ubicacion desde el catalogo antes de cambiar la modalidad.
+              </p>
+            ) : null}
           </div>
 
           {cart.items.map((item) => (

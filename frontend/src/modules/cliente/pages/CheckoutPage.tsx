@@ -84,8 +84,10 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   const selectedAddressId = useClienteStore((state) => state.selectedAddressId);
   const selectedPaymentMethod = useClienteStore((state) => state.selectedPaymentMethod);
+  const customerLocation = useClienteStore((state) => state.customerLocation);
   const setSelectedAddressId = useClienteStore((state) => state.setSelectedAddressId);
   const setSelectedPaymentMethod = useClienteStore((state) => state.setSelectedPaymentMethod);
+  const setCustomerLocation = useClienteStore((state) => state.setCustomerLocation);
   const resetCheckout = useClienteStore((state) => state.resetCheckout);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [store, setStore] = useState<StoreDetail | null>(null);
@@ -101,18 +103,52 @@ export function CheckoutPage() {
       setLoading(false);
       return;
     }
+    const cartStoreId = cart.store_id;
+    const cartDeliveryMode = cart.delivery_mode;
 
     let cancelled = false;
     setLoading(true);
+    setError(null);
 
-    Promise.all([fetchAddresses(token), fetchStoreById(cart.store_id)])
-      .then(([addressList, storeData]) => {
+    fetchAddresses(token)
+      .then(async (addressList) => {
         if (cancelled) return;
         setAddresses(addressList);
-        setStore(storeData);
         const geolocatedAddresses = addressList.filter((address) => address.latitude !== null && address.longitude !== null);
         const defaultAddress = geolocatedAddresses.find((address) => address.is_default) ?? geolocatedAddresses[0];
-        setSelectedAddressId(cart.delivery_mode === "delivery" ? defaultAddress?.id ?? "" : "");
+        const checkoutLocation =
+          cartDeliveryMode === "delivery"
+            ? defaultAddress
+              ? { latitude: defaultAddress.latitude, longitude: defaultAddress.longitude, source: "address" as const }
+              : null
+            : customerLocation ??
+              (defaultAddress
+                ? { latitude: defaultAddress.latitude, longitude: defaultAddress.longitude, source: "address" as const }
+                : null);
+        setSelectedAddressId(cartDeliveryMode === "delivery" ? defaultAddress?.id ?? "" : "");
+        if (checkoutLocation && checkoutLocation.latitude !== null && checkoutLocation.longitude !== null && !customerLocation) {
+          setCustomerLocation({
+            latitude: checkoutLocation.latitude,
+            longitude: checkoutLocation.longitude,
+            source: checkoutLocation.source
+          });
+        }
+        const coverageLatitude = checkoutLocation?.latitude;
+        const coverageLongitude = checkoutLocation?.longitude;
+        if (coverageLatitude == null || coverageLongitude == null) {
+          setStore(null);
+          if (cartDeliveryMode === "pickup") {
+            setError("Define tu ubicacion para validar si puedes retirar en este comercio.");
+          }
+          return;
+        }
+        const storeData = await fetchStoreById(cartStoreId, {
+          latitude: coverageLatitude,
+          longitude: coverageLongitude,
+          deliveryMode: cartDeliveryMode
+        });
+        if (cancelled) return;
+        setStore(storeData);
         const mercadoPagoState = deriveMercadoPagoState(storeData.payment_settings);
         setSelectedPaymentMethod(mercadoPagoState.customerAvailable ? "mercadopago" : storeData.payment_settings.cash_enabled ? "cash" : "mercadopago");
       })
@@ -130,7 +166,7 @@ export function CheckoutPage() {
     return () => {
       cancelled = true;
     };
-  }, [cart?.delivery_mode, cart?.store_id, setSelectedAddressId, setSelectedPaymentMethod, token]);
+  }, [cart?.delivery_mode, cart?.store_id, customerLocation, setCustomerLocation, setSelectedAddressId, setSelectedPaymentMethod, token]);
 
   const paymentOptions = useMemo(() => {
     if (!store) {
@@ -206,12 +242,39 @@ export function CheckoutPage() {
       const created = await createAddress(token, payload);
       setAddresses((current) => [created, ...current]);
       setSelectedAddressId(created.id);
+      if (created.latitude !== null && created.longitude !== null) {
+        setCustomerLocation({ latitude: created.latitude, longitude: created.longitude, source: "address" });
+      }
       setAddressForm(emptyAddressForm);
       setShowAddressForm(false);
       notifyCustomerAddressesChanged();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudo guardar la direccion");
     }
+  }
+
+  function requestGpsLocation() {
+    if (!navigator.geolocation) {
+      setError("Tu navegador no permite obtener ubicacion GPS.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCustomerLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          source: "gps"
+        });
+        setLoading(false);
+      },
+      () => {
+        setError("No pudimos obtener tu ubicacion. Revisa permisos o carga una direccion.");
+        setLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 }
+    );
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -224,6 +287,14 @@ export function CheckoutPage() {
 
     if (currentCart.delivery_mode === "delivery" && !selectedAddressId) {
       setError("Selecciona una direccion para el envio");
+      return;
+    }
+    if (currentCart.delivery_mode === "delivery" && (selectedAddress?.latitude == null || selectedAddress.longitude == null)) {
+      setError("La direccion seleccionada debe tener geolocalizacion.");
+      return;
+    }
+    if (currentCart.delivery_mode === "pickup" && !customerLocation) {
+      setError("Define tu ubicacion para validar la zona de retiro.");
       return;
     }
     if (!availableMethods.length) {
@@ -252,7 +323,11 @@ export function CheckoutPage() {
         address_id: currentCart.delivery_mode === "delivery" ? Number(selectedAddressId) : null,
         delivery_mode: currentCart.delivery_mode,
         payment_method: selectedPaymentMethod,
-        idempotency_key: idempotencyKey
+        idempotency_key: idempotencyKey,
+        customer_latitude:
+          currentCart.delivery_mode === "delivery" ? selectedAddress?.latitude ?? null : customerLocation?.latitude ?? null,
+        customer_longitude:
+          currentCart.delivery_mode === "delivery" ? selectedAddress?.longitude ?? null : customerLocation?.longitude ?? null
       });
 
       if (result.checkout_url) {
@@ -365,7 +440,18 @@ export function CheckoutPage() {
                 {!addresses.length && !showAddressForm ? <p className="text-sm text-zinc-500">Aun no tienes direcciones guardadas.</p> : null}
               </div>
             ) : (
-              <p className="mt-4 border border-[var(--kp-stroke)] bg-[#fffaf5] px-4 py-4 text-sm text-zinc-600" style={{ borderRadius: 18 }}>El pedido se retirara en {store?.name ?? cart.store_name}.</p>
+              <div className="mt-4 space-y-3">
+                <p className="border border-[var(--kp-stroke)] bg-[#fffaf5] px-4 py-4 text-sm text-zinc-600" style={{ borderRadius: 18 }}>
+                  El pedido se retirara en {store?.name ?? cart.store_name}.
+                </p>
+                {customerLocation ? (
+                  <p className="text-sm text-emerald-700">Zona de retiro validada con tu ubicacion actual.</p>
+                ) : (
+                  <button type="button" onClick={requestGpsLocation} className="kp-soft-action min-h-[44px] px-4 py-2 text-sm">
+                    Usar mi ubicacion
+                  </button>
+                )}
+              </div>
             )}
           </div>
 

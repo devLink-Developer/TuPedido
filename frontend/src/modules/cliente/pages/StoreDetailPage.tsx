@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { EmptyState, LoadingCard, RubroChip } from "../../../shared/components";
 import { useAuthSession, useCart } from "../../../shared/hooks";
-import { fetchStoreById } from "../../../shared/services/api";
-import { useUiStore } from "../../../shared/stores";
+import { fetchAddresses, fetchStoreById } from "../../../shared/services/api";
+import { useClienteStore, useUiStore } from "../../../shared/stores";
 import type { Product, StoreDetail } from "../../../shared/types";
 import { formatCurrency } from "../../../shared/utils/format";
 
@@ -18,11 +18,15 @@ function getMaxAllowed(product: Product) {
 export function StoreDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthSession();
+  const { isAuthenticated, token } = useAuthSession();
   const { addItem, items, storeId: cartStoreId, storeName: cartStoreName } = useCart();
+  const customerLocation = useClienteStore((state) => state.customerLocation);
+  const setCustomerLocation = useClienteStore((state) => state.setCustomerLocation);
   const enqueueToast = useUiStore((state) => state.enqueueToast);
   const [store, setStore] = useState<StoreDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(true);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number | "all">("all");
   const [quantities, setQuantities] = useState<Record<number, string>>({});
@@ -32,11 +36,56 @@ export function StoreDetailPage() {
   const storeId = id ? Number(id) : null;
 
   useEffect(() => {
-    if (!storeId) return;
+    if (customerLocation) {
+      setLocationLoading(false);
+      setLocationError(null);
+      return;
+    }
+    if (!isAuthenticated || !token) {
+      setLocationLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLocationLoading(true);
+    fetchAddresses(token)
+      .then((addressList) => {
+        if (cancelled) return;
+        const geolocatedAddresses = addressList.filter(
+          (address) => address.latitude !== null && address.longitude !== null
+        );
+        const selectedAddress = geolocatedAddresses.find((address) => address.is_default) ?? geolocatedAddresses[0];
+        if (selectedAddress?.latitude !== null && selectedAddress?.longitude !== null) {
+          setCustomerLocation({
+            latitude: selectedAddress.latitude,
+            longitude: selectedAddress.longitude,
+            source: "address"
+          });
+        }
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          setLocationError(requestError instanceof Error ? requestError.message : "No se pudo leer tu direccion");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLocationLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [customerLocation, isAuthenticated, setCustomerLocation, token]);
+
+  useEffect(() => {
+    if (!storeId || !customerLocation) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetchStoreById(storeId)
+    fetchStoreById(storeId, {
+      latitude: customerLocation.latitude,
+      longitude: customerLocation.longitude
+    })
       .then((data) => {
         if (!cancelled) {
           setStore(data);
@@ -54,7 +103,31 @@ export function StoreDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [storeId]);
+  }, [customerLocation, storeId]);
+
+  function requestGpsLocation() {
+    if (!navigator.geolocation) {
+      setLocationError("Tu navegador no permite obtener ubicacion GPS.");
+      return;
+    }
+    setLocationLoading(true);
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCustomerLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          source: "gps"
+        });
+        setLocationLoading(false);
+      },
+      () => {
+        setLocationError("No pudimos obtener tu ubicacion. Revisa permisos o vuelve al catalogo.");
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 }
+    );
+  }
 
   const filteredProducts = useMemo(() => {
     if (!store) return [];
@@ -130,7 +203,9 @@ export function StoreDetailPage() {
         storeId: store.id,
         productId: product.id,
         quantity,
-        note: notes[product.id]?.trim() || null
+        note: notes[product.id]?.trim() || null,
+        customerLatitude: customerLocation?.latitude ?? null,
+        customerLongitude: customerLocation?.longitude ?? null
       });
       setNotes((current) => ({ ...current, [product.id]: "" }));
       setNoteInputsOpen((current) => ({ ...current, [product.id]: false }));
@@ -141,7 +216,20 @@ export function StoreDetailPage() {
     }
   }
 
-  if (loading) return <LoadingCard />;
+  if (locationLoading || loading) return <LoadingCard />;
+  if (!customerLocation) {
+    return (
+      <EmptyState
+        title="Define tu ubicacion"
+        description={locationError ?? "Necesitamos tu direccion o ubicacion GPS para validar si este comercio llega a tu zona."}
+        action={
+          <button type="button" onClick={requestGpsLocation} className="app-button min-h-[48px] px-4 py-2 text-sm">
+            Usar mi ubicacion
+          </button>
+        }
+      />
+    );
+  }
   if (error) return <EmptyState title="Error al cargar el comercio" description={error} />;
   if (!store) return <EmptyState title="Comercio no encontrado" description="Ese comercio no existe o fue dado de baja." />;
 

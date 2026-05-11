@@ -22,6 +22,8 @@ from app.models.store import Category, Product, ProductCategory, Store, StoreCat
 from app.schemas.catalog import CatalogBannerRead, PlatformBrandingRead
 from app.services.mercadopago import get_or_create_mercadopago_provider
 from app.services.platform import get_platform_settings_snapshot, get_table_columns
+from app.services.store_address import store_delivery_is_enabled, store_pickup_is_enabled
+from app.services.store_coverage import has_valid_coordinates, store_covers_location
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -98,8 +100,15 @@ def list_stores(
     category_slug: str | None = Query(default=None),
     search: str | None = Query(default=None),
     delivery_mode: str | None = Query(default=None),
+    latitude: float | None = Query(default=None),
+    longitude: float | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> list[dict[str, object]]:
+    if delivery_mode not in (None, "", "delivery", "pickup"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid delivery mode")
+    if not has_valid_coordinates(latitude, longitude):
+        return []
+
     query = (
         select(Store)
         .options(*STORE_LOAD_OPTIONS)
@@ -125,19 +134,26 @@ def list_stores(
         )
         for store in stores
     ]
-    if delivery_mode:
-        if delivery_mode == "delivery":
-            paired_results = [
-                (store, summary)
-                for store, summary in paired_results
-                if summary.delivery_settings.delivery_enabled
-            ]
-        if delivery_mode == "pickup":
-            paired_results = [
-                (store, summary)
-                for store, summary in paired_results
-                if summary.delivery_settings.pickup_enabled
-            ]
+    customer_latitude = float(latitude)
+    customer_longitude = float(longitude)
+
+    def covers_requested_mode(store: Store) -> bool:
+        modes = [delivery_mode] if delivery_mode else ["delivery", "pickup"]
+        for mode in modes:
+            if mode == "delivery" and not store_delivery_is_enabled(store):
+                continue
+            if mode == "pickup" and not store_pickup_is_enabled(store):
+                continue
+            if store_covers_location(
+                store,
+                mode,  # type: ignore[arg-type]
+                latitude=customer_latitude,
+                longitude=customer_longitude,
+            ):
+                return True
+        return False
+
+    paired_results = [(store, summary) for store, summary in paired_results if covers_requested_mode(store)]
 
     def sort_key(item: tuple[Store, object]) -> tuple[int, int, str, str]:
         store, summary = item
@@ -154,9 +170,37 @@ def list_stores(
 
 
 @router.get("/stores/{slug}")
-def get_store(slug: str, db: Session = Depends(get_db)) -> dict[str, object]:
+def get_store(
+    slug: str,
+    latitude: float | None = Query(default=None),
+    longitude: float | None = Query(default=None),
+    delivery_mode: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    if delivery_mode not in (None, "", "delivery", "pickup"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid delivery mode")
+    if not has_valid_coordinates(latitude, longitude):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Customer location is required")
+
     store = db.scalar(select(Store).options(*STORE_LOAD_OPTIONS).where(Store.slug == slug, Store.status == "approved"))
     if store is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Store not found")
+    customer_latitude = float(latitude)
+    customer_longitude = float(longitude)
+    modes = [delivery_mode] if delivery_mode else ["delivery", "pickup"]
+    if not any(
+        (
+            mode == "delivery"
+            and store_delivery_is_enabled(store)
+            and store_covers_location(store, "delivery", latitude=customer_latitude, longitude=customer_longitude)
+        )
+        or (
+            mode == "pickup"
+            and store_pickup_is_enabled(store)
+            and store_covers_location(store, "pickup", latitude=customer_latitude, longitude=customer_longitude)
+        )
+        for mode in modes
+    ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Store not found")
     mercadopago_provider = get_or_create_mercadopago_provider(db)
     return serialize_store_detail(store, mercadopago_provider=mercadopago_provider).model_dump()

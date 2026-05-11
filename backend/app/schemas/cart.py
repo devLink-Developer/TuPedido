@@ -10,6 +10,8 @@ class CartItemCreate(BaseModel):
     product_id: int
     quantity: int = 1
     note: str | None = None
+    customer_latitude: float | None = None
+    customer_longitude: float | None = None
 
 
 class CartItemUpdate(BaseModel):
@@ -19,6 +21,8 @@ class CartItemUpdate(BaseModel):
 
 class CartUpdate(BaseModel):
     delivery_mode: str
+    customer_latitude: float | None = None
+    customer_longitude: float | None = None
 
 
 class CartItemRead(BaseModel):

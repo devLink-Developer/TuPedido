@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View, type ImageSourcePropType } from "react-native";
+import * as Location from "expo-location";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -14,7 +15,7 @@ import { StateMessage } from "../../components/StateMessage";
 import { StoreCard } from "../../components/StoreCard";
 import { TextField } from "../../components/TextField";
 import { useCatalogRealtime } from "../../hooks/useCatalogRealtime";
-import { fetchCatalogBanner, fetchCategories, fetchPlatformBranding, fetchStores } from "../../services/api";
+import { fetchAddresses, fetchCatalogBanner, fetchCategories, fetchPlatformBranding, fetchStores } from "../../services/api";
 import { useAuth } from "../../state/AuthContext";
 import { useCartState } from "../../state/CartContext";
 import { useNotificationsState } from "../../state/NotificationsContext";
@@ -27,6 +28,7 @@ import { formatCurrency } from "../../utils/format";
 type Props = BottomTabScreenProps<CustomerTabsParamList, "Catalog">;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type DeliveryFilter = "all" | "delivery" | "pickup";
+type CustomerLocation = { latitude: number; longitude: number; source: "address" | "gps" };
 
 const deliveryFilters: Array<{ key: DeliveryFilter; label: string }> = [
   { key: "all", label: "Todos" },
@@ -46,6 +48,9 @@ export function CatalogScreen(_props: Props) {
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
   const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>("all");
   const [search, setSearch] = useState("");
+  const [customerLocation, setCustomerLocation] = useState<CustomerLocation | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,32 +64,86 @@ export function CatalogScreen(_props: Props) {
   );
 
   const refreshStores = useCallback(async () => {
-    const nextStores = await fetchStores(storeQueryParams);
+    if (!customerLocation) {
+      setStores([]);
+      return;
+    }
+    const nextStores = await fetchStores({
+      ...storeQueryParams,
+      latitude: customerLocation.latitude,
+      longitude: customerLocation.longitude
+    });
     setStores(nextStores);
     if (token) await refreshCart({ silent: true }).catch(() => null);
-  }, [refreshCart, storeQueryParams, token]);
+  }, [customerLocation, refreshCart, storeQueryParams, token]);
+
+  const resolveAddressLocation = useCallback(async (): Promise<CustomerLocation | null> => {
+    if (!token) return null;
+    const addresses = await fetchAddresses(token).catch(() => []);
+    const geolocated = addresses.filter((address) => typeof address.latitude === "number" && typeof address.longitude === "number");
+    const selected = geolocated.find((address) => address.is_default) ?? geolocated[0];
+    return selected && typeof selected.latitude === "number" && typeof selected.longitude === "number"
+      ? { latitude: selected.latitude, longitude: selected.longitude, source: "address" }
+      : null;
+  }, [token]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [nextCategories, nextBranding, nextBanner, nextStores] = await Promise.all([
+      const [nextCategories, nextBranding, nextBanner] = await Promise.all([
         fetchCategories(),
         fetchPlatformBranding().catch(() => null),
-        fetchCatalogBanner().catch(() => null),
-        fetchStores(storeQueryParams)
+        fetchCatalogBanner().catch(() => null)
       ]);
       setCategories(nextCategories);
       setBranding(nextBranding);
       setBanner(nextBanner);
-      setStores(nextStores);
+      const nextLocation = customerLocation ?? (await resolveAddressLocation());
+      if (nextLocation && !customerLocation) {
+        setCustomerLocation(nextLocation);
+      }
+      if (nextLocation) {
+        setLocationError(null);
+        setStores(
+          await fetchStores({
+            ...storeQueryParams,
+            latitude: nextLocation.latitude,
+            longitude: nextLocation.longitude
+          })
+        );
+      } else {
+        setStores([]);
+      }
       if (token) await refreshCart({ silent: true }).catch(() => null);
     } catch (loadError) {
       setError(friendlyErrorMessage(loadError, "No pudimos cargar el catálogo"));
     } finally {
       setLoading(false);
     }
-  }, [refreshCart, storeQueryParams, token]);
+  }, [customerLocation, refreshCart, resolveAddressLocation, storeQueryParams, token]);
+
+  const requestGpsLocation = useCallback(async () => {
+    setLocationLoading(true);
+    setLocationError(null);
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== "granted") {
+        setLocationError("Necesitamos permiso de ubicacion para mostrar comercios en tu zona.");
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setCustomerLocation({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        source: "gps"
+      });
+    } catch (gpsError) {
+      setLocationError(friendlyErrorMessage(gpsError, "No pudimos obtener tu ubicacion."));
+    } finally {
+      setLocationLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => void load(), 250);
@@ -206,11 +265,31 @@ export function CatalogScreen(_props: Props) {
 
             {error ? <StateMessage title="Catálogo no disponible" description={error} actionLabel="Reintentar" onAction={() => void load()} /> : null}
 
+            {!customerLocation && !loading ? (
+              <StateMessage
+                title="Ubicacion requerida"
+                description={locationError ?? "Define una direccion o usa GPS para ver comercios que lleguen hasta tu zona."}
+                actionLabel={locationLoading ? "Ubicando..." : "Usar mi ubicacion"}
+                onAction={() => void requestGpsLocation()}
+              />
+            ) : null}
+
             <SectionHeader size="compact" title="Cerca de vos" description="Filtrá por rubro y elegí dónde pedir." />
           </View>
         }
-        ListEmptyComponent={!loading && !error ? <StateMessage title="Sin comercios" description="No hay resultados para la búsqueda actual." /> : null}
-        renderItem={({ item }) => <StoreCard store={item} onPress={() => navigation.navigate("StoreDetail", { slug: item.slug })} />}
+        ListEmptyComponent={!loading && !error && customerLocation ? <StateMessage title="Sin comercios" description="No hay resultados para la búsqueda actual." /> : null}
+        renderItem={({ item }) => (
+          <StoreCard
+            store={item}
+            onPress={() =>
+              navigation.navigate("StoreDetail", {
+                slug: item.slug,
+                latitude: customerLocation?.latitude,
+                longitude: customerLocation?.longitude
+              })
+            }
+          />
+        )}
       />
     </Screen>
   );

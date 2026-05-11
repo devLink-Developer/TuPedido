@@ -24,7 +24,7 @@ export type RootStackParamList = {
   PublicCatalog: undefined;
   CustomerTabs: NavigatorScreenParams<CustomerTabsParamList> | undefined;
   DeliveryTabs: NavigatorScreenParams<DeliveryTabsParamList> | undefined;
-  StoreDetail: { slug: string };
+  StoreDetail: { slug: string; latitude?: number; longitude?: number };
   Cart: undefined;
   Checkout: undefined;
   OrderDetail: { orderId: number; deliveryMode?: boolean };

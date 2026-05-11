@@ -175,7 +175,18 @@ const approvedStore = {
     delivery_fee: 0,
     free_delivery_min_order: null,
     rider_fee: 0,
-    min_order: 0
+    min_order: 0,
+    delivery_area_polygon: [
+      { latitude: -31.64, longitude: -60.71 },
+      { latitude: -31.64, longitude: -60.69 },
+      { latitude: -31.62, longitude: -60.69 }
+    ],
+    pickup_area_polygon: [
+      { latitude: -31.64, longitude: -60.71 },
+      { latitude: -31.64, longitude: -60.69 },
+      { latitude: -31.62, longitude: -60.69 }
+    ],
+    pickup_area_uses_delivery_area: true
   },
   payment_settings: {
     cash_enabled: true,

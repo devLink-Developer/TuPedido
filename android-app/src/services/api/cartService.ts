@@ -6,6 +6,11 @@ type RawCart = Omit<Cart, "pricing"> & {
   pricing?: Partial<Cart["pricing"]> | null;
 };
 
+type CustomerLocationPayload = {
+  customer_latitude?: number | null;
+  customer_longitude?: number | null;
+};
+
 function mapCart(cart: RawCart): Cart {
   return withPricing(cart) as Cart;
 }
@@ -14,19 +19,23 @@ export async function fetchCart(token: string): Promise<Cart> {
   return mapCart(await apiRequest<RawCart>("/cart", { token }));
 }
 
-export async function updateCart(token: string, delivery_mode: "delivery" | "pickup"): Promise<Cart> {
+export async function updateCart(
+  token: string,
+  delivery_mode: "delivery" | "pickup",
+  location: CustomerLocationPayload = {}
+): Promise<Cart> {
   return mapCart(
     await apiRequest<RawCart>("/cart", {
       method: "PUT",
       token,
-      body: JSON.stringify({ delivery_mode })
+      body: JSON.stringify({ delivery_mode, ...location })
     })
   );
 }
 
 export async function addCartItem(
   token: string,
-  payload: { store_id: number; product_id: number; quantity?: number; note?: string | null }
+  payload: { store_id: number; product_id: number; quantity?: number; note?: string | null } & CustomerLocationPayload
 ): Promise<Cart> {
   return mapCart(
     await apiRequest<RawCart>("/cart/items", {

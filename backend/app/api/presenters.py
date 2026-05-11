@@ -53,7 +53,8 @@ from app.services.mercadopago import (
 from app.services.promotions import deserialize_items_snapshot
 from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
 from app.services.product_pricing import serialize_product_pricing
-from app.services.store_address import store_delivery_is_enabled
+from app.services.store_address import store_delivery_is_enabled, store_pickup_is_enabled
+from app.services.store_coverage import effective_coverage_polygon
 from app.services.settlements import (
     charge_outstanding_amount,
     charge_paid_amount,
@@ -86,13 +87,16 @@ def serialize_store_delivery_settings(store: object) -> StoreDeliverySettingsRea
     settings = getattr(store, "delivery_settings", None)
     return StoreDeliverySettingsRead(
         delivery_enabled=store_delivery_is_enabled(store),
-        pickup_enabled=bool(settings.pickup_enabled) if settings else False,
+        pickup_enabled=store_pickup_is_enabled(store),
         delivery_fee=float(settings.delivery_fee) if settings else 0,
         free_delivery_min_order=float(settings.free_delivery_min_order)
         if settings and getattr(settings, "free_delivery_min_order", None) is not None
         else None,
         rider_fee=float(getattr(settings, "rider_fee", 0) or 0) if settings else 0,
         min_order=float(settings.min_order) if settings else 0,
+        delivery_area_polygon=effective_coverage_polygon(store, "delivery"),
+        pickup_area_polygon=effective_coverage_polygon(store, "pickup"),
+        pickup_area_uses_delivery_area=bool(getattr(settings, "pickup_area_uses_delivery_area", False)) if settings else False,
     )
 
 

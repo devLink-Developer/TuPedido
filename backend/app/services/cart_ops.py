@@ -13,7 +13,8 @@ from app.services.platform import get_service_fee_amount
 from app.services.promotions import applied_promotions_discount_total, calculate_applied_promotions
 from app.services.product_pricing import compute_discount_amount, compute_final_price
 from app.services.mercadopago import is_store_mercadopago_ready
-from app.services.store_address import store_delivery_is_enabled
+from app.services.store_address import store_can_receive_orders_by_configuration, store_delivery_is_enabled, store_pickup_is_enabled
+from app.services.store_coverage import has_valid_coordinates, store_covers_location
 
 STORE_OPTIONS = (
     selectinload(Store.category_links).selectinload(StoreCategoryLink.category),
@@ -145,25 +146,49 @@ def ensure_product_can_be_added(product: Product, quantity: int, *, existing_qua
 def ensure_store_can_accept_orders(store: Store) -> None:
     if store.status != "approved":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Store is not approved")
+    if not store.accepting_orders:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Store is not accepting orders")
+    if not store_can_receive_orders_by_configuration(store):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Store delivery areas are not configured")
     if not is_store_open(store):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Store is closed")
 
 
-def ensure_delivery_mode_supported(store: Store, delivery_mode: str) -> None:
+def ensure_delivery_mode_supported(
+    store: Store,
+    delivery_mode: str,
+    *,
+    customer_latitude: float | None = None,
+    customer_longitude: float | None = None,
+) -> None:
     settings = store.delivery_settings
     if settings is None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Store delivery settings are not configured")
 
     if delivery_mode == "delivery" and not store_delivery_is_enabled(store):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Delivery is not available for this store")
-    if delivery_mode == "pickup" and not settings.pickup_enabled:
+    if delivery_mode == "pickup" and not store_pickup_is_enabled(store):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Pickup is not available for this store")
+    if delivery_mode not in {"delivery", "pickup"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid delivery mode")
+
+    if not has_valid_coordinates(customer_latitude, customer_longitude):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Customer location is required for this store")
+
+    assert customer_latitude is not None
+    assert customer_longitude is not None
+    if not store_covers_location(
+        store,
+        delivery_mode,  # type: ignore[arg-type]
+        latitude=float(customer_latitude),
+        longitude=float(customer_longitude),
+    ):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Customer location is outside this store coverage area")
 
 
 def resolve_supported_delivery_mode(store: Store, delivery_mode: str) -> str:
-    settings = store.delivery_settings
     delivery_enabled = store_delivery_is_enabled(store)
-    pickup_enabled = bool(settings.pickup_enabled) if settings else False
+    pickup_enabled = store_pickup_is_enabled(store)
 
     if delivery_mode == "delivery" and delivery_enabled:
         return "delivery"
@@ -173,6 +198,30 @@ def resolve_supported_delivery_mode(store: Store, delivery_mode: str) -> str:
         return "delivery"
     if pickup_enabled:
         return "pickup"
+    return delivery_mode
+
+
+def resolve_supported_delivery_mode_for_location(
+    store: Store,
+    delivery_mode: str,
+    *,
+    customer_latitude: float | None,
+    customer_longitude: float | None,
+) -> str:
+    if not has_valid_coordinates(customer_latitude, customer_longitude):
+        return resolve_supported_delivery_mode(store, delivery_mode)
+
+    latitude = float(customer_latitude)
+    longitude = float(customer_longitude)
+    for candidate in (delivery_mode, "delivery", "pickup"):
+        if candidate not in {"delivery", "pickup"}:
+            continue
+        if candidate == "delivery" and not store_delivery_is_enabled(store):
+            continue
+        if candidate == "pickup" and not store_pickup_is_enabled(store):
+            continue
+        if store_covers_location(store, candidate, latitude=latitude, longitude=longitude):  # type: ignore[arg-type]
+            return candidate
     return delivery_mode
 
 

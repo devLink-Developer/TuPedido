@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { AppButton } from "../../components/AppButton";
@@ -7,7 +8,7 @@ import { Card } from "../../components/Card";
 import { Screen } from "../../components/Screen";
 import { SectionHeader } from "../../components/SectionHeader";
 import { StateMessage } from "../../components/StateMessage";
-import { addCartItem, fetchStore } from "../../services/api";
+import { addCartItem, fetchAddresses, fetchStore } from "../../services/api";
 import { useAsyncLoad } from "../../hooks/useAsyncLoad";
 import { useCatalogRealtime } from "../../hooks/useCatalogRealtime";
 import { useAuth } from "../../state/AuthContext";
@@ -20,14 +21,53 @@ import { friendlyErrorMessage } from "../../utils/apiMessages";
 import { formatCurrency } from "../../utils/format";
 
 type Props = NativeStackScreenProps<RootStackParamList, "StoreDetail">;
+type CustomerLocation = { latitude: number; longitude: number; source: "address" | "gps" | "route" };
 
 export function StoreDetailScreen({ route, navigation }: Props) {
-  const { slug } = route.params;
+  const { slug, latitude, longitude } = route.params;
   const { token } = useAuth();
   const { showDialog, showError, showSuccess } = useAppFeedback();
   const { setCart } = useCartState();
+  const [customerLocation, setCustomerLocation] = useState<CustomerLocation | null>(
+    typeof latitude === "number" && typeof longitude === "number" ? { latitude, longitude, source: "route" } : null
+  );
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const { data: store, loading, error, reload } = useAsyncLoad(() => fetchStore(slug), [slug]);
+  const { data: store, loading, error, reload } = useAsyncLoad(
+    () =>
+      customerLocation
+        ? fetchStore(slug, {
+            latitude: customerLocation.latitude,
+            longitude: customerLocation.longitude
+          })
+        : Promise.reject(new Error("Define tu ubicacion para abrir este comercio.")),
+    [slug, customerLocation?.latitude, customerLocation?.longitude]
+  );
+
+  useEffect(() => {
+    if (customerLocation || !token) return;
+    let cancelled = false;
+    setLocationLoading(true);
+    fetchAddresses(token)
+      .then((addresses) => {
+        if (cancelled) return;
+        const geolocated = addresses.filter((address) => typeof address.latitude === "number" && typeof address.longitude === "number");
+        const selected = geolocated.find((address) => address.is_default) ?? geolocated[0];
+        if (selected && typeof selected.latitude === "number" && typeof selected.longitude === "number") {
+          setCustomerLocation({ latitude: selected.latitude, longitude: selected.longitude, source: "address" });
+        }
+      })
+      .catch((loadError) => {
+        if (!cancelled) setLocationError(friendlyErrorMessage(loadError, "No pudimos leer tu direccion."));
+      })
+      .finally(() => {
+        if (!cancelled) setLocationLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [customerLocation, token]);
 
   const refreshStore = useCallback(async () => {
     await reload();
@@ -60,15 +100,53 @@ export function StoreDetailScreen({ route, navigation }: Props) {
         return;
       }
       try {
-        const nextCart = await addCartItem(token, { store_id: store.id, product_id: product.id, quantity: 1 });
+        const nextCart = await addCartItem(token, {
+          store_id: store.id,
+          product_id: product.id,
+          quantity: 1,
+          customer_latitude: customerLocation?.latitude ?? null,
+          customer_longitude: customerLocation?.longitude ?? null
+        });
         setCart(nextCart);
         showSuccess("Agregado al carrito", `${product.name} se sumó al pedido.`);
       } catch (addError) {
         showError("No se pudo agregar", friendlyErrorMessage(addError));
       }
     },
-    [navigation, setCart, showDialog, showError, showSuccess, store, token]
+    [customerLocation, navigation, setCart, showDialog, showError, showSuccess, store, token]
   );
+
+  const requestGpsLocation = useCallback(async () => {
+    setLocationLoading(true);
+    setLocationError(null);
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== "granted") {
+        setLocationError("Necesitamos permiso de ubicacion para validar este comercio.");
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setCustomerLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude, source: "gps" });
+    } catch (gpsError) {
+      setLocationError(friendlyErrorMessage(gpsError, "No pudimos obtener tu ubicacion."));
+    } finally {
+      setLocationLoading(false);
+    }
+  }, []);
+
+  if (!customerLocation) {
+    return (
+      <Screen>
+        <StateMessage
+          title={locationLoading ? "Buscando ubicacion" : "Ubicacion requerida"}
+          description={locationError ?? "Usa tu ubicacion para validar si este comercio llega a tu zona."}
+          loading={locationLoading}
+          actionLabel={locationLoading ? undefined : "Usar mi ubicacion"}
+          onAction={locationLoading ? undefined : () => void requestGpsLocation()}
+        />
+      </Screen>
+    );
+  }
 
   if (loading && !store) {
     return <StateMessage title="Cargando comercio" loading />;

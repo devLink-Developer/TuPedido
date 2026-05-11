@@ -34,6 +34,11 @@ export type CategoryWrite = {
   sort_order: number;
 };
 
+export type CoveragePoint = {
+  latitude: number;
+  longitude: number;
+};
+
 export type StoreDeliverySettings = {
   delivery_enabled: boolean;
   pickup_enabled: boolean;
@@ -41,6 +46,9 @@ export type StoreDeliverySettings = {
   free_delivery_min_order: number | null;
   rider_fee: number;
   min_order: number;
+  delivery_area_polygon: CoveragePoint[];
+  pickup_area_polygon: CoveragePoint[];
+  pickup_area_uses_delivery_area: boolean;
 };
 
 export type MercadoPagoConnectionStatus = "connected" | "disconnected" | "reconnect_required" | "onboarding_pending";

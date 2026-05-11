@@ -32,6 +32,7 @@ import type {
   SettlementCharge,
   SettlementNotice,
   SettlementOverview,
+  StoreDeliverySettingsUpdate,
   StoreHourWrite
 } from "../types";
 import { EmptyCard, LoadingCard, PageHeader, formatCurrency, formatHour, orderStatusOptions, paymentMethodLabels, statusLabels, timeFromInput } from "./common";
@@ -95,13 +96,16 @@ export function MerchantDashboardPage() {
   const [storeForm, setStoreForm] = useState(emptyStoreForm);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [hours, setHours] = useState<StoreHourWrite[]>(makeEmptyHours());
-  const [deliveryForm, setDeliveryForm] = useState({
+  const [deliveryForm, setDeliveryForm] = useState<StoreDeliverySettingsUpdate>({
     delivery_enabled: true,
     pickup_enabled: true,
     delivery_fee: 0,
     free_delivery_min_order: null as number | null,
     rider_fee: 0,
-    min_order: 0
+    min_order: 0,
+    delivery_area_polygon: [],
+    pickup_area_polygon: [],
+    pickup_area_uses_delivery_area: false
   });
   const [paymentForm, setPaymentForm] = useState({ cash_enabled: true, mercadopago_enabled: true });
   const [connectUrl, setConnectUrl] = useState<string | null>(null);
@@ -182,7 +186,10 @@ export function MerchantDashboardPage() {
         delivery_fee: storeData.delivery_settings.delivery_fee,
         free_delivery_min_order: storeData.delivery_settings.free_delivery_min_order,
         rider_fee: storeData.delivery_settings.rider_fee,
-        min_order: storeData.delivery_settings.min_order
+        min_order: storeData.delivery_settings.min_order,
+        delivery_area_polygon: storeData.delivery_settings.delivery_area_polygon,
+        pickup_area_polygon: storeData.delivery_settings.pickup_area_polygon,
+        pickup_area_uses_delivery_area: storeData.delivery_settings.pickup_area_uses_delivery_area
       });
       setPaymentForm({
         cash_enabled: storeData.payment_settings.cash_enabled,

@@ -13,6 +13,8 @@ class CheckoutRequest(BaseModel):
     delivery_mode: Literal["delivery", "pickup"]
     payment_method: Literal["cash", "mercadopago"]
     idempotency_key: str | None = Field(default=None, max_length=160)
+    customer_latitude: float | None = None
+    customer_longitude: float | None = None
 
 
 class CheckoutResponse(BaseModel):

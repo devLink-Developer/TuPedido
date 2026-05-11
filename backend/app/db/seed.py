@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import UTC, datetime, time
 
@@ -41,6 +42,13 @@ LEGACY_SEED_EMAILS: dict[str, tuple[str, ...]] = {
 }
 
 SIMULATED_MERCADOPAGO_WEBHOOK_SECRET = "SIMULATED-WEBHOOK-SECRET"
+DEMO_STORE_COVERAGE_POLYGON = [
+    {"latitude": -34.5682, "longitude": -58.4636},
+    {"latitude": -34.5682, "longitude": -58.4494},
+    {"latitude": -34.5571, "longitude": -58.4494},
+    {"latitude": -34.5571, "longitude": -58.4636},
+]
+DEMO_STORE_COVERAGE_POLYGON_JSON = json.dumps(DEMO_STORE_COVERAGE_POLYGON, separators=(",", ":"))
 
 
 def _default_admin_seed() -> dict[str, object]:
@@ -449,8 +457,31 @@ def seed_initial_data() -> int:
                     free_delivery_min_order=5000,
                     rider_fee=220,
                     min_order=0,
+                    delivery_area_polygon_json=DEMO_STORE_COVERAGE_POLYGON_JSON,
+                    pickup_area_polygon_json=DEMO_STORE_COVERAGE_POLYGON_JSON,
+                    pickup_area_uses_delivery_area=True,
                 )
             )
+            replenished += 1
+        else:
+            settings_row = store.delivery_settings
+            if settings_row.delivery_area_polygon_json != DEMO_STORE_COVERAGE_POLYGON_JSON:
+                settings_row.delivery_area_polygon_json = DEMO_STORE_COVERAGE_POLYGON_JSON
+                replenished += 1
+            if settings_row.pickup_area_polygon_json != DEMO_STORE_COVERAGE_POLYGON_JSON:
+                settings_row.pickup_area_polygon_json = DEMO_STORE_COVERAGE_POLYGON_JSON
+                replenished += 1
+            if not settings_row.pickup_area_uses_delivery_area:
+                settings_row.pickup_area_uses_delivery_area = True
+                replenished += 1
+            if not settings_row.delivery_enabled:
+                settings_row.delivery_enabled = True
+                replenished += 1
+            if not settings_row.pickup_enabled:
+                settings_row.pickup_enabled = True
+                replenished += 1
+        if not store.accepting_orders:
+            store.accepting_orders = True
             replenished += 1
 
         if store.payment_settings is None:

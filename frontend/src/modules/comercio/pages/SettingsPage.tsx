@@ -28,6 +28,7 @@ import {
   toStoreAddressPayload,
   type StoreAddressFormState
 } from "../components/StoreAddressSection";
+import { StoreCoverageSection, hasAnyCoverageArea } from "../components/StoreCoverageSection";
 import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync";
 
 const storeStatusMessages: Record<string, string> = {
@@ -117,8 +118,9 @@ export function SettingsPage() {
   const [showAddressEditor, setShowAddressEditor] = useState(false);
 
   const isApproved = store?.status === "approved";
-  const canToggleOrders = isApproved;
   const deliveryAddressReady = hasStoreAddressConfiguration(storeAddressForm);
+  const coverageReady = store ? hasAnyCoverageArea(store.delivery_settings) : false;
+  const canToggleOrders = isApproved && (store?.accepting_orders ? coverageReady : deliveryAddressReady && coverageReady);
   const hasAddressDraft = hasStoreAddressDraft(storeAddressForm);
   const addressSummary = useMemo(() => buildStoreAddressSummary(storeAddressForm), [storeAddressForm]);
   const statusMessage = useMemo(() => {
@@ -229,6 +231,10 @@ export function SettingsPage() {
 
       if (store.delivery_settings.delivery_enabled && !hasStoreAddressConfiguration(nextStoreAddressForm)) {
         setError("Configura la dirección completa del local y su geolocalización antes de habilitar delivery.");
+        return;
+      }
+      if (store.accepting_orders && !hasAnyCoverageArea(store.delivery_settings)) {
+        setError("Configura al menos una zona de alcance valida antes de recibir pedidos.");
         return;
       }
       const nextMercadoPagoEnabled = store.payment_settings.mercadopago_enabled;
@@ -649,6 +655,13 @@ export function SettingsPage() {
             </p>
           ) : null}
         </section>
+
+        <StoreCoverageSection
+          store={store}
+          onChange={(deliverySettings) =>
+            setStore((current) => (current ? { ...current, delivery_settings: deliverySettings } : current))
+          }
+        />
 
         <section className="space-y-4">
           <div>

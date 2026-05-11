@@ -253,10 +253,11 @@ def checkout(
 
     store = cart.store
     ensure_store_can_accept_orders(store)
-    ensure_delivery_mode_supported(store, payload.delivery_mode)
     ensure_payment_method_supported(store, payload.payment_method)
 
     address = None
+    coverage_latitude = payload.customer_latitude
+    coverage_longitude = payload.customer_longitude
     if payload.delivery_mode == "delivery":
         if payload.address_id is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Address is required for delivery")
@@ -268,6 +269,15 @@ def checkout(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="La direccion seleccionada debe tener geolocalizacion obligatoria",
             )
+        coverage_latitude = float(address.latitude)
+        coverage_longitude = float(address.longitude)
+
+    ensure_delivery_mode_supported(
+        store,
+        payload.delivery_mode,
+        customer_latitude=coverage_latitude,
+        customer_longitude=coverage_longitude,
+    )
 
     cart.delivery_mode = payload.delivery_mode
     compute_cart_totals(cart)

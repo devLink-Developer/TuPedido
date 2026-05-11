@@ -19,6 +19,7 @@ from app.services.cart_ops import (
     load_product,
     load_store,
     reload_cart,
+    resolve_supported_delivery_mode_for_location,
 )
 
 router = APIRouter()
@@ -40,7 +41,12 @@ def update_cart(
     cart = get_or_create_cart(db, user.id)
     if cart.store is None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Cart does not have a store yet")
-    ensure_delivery_mode_supported(cart.store, payload.delivery_mode)
+    ensure_delivery_mode_supported(
+        cart.store,
+        payload.delivery_mode,
+        customer_latitude=payload.customer_latitude,
+        customer_longitude=payload.customer_longitude,
+    )
     cart.delivery_mode = payload.delivery_mode
     compute_cart_totals(cart)
     db.commit()
@@ -68,8 +74,25 @@ def add_cart_item(payload: CartItemCreate, user: User = Depends(get_current_user
     cart.store_id = store.id
     cart.store = store
     if not cart.items:
-        cart.delivery_mode = "delivery" if store.delivery_settings and store.delivery_settings.delivery_enabled else "pickup"
-    ensure_delivery_mode_supported(store, cart.delivery_mode)
+        cart.delivery_mode = resolve_supported_delivery_mode_for_location(
+            store,
+            "delivery",
+            customer_latitude=payload.customer_latitude,
+            customer_longitude=payload.customer_longitude,
+        )
+    else:
+        cart.delivery_mode = resolve_supported_delivery_mode_for_location(
+            store,
+            cart.delivery_mode,
+            customer_latitude=payload.customer_latitude,
+            customer_longitude=payload.customer_longitude,
+        )
+    ensure_delivery_mode_supported(
+        store,
+        cart.delivery_mode,
+        customer_latitude=payload.customer_latitude,
+        customer_longitude=payload.customer_longitude,
+    )
     item = db.scalar(
         select(ShoppingCartItem).where(
             ShoppingCartItem.cart_id == cart.id, ShoppingCartItem.product_id == payload.product_id

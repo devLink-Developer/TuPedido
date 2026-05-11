@@ -37,6 +37,11 @@ export type Category = {
   sort_order: number;
 };
 
+export type CoveragePoint = {
+  latitude: number;
+  longitude: number;
+};
+
 export type StoreDeliverySettings = {
   delivery_enabled: boolean;
   pickup_enabled: boolean;
@@ -44,6 +49,9 @@ export type StoreDeliverySettings = {
   free_delivery_min_order: number | null;
   rider_fee: number;
   min_order: number;
+  delivery_area_polygon: CoveragePoint[];
+  pickup_area_polygon: CoveragePoint[];
+  pickup_area_uses_delivery_area: boolean;
 };
 
 export type StorePaymentSettings = {
@@ -265,6 +273,8 @@ export type CheckoutRequest = {
   delivery_mode: "delivery" | "pickup";
   payment_method: "cash" | "mercadopago";
   idempotency_key?: string | null;
+  customer_latitude?: number | null;
+  customer_longitude?: number | null;
 };
 
 export type MerchantApplicationCreate = {
@@ -314,6 +324,9 @@ export type StoreDeliverySettingsUpdate = {
   free_delivery_min_order: number | null;
   rider_fee: number;
   min_order: number;
+  delivery_area_polygon: CoveragePoint[];
+  pickup_area_polygon: CoveragePoint[];
+  pickup_area_uses_delivery_area: boolean;
 };
 
 export type StorePaymentSettingsUpdate = {

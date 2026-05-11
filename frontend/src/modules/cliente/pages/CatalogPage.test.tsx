@@ -8,8 +8,11 @@ import { CatalogPage } from "./CatalogPage";
 const fetchCatalogBannerMock = vi.fn();
 const fetchStoresMock = vi.fn();
 const fetchCategoriesMock = vi.fn();
+const fetchAddressesMock = vi.fn();
+const TEST_LOCATION = { latitude: -31.63, longitude: -60.7, source: "gps" as const };
 
 vi.mock("../../../shared/services/api", () => ({
+  fetchAddresses: (...args: unknown[]) => fetchAddressesMock(...args),
   fetchCatalogBanner: (...args: unknown[]) => fetchCatalogBannerMock(...args),
   fetchStores: (...args: unknown[]) => fetchStoresMock(...args),
   fetchCategories: (...args: unknown[]) => fetchCategoriesMock(...args)
@@ -33,8 +36,10 @@ describe("CatalogPage", () => {
     fetchCatalogBannerMock.mockReset();
     fetchStoresMock.mockReset();
     fetchCategoriesMock.mockReset();
+    fetchAddressesMock.mockReset();
     useCategoryStore.getState().resetForTest();
     useClienteStore.getState().resetCatalog();
+    useClienteStore.getState().setCustomerLocation(TEST_LOCATION);
     document.documentElement.style.removeProperty("--catalog-accent");
     document.documentElement.style.removeProperty("--catalog-accent-light");
     document.documentElement.style.removeProperty("--catalog-accent-soft");
@@ -47,6 +52,7 @@ describe("CatalogPage", () => {
       catalog_banner_height: 520
     });
     fetchCategoriesMock.mockResolvedValue([]);
+    fetchAddressesMock.mockResolvedValue([]);
     fetchStoresMock.mockResolvedValue([]);
   });
 
@@ -61,7 +67,9 @@ describe("CatalogPage", () => {
       expect(fetchStoresMock).toHaveBeenCalledWith({
         categorySlug: undefined,
         search: undefined,
-        deliveryMode: undefined
+        deliveryMode: undefined,
+        latitude: TEST_LOCATION.latitude,
+        longitude: TEST_LOCATION.longitude
       })
     );
     expect(screen.getByRole("combobox")).toHaveValue("");
@@ -78,7 +86,9 @@ describe("CatalogPage", () => {
       expect(fetchStoresMock).toHaveBeenCalledWith({
         categorySlug: undefined,
         search: undefined,
-        deliveryMode: "pickup"
+        deliveryMode: "pickup",
+        latitude: TEST_LOCATION.latitude,
+        longitude: TEST_LOCATION.longitude
       })
     );
     expect(screen.getByRole("combobox")).toHaveValue("pickup");

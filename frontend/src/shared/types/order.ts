@@ -28,6 +28,8 @@ export type CheckoutRequest = {
   delivery_mode: "delivery" | "pickup";
   payment_method: "cash" | "mercadopago";
   idempotency_key?: string | null;
+  customer_latitude?: number | null;
+  customer_longitude?: number | null;
 };
 
 export type PaymentTransaction = {

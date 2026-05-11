@@ -53,7 +53,10 @@ function buildStore(overrides: Partial<MerchantStore> = {}): MerchantStore {
       delivery_fee: 0,
       free_delivery_min_order: null,
       rider_fee: 0,
-      min_order: 0
+      min_order: 0,
+      delivery_area_polygon: [],
+      pickup_area_polygon: [],
+      pickup_area_uses_delivery_area: false
     },
     payment_settings: {
       cash_enabled: true,

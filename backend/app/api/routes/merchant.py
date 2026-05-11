@@ -84,6 +84,8 @@ from app.services.settlements import (
     get_store_rider_payments,
 )
 from app.services.store_address import store_has_configured_delivery_address
+from app.services.store_address import store_can_receive_orders_by_configuration
+from app.services.store_coverage import CoveragePolygonError, coverage_polygon_to_json
 
 router = APIRouter()
 
@@ -327,6 +329,11 @@ def update_store(
     store.max_delivery_minutes = payload.max_delivery_minutes
     if store.delivery_settings and not store_has_configured_delivery_address(store):
         store.delivery_settings.delivery_enabled = False
+    if store.accepting_orders and not store_can_receive_orders_by_configuration(store):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Configura al menos una zona de alcance valida antes de recibir pedidos.",
+        )
     db.commit()
     db.refresh(store)
     publish_catalog_store_changed(store)
@@ -397,12 +404,25 @@ def update_delivery_settings(
     if settings is None:
         settings = StoreDeliverySettings(store_id=store.id)
         db.add(settings)
+    try:
+        settings.delivery_area_polygon_json = coverage_polygon_to_json(
+            [point.model_dump() for point in payload.delivery_area_polygon]
+        )
+        settings.pickup_area_polygon_json = coverage_polygon_to_json(
+            [point.model_dump() for point in payload.pickup_area_polygon]
+        )
+    except CoveragePolygonError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
     settings.delivery_enabled = payload.delivery_enabled
     settings.pickup_enabled = payload.pickup_enabled
     settings.delivery_fee = payload.delivery_fee
     settings.free_delivery_min_order = payload.free_delivery_min_order
     settings.rider_fee = payload.rider_fee
     settings.min_order = payload.min_order
+    settings.pickup_area_uses_delivery_area = payload.pickup_area_uses_delivery_area
+    if store.accepting_orders and not store_can_receive_orders_by_configuration(store):
+        store.accepting_orders = False
     db.commit()
     db.refresh(store)
     publish_catalog_store_changed(store)

@@ -1,4 +1,4 @@
-import type { StoreDetail } from "./catalog";
+import type { CoveragePoint, StoreDetail } from "./catalog";
 import type { Order } from "./order";
 import type { Promotion } from "./promotion";
 
@@ -164,6 +164,9 @@ export type StoreDeliverySettingsUpdate = {
   free_delivery_min_order: number | null;
   rider_fee: number;
   min_order: number;
+  delivery_area_polygon: CoveragePoint[];
+  pickup_area_polygon: CoveragePoint[];
+  pickup_area_uses_delivery_area: boolean;
 };
 
 export type StorePaymentSettingsUpdate = {

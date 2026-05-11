@@ -40,6 +40,8 @@ from app.services.mercadopago import get_or_create_mercadopago_provider
 from app.services.media import normalize_media_url
 from app.services.order_runtime import build_order_options
 from app.services.store_branding import resolve_store_assets
+from app.services.store_address import store_can_receive_orders_by_configuration
+from app.services.store_coverage import CoveragePolygonError, coverage_polygon_to_json
 
 router = APIRouter()
 USER_RESET_PASSWORD = "12345678"
@@ -231,7 +233,7 @@ def create_store(
         latitude=payload.latitude,
         longitude=payload.longitude,
         status="approved",
-        accepting_orders=payload.accepting_orders,
+        accepting_orders=False,
         opening_note=payload.opening_note,
         min_delivery_minutes=payload.min_delivery_minutes,
         max_delivery_minutes=payload.max_delivery_minutes,
@@ -239,17 +241,30 @@ def create_store(
     db.add(store)
     db.flush()
 
-    db.add(
-        StoreDeliverySettings(
-            store_id=store.id,
-            delivery_enabled=payload.delivery_enabled,
-            pickup_enabled=payload.pickup_enabled,
-            delivery_fee=payload.delivery_fee,
-            free_delivery_min_order=payload.free_delivery_min_order,
-            rider_fee=payload.rider_fee,
-            min_order=payload.min_order,
+    try:
+        delivery_area_polygon_json = coverage_polygon_to_json(
+            [point.model_dump() for point in payload.delivery_area_polygon]
         )
+        pickup_area_polygon_json = coverage_polygon_to_json(
+            [point.model_dump() for point in payload.pickup_area_polygon]
+        )
+    except CoveragePolygonError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    delivery_settings = StoreDeliverySettings(
+        store_id=store.id,
+        delivery_enabled=payload.delivery_enabled,
+        pickup_enabled=payload.pickup_enabled,
+        delivery_fee=payload.delivery_fee,
+        free_delivery_min_order=payload.free_delivery_min_order,
+        rider_fee=payload.rider_fee,
+        min_order=payload.min_order,
+        delivery_area_polygon_json=delivery_area_polygon_json,
+        pickup_area_polygon_json=pickup_area_polygon_json,
+        pickup_area_uses_delivery_area=payload.pickup_area_uses_delivery_area,
     )
+    store.delivery_settings = delivery_settings
+    db.add(delivery_settings)
     db.add(
         StorePaymentSettings(
             store_id=store.id,
@@ -265,6 +280,7 @@ def create_store(
         StoreCategoryLink(store_id=store.id, category_id=category.id, is_primary=index == 0)
         for index, category in enumerate(categories)
     ]
+    store.accepting_orders = payload.accepting_orders and store_can_receive_orders_by_configuration(store)
 
     db.commit()
     created_store = db.scalar(select(Store).options(*STORE_OPTIONS).where(Store.id == store.id))

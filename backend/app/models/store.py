@@ -154,6 +154,9 @@ class StoreDeliverySettings(Base):
     free_delivery_min_order: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     rider_fee: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     min_order: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
+    delivery_area_polygon_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pickup_area_polygon_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pickup_area_uses_delivery_area: Mapped[bool] = mapped_column(Boolean, default=False)
 
     store: Mapped[Store] = relationship(back_populates="delivery_settings")
 

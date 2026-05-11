@@ -71,6 +71,11 @@ class StoreHourRead(BaseModel):
     is_closed: bool
 
 
+class CoveragePointRead(BaseModel):
+    latitude: float
+    longitude: float
+
+
 class StoreDeliverySettingsRead(BaseModel):
     delivery_enabled: bool
     pickup_enabled: bool
@@ -78,6 +83,9 @@ class StoreDeliverySettingsRead(BaseModel):
     free_delivery_min_order: float | None = None
     rider_fee: float
     min_order: float
+    delivery_area_polygon: list[CoveragePointRead] = Field(default_factory=list)
+    pickup_area_polygon: list[CoveragePointRead] = Field(default_factory=list)
+    pickup_area_uses_delivery_area: bool = False
 
 
 class StorePaymentSettingsRead(BaseModel):

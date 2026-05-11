@@ -15,8 +15,18 @@ type CartState = {
   loading: boolean;
   error: string | null;
   refreshCart: () => Promise<void>;
-  setDeliveryMode: (mode: "delivery" | "pickup") => Promise<void>;
-  addItem: (payload: { storeId: number; productId: number; quantity?: number; note?: string | null }) => Promise<void>;
+  setDeliveryMode: (
+    mode: "delivery" | "pickup",
+    location?: { latitude: number; longitude: number } | null
+  ) => Promise<void>;
+  addItem: (payload: {
+    storeId: number;
+    productId: number;
+    quantity?: number;
+    note?: string | null;
+    customerLatitude?: number | null;
+    customerLongitude?: number | null;
+  }) => Promise<void>;
   updateItem: (itemId: number, payload: { quantity: number; note?: string | null }) => Promise<void>;
   removeItem: (itemId: number) => Promise<void>;
   clear: () => Promise<void>;
@@ -120,11 +130,14 @@ export const useCartStore = create<CartState>((set) => ({
       });
     }
   },
-  async setDeliveryMode(mode) {
+  async setDeliveryMode(mode, location) {
     const token = requireToken();
     set({ error: null });
     try {
-      const cart = await updateCart(token, mode);
+      const cart = await updateCart(token, mode, {
+        customer_latitude: location?.latitude ?? null,
+        customer_longitude: location?.longitude ?? null
+      });
       set({ cart, error: null });
     } catch (error) {
       set({ error: getErrorMessage(error, "No se pudo actualizar el modo de entrega") });
@@ -138,7 +151,9 @@ export const useCartStore = create<CartState>((set) => ({
         store_id: payload.storeId,
         product_id: payload.productId,
         quantity: payload.quantity ?? 1,
-        note: payload.note ?? null
+        note: payload.note ?? null,
+        customer_latitude: payload.customerLatitude ?? null,
+        customer_longitude: payload.customerLongitude ?? null
       });
       set({ cart, error: null });
     } catch (error) {

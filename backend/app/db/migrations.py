@@ -72,6 +72,11 @@ MERGE_RECOVERY_SCHEMA: dict[str, set[str]] = {
         "net_amount",
     },
     "payment_webhook_events": {"event_id", "signature_valid"},
+    "store_delivery_settings": {
+        "delivery_area_polygon_json",
+        "pickup_area_polygon_json",
+        "pickup_area_uses_delivery_area",
+    },
 }
 
 
