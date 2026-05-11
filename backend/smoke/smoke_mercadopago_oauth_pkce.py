@@ -44,21 +44,36 @@ def main() -> None:
 
         session = client.post("/api/v1/oauth/mercadopago/session", headers=merchant_headers)
         session.raise_for_status()
+        session_response = session.json()
         oauth_session = client.cookies.get("mp_oauth_session")
         assert oauth_session, "OAuth session cookie was not set"
         session_payload = decode_oauth_session_token(oauth_session)
         code_verifier = session_payload.get("code_verifier")
         assert isinstance(code_verifier, str) and 43 <= len(code_verifier) <= 128
+        connect_url = session_response["connect_url"]
+        connect_query = parse_qs(urlsplit(connect_url).query)
+        query_session_token = connect_query["oauth_session_token"][0]
+        assert decode_oauth_session_token(query_session_token)["code_verifier"] == code_verifier
 
         connect = client.get("/api/v1/oauth/mercadopago/connect", follow_redirects=False)
         assert connect.status_code == 302, connect.text
         location = connect.headers["location"]
         assert "code_verifier" not in location
+        assert "oauth_session_token" not in location
 
         query = parse_qs(urlsplit(location).query)
         assert query["code_challenge"] == [build_oauth_code_challenge(code_verifier)]
         assert query["code_challenge_method"] == ["S256"]
         assert query["redirect_uri"] == ["http://localhost:8016/api/v1/oauth/mercadopago/callback"]
+
+        client.cookies.clear()
+        parsed_connect_url = urlsplit(connect_url)
+        connect_with_token = client.get(
+            f"{parsed_connect_url.path}?{parsed_connect_url.query}",
+            follow_redirects=False,
+        )
+        assert connect_with_token.status_code == 302, connect_with_token.text
+        assert client.cookies.get("mp_oauth_session"), "OAuth session cookie was not rebound on connect host"
 
     print("smoke_mercadopago_oauth_pkce_ok")
 

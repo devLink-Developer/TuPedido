@@ -31,7 +31,7 @@ from app.services.mercadopago import (
     get_or_create_mercadopago_provider,
     mercadopago_connection_status,
     normalize_frontend_origin,
-    oauth_connect_entrypoint,
+    oauth_connect_entrypoint_for_redirect_uri,
     resolve_public_backend_base_url,
     store_oauth_credentials,
 )
@@ -135,8 +135,13 @@ def create_mercadopago_oauth_session(
     _set_oauth_cookie(request, response, token)
     logger.info("mercadopago_oauth_session_created", extra={"store_id": store.id, "user_id": user.id})
     status_value = mercadopago_connection_status(store, provider=provider)
+    connect_url = oauth_connect_entrypoint_for_redirect_uri(
+        provider.redirect_uri,
+        fallback_base_url=_api_base_url_from_request(request),
+    )
+    connect_url = f"{connect_url}?{urlencode({'oauth_session_token': token})}"
     return MercadoPagoConnectUrlRead(
-        connect_url=oauth_connect_entrypoint(base_url=_api_base_url_from_request(request)),
+        connect_url=connect_url,
         connection_status=status_value,
         status=status_value,
         callback_url=build_oauth_callback_url(base_url=_api_base_url_from_request(request)),
@@ -147,12 +152,14 @@ def create_mercadopago_oauth_session(
 def connect_mercadopago(
     request: Request,
     oauth_session: str | None = Cookie(default=None, alias=OAUTH_SESSION_COOKIE),
+    oauth_session_token: str | None = None,
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
     try:
-        if not oauth_session:
+        resolved_oauth_session = oauth_session_token or oauth_session
+        if not resolved_oauth_session:
             raise MercadoPagoAPIError("Missing OAuth session")
-        session_payload = decode_oauth_session_token(oauth_session)
+        session_payload = decode_oauth_session_token(resolved_oauth_session)
         store = db.scalar(
             select(Store)
             .options(*STORE_OPTIONS)
@@ -171,7 +178,7 @@ def connect_mercadopago(
         )
         code_verifier = session_payload.get("code_verifier")
         code_challenge = build_oauth_code_challenge(code_verifier) if isinstance(code_verifier, str) else None
-        return RedirectResponse(
+        response = RedirectResponse(
             build_oauth_connect_url(
                 provider=provider,
                 state=state,
@@ -180,6 +187,9 @@ def connect_mercadopago(
             ),
             status_code=status.HTTP_302_FOUND,
         )
+        if oauth_session_token:
+            _set_oauth_cookie(request, response, resolved_oauth_session)
+        return response
     except (MercadoPagoAPIError, ValueError) as exc:
         response = RedirectResponse(
             _merchant_redirect_url_for_origin(_frontend_origin_from_request(request), "error", str(exc)),

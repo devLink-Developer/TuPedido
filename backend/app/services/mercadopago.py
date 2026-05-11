@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
 import logging
 import secrets
 from datetime import UTC, datetime, timedelta
@@ -489,18 +490,25 @@ def build_oauth_session_token(
         "store_id": store_id,
         "user_id": user_id,
         "frontend_origin": normalize_frontend_origin(frontend_origin),
-        "exp": _now_utc() + timedelta(minutes=OAUTH_SESSION_EXPIRATION_MINUTES),
+        "exp": int((_now_utc() + timedelta(minutes=OAUTH_SESSION_EXPIRATION_MINUTES)).timestamp()),
     }
     if code_verifier:
         payload["code_verifier"] = code_verifier
-    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+    return encrypt_sensitive_value(json.dumps(payload, separators=(",", ":")))
 
 
 def decode_oauth_session_token(value: str) -> dict[str, Any]:
+    value = value.strip().strip('"')
     try:
         payload = jwt.decode(value, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-    except JWTError as exc:
-        raise MercadoPagoAPIError("Mercado Pago OAuth session is invalid") from exc
+    except JWTError:
+        try:
+            payload = json.loads(decrypt_sensitive_value(value))
+        except (ValueError, json.JSONDecodeError) as exc:
+            raise MercadoPagoAPIError("Mercado Pago OAuth session is invalid") from exc
+        expires_at = payload.get("exp")
+        if not isinstance(expires_at, int | float) or datetime.fromtimestamp(expires_at, UTC) < _now_utc():
+            raise MercadoPagoAPIError("Mercado Pago OAuth session is invalid")
     if payload.get("kind") != "mercadopago_oauth_session" or payload.get("provider") != MERCADOPAGO_PROVIDER:
         raise MercadoPagoAPIError("Mercado Pago OAuth session is invalid")
     return payload
@@ -509,6 +517,22 @@ def decode_oauth_session_token(value: str) -> dict[str, Any]:
 def oauth_connect_entrypoint(*, base_url: str | None = None) -> str:
     resolved_base_url = resolve_public_backend_base_url(base_url)
     return f"{resolved_base_url}{settings.api_prefix}/oauth/mercadopago/connect"
+
+
+def oauth_connect_entrypoint_for_redirect_uri(redirect_uri: str | None, *, fallback_base_url: str | None = None) -> str:
+    if redirect_uri:
+        try:
+            parsed = urlsplit(redirect_uri)
+        except ValueError:
+            parsed = None
+        if parsed and parsed.scheme in {"http", "https"} and parsed.netloc:
+            callback_tail = "/oauth/mercadopago/callback"
+            if parsed.path.endswith(callback_tail):
+                connect_path = f"{parsed.path[: -len(callback_tail)]}/oauth/mercadopago/connect"
+            else:
+                connect_path = f"{settings.api_prefix}/oauth/mercadopago/connect"
+            return f"{parsed.scheme}://{parsed.netloc}{connect_path}"
+    return oauth_connect_entrypoint(base_url=fallback_base_url)
 
 
 def build_oauth_callback_url(*, base_url: str | None = None) -> str:
