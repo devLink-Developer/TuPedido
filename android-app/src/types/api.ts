@@ -363,6 +363,17 @@ export type DirectionsRead = {
   duration_seconds: number;
   duration_minutes: number;
   geometry: RouteCoordinate[];
+  instructions: RouteInstruction[];
+};
+
+export type RouteInstruction = {
+  instruction: string;
+  name: string | null;
+  distance_meters: number;
+  duration_seconds: number;
+  duration_minutes: number;
+  type: number | null;
+  way_points: number[];
 };
 
 export type PaymentTransaction = {

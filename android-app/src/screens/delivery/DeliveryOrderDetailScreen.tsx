@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AppButton } from "../../components/AppButton";
@@ -8,44 +8,42 @@ import { Screen } from "../../components/Screen";
 import { SectionHeader } from "../../components/SectionHeader";
 import { StateMessage } from "../../components/StateMessage";
 import { TextField } from "../../components/TextField";
-import { acceptDeliveryOrder, deliverDeliveryOrder, fetchDeliveryOrders, fetchDirections, pickupDeliveryOrder } from "../../services/api";
+import { acceptDeliveryOrder, deliverDeliveryOrder, fetchDeliveryOrders, pickupDeliveryOrder } from "../../services/api";
 import { useAsyncLoad } from "../../hooks/useAsyncLoad";
+import { useAutoDeliveryLocationTracking } from "../../hooks/useAutoDeliveryLocationTracking";
+import { useDeliveryRoute } from "../../hooks/useDeliveryRoute";
 import { useOrderRealtime } from "../../hooks/useOrderRealtime";
 import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useAuth } from "../../state/AuthContext";
 import { colors, spacing } from "../../theme";
-import type { DirectionsRead, Order, OrderTracking, RouteCoordinate, RouteProfile } from "../../types/api";
+import type { Order, OrderTracking } from "../../types/api";
 import type { RootStackParamList } from "../../navigation/types";
 import { friendlyErrorMessage } from "../../utils/apiMessages";
 import { formatCurrency } from "../../utils/format";
 import { labelForStatus } from "../../utils/labels";
-import { requestDeliveryLocationPermissions, startDeliveryLocationTracking, stopDeliveryLocationTracking } from "../../tracking/backgroundLocation";
+import { stopDeliveryLocationTracking } from "../../tracking/backgroundLocation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "DeliveryOrderDetail">;
 
-function toRouteCoordinate(latitude: number | null | undefined, longitude: number | null | undefined): RouteCoordinate | null {
-  if (typeof latitude !== "number" || typeof longitude !== "number") return null;
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-  return { latitude, longitude };
+function autoTrackingLabel(status: "idle" | "starting" | "active" | "blocked" | "error") {
+  if (status === "active") return "Ubicacion compartida automaticamente.";
+  if (status === "starting") return "Activando seguimiento de ubicacion.";
+  if (status === "blocked") return "Falta permiso de ubicacion para compartir el recorrido.";
+  if (status === "error") return "No se pudo activar el seguimiento automatico.";
+  return "El seguimiento se activa al tener una entrega asignada.";
 }
 
-function routeProfileForVehicle(vehicle: string | null | undefined): RouteProfile {
-  if (vehicle === "bicycle") return "cycling-regular";
-  return "driving-car";
-}
-
-export function DeliveryOrderDetailScreen({ route }: Props) {
+export function DeliveryOrderDetailScreen({ route, navigation }: Props) {
   const { orderId } = route.params;
   const { token } = useAuth();
-  const { showDialog, showError, showSuccess } = useAppFeedback();
+  const { showDialog, showError } = useAppFeedback();
   const [tracking, setTracking] = useState<OrderTracking | null>(null);
-  const [directions, setDirections] = useState<DirectionsRead | null>(null);
   const [otp, setOtp] = useState("");
   const [otpFeedback, setOtpFeedback] = useState<string | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
   const { data: order, setData: setOrder, loading, error, reload } = useAsyncLoad<Order>(
     async () => {
-      if (!token) throw new Error("Sesión no disponible");
+      if (!token) throw new Error("Sesion no disponible");
       const orders = await fetchDeliveryOrders(token);
       const match = orders.find((item) => item.id === orderId);
       if (!match) throw new Error("Pedido no asignado al repartidor");
@@ -70,55 +68,27 @@ export function DeliveryOrderDetailScreen({ route }: Props) {
     pollOrder: pollAssignedOrder
   });
 
-  useEffect(() => {
-    if (!token || !order || order.delivery_mode !== "delivery") {
-      setDirections(null);
-      return;
-    }
-
-    const destination = toRouteCoordinate(order.address_latitude, order.address_longitude);
-    const rider = toRouteCoordinate(
-      tracking?.tracking_last_latitude ?? order.tracking_last_latitude,
-      tracking?.tracking_last_longitude ?? order.tracking_last_longitude
-    );
-    const store = toRouteCoordinate(order.store_latitude, order.store_longitude);
-    const origin = rider ?? store;
-    if (!origin || !destination) {
-      setDirections(null);
-      return;
-    }
-
-    let active = true;
-    void fetchDirections(token, {
-      profile: routeProfileForVehicle(tracking?.assigned_rider_vehicle_type ?? order.assigned_rider_vehicle_type),
-      coordinates: [origin, destination]
-    })
-      .then((nextDirections) => {
-        if (active) setDirections(nextDirections);
-      })
-      .catch(() => {
-        if (active) setDirections(null);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [
-    order,
+  const { directions, routeError, points } = useDeliveryRoute(token, order, tracking);
+  const { status: autoTrackingStatus } = useAutoDeliveryLocationTracking({
     token,
-    tracking?.assigned_rider_vehicle_type,
-    tracking?.tracking_last_latitude,
-    tracking?.tracking_last_longitude
-  ]);
+    order,
+    onPermissionBlocked: (message) =>
+      showDialog({
+        title: "Ubicacion requerida",
+        message: message ?? "Habilita la ubicacion para que el cliente pueda seguir el pedido.",
+        variant: "warning"
+      }),
+    onError: (message) => showError("Seguimiento automatico", message)
+  });
 
   const updateOrder = useCallback(
     async (action: "accept" | "pickup" | "deliver") => {
       if (!token || !order) return;
       setOtpFeedback(null);
       if (action === "deliver" && order.otp_required && !otp.trim()) {
-        const message = "Ingresá el código de entrega que ve el cliente.";
+        const message = "Ingresa el codigo de entrega que ve el cliente.";
         setOtpFeedback(message);
-        showError("Falta el código", message);
+        showError("Falta el codigo", message);
         return;
       }
       try {
@@ -133,33 +103,23 @@ export function DeliveryOrderDetailScreen({ route }: Props) {
       } catch (actionError) {
         const message = friendlyErrorMessage(actionError);
         if (action === "deliver") setOtpFeedback(message);
-        showError(action === "deliver" ? "No pudimos confirmar la entrega" : "Acción no disponible", message);
+        showError(action === "deliver" ? "No pudimos confirmar la entrega" : "Accion no disponible", message);
       }
     },
     [order, otp, setOrder, showError, token]
   );
 
-  async function startTracking() {
-    if (!order) return;
-    const permission = await requestDeliveryLocationPermissions();
-    if (!permission.granted) {
-      showDialog({
-        title: "Permiso requerido",
-        message: permission.message ?? "Habilitá la ubicación para compartir tu recorrido mientras entregás el pedido.",
-        variant: "warning"
-      });
-      return;
-    }
-    try {
-      await startDeliveryLocationTracking(order.id);
-      showSuccess("Seguimiento activo", "La app va a compartir tu ubicación mientras este pedido siga en curso.");
-    } catch (trackingError) {
-      showError("No se pudo iniciar el seguimiento", friendlyErrorMessage(trackingError));
-    }
-  }
-
   if (loading && !order) return <StateMessage title="Cargando entrega" loading />;
-  if (error || !order) return <StateMessage title="Entrega no disponible" description={error ?? undefined} actionLabel="Reintentar" onAction={() => void reload()} />;
+  if (error || !order) {
+    return (
+      <StateMessage
+        title="Entrega no disponible"
+        description={error ?? undefined}
+        actionLabel="Reintentar"
+        onAction={() => void reload()}
+      />
+    );
+  }
 
   return (
     <Screen refreshing={loading} onRefresh={() => void reload()}>
@@ -167,10 +127,12 @@ export function DeliveryOrderDetailScreen({ route }: Props) {
       {liveError ? <Text style={styles.warning}>{liveError}</Text> : null}
       <Card style={styles.card}>
         <Text style={styles.status}>{labelForStatus(order.status)}</Text>
-        <Text style={styles.meta}>Envío: {labelForStatus(order.delivery_status)}</Text>
-        <Text style={styles.meta}>Cobro: {formatCurrency(order.total)} · Comisión {formatCurrency(order.rider_fee)}</Text>
+        <Text style={styles.meta}>Envio: {labelForStatus(order.delivery_status)}</Text>
+        <Text style={styles.meta}>Cobro: {formatCurrency(order.total)} - Comision {formatCurrency(order.rider_fee)}</Text>
         <Text style={styles.meta}>Cliente: {order.customer_name}</Text>
         <Text style={styles.meta}>ETA: {directions?.duration_minutes ?? order.eta_minutes ?? "-"} min</Text>
+        <Text style={styles.trackingStatus}>{autoTrackingLabel(autoTrackingStatus)}</Text>
+        {routeError ? <Text style={styles.warning}>{routeError}</Text> : null}
       </Card>
 
       <MapPreview
@@ -183,17 +145,7 @@ export function DeliveryOrderDetailScreen({ route }: Props) {
               }
             : null
         }
-        points={[
-          { id: "store", label: "Comercio", latitude: order.store_latitude, longitude: order.store_longitude, color: colors.primary },
-          {
-            id: "rider",
-            label: "Repartidor",
-            latitude: tracking?.tracking_last_latitude ?? order.tracking_last_latitude,
-            longitude: tracking?.tracking_last_longitude ?? order.tracking_last_longitude,
-            color: colors.accent
-          },
-          { id: "address", label: "Destino", latitude: order.address_latitude, longitude: order.address_longitude, color: colors.success }
-        ]}
+        points={points}
       />
 
       <Card style={styles.card}>
@@ -201,8 +153,7 @@ export function DeliveryOrderDetailScreen({ route }: Props) {
         <View style={styles.actions}>
           <AppButton title="Aceptar" icon="checkmark-circle-outline" onPress={() => void updateOrder("accept")} variant="ghost" />
           <AppButton title="Retirado" icon="bag-check-outline" onPress={() => void updateOrder("pickup")} variant="ghost" />
-          <AppButton title="Iniciar seguimiento" icon="location-outline" onPress={() => void startTracking()} />
-          <AppButton title="Detener seguimiento" icon="stop-circle-outline" onPress={() => void stopDeliveryLocationTracking()} variant="danger" />
+          <AppButton title="Mapa completo" icon="map-outline" onPress={() => navigation.navigate("DeliveryRouteMap", { orderId: order.id })} />
         </View>
       </Card>
 
@@ -211,7 +162,7 @@ export function DeliveryOrderDetailScreen({ route }: Props) {
         {order.otp_required ? (
           <>
             <TextField
-              label="Código de entrega"
+              label="Codigo de entrega"
               value={otp}
               onChangeText={(value) => {
                 setOtp(value);
@@ -222,7 +173,7 @@ export function DeliveryOrderDetailScreen({ route }: Props) {
             {otpFeedback ? <Text style={styles.otpError}>{otpFeedback}</Text> : null}
           </>
         ) : (
-          <Text style={styles.meta}>Este pedido no requiere código.</Text>
+          <Text style={styles.meta}>Este pedido no requiere codigo.</Text>
         )}
         <AppButton title="Marcar entregado" icon="checkmark-done-outline" onPress={() => void updateOrder("deliver")} fullWidth />
       </Card>
@@ -251,6 +202,14 @@ const styles = StyleSheet.create({
     color: colors.warning,
     fontWeight: "700",
     marginBottom: spacing.md
+  },
+  trackingStatus: {
+    color: colors.success,
+    backgroundColor: colors.successSoft,
+    borderRadius: 12,
+    padding: spacing.md,
+    fontWeight: "900",
+    lineHeight: 18
   },
   status: {
     color: colors.text,

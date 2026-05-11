@@ -29,6 +29,7 @@ export type RootStackParamList = {
   Checkout: undefined;
   OrderDetail: { orderId: number; deliveryMode?: boolean };
   DeliveryOrderDetail: { orderId: number };
+  DeliveryRouteMap: { orderId: number };
   PaymentWebView: { checkoutUrl: string; orderId: number };
   Notifications: undefined;
   UnsupportedRole: undefined;

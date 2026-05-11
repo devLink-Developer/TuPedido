@@ -23,5 +23,5 @@ def get_directions(payload: DirectionsRequest, _: User = Depends(get_current_use
         duration_seconds=result.duration_seconds,
         duration_minutes=duration_minutes(result.duration_seconds),
         geometry=result.geometry,
+        instructions=result.instructions,
     )
-

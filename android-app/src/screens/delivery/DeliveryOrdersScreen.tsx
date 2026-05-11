@@ -1,4 +1,4 @@
-﻿import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -8,6 +8,7 @@ import { Card } from "../../components/Card";
 import { Screen } from "../../components/Screen";
 import { SectionHeader } from "../../components/SectionHeader";
 import { StateMessage } from "../../components/StateMessage";
+import { useAutoDeliveryLocationTracking } from "../../hooks/useAutoDeliveryLocationTracking";
 import { acceptDeliveryOrder, fetchDeliveryOrders, pickupDeliveryOrder } from "../../services/api";
 import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useAuth } from "../../state/AuthContext";
@@ -24,7 +25,7 @@ type RootNav = NativeStackNavigationProp<RootStackParamList>;
 export function DeliveryOrdersScreen(_props: Props) {
   const navigation = useNavigation<RootNav>();
   const { token } = useAuth();
-  const { showError } = useAppFeedback();
+  const { showDialog, showError } = useAppFeedback();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,13 +49,30 @@ export function DeliveryOrdersScreen(_props: Props) {
     }, [load])
   );
 
+  const activeOrder = useMemo(
+    () => orders.find((order) => ["assigned", "heading_to_store", "picked_up", "near_customer"].includes(order.delivery_status)) ?? null,
+    [orders]
+  );
+
+  useAutoDeliveryLocationTracking({
+    token,
+    order: activeOrder,
+    onPermissionBlocked: (message) =>
+      showDialog({
+        title: "Ubicacion requerida",
+        message: message ?? "Habilita la ubicacion para compartir el recorrido del pedido activo.",
+        variant: "warning"
+      }),
+    onError: (message) => showError("Seguimiento automatico", message)
+  });
+
   async function runAction(action: "accept" | "pickup", orderId: number) {
     if (!token) return;
     try {
       const updated = action === "accept" ? await acceptDeliveryOrder(token, orderId) : await pickupDeliveryOrder(token, orderId);
       setOrders((current) => current.map((order) => (order.id === updated.id ? updated : order)));
     } catch (actionError) {
-      showError("Acción no disponible", friendlyErrorMessage(actionError));
+      showError("Accion no disponible", friendlyErrorMessage(actionError));
     }
   }
 
@@ -67,15 +85,16 @@ export function DeliveryOrdersScreen(_props: Props) {
           refreshing={loading}
           onRefresh={() => void load()}
           contentContainerStyle={styles.list}
-          ListHeaderComponent={<SectionHeader size="large" title="Pedidos asignados" description={error ?? "Gestioná retiros, entregas y seguimiento."} />}
-          ListEmptyComponent={!loading ? <StateMessage title="Sin pedidos" description="Cuando tengas pedidos asignados aparecerán acá." /> : null}
+          ListHeaderComponent={<SectionHeader size="large" title="Pedidos asignados" description={error ?? "Gestiona retiros, entregas y seguimiento."} />}
+          ListEmptyComponent={!loading ? <StateMessage title="Sin pedidos" description="Cuando tengas pedidos asignados apareceran aca." /> : null}
           renderItem={({ item }) => (
             <Card style={styles.order}>
               <Text style={styles.title}>Pedido #{item.id}</Text>
-              <Text style={styles.meta}>{item.store_name} - {item.address_full ?? "Sin dirección"}</Text>
+              <Text style={styles.meta}>{item.store_name} - {item.address_full ?? "Sin direccion"}</Text>
               <Text style={styles.meta}>{labelForStatus(item.status)} - {formatCurrency(item.total)}</Text>
               <View style={styles.actions}>
                 <AppButton title="Detalle" icon="document-text-outline" onPress={() => navigation.navigate("DeliveryOrderDetail", { orderId: item.id })} variant="ghost" />
+                <AppButton title="Mapa" icon="map-outline" onPress={() => navigation.navigate("DeliveryRouteMap", { orderId: item.id })} variant="ghost" />
                 {item.delivery_status === "assigned" || item.status === "created" ? <AppButton title="Aceptar" icon="checkmark-circle-outline" onPress={() => void runAction("accept", item.id)} /> : null}
                 {["accepted", "preparing", "ready_for_dispatch"].includes(item.status) ? <AppButton title="Retirado" icon="bag-check-outline" onPress={() => void runAction("pickup", item.id)} /> : null}
               </View>

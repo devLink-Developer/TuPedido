@@ -36,7 +36,7 @@ def _latest_notifications(db: Session, user_id: int, *, limit: int = 20) -> list
         .order_by(NotificationEvent.created_at.desc(), NotificationEvent.id.desc())
         .limit(limit)
     ).all()
-    return [serialize_notification(item).model_dump() for item in notifications]
+    return [serialize_notification(item).model_dump(mode="json") for item in notifications]
 
 
 def _can_access_order(user: User, order: StoreOrder) -> bool:
@@ -132,8 +132,8 @@ async def order_tracking_socket(websocket: WebSocket, order_id: int) -> None:
         await websocket.send_json(
             {
                 "type": "order.snapshot",
-                "order": serialize_order(order).model_dump(),
-                "tracking": tracking.model_dump(),
+                "order": serialize_order(order).model_dump(mode="json"),
+                "tracking": tracking.model_dump(mode="json"),
             }
         )
         while True:

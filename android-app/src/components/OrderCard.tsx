@@ -6,6 +6,8 @@ import { formatCurrency, formatDateTime } from "../utils/format";
 import { labelForPaymentMethod, labelForStatus } from "../utils/labels";
 
 export function OrderCard({ order, onPress }: { order: Order; onPress: () => void }) {
+  const deliveryStatus = order.delivery_mode === "delivery" ? order.delivery_status : null;
+
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`Abrir pedido ${order.id}`} onPress={onPress} android_ripple={{ color: colors.borderStrong }} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
       <View style={styles.row}>
@@ -20,6 +22,7 @@ export function OrderCard({ order, onPress }: { order: Order; onPress: () => voi
       </View>
       <View style={styles.pills}>
         <Text style={styles.pill}>{labelForStatus(order.status)}</Text>
+        {deliveryStatus ? <Text style={styles.pill}>{labelForStatus(deliveryStatus)}</Text> : null}
         <Text style={styles.pill}>{labelForStatus(order.payment_status)}</Text>
         <Text style={styles.pill}>{labelForPaymentMethod(order.payment_method)}</Text>
       </View>

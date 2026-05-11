@@ -10,6 +10,7 @@ import { Screen } from "../../components/Screen";
 import { SectionHeader } from "../../components/SectionHeader";
 import { StateMessage } from "../../components/StateMessage";
 import { fetchDeliveryMe, fetchDeliveryOrders, updateDeliveryAvailability } from "../../services/api";
+import { useAutoDeliveryLocationTracking } from "../../hooks/useAutoDeliveryLocationTracking";
 import { useAuth } from "../../state/AuthContext";
 import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useNotificationsState } from "../../state/NotificationsContext";
@@ -19,7 +20,6 @@ import type { DeliveryTabsParamList, RootStackParamList } from "../../navigation
 import { formatCurrency } from "../../utils/format";
 import { friendlyErrorMessage } from "../../utils/apiMessages";
 import { labelForStatus } from "../../utils/labels";
-import { getTrackedOrderId, requestDeliveryLocationPermissions, startDeliveryLocationTracking, stopDeliveryLocationTracking } from "../../tracking/backgroundLocation";
 
 type Props = BottomTabScreenProps<DeliveryTabsParamList, "DeliveryHome">;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
@@ -29,25 +29,22 @@ const availabilityOptions: DeliveryAvailability[] = ["offline", "idle", "paused"
 export function DeliveryHomeScreen(_props: Props) {
   const navigation = useNavigation<RootNav>();
   const { token } = useAuth();
-  const { showDialog, showError, showSuccess } = useAppFeedback();
+  const { showDialog, showError } = useAppFeedback();
   const { unreadCount } = useNotificationsState();
   const [profile, setProfile] = useState<DeliveryProfile | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [trackedOrderId, setTrackedOrderId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
-      const [nextProfile, nextOrders, activeTrackedOrderId] = await Promise.all([
+      const [nextProfile, nextOrders] = await Promise.all([
         fetchDeliveryMe(token),
-        fetchDeliveryOrders(token),
-        getTrackedOrderId()
+        fetchDeliveryOrders(token)
       ]);
       setProfile(nextProfile);
       setOrders(nextOrders);
-      setTrackedOrderId(activeTrackedOrderId);
     } finally {
       setLoading(false);
     }
@@ -69,6 +66,18 @@ export function DeliveryHomeScreen(_props: Props) {
     [orders]
   );
 
+  const { status: autoTrackingStatus } = useAutoDeliveryLocationTracking({
+    token,
+    order: activeOrder,
+    onPermissionBlocked: (message) =>
+      showDialog({
+        title: "Ubicacion requerida",
+        message: message ?? "Habilita la ubicacion para compartir el recorrido del pedido activo.",
+        variant: "warning"
+      }),
+    onError: (message) => showError("Seguimiento automatico", message)
+  });
+
   async function setAvailability(availability: DeliveryAvailability) {
     if (!token) return;
     try {
@@ -78,28 +87,12 @@ export function DeliveryHomeScreen(_props: Props) {
     }
   }
 
-  async function startTracking(orderId: number) {
-    const permission = await requestDeliveryLocationPermissions();
-    if (!permission.granted) {
-      showDialog({
-        title: "Permiso requerido",
-        message: permission.message ?? "Habilitá la ubicación para compartir tu recorrido mientras entregás el pedido.",
-        variant: "warning"
-      });
-      return;
-    }
-    try {
-      await startDeliveryLocationTracking(orderId);
-      setTrackedOrderId(orderId);
-      showSuccess("Seguimiento activo", "La app va a compartir tu ubicación mientras este pedido siga en curso.");
-    } catch (error) {
-      showError("No se pudo iniciar el seguimiento", friendlyErrorMessage(error));
-    }
-  }
-
-  async function stopTracking() {
-    await stopDeliveryLocationTracking();
-    setTrackedOrderId(null);
+  function trackingStatusCopy() {
+    if (autoTrackingStatus === "active") return "Compartiendo ubicacion automaticamente con el cliente.";
+    if (autoTrackingStatus === "starting") return "Activando el seguimiento automatico.";
+    if (autoTrackingStatus === "blocked") return "Falta permiso de ubicacion para compartir el recorrido.";
+    if (autoTrackingStatus === "error") return "No se pudo activar el seguimiento automatico.";
+    return "El seguimiento se activa cuando aceptas una entrega.";
   }
 
   return (
@@ -140,13 +133,10 @@ export function DeliveryHomeScreen(_props: Props) {
           <Text style={styles.big}>Pedido #{activeOrder.id}</Text>
           <Text style={styles.meta}>{activeOrder.store_name} - {activeOrder.address_full ?? "Sin dirección"}</Text>
           <Text style={styles.meta}>Estado: {labelForStatus(activeOrder.status)} - Total {formatCurrency(activeOrder.total)}</Text>
+          <Text style={styles.trackingStatus}>{trackingStatusCopy()}</Text>
           <View style={styles.actions}>
             <AppButton title="Ver entrega" icon="navigate-outline" onPress={() => navigation.navigate("DeliveryOrderDetail", { orderId: activeOrder.id })} />
-            {trackedOrderId === activeOrder.id ? (
-              <AppButton title="Detener seguimiento" icon="stop-circle-outline" onPress={() => void stopTracking()} variant="danger" />
-            ) : (
-              <AppButton title="Iniciar seguimiento" icon="location-outline" onPress={() => void startTracking(activeOrder.id)} variant="ghost" />
-            )}
+            <AppButton title="Mapa completo" icon="map-outline" onPress={() => navigation.navigate("DeliveryRouteMap", { orderId: activeOrder.id })} variant="ghost" />
           </View>
         </Card>
       ) : (
@@ -178,6 +168,14 @@ const styles = StyleSheet.create({
   meta: {
     color: colors.mutedText,
     lineHeight: 20
+  },
+  trackingStatus: {
+    color: colors.success,
+    backgroundColor: colors.successSoft,
+    borderRadius: 12,
+    padding: spacing.md,
+    fontWeight: "900",
+    lineHeight: 18
   },
   options: {
     flexDirection: "row",

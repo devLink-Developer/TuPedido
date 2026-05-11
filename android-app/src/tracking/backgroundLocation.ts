@@ -82,6 +82,20 @@ export async function startDeliveryLocationTracking(orderId: number): Promise<vo
   });
 }
 
+export async function pushCurrentDeliveryLocation(authToken: string, orderId: number): Promise<void> {
+  const current = await Location.getCurrentPositionAsync({
+    accuracy: Location.Accuracy.High
+  });
+  await pushDeliveryLocation(authToken, {
+    order_id: orderId,
+    latitude: current.coords.latitude,
+    longitude: current.coords.longitude,
+    heading: current.coords.heading,
+    speed_kmh: current.coords.speed == null ? null : current.coords.speed * 3.6,
+    accuracy_meters: current.coords.accuracy
+  });
+}
+
 export async function stopDeliveryLocationTracking(): Promise<void> {
   await AsyncStorage.removeItem(ACTIVE_ORDER_ID_KEY);
   const alreadyStarted = await Location.hasStartedLocationUpdatesAsync(DELIVERY_LOCATION_TASK);
@@ -92,6 +106,7 @@ export async function stopDeliveryLocationTracking(): Promise<void> {
 
 export async function getTrackedOrderId(): Promise<number | null> {
   const value = await AsyncStorage.getItem(ACTIVE_ORDER_ID_KEY);
+  if (!value) return null;
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }

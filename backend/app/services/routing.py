@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import httpx
 
 from app.core.config import settings
-from app.schemas.routing import RouteCoordinate, RouteProfile
+from app.schemas.routing import RouteCoordinate, RouteInstruction, RouteProfile
 
 
 class RoutingError(RuntimeError):
@@ -23,6 +23,7 @@ class DirectionsResult:
     distance_meters: float
     duration_seconds: float
     geometry: list[RouteCoordinate]
+    instructions: list[RouteInstruction]
 
 
 def fetch_directions(profile: RouteProfile, coordinates: list[RouteCoordinate]) -> DirectionsResult:
@@ -39,7 +40,8 @@ def fetch_directions(profile: RouteProfile, coordinates: list[RouteCoordinate]) 
     }
     payload = {
         "coordinates": ors_coordinates,
-        "instructions": False,
+        "instructions": True,
+        "language": "es",
     }
 
     try:
@@ -61,7 +63,8 @@ def fetch_directions(profile: RouteProfile, coordinates: list[RouteCoordinate]) 
         raise RoutingError("OpenRouteService no devolvio una ruta utilizable.")
 
     feature = features[0]
-    summary = (feature.get("properties") or {}).get("summary") or {}
+    properties = feature.get("properties") or {}
+    summary = properties.get("summary") or {}
     raw_geometry = (feature.get("geometry") or {}).get("coordinates") or []
     geometry: list[RouteCoordinate] = []
     for item in raw_geometry:
@@ -77,11 +80,38 @@ def fetch_directions(profile: RouteProfile, coordinates: list[RouteCoordinate]) 
     if not geometry or distance <= 0 or duration <= 0:
         raise RoutingError("OpenRouteService devolvio una ruta incompleta.")
 
+    instructions: list[RouteInstruction] = []
+    segments = properties.get("segments") or []
+    for segment in segments:
+        if not isinstance(segment, dict):
+            continue
+        steps = segment.get("steps") or []
+        for step in steps:
+            if not isinstance(step, dict):
+                continue
+            instruction = str(step.get("instruction") or "").strip()
+            if not instruction:
+                continue
+            step_duration = float(step.get("duration") or 0)
+            way_points = step.get("way_points") or []
+            instructions.append(
+                RouteInstruction(
+                    instruction=instruction,
+                    name=str(step.get("name") or "").strip() or None,
+                    distance_meters=float(step.get("distance") or 0),
+                    duration_seconds=step_duration,
+                    duration_minutes=duration_minutes(step_duration),
+                    type=int(step["type"]) if isinstance(step.get("type"), int) else None,
+                    way_points=[int(point) for point in way_points if isinstance(point, int)],
+                )
+            )
+
     return DirectionsResult(
         profile=profile,
         distance_meters=distance,
         duration_seconds=duration,
         geometry=geometry,
+        instructions=instructions,
     )
 
 

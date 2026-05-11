@@ -92,6 +92,10 @@ export const LazyComercioPromotionsRoute = createLazyRoute(
   () => import("../../modules/comercio/routes"),
   "ComercioPromotionsRoute"
 );
+export const LazyComercioCoverageRoute = createLazyRoute(
+  () => import("../../modules/comercio/routes"),
+  "ComercioCoverageRoute"
+);
 export const LazyComercioSettingsRoute = createLazyRoute(
   () => import("../../modules/comercio/routes"),
   "ComercioSettingsRoute"

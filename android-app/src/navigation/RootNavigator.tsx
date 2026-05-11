@@ -27,6 +27,7 @@ import { NotificationsScreen } from "../screens/common/NotificationsScreen";
 import { DeliveryHomeScreen } from "../screens/delivery/DeliveryHomeScreen";
 import { DeliveryOrdersScreen } from "../screens/delivery/DeliveryOrdersScreen";
 import { DeliveryOrderDetailScreen } from "../screens/delivery/DeliveryOrderDetailScreen";
+import { DeliveryRouteMapScreen } from "../screens/delivery/DeliveryRouteMapScreen";
 import { DeliveryEarningsScreen } from "../screens/delivery/DeliveryEarningsScreen";
 import { DeliveryProfileScreen } from "../screens/delivery/DeliveryProfileScreen";
 import { UnsupportedRoleScreen } from "../screens/common/UnsupportedRoleScreen";
@@ -164,6 +165,7 @@ export function RootNavigator() {
                   <>
                     <RootStack.Screen name="DeliveryTabs" component={DeliveryTabsNavigator} options={{ headerShown: false }} />
                     <RootStack.Screen name="DeliveryOrderDetail" component={DeliveryOrderDetailScreen} options={{ title: "Entrega" }} />
+                    <RootStack.Screen name="DeliveryRouteMap" component={DeliveryRouteMapScreen} options={{ headerShown: false }} />
                     <RootStack.Screen name="Notifications" component={NotificationsScreen} options={{ title: "Notificaciones" }} />
                   </>
                 ) : (

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { EmptyState, ImageAssetField, LoadingCard, PageHeader, PlatformWordmark, RubroChip, StatusPill } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
@@ -8,7 +9,6 @@ import {
   deleteMerchantProductSubcategory,
   fetchMerchantProductCategories,
   fetchMerchantStore,
-  geocodeAddress,
   updateMerchantProductCategory,
   updateMerchantProductSubcategory,
   updateMerchantDeliverySettings,
@@ -19,16 +19,6 @@ import {
 import { useCategoryStore } from "../../../shared/stores";
 import type { MerchantStore, ProductCategory } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
-import { buildAddressGeocodeRequest } from "../../../shared/utils/addressFields";
-import {
-  StoreAddressSection,
-  emptyStoreAddressForm,
-  hasStoreAddressConfiguration,
-  toStoreAddressFormState,
-  toStoreAddressPayload,
-  type StoreAddressFormState
-} from "../components/StoreAddressSection";
-import { StoreCoverageSection, hasAnyCoverageArea } from "../components/StoreCoverageSection";
 import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync";
 
 const storeStatusMessages: Record<string, string> = {
@@ -70,25 +60,6 @@ const emptyCategoryForm: CategoryFormState = {
   sort_order: "0"
 };
 
-function hasStoreAddressDraft(form: StoreAddressFormState) {
-  return Boolean(
-    form.postal_code.trim() ||
-      form.province.trim() ||
-      form.locality.trim() ||
-      form.street_name.trim() ||
-      form.street_number.trim() ||
-      form.latitude.trim() ||
-      form.longitude.trim()
-  );
-}
-
-function buildStoreAddressSummary(form: StoreAddressFormState) {
-  return {
-    streetLine: [form.street_name.trim(), form.street_number.trim()].filter(Boolean).join(" "),
-    locationLine: [form.locality.trim(), form.province.trim(), form.postal_code.trim()].filter(Boolean).join(" - ")
-  };
-}
-
 function emptySubcategoryDraft(): SubcategoryDraftState {
   return {
     name: "",
@@ -103,7 +74,6 @@ export function SettingsPage() {
   const categoryLoading = useCategoryStore((state) => state.loading);
   const loadCategories = useCategoryStore((state) => state.loadCategories);
   const [store, setStore] = useState<MerchantStore | null>(null);
-  const [storeAddressForm, setStoreAddressForm] = useState<StoreAddressFormState>(emptyStoreAddressForm);
   const [productCategories, setProductCategories] = useState<ProductCategory[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,14 +85,7 @@ export function SettingsPage() {
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [subcategoryDrafts, setSubcategoryDrafts] = useState<Record<number, SubcategoryDraftState>>({});
   const [showIdentityEditor, setShowIdentityEditor] = useState(false);
-  const [showAddressEditor, setShowAddressEditor] = useState(false);
 
-  const isApproved = store?.status === "approved";
-  const deliveryAddressReady = hasStoreAddressConfiguration(storeAddressForm);
-  const coverageReady = store ? hasAnyCoverageArea(store.delivery_settings) : false;
-  const canToggleOrders = isApproved && (store?.accepting_orders ? coverageReady : deliveryAddressReady && coverageReady);
-  const hasAddressDraft = hasStoreAddressDraft(storeAddressForm);
-  const addressSummary = useMemo(() => buildStoreAddressSummary(storeAddressForm), [storeAddressForm]);
   const statusMessage = useMemo(() => {
     if (!store) return "";
     return storeStatusMessages[store.status] ?? "Actualiza la información de tu negocio y mantente listo para operar.";
@@ -139,7 +102,6 @@ export function SettingsPage() {
         fetchMerchantProductCategories(token)
       ]);
       setStore(storeResult);
-      setStoreAddressForm(toStoreAddressFormState(storeResult));
       setProductCategories(productCategoryResult);
       setSelectedCategoryIds(storeResult.category_ids ?? []);
     } catch (requestError) {
@@ -168,113 +130,39 @@ export function SettingsPage() {
     }));
   }
 
-  function handleOpenAddressEditor() {
-    setShowAddressEditor(true);
-    setError(null);
-  }
-
-  function handleCancelAddressEditor() {
-    if (!store) return;
-    setStoreAddressForm(toStoreAddressFormState(store));
-    setShowAddressEditor(false);
-    setError(null);
-  }
-
-  function handleDeleteAddress() {
-    setStoreAddressForm(emptyStoreAddressForm);
-    setStore((current) =>
-      current
-        ? {
-            ...current,
-            address: "",
-            postal_code: null,
-            province: null,
-            locality: null,
-            latitude: null,
-            longitude: null,
-            delivery_settings: {
-              ...current.delivery_settings,
-              delivery_enabled: false
-            }
-          }
-        : current
-    );
-    setShowAddressEditor(false);
-    setError(null);
-  }
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!token || !store) return;
     setError(null);
     if (!selectedCategoryIds.length) {
-      setError("Seleccioná al menos un rubro para tu comercio.");
+      setError("Selecciona al menos un rubro para tu comercio.");
       return;
     }
     if (store.max_delivery_minutes < store.min_delivery_minutes) {
-      setError("El tiempo máximo de entrega debe ser mayor o igual al mínimo.");
+      setError("El tiempo maximo de entrega debe ser mayor o igual al minimo.");
       return;
     }
     setSaving(true);
     try {
-      let nextStoreAddressForm = storeAddressForm;
-      const geocodeRequest = buildAddressGeocodeRequest(storeAddressForm);
-      if (geocodeRequest && !hasStoreAddressConfiguration(storeAddressForm)) {
-        const result = await geocodeAddress(token, geocodeRequest);
-        nextStoreAddressForm = {
-          ...storeAddressForm,
-          latitude: result.latitude.toFixed(7),
-          longitude: result.longitude.toFixed(7)
-        };
-        setStoreAddressForm(nextStoreAddressForm);
-      }
-
-      if (store.delivery_settings.delivery_enabled && !hasStoreAddressConfiguration(nextStoreAddressForm)) {
-        setError("Configura la dirección completa del local y su geolocalización antes de habilitar delivery.");
-        return;
-      }
-      if (store.accepting_orders && !hasAnyCoverageArea(store.delivery_settings)) {
-        setError("Configura al menos una zona de alcance valida antes de recibir pedidos.");
-        return;
-      }
       const nextMercadoPagoEnabled = store.payment_settings.mercadopago_enabled;
       if (!store.payment_settings.cash_enabled && !nextMercadoPagoEnabled) {
         setError("Deja efectivo activo o habilita Mercado Pago desde su menu dedicado.");
         return;
       }
 
-      const addressPayload =
-        toStoreAddressPayload(nextStoreAddressForm) ??
-        (hasStoreAddressDraft(nextStoreAddressForm)
-          ? {
-              address: store.address,
-              postal_code: store.postal_code ?? null,
-              province: store.province ?? null,
-              locality: store.locality ?? null,
-              latitude: store.latitude ?? null,
-              longitude: store.longitude ?? null
-            }
-          : {
-              address: "",
-              postal_code: null,
-              province: null,
-              locality: null,
-              latitude: null,
-              longitude: null
-            });
       await updateMerchantStore(token, {
         name: store.name,
         description: store.description,
-        address: addressPayload.address,
-        postal_code: addressPayload.postal_code,
-        province: addressPayload.province,
-        locality: addressPayload.locality,
+        address: store.address,
+        postal_code: store.postal_code ?? null,
+        province: store.province ?? null,
+        locality: store.locality ?? null,
         phone: store.phone,
-        latitude: addressPayload.latitude,
-        longitude: addressPayload.longitude,
+        latitude: store.latitude ?? null,
+        longitude: store.longitude ?? null,
         logo_url: store.logo_url,
         cover_image_url: store.cover_image_url,
-        accepting_orders: canToggleOrders ? store.accepting_orders : false,
+        accepting_orders: store.accepting_orders,
         opening_note: store.opening_note,
         min_delivery_minutes: store.min_delivery_minutes,
         max_delivery_minutes: store.max_delivery_minutes
@@ -286,9 +174,8 @@ export function SettingsPage() {
         mercadopago_enabled: nextMercadoPagoEnabled
       });
       await load();
-      setShowAddressEditor(false);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No se pudo guardar la configuración");
+      setError(requestError instanceof Error ? requestError.message : "No se pudo guardar la configuracion");
     } finally {
       setSaving(false);
     }
@@ -404,7 +291,7 @@ export function SettingsPage() {
       <PageHeader
         eyebrow="Ajustes"
         title="Configura tu local"
-        description="Agrupa identidad, ubicación, delivery, pagos y categorías. Si tu alta aún está en revisión, el panel queda listo pero la operación sigue cerrada."
+        description="Administra identidad, imagenes, pagos simples, tarifas y categorias. La direccion y los poligonos se configuran desde su menu dedicado."
       />
 
       <section className="rounded border border-black/5 bg-white p-5 shadow-sm">
@@ -416,6 +303,24 @@ export function SettingsPage() {
             </div>
           </div>
           <p className="max-w-2xl text-sm leading-7 text-zinc-600">{statusMessage}</p>
+        </div>
+      </section>
+
+      <section className="rounded border border-[var(--kp-stroke)] bg-[#fffaf5] p-4 shadow-sm md:p-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--kp-accent)]">Direccion y alcance</p>
+            <h2 className="mt-2 text-lg font-bold text-ink">La ubicacion y los poligonos ahora tienen menu propio</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">
+              Usa esta pantalla solo para identidad, imagenes, pagos simples, tarifas y categorias.
+            </p>
+          </div>
+          <Link
+            to="/m/alcance"
+            className="inline-flex min-h-[44px] items-center justify-center rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
+          >
+            Abrir direccion y alcance
+          </Link>
         </div>
       </section>
 
@@ -477,73 +382,6 @@ export function SettingsPage() {
         </section>
 
         <section className="space-y-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Dirección del local</p>
-              <h2 className="mt-2 text-xl font-bold text-ink">Ubicación comercial</h2>
-              <p className="mt-2 text-sm text-zinc-600">
-                Configura la dirección solo cuando quieras agregarla, editarla o eliminarla. El delivery requiere esta ubicación completa.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {hasAddressDraft ? (
-                <>
-                  <Button type="button" onClick={handleOpenAddressEditor} aria-label="Editar direccion">
-                    Editar dirección
-                  </Button>
-                  <Button type="button" onClick={handleDeleteAddress} className="bg-rose-600 shadow-none" aria-label="Eliminar direccion">
-                    Eliminar dirección
-                  </Button>
-                </>
-              ) : (
-                <Button type="button" onClick={handleOpenAddressEditor} className="shadow-none" aria-label="Agregar direccion">
-                  Agregar dirección
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded bg-zinc-50 p-4 text-sm text-zinc-600">
-            {hasAddressDraft ? (
-              <div className="space-y-1">
-                <p className="font-semibold text-ink">{addressSummary.streetLine || "Dirección cargada"}</p>
-                {addressSummary.locationLine ? <p>{addressSummary.locationLine}</p> : null}
-                <p className={deliveryAddressReady ? "text-emerald-700" : "text-amber-700"}>
-                  {deliveryAddressReady
-                    ? "Dirección completa y geolocalizada."
-                    : "Dirección incompleta. Completa calle, altura, CP, localidad y geolocalización para delivery."}
-                </p>
-              </div>
-            ) : (
-              <p>Sin dirección configurada. Agrégala solo cuando quieras dejar listo el local para operar con delivery.</p>
-            )}
-          </div>
-
-          {showAddressEditor ? (
-            <div className="rounded border border-black/10 bg-white p-4">
-              <StoreAddressSection
-                token={token}
-                form={storeAddressForm}
-                showHeader={false}
-                onChange={(value) => {
-                  setStoreAddressForm(value);
-                  setError(null);
-                }}
-              />
-              <div className="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleCancelAddressEditor}
-                  className="rounded bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </section>
-
-        <section className="space-y-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Imágenes</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Logo y portada</h2>
@@ -574,94 +412,30 @@ export function SettingsPage() {
 
         <section className="space-y-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Operación</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Entregas, efectivo y disponibilidad</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Medios de pago</p>
+            <h2 className="mt-2 text-xl font-bold text-ink">Efectivo</h2>
             <p className="mt-2 text-sm text-zinc-600">
-              El costo de delivery lo defines tu comercio y no forma parte del fee global de plataforma cobrado al comprador.
+              Mercado Pago se administra desde su menu dedicado. Aqui solo defines si aceptas efectivo.
             </p>
           </div>
-          <div
-            className={`rounded px-4 py-4 text-sm ${
-              isApproved
-                ? "border border-black/5 bg-zinc-50 text-zinc-700"
-                : "border border-amber-200 bg-amber-50 text-amber-950"
-            }`}
-          >
-            {isApproved
-              ? 'La recepción de pedidos se administra desde la pantalla "Pedidos". Aquí configuras delivery, retiro y efectivo.'
-              : 'Podrás habilitar la venta desde la pantalla "Pedidos" una vez que el equipo apruebe tu comercio.'}
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="flex items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
-              <input
-                type="checkbox"
-                checked={store.delivery_settings.delivery_enabled}
-                onChange={(event) => {
-                  if (event.target.checked && !deliveryAddressReady) {
-                    setError("Configura CP, provincia, localidad, calle, altura y geolocalización del local antes de habilitar delivery.");
-                    return;
-                  }
-                  setError(null);
-                  setStore((current) =>
-                    current
-                      ? {
-                          ...current,
-                          delivery_settings: { ...current.delivery_settings, delivery_enabled: event.target.checked }
-                        }
-                      : current
-                  );
-                }}
-              />
-              Delivery habilitado
-            </label>
-            <label className="flex items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
-              <input
-                type="checkbox"
-                checked={store.delivery_settings.pickup_enabled}
-                onChange={(event) =>
-                  setStore((current) =>
-                    current
-                      ? {
-                          ...current,
-                          delivery_settings: { ...current.delivery_settings, pickup_enabled: event.target.checked }
-                        }
-                      : current
-                  )
-                }
-              />
-              Retiro en local
-            </label>
-            <label className="flex items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
-              <input
-                type="checkbox"
-                checked={store.payment_settings.cash_enabled}
-                onChange={(event) =>
-                  setStore((current) =>
-                    current
-                      ? {
-                          ...current,
-                          payment_settings: { ...current.payment_settings, cash_enabled: event.target.checked }
-                        }
-                      : current
-                  )
-                }
-              />
-              Efectivo
-            </label>
-          </div>
-          {!deliveryAddressReady ? (
-            <p className="rounded border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
-              El delivery permanece bloqueado hasta que la dirección del comercio quede configurada con CP, localidad y punto exacto en el mapa.
-            </p>
-          ) : null}
+          <label className="flex min-h-[52px] cursor-pointer items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700 md:max-w-md">
+            <input
+              type="checkbox"
+              checked={store.payment_settings.cash_enabled}
+              onChange={(event) =>
+                setStore((current) =>
+                  current
+                    ? {
+                        ...current,
+                        payment_settings: { ...current.payment_settings, cash_enabled: event.target.checked }
+                      }
+                    : current
+                )
+              }
+            />
+            Aceptar efectivo
+          </label>
         </section>
-
-        <StoreCoverageSection
-          store={store}
-          onChange={(deliverySettings) =>
-            setStore((current) => (current ? { ...current, delivery_settings: deliverySettings } : current))
-          }
-        />
 
         <section className="space-y-4">
           <div>

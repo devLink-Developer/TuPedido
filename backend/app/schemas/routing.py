@@ -16,6 +16,16 @@ class DirectionsRequest(BaseModel):
     coordinates: list[RouteCoordinate] = Field(min_length=2, max_length=5)
 
 
+class RouteInstruction(BaseModel):
+    instruction: str
+    name: str | None = None
+    distance_meters: float
+    duration_seconds: float
+    duration_minutes: int
+    type: int | None = None
+    way_points: list[int] = Field(default_factory=list)
+
+
 class DirectionsRead(BaseModel):
     provider: Literal["openrouteservice"] = "openrouteservice"
     profile: RouteProfile
@@ -23,4 +33,4 @@ class DirectionsRead(BaseModel):
     duration_seconds: float
     duration_minutes: int
     geometry: list[RouteCoordinate]
-
+    instructions: list[RouteInstruction] = Field(default_factory=list)

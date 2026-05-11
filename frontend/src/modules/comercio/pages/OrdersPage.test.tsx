@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { DeliveryProfile } from "../../../shared/types";
 import { MerchantMobileHeaderProvider, useMerchantMobileHeader } from "../MerchantMobileHeaderContext";
 import { OrdersPage } from "./OrdersPage";
 
@@ -137,8 +138,17 @@ vi.mock("../../../shared/utils/notificationSound", () => ({
 }));
 
 vi.mock("../components/OrdersTable", () => ({
-  OrdersTable: ({ groups }: { groups?: Array<{ orders: Array<{ id: number }> }> }) => (
-    <div>{(groups ?? []).flatMap((group) => group.orders).map((order) => `Pedido #${order.id}`).join(", ")}</div>
+  OrdersTable: ({
+    groups,
+    riders
+  }: {
+    groups?: Array<{ orders: Array<{ id: number }> }>;
+    riders?: Array<{ full_name: string; availability: string }>;
+  }) => (
+    <div>
+      <div>{(groups ?? []).flatMap((group) => group.orders).map((order) => `Pedido #${order.id}`).join(", ")}</div>
+      <div aria-label="Repartidores">{(riders ?? []).map((rider) => `${rider.full_name}:${rider.availability}`).join(", ")}</div>
+    </div>
   )
 }));
 
@@ -265,6 +275,33 @@ const baseOrder = {
   }
 };
 
+const baseRider = {
+  user_id: 44,
+  store_id: 1,
+  store_name: "Mi Local",
+  full_name: "Rider Uno",
+  email: "rider@test.com",
+  phone: "3420000000",
+  vehicle_type: "motorcycle",
+  photo_url: null,
+  dni_number: "12345678",
+  emergency_contact_name: "Contacto",
+  emergency_contact_phone: "3421111111",
+  license_number: "LIC123",
+  vehicle_plate: "ABC123",
+  insurance_policy: null,
+  notes: null,
+  availability: "offline",
+  is_active: true,
+  current_zone_id: null,
+  current_latitude: null,
+  current_longitude: null,
+  last_location_at: null,
+  completed_deliveries: 0,
+  rating: 0,
+  push_enabled: false
+} satisfies DeliveryProfile;
+
 describe("OrdersPage", () => {
   beforeEach(() => {
     fetchMerchantOrdersMock.mockReset();
@@ -387,5 +424,42 @@ describe("OrdersPage", () => {
     expect(enqueueToastMock).toHaveBeenCalledWith("Nuevo pedido #99 de Ana Gomez");
     expect(playNotificationToneMock).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Cargando...")).not.toBeInTheDocument();
+  });
+
+  it("actualiza la disponibilidad de repartidores por websocket", async () => {
+    fetchMerchantStoreMock.mockResolvedValueOnce(approvedStoreWithAddress);
+    fetchMerchantOrdersMock.mockResolvedValueOnce([baseOrder]);
+    fetchMerchantRidersMock.mockResolvedValueOnce([baseRider]);
+
+    renderOrdersPage();
+
+    await waitFor(() => expect(screen.getByText("Rider Uno:offline")).toBeInTheDocument());
+
+    MockWebSocket.instances[0].emit({
+      type: "delivery.rider.availability_updated",
+      rider: { ...baseRider, availability: "idle" }
+    });
+
+    await waitFor(() => expect(screen.getByText("Rider Uno:idle")).toBeInTheDocument());
+  });
+
+  it("refresca repartidores automaticamente al volver a la pantalla", async () => {
+    fetchMerchantStoreMock.mockResolvedValue(approvedStoreWithAddress);
+    fetchMerchantOrdersMock.mockResolvedValue([baseOrder]);
+    fetchMerchantRidersMock
+      .mockResolvedValueOnce([baseRider])
+      .mockResolvedValueOnce([{ ...baseRider, availability: "idle" }]);
+
+    renderOrdersPage();
+
+    await waitFor(() => expect(screen.getByText("Rider Uno:offline")).toBeInTheDocument());
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(screen.getByText("Rider Uno:idle")).toBeInTheDocument());
+    expect(fetchMerchantRidersMock).toHaveBeenCalledTimes(2);
   });
 });

@@ -10,7 +10,7 @@ import anyio
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.api.presenters import serialize_notification, serialize_order, serialize_tracking
+from app.api.presenters import serialize_delivery_profile, serialize_notification, serialize_order, serialize_tracking
 from app.core.config import settings
 from app.models.delivery import (
     DeliveryAssignment,
@@ -97,17 +97,36 @@ def _user_ids_for_order(order: StoreOrder) -> list[int]:
     return [user_id for user_id in dict.fromkeys(user_ids) if user_id is not None]
 
 
+def _user_ids_for_rider(profile: DeliveryProfile) -> list[int]:
+    user_ids = [profile.user_id]
+    store = getattr(profile, "store", None)
+    if getattr(store, "owner_user_id", None):
+        user_ids.append(store.owner_user_id)
+    return [user_id for user_id in dict.fromkeys(user_ids) if user_id is not None]
+
+
 def publish_order_snapshot(order: StoreOrder, *, event_type: str) -> None:
     tracking = serialize_tracking(order)
     tracking.otp_code = None
     payload = {
         "type": event_type,
-        "order": serialize_order(order).model_dump(),
-        "tracking": tracking.model_dump(),
+        "order": serialize_order(order).model_dump(mode="json"),
+        "tracking": tracking.model_dump(mode="json"),
     }
     try:
         anyio.from_thread.run(realtime_hub.broadcast_order, order.id, payload)
         anyio.from_thread.run(realtime_hub.broadcast_users, _user_ids_for_order(order), payload)
+    except RuntimeError:
+        pass
+
+
+def publish_rider_snapshot(profile: DeliveryProfile, *, event_type: str = "delivery.rider.updated") -> None:
+    payload = {
+        "type": event_type,
+        "rider": serialize_delivery_profile(profile).model_dump(mode="json"),
+    }
+    try:
+        anyio.from_thread.run(realtime_hub.broadcast_users, _user_ids_for_rider(profile), payload)
     except RuntimeError:
         pass
 
@@ -144,7 +163,7 @@ def create_notifications(
             unique_user_ids,
             {
                 "type": "notifications.created",
-                "notifications": [serialize_notification(item).model_dump() for item in notifications],
+                "notifications": [serialize_notification(item).model_dump(mode="json") for item in notifications],
             },
         )
     except RuntimeError:
@@ -372,9 +391,9 @@ def accept_delivery_offer(db: Session, *, order: StoreOrder, rider: User) -> Del
         user_ids=[order.user_id, order.store.owner_user_id],
         order_id=order.id,
         event_type="delivery.assigned",
-        title="Repartidor asignado",
-        body=f"{rider.full_name} va camino al comercio.",
-        payload={"order_id": order.id, "rider_name": rider.full_name},
+        title="Pedido asignado a cadete",
+        body=f"{rider.full_name} va camino al comercio para retirar tu pedido.",
+        payload={"order_id": order.id, "rider_name": rider.full_name, "status": order.status, "delivery_status": order.delivery_status},
     )
     db.flush()
     return assignment
@@ -406,9 +425,9 @@ def mark_order_ready_for_dispatch(db: Session, order: StoreOrder) -> DeliveryAss
         user_ids=[order.user_id],
         order_id=order.id,
         event_type="order.ready_for_dispatch",
-        title="Pedido listo para despacho",
-        body=f"{order.store_name_snapshot} ya tiene tu pedido listo para retirar.",
-        payload={"order_id": order.id},
+        title="Pedido listo en espera de cadete",
+        body=f"{order.store_name_snapshot} ya tiene tu pedido listo y esta esperando cadete.",
+        payload={"order_id": order.id, "status": order.status, "delivery_status": order.delivery_status},
     )
     db.flush()
     return assignment
@@ -474,9 +493,9 @@ def assign_order_to_rider(db: Session, *, order: StoreOrder, rider: User) -> Del
         user_ids=[order.user_id, order.store.owner_user_id, rider.id],
         order_id=order.id,
         event_type="delivery.assigned",
-        title="Pedido asignado",
+        title="Pedido asignado a cadete",
         body=f"{rider.full_name} fue asignado para la entrega.",
-        payload={"order_id": order.id, "rider_name": rider.full_name},
+        payload={"order_id": order.id, "rider_name": rider.full_name, "status": order.status, "delivery_status": order.delivery_status},
     )
     db.flush()
     return assignment
@@ -529,8 +548,8 @@ def rider_pick_up_order(db: Session, *, order: StoreOrder, rider: User) -> Deliv
         order_id=order.id,
         event_type="delivery.picked_up",
         title="Pedido en camino",
-        body=f"{rider.full_name} retiró el pedido y ya va hacia el destino.",
-        payload={"order_id": order.id},
+        body=f"{rider.full_name} retiro el pedido y ya va hacia el destino.",
+        payload={"order_id": order.id, "status": order.status, "delivery_status": order.delivery_status},
     )
     db.flush()
     return assignment
@@ -563,8 +582,8 @@ def rider_deliver_order(db: Session, *, order: StoreOrder, rider: User, otp_code
         order_id=order.id,
         event_type="order.delivered",
         title="Pedido entregado",
-        body=f"{rider.full_name} confirmó la entrega.",
-        payload={"order_id": order.id},
+        body=f"{rider.full_name} confirmo la entrega.",
+        payload={"order_id": order.id, "status": order.status, "delivery_status": order.delivery_status},
     )
     finalize_delivery_financials(db, order)
     db.flush()

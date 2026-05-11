@@ -1,17 +1,13 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SettingsPage } from "./SettingsPage";
+import { CoveragePage } from "./CoveragePage";
 
 const fetchMerchantStoreMock = vi.fn();
-const fetchMerchantProductCategoriesMock = vi.fn();
-const fetchMerchantMercadoPagoConnectUrlMock = vi.fn();
-const disconnectMerchantMercadoPagoMock = vi.fn();
 const updateMerchantStoreMock = vi.fn();
-const updateMerchantStoreCategoriesMock = vi.fn();
 const updateMerchantDeliverySettingsMock = vi.fn();
-const updateMerchantPaymentSettingsMock = vi.fn();
-const loadCategoriesMock = vi.fn();
+const geocodeAddressMock = vi.fn();
 const refreshMock = vi.fn();
 
 vi.mock("../../../shared/hooks", () => ({
@@ -21,31 +17,11 @@ vi.mock("../../../shared/hooks", () => ({
   })
 }));
 
-vi.mock("../../../shared/stores", () => ({
-  useCategoryStore: (selector: (state: { categories: unknown[]; loading: boolean; loadCategories: typeof loadCategoriesMock }) => unknown) =>
-    selector({
-      categories: [],
-      loading: false,
-      loadCategories: loadCategoriesMock
-    })
-}));
-
 vi.mock("../../../shared/services/api", () => ({
-  createMerchantProductCategory: vi.fn(),
-  createMerchantProductSubcategory: vi.fn(),
-  deleteMerchantProductCategory: vi.fn(),
-  deleteMerchantProductSubcategory: vi.fn(),
-  disconnectMerchantMercadoPago: (...args: unknown[]) => disconnectMerchantMercadoPagoMock(...args),
-  fetchMerchantMercadoPagoConnectUrl: (...args: unknown[]) => fetchMerchantMercadoPagoConnectUrlMock(...args),
-  fetchMerchantProductCategories: (...args: unknown[]) => fetchMerchantProductCategoriesMock(...args),
   fetchMerchantStore: (...args: unknown[]) => fetchMerchantStoreMock(...args),
-  geocodeAddress: vi.fn(),
-  updateMerchantProductCategory: vi.fn(),
-  updateMerchantProductSubcategory: vi.fn(),
+  geocodeAddress: (...args: unknown[]) => geocodeAddressMock(...args),
   updateMerchantDeliverySettings: (...args: unknown[]) => updateMerchantDeliverySettingsMock(...args),
-  updateMerchantPaymentSettings: (...args: unknown[]) => updateMerchantPaymentSettingsMock(...args),
-  updateMerchantStore: (...args: unknown[]) => updateMerchantStoreMock(...args),
-  updateMerchantStoreCategories: (...args: unknown[]) => updateMerchantStoreCategoriesMock(...args)
+  updateMerchantStore: (...args: unknown[]) => updateMerchantStoreMock(...args)
 }));
 
 vi.mock("../../../shared/components", () => ({
@@ -55,7 +31,6 @@ vi.mock("../../../shared/components", () => ({
       {description ? <p>{description}</p> : null}
     </div>
   ),
-  ImageAssetField: ({ label }: { label: string }) => <div>{label}</div>,
   LoadingCard: () => <div>Cargando...</div>,
   PageHeader: ({ title, description }: { title: string; description?: string }) => (
     <div>
@@ -63,8 +38,6 @@ vi.mock("../../../shared/components", () => ({
       {description ? <p>{description}</p> : null}
     </div>
   ),
-  PlatformWordmark: () => <span>Marca</span>,
-  RubroChip: ({ label }: { label: string }) => <button type="button">{label}</button>,
   StatusPill: ({ value }: { value: string }) => <span>{value}</span>
 }));
 
@@ -149,7 +122,8 @@ vi.mock("../components/StoreAddressSection", () => ({
 
 vi.mock("../components/StoreCoverageSection", () => ({
   StoreCoverageSection: () => <div>Formulario zonas</div>,
-  hasAnyCoverageArea: () => true
+  hasAnyCoverageArea: (settings: { delivery_area_polygon?: unknown[]; pickup_area_polygon?: unknown[] }) =>
+    Boolean(settings.delivery_area_polygon?.length || settings.pickup_area_polygon?.length)
 }));
 
 function buildStore(overrides: Partial<Record<string, unknown>> = {}) {
@@ -219,46 +193,119 @@ function buildStore(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
-describe("SettingsPage", () => {
+describe("CoveragePage", () => {
   beforeEach(() => {
     fetchMerchantStoreMock.mockReset();
-    fetchMerchantProductCategoriesMock.mockReset();
-    fetchMerchantMercadoPagoConnectUrlMock.mockReset();
-    disconnectMerchantMercadoPagoMock.mockReset();
     updateMerchantStoreMock.mockReset();
-    updateMerchantStoreCategoriesMock.mockReset();
     updateMerchantDeliverySettingsMock.mockReset();
-    updateMerchantPaymentSettingsMock.mockReset();
-    loadCategoriesMock.mockReset();
+    geocodeAddressMock.mockReset();
     refreshMock.mockReset();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-
-    loadCategoriesMock.mockResolvedValue(undefined);
-    fetchMerchantProductCategoriesMock.mockResolvedValue([]);
-    fetchMerchantMercadoPagoConnectUrlMock.mockResolvedValue({
-      connect_url: "http://example.com/connect",
-      connection_status: "disconnected"
-    });
-    disconnectMerchantMercadoPagoMock.mockResolvedValue({ status: "disconnected" });
     updateMerchantStoreMock.mockResolvedValue(undefined);
-    updateMerchantStoreCategoriesMock.mockResolvedValue(undefined);
     updateMerchantDeliverySettingsMock.mockResolvedValue(undefined);
-    updateMerchantPaymentSettingsMock.mockResolvedValue(undefined);
+    geocodeAddressMock.mockResolvedValue({ latitude: -31.63, longitude: -60.7 });
   });
 
-  it("mueve direccion y alcance a su menu dedicado", async () => {
-    fetchMerchantStoreMock.mockResolvedValue(buildStore());
+  it("mantiene oculto el formulario de direccion hasta que el usuario decide agregarla", async () => {
+    const user = userEvent.setup();
+
+    fetchMerchantStoreMock.mockResolvedValue(
+      buildStore({
+        address: "",
+        postal_code: null,
+        province: null,
+        locality: null,
+        latitude: null,
+        longitude: null,
+        accepting_orders: false,
+        delivery_settings: {
+          delivery_enabled: false,
+          pickup_enabled: true,
+          delivery_fee: 0,
+          free_delivery_min_order: null,
+          rider_fee: 0,
+          min_order: 0,
+          delivery_area_polygon: [],
+          pickup_area_polygon: [],
+          pickup_area_uses_delivery_area: false
+        }
+      })
+    );
 
     render(
       <MemoryRouter>
-        <SettingsPage />
+        <CoveragePage />
       </MemoryRouter>
     );
 
-    await waitFor(() => expect(screen.getByText("Configura tu local")).toBeInTheDocument());
-    expect(screen.getByRole("link", { name: "Abrir direccion y alcance" })).toHaveAttribute("href", "/m/alcance");
+    await waitFor(() => expect(screen.getByText("Direccion y alcance")).toBeInTheDocument());
     expect(screen.queryByText("Formulario direccion")).not.toBeInTheDocument();
-    expect(screen.queryByText("Formulario zonas")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Agregar direccion" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Agregar direccion" }));
+
+    expect(screen.getByText("Formulario direccion")).toBeInTheDocument();
+    expect(screen.getByText("Formulario zonas")).toBeInTheDocument();
   });
 
+  it("permite eliminar la direccion y guardarla vacia", async () => {
+    const user = userEvent.setup();
+
+    fetchMerchantStoreMock
+      .mockResolvedValueOnce(buildStore())
+      .mockResolvedValueOnce(
+        buildStore({
+          address: "",
+          postal_code: null,
+          province: null,
+          locality: null,
+          latitude: null,
+          longitude: null,
+          accepting_orders: false,
+          delivery_settings: {
+            delivery_enabled: false,
+            pickup_enabled: true,
+            delivery_fee: 0,
+            free_delivery_min_order: null,
+            rider_fee: 0,
+            min_order: 0,
+            delivery_area_polygon: [],
+            pickup_area_polygon: [],
+            pickup_area_uses_delivery_area: false
+          }
+        })
+      );
+
+    render(
+      <MemoryRouter>
+        <CoveragePage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Eliminar direccion" })).toBeInTheDocument());
+    expect(screen.queryByText("Formulario direccion")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Eliminar direccion" }));
+    await user.click(screen.getByRole("button", { name: "Guardar direccion y alcance" }));
+
+    await waitFor(() =>
+      expect(updateMerchantStoreMock).toHaveBeenCalledWith(
+        "token",
+        expect.objectContaining({
+          address: "",
+          postal_code: null,
+          province: null,
+          locality: null,
+          latitude: null,
+          longitude: null,
+          accepting_orders: false
+        })
+      )
+    );
+    expect(updateMerchantDeliverySettingsMock).toHaveBeenCalledWith(
+      "token",
+      expect.objectContaining({
+        delivery_enabled: false
+      })
+    );
+  });
 });

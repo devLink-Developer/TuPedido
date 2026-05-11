@@ -25,6 +25,7 @@ from app.services.delivery import (
     accept_delivery_offer,
     create_notifications,
     publish_order_snapshot,
+    publish_rider_snapshot,
     rider_deliver_order,
     rider_pick_up_order,
     sync_delivery_location,
@@ -126,6 +127,7 @@ def update_availability(
     profile.current_zone_id = payload.zone_id
     db.commit()
     db.refresh(profile)
+    publish_rider_snapshot(profile, event_type="delivery.rider.availability_updated")
     return serialize_delivery_profile(profile).model_dump()
 
 

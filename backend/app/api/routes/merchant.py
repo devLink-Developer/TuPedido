@@ -63,6 +63,7 @@ from app.services.delivery import (
     create_notifications,
     mark_order_ready_for_dispatch,
     publish_order_snapshot,
+    publish_rider_snapshot,
     rider_has_active_order,
 )
 from app.services.catalog_realtime import publish_catalog_store_changed
@@ -133,7 +134,7 @@ def _notify_customer_order_status(db: Session, order: StoreOrder) -> None:
         event_type=event_type,
         title=title,
         body=body_template.format(store_name=store_name),
-        payload={"order_id": order.id, "status": order.status},
+        payload={"order_id": order.id, "status": order.status, "delivery_status": order.delivery_status},
     )
 
 
@@ -632,6 +633,7 @@ def create_rider(
         select(DeliveryProfile).options(*RIDER_OPTIONS).where(DeliveryProfile.user_id == rider_user.id)
     )
     assert created_profile is not None
+    publish_rider_snapshot(created_profile, event_type="delivery.rider.created")
     return serialize_delivery_profile(created_profile).model_dump()
 
 
@@ -798,6 +800,7 @@ def update_rider(
         select(DeliveryProfile).options(*RIDER_OPTIONS).where(DeliveryProfile.user_id == rider_user_id)
     )
     assert refreshed is not None
+    publish_rider_snapshot(refreshed, event_type="delivery.rider.updated")
     return serialize_delivery_profile(refreshed).model_dump()
 
 

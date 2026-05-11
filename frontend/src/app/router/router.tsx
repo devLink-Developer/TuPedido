@@ -28,6 +28,7 @@ import {
   LazyComercioOrdersRoute,
   LazyComercioProductsRoute,
   LazyComercioPromotionsRoute,
+  LazyComercioCoverageRoute,
   LazyComercioRidersRoute,
   LazyComercioSettingsRoute,
   LazyForcePasswordChangeRoute,
@@ -120,6 +121,7 @@ export const router = createBrowserRouter([
               { path: "pedidos", element: <LazyComercioOrdersRoute /> },
               { path: "riders", element: <LazyComercioRidersRoute /> },
               { path: "promociones", element: <LazyComercioPromotionsRoute /> },
+              { path: "alcance", element: <LazyComercioCoverageRoute /> },
               { path: "configuracion", element: <LazyComercioSettingsRoute /> }
             ]
           }

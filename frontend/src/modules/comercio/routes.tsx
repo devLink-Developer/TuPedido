@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { MerchantDashboardLayout } from "../../app/layouts/MerchantDashboardLayout";
 import { MerchantMobileHeaderProvider } from "./MerchantMobileHeaderContext";
+import { CoveragePage } from "./pages/CoveragePage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LiquidationsPage } from "./pages/LiquidationsPage";
 import { MercadoPagoPage } from "./pages/MercadoPagoPage";
@@ -50,4 +51,8 @@ export function ComercioPromotionsRoute() {
 
 export function ComercioSettingsRoute() {
   return <SettingsPage />;
+}
+
+export function ComercioCoverageRoute() {
+  return <CoveragePage />;
 }
