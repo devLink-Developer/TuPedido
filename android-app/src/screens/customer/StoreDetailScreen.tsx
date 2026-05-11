@@ -15,13 +15,17 @@ import { useAuth } from "../../state/AuthContext";
 import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useCartState } from "../../state/CartContext";
 import { colors, radii, spacing } from "../../theme";
-import type { Product } from "../../types/api";
+import type { Address, Product } from "../../types/api";
 import type { RootStackParamList } from "../../navigation/types";
 import { friendlyErrorMessage } from "../../utils/apiMessages";
 import { formatCurrency } from "../../utils/format";
 
 type Props = NativeStackScreenProps<RootStackParamList, "StoreDetail">;
 type CustomerLocation = { latitude: number; longitude: number; source: "address" | "gps" | "route" };
+
+function hasAddressPin(address: Address): address is Address & { latitude: number; longitude: number } {
+  return typeof address.latitude === "number" && typeof address.longitude === "number";
+}
 
 export function StoreDetailScreen({ route, navigation }: Props) {
   const { slug, latitude, longitude } = route.params;
@@ -33,6 +37,7 @@ export function StoreDetailScreen({ route, navigation }: Props) {
   );
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [hasConfiguredAddress, setHasConfiguredAddress] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const { data: store, loading, error, reload } = useAsyncLoad(
     () =>
@@ -46,23 +51,31 @@ export function StoreDetailScreen({ route, navigation }: Props) {
   );
 
   useEffect(() => {
-    if (customerLocation || !token) return;
+    if (!token) {
+      setHasConfiguredAddress(false);
+      return;
+    }
     let cancelled = false;
-    setLocationLoading(true);
+    const shouldResolveLocation = !customerLocation;
+    if (shouldResolveLocation) setLocationLoading(true);
     fetchAddresses(token)
       .then((addresses) => {
         if (cancelled) return;
-        const geolocated = addresses.filter((address) => typeof address.latitude === "number" && typeof address.longitude === "number");
+        const geolocated = addresses.filter(hasAddressPin);
+        setHasConfiguredAddress(geolocated.length > 0);
         const selected = geolocated.find((address) => address.is_default) ?? geolocated[0];
-        if (selected && typeof selected.latitude === "number" && typeof selected.longitude === "number") {
+        if (shouldResolveLocation && selected && typeof selected.latitude === "number" && typeof selected.longitude === "number") {
           setCustomerLocation({ latitude: selected.latitude, longitude: selected.longitude, source: "address" });
         }
       })
       .catch((loadError) => {
-        if (!cancelled) setLocationError(friendlyErrorMessage(loadError, "No pudimos leer tu direccion."));
+        if (!cancelled) {
+          setHasConfiguredAddress(false);
+          if (shouldResolveLocation) setLocationError(friendlyErrorMessage(loadError, "No pudimos leer tu direccion."));
+        }
       })
       .finally(() => {
-        if (!cancelled) setLocationLoading(false);
+        if (!cancelled && shouldResolveLocation) setLocationLoading(false);
       });
     return () => {
       cancelled = true;
@@ -99,6 +112,18 @@ export function StoreDetailScreen({ route, navigation }: Props) {
         });
         return;
       }
+      if (!hasConfiguredAddress) {
+        showDialog({
+          title: "Dirección requerida",
+          message: "Agregá una dirección con pin desde Perfil antes de pedir.",
+          variant: "warning",
+          actions: [
+            { label: "Cancelar", variant: "ghost" },
+            { label: "Ir a perfil", onPress: () => navigation.navigate("CustomerTabs", { screen: "Profile" }) }
+          ]
+        });
+        return;
+      }
       try {
         const nextCart = await addCartItem(token, {
           store_id: store.id,
@@ -113,7 +138,7 @@ export function StoreDetailScreen({ route, navigation }: Props) {
         showError("No se pudo agregar", friendlyErrorMessage(addError));
       }
     },
-    [customerLocation, navigation, setCart, showDialog, showError, showSuccess, store, token]
+    [customerLocation, hasConfiguredAddress, navigation, setCart, showDialog, showError, showSuccess, store, token]
   );
 
   const requestGpsLocation = useCallback(async () => {

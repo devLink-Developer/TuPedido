@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 
 import httpx
@@ -9,6 +10,35 @@ from app.core.config import settings
 
 POSTAL_CODE_RE = re.compile(r"(\d{4})")
 STREET_NUMBER_RE = re.compile(r"\b\d[\w/-]*\b")
+
+ARGENTINE_PROVINCES = {
+    "buenos aires": "Buenos Aires",
+    "catamarca": "Catamarca",
+    "chaco": "Chaco",
+    "chubut": "Chubut",
+    "ciudad autonoma de buenos aires": "Ciudad Autonoma de Buenos Aires",
+    "capital federal": "Ciudad Autonoma de Buenos Aires",
+    "caba": "Ciudad Autonoma de Buenos Aires",
+    "cordoba": "Cordoba",
+    "corrientes": "Corrientes",
+    "entre rios": "Entre Rios",
+    "formosa": "Formosa",
+    "jujuy": "Jujuy",
+    "la pampa": "La Pampa",
+    "la rioja": "La Rioja",
+    "mendoza": "Mendoza",
+    "misiones": "Misiones",
+    "neuquen": "Neuquen",
+    "rio negro": "Rio Negro",
+    "salta": "Salta",
+    "san juan": "San Juan",
+    "san luis": "San Luis",
+    "santa cruz": "Santa Cruz",
+    "santa fe": "Santa Fe",
+    "santiago del estero": "Santiago Del Estero",
+    "tierra del fuego": "Tierra Del Fuego",
+    "tucuman": "Tucuman",
+}
 
 
 class AddressLookupError(RuntimeError):
@@ -60,6 +90,23 @@ def _normalize_label(value: str) -> str:
     if not compact:
         return compact
     return compact.title()
+
+
+def _province_key(value: object) -> str:
+    compact = _compact_text(value).casefold()
+    if not compact:
+        return ""
+    decomposed = unicodedata.normalize("NFKD", compact)
+    ascii_text = "".join(char for char in decomposed if not unicodedata.combining(char))
+    return re.sub(r"[^a-z0-9]+", " ", ascii_text).strip()
+
+
+def _valid_argentine_province(*values: object) -> str:
+    for value in values:
+        province = ARGENTINE_PROVINCES.get(_province_key(value))
+        if province:
+            return province
+    return ""
 
 
 def _parse_coordinate(value: object) -> float | None:
@@ -145,7 +192,7 @@ def lookup_postal_code(postal_code: str) -> PostalCodeLookupResult:
 
     for item in raw_places:
         name = _normalize_label(str(item.get("place name") or ""))
-        state = _normalize_label(str(item.get("state") or item.get("state abbreviation") or ""))
+        state = _valid_argentine_province(item.get("state"), item.get("state abbreviation"))
         latitude = _parse_coordinate(item.get("latitude"))
         longitude = _parse_coordinate(item.get("longitude"))
 

@@ -11,7 +11,7 @@ import { Screen } from "../../components/Screen";
 import { SectionHeader } from "../../components/SectionHeader";
 import { StateMessage } from "../../components/StateMessage";
 import { TextField } from "../../components/TextField";
-import { createAddress, deleteAddress, fetchAddresses, geocodeAddress, lookupPostalCode, reverseGeocodeAddress } from "../../services/api";
+import { createAddress, deleteAddress, fetchAddresses, geocodeAddress, lookupPostalCode, reverseGeocodeAddress, updateAddress } from "../../services/api";
 import { MAP_INITIAL_REGION } from "../../config/env";
 import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useAuth } from "../../state/AuthContext";
@@ -28,12 +28,26 @@ import {
   getAddressMissingFields,
   hasAddressGeolocation,
   normalizePostalCodeInput,
+  splitStreetLine,
   toCoordinate,
   type AddressFormState
 } from "../../utils/addressFields";
 
 type Props = BottomTabScreenProps<CustomerTabsParamList, "Profile">;
 type LookupLocality = PostalCodeLookup["localities"][number];
+
+function getGeocodeKey(form: AddressFormState) {
+  const request = buildAddressGeocodeRequest(form);
+  return request
+    ? [
+        request.postal_code,
+        request.province,
+        request.locality,
+        request.street_name,
+        request.street_number
+      ].join("|")
+    : null;
+}
 
 export function ProfileScreen(_props: Props) {
   const { user, token, logout } = useAuth();
@@ -43,6 +57,7 @@ export function ProfileScreen(_props: Props) {
   const [localities, setLocalities] = useState<LookupLocality[]>([]);
   const [localityDropdownOpen, setLocalityDropdownOpen] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -77,15 +92,7 @@ export function ProfileScreen(_props: Props) {
   };
 
   const geocodeRequest = buildAddressGeocodeRequest(form);
-  const geocodeKey = geocodeRequest
-    ? [
-        geocodeRequest.postal_code,
-        geocodeRequest.province,
-        geocodeRequest.locality,
-        geocodeRequest.street_name,
-        geocodeRequest.street_number
-      ].join("|")
-    : null;
+  const geocodeKey = getGeocodeKey(form);
 
   function updateForm(nextFields: Partial<AddressFormState>, clearCoordinates = false) {
     setForm((current) => ({
@@ -105,7 +112,48 @@ export function ProfileScreen(_props: Props) {
     setLocalityDropdownOpen(false);
     setFeedback(null);
     setShowAddressForm(false);
+    setEditingAddressId(null);
     lastGeocodeKeyRef.current = null;
+  }
+
+  function startAddressForm() {
+    setForm({
+      ...emptyAddressForm,
+      is_default: addresses.length === 0
+    });
+    setLocalities([]);
+    setLocalityDropdownOpen(false);
+    setFeedback(null);
+    setEditingAddressId(null);
+    setShowAddressForm(true);
+    lastGeocodeKeyRef.current = null;
+  }
+
+  function getFormFromAddress(address: Address): AddressFormState {
+    const streetParts = splitStreetLine(address.street);
+    return {
+      label: address.label,
+      postal_code: address.postal_code,
+      province: address.province,
+      locality: address.locality,
+      street_name: streetParts.streetName,
+      street_number: streetParts.streetNumber,
+      details: address.details ?? "",
+      latitude: formatCoordinate(address.latitude),
+      longitude: formatCoordinate(address.longitude),
+      is_default: address.is_default
+    };
+  }
+
+  function editAddress(address: Address) {
+    const nextForm = getFormFromAddress(address);
+    setForm(nextForm);
+    setLocalities([]);
+    setLocalityDropdownOpen(false);
+    setFeedback(null);
+    setEditingAddressId(address.id);
+    setShowAddressForm(true);
+    lastGeocodeKeyRef.current = getGeocodeKey(nextForm);
   }
 
   async function handlePostalCodeLookup() {
@@ -288,11 +336,15 @@ export function ProfileScreen(_props: Props) {
       details: nextForm.details.trim(),
       latitude,
       longitude,
-      is_default: addresses.length === 0 || nextForm.is_default
+      is_default: addresses.length <= 1 || nextForm.is_default
     };
 
     try {
-      await createAddress(token, payload);
+      if (editingAddressId !== null) {
+        await updateAddress(token, editingAddressId, payload);
+      } else {
+        await createAddress(token, payload);
+      }
       resetAddressForm();
       await load();
     } catch (error) {
@@ -304,6 +356,9 @@ export function ProfileScreen(_props: Props) {
     if (!token) return;
     try {
       await deleteAddress(token, addressId);
+      if (editingAddressId === addressId) {
+        resetAddressForm();
+      }
       await load();
     } catch (error) {
       showError("No pudimos eliminarla", friendlyErrorMessage(error));
@@ -341,12 +396,12 @@ export function ProfileScreen(_props: Props) {
 
       <View style={styles.sectionTitleRow}>
         <SectionHeader size="compact" title="Direcciones" description="Guardá una dirección con pin para envío." />
-        {!showAddressForm ? <AppButton title="Agregar" icon="add-outline" onPress={() => setShowAddressForm(true)} /> : null}
+        {!showAddressForm ? <AppButton title="Agregar" icon="add-outline" onPress={startAddressForm} /> : null}
       </View>
 
       {addresses.length ? (
         addresses.map((address) => (
-          <Card key={address.id} style={styles.address}>
+          <Card key={address.id} style={[styles.address, editingAddressId === address.id ? styles.addressEditing : null]}>
             <View style={styles.addressIcon}>
               <Ionicons name={address.is_default ? "home" : "location-outline"} size={21} color={colors.primary} />
             </View>
@@ -358,18 +413,21 @@ export function ProfileScreen(_props: Props) {
                 {address.latitude != null && address.longitude != null ? "Con pin de mapa" : "Falta pin de mapa"}
               </Text>
             </View>
-            <AppButton title="Eliminar" icon="trash-outline" onPress={() => removeAddress(address.id)} variant="ghost" />
+            <View style={styles.addressActions}>
+              <AppButton title="Editar" icon="create-outline" onPress={() => editAddress(address)} variant="ghost" />
+              <AppButton title="Eliminar" icon="trash-outline" onPress={() => removeAddress(address.id)} variant="danger" />
+            </View>
           </Card>
         ))
       ) : !showAddressForm ? (
-        <StateMessage title="Sin direcciones guardadas" description="Agregá una dirección para pedir con envío." actionLabel="Agregar dirección" onAction={() => setShowAddressForm(true)} />
+        <StateMessage title="Sin direcciones guardadas" description="Agregá una dirección para pedir con envío." actionLabel="Agregar dirección" onAction={startAddressForm} />
       ) : null}
 
       {showAddressForm ? (
         <Card style={styles.formCard}>
           <View style={styles.formHeader}>
             <View style={styles.formHeaderCopy}>
-              <Text style={styles.name}>Nueva dirección</Text>
+              <Text style={styles.name}>{editingAddressId === null ? "Nueva dirección" : "Editar dirección"}</Text>
               <Text style={styles.meta}>Buscá el CP, elegí localidad y confirmá el pin en el mapa.</Text>
             </View>
             <AppButton title="Cerrar" icon="close-outline" onPress={resetAddressForm} variant="ghost" />
@@ -444,6 +502,16 @@ export function ProfileScreen(_props: Props) {
                   </View>
                 ) : null}
               </View>
+            ) : form.locality ? (
+              <View style={styles.localityReadonly}>
+                <View style={styles.localityReadonlyIcon}>
+                  <Ionicons name="business-outline" size={18} color={colors.primary} />
+                </View>
+                <View style={styles.localityReadonlyCopy}>
+                  <Text style={styles.localitySelectText} numberOfLines={1}>{form.locality}</Text>
+                  <Text style={styles.localitySelectHint} numberOfLines={1}>Buscá otro CP para cambiarla</Text>
+                </View>
+              </View>
             ) : (
               <Text style={styles.helperText}>Primero buscá un código postal para ver localidades.</Text>
             )}
@@ -499,7 +567,7 @@ export function ProfileScreen(_props: Props) {
 
           {feedback ? <Text style={[styles.feedback, styles[`${feedback.type}Feedback`]]}>{feedback.text}</Text> : null}
           {geocoding ? <Text style={styles.helperText}>Ubicando dirección...</Text> : null}
-          <AppButton title="Guardar dirección" icon="save-outline" onPress={() => void saveAddress()} loading={geocoding || locating || lookupLoading} fullWidth />
+          <AppButton title={editingAddressId === null ? "Guardar dirección" : "Actualizar dirección"} icon="save-outline" onPress={() => void saveAddress()} loading={geocoding || locating || lookupLoading} fullWidth />
         </Card>
       ) : null}
     </Screen>
@@ -540,13 +608,18 @@ const styles = StyleSheet.create({
   },
   address: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    marginBottom: spacing.md
+    alignItems: "flex-start",
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+    borderRadius: radii.lg
+  },
+  addressEditing: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft
   },
   addressIcon: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: radii.md,
     backgroundColor: colors.primarySoft,
     alignItems: "center",
@@ -558,18 +631,32 @@ const styles = StyleSheet.create({
   },
   addressTitle: {
     color: colors.text,
+    fontSize: 15,
+    lineHeight: 20,
     fontWeight: "900"
   },
   pinStatus: {
-    marginTop: 4,
+    alignSelf: "flex-start",
+    overflow: "hidden",
+    borderRadius: radii.pill,
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
     fontSize: 12,
-    fontWeight: "800"
+    lineHeight: 16,
+    fontWeight: "900"
   },
   pinOk: {
-    color: colors.success
+    color: colors.success,
+    backgroundColor: colors.successSoft
   },
   pinMissing: {
-    color: colors.warning
+    color: colors.warning,
+    backgroundColor: colors.warningSoft
+  },
+  addressActions: {
+    width: 112,
+    gap: spacing.xs
   },
   formCard: {
     gap: spacing.md,
@@ -635,6 +722,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     marginTop: 2
+  },
+  localityReadonly: {
+    minHeight: 52,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm
+  },
+  localityReadonlyIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  localityReadonlyCopy: {
+    flex: 1,
+    minWidth: 0
   },
   localityMenu: {
     borderRadius: radii.md,

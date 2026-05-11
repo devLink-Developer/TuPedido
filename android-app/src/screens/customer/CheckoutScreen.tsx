@@ -152,6 +152,18 @@ export function CheckoutScreen({ navigation }: Props) {
   async function handleCheckout() {
     if (!token || !cart?.store_id) return;
     const selectedAddress = addresses.find((address) => address.id === addressId) ?? null;
+    if (!pinnedAddresses.length) {
+      showDialog({
+        title: "Dirección requerida",
+        message: "Agregá una dirección con pin desde Perfil antes de confirmar un pedido.",
+        variant: "warning",
+        actions: [
+          { label: "Cancelar", variant: "ghost" },
+          { label: "Ir a perfil", onPress: () => navigation.navigate("CustomerTabs", { screen: "Profile" }) }
+        ]
+      });
+      return;
+    }
     if (deliveryMode === "delivery") {
       if (!selectedAddress) {
         showDialog({ title: "Dirección requerida", message: "Seleccioná una dirección antes de confirmar el pedido.", variant: "warning" });

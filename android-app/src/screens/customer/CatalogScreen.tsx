@@ -20,7 +20,7 @@ import { useAuth } from "../../state/AuthContext";
 import { useCartState } from "../../state/CartContext";
 import { useNotificationsState } from "../../state/NotificationsContext";
 import { colors, radii, shadow, spacing } from "../../theme";
-import type { CatalogBanner, Category, PlatformBranding, StoreSummary } from "../../types/api";
+import type { Address, CatalogBanner, Category, PlatformBranding, StoreSummary } from "../../types/api";
 import type { CustomerTabsParamList, RootStackParamList } from "../../navigation/types";
 import { friendlyErrorMessage } from "../../utils/apiMessages";
 import { formatCurrency } from "../../utils/format";
@@ -28,13 +28,36 @@ import { formatCurrency } from "../../utils/format";
 type Props = BottomTabScreenProps<CustomerTabsParamList, "Catalog">;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type DeliveryFilter = "all" | "delivery" | "pickup";
-type CustomerLocation = { latitude: number; longitude: number; source: "address" | "gps" };
+type CustomerLocation = { latitude: number; longitude: number; source: "address" | "gps"; addressId?: number };
 
 const deliveryFilters: Array<{ key: DeliveryFilter; label: string }> = [
   { key: "all", label: "Todos" },
   { key: "delivery", label: "Envío" },
   { key: "pickup", label: "Retiro" }
 ];
+
+function hasAddressPin(address: Address): address is Address & { latitude: number; longitude: number } {
+  return typeof address.latitude === "number" && typeof address.longitude === "number";
+}
+
+function pickAddressForCatalog(addresses: Address[], selectedAddressId: number | null) {
+  const pinnedAddresses = addresses.filter(hasAddressPin);
+  return (
+    pinnedAddresses.find((address) => address.id === selectedAddressId) ??
+    pinnedAddresses.find((address) => address.is_default) ??
+    pinnedAddresses[0] ??
+    null
+  );
+}
+
+function locationFromAddress(address: Address & { latitude: number; longitude: number }): CustomerLocation {
+  return {
+    latitude: address.latitude,
+    longitude: address.longitude,
+    source: "address",
+    addressId: address.id
+  };
+}
 
 export function CatalogScreen(_props: Props) {
   const navigation = useNavigation<RootNav>();
@@ -45,6 +68,9 @@ export function CatalogScreen(_props: Props) {
   const [branding, setBranding] = useState<PlatformBranding | null>(null);
   const [banner, setBanner] = useState<CatalogBanner | null>(null);
   const [stores, setStores] = useState<StoreSummary[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const [addressSelectorOpen, setAddressSelectorOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
   const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>("all");
   const [search, setSearch] = useState("");
@@ -77,31 +103,36 @@ export function CatalogScreen(_props: Props) {
     if (token) await refreshCart({ silent: true }).catch(() => null);
   }, [customerLocation, refreshCart, storeQueryParams, token]);
 
-  const resolveAddressLocation = useCallback(async (): Promise<CustomerLocation | null> => {
-    if (!token) return null;
-    const addresses = await fetchAddresses(token).catch(() => []);
-    const geolocated = addresses.filter((address) => typeof address.latitude === "number" && typeof address.longitude === "number");
-    const selected = geolocated.find((address) => address.is_default) ?? geolocated[0];
-    return selected && typeof selected.latitude === "number" && typeof selected.longitude === "number"
-      ? { latitude: selected.latitude, longitude: selected.longitude, source: "address" }
-      : null;
-  }, [token]);
+  const resolveAddressLocation = useCallback((nextAddresses: Address[]): CustomerLocation | null => {
+    const selected = pickAddressForCatalog(nextAddresses, selectedAddressId);
+    return selected ? locationFromAddress(selected) : null;
+  }, [selectedAddressId]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [nextCategories, nextBranding, nextBanner] = await Promise.all([
+      const [nextCategories, nextBranding, nextBanner, nextAddresses] = await Promise.all([
         fetchCategories(),
         fetchPlatformBranding().catch(() => null),
-        fetchCatalogBanner().catch(() => null)
+        fetchCatalogBanner().catch(() => null),
+        token ? fetchAddresses(token).catch(() => []) : Promise.resolve([])
       ]);
       setCategories(nextCategories);
       setBranding(nextBranding);
       setBanner(nextBanner);
-      const nextLocation = customerLocation ?? (await resolveAddressLocation());
-      if (nextLocation && !customerLocation) {
+      setAddresses(nextAddresses);
+      const addressLocation = resolveAddressLocation(nextAddresses);
+      const nextLocation = customerLocation?.source === "gps" ? customerLocation : addressLocation;
+      if (addressLocation && nextLocation?.source === "address") {
+        setSelectedAddressId(addressLocation.addressId ?? null);
+      }
+      if (nextLocation && (customerLocation?.latitude !== nextLocation.latitude || customerLocation?.longitude !== nextLocation.longitude || customerLocation?.source !== nextLocation.source)) {
         setCustomerLocation(nextLocation);
+      }
+      if (!nextLocation && customerLocation) {
+        setCustomerLocation(null);
+        setSelectedAddressId(null);
       }
       if (nextLocation) {
         setLocationError(null);
@@ -133,6 +164,8 @@ export function CatalogScreen(_props: Props) {
         return;
       }
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setSelectedAddressId(null);
+      setAddressSelectorOpen(false);
       setCustomerLocation({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
@@ -143,6 +176,14 @@ export function CatalogScreen(_props: Props) {
     } finally {
       setLocationLoading(false);
     }
+  }, []);
+
+  const selectAddress = useCallback((address: Address) => {
+    if (!hasAddressPin(address)) return;
+    setSelectedAddressId(address.id);
+    setCustomerLocation(locationFromAddress(address));
+    setLocationError(null);
+    setAddressSelectorOpen(false);
   }, []);
 
   useEffect(() => {
@@ -163,6 +204,16 @@ export function CatalogScreen(_props: Props) {
   const firstName = useMemo(() => user?.full_name?.split(" ")[0] || "cliente", [user?.full_name]);
   const bannerSource: ImageSourcePropType = banner?.catalog_banner_image_url ? { uri: banner.catalog_banner_image_url } : brandAssets.catalogBanner;
   const canShowCart = Boolean(user && cart && itemCount > 0);
+  const pinnedAddresses = useMemo(() => addresses.filter(hasAddressPin), [addresses]);
+  const selectedAddress = useMemo(
+    () => pinnedAddresses.find((address) => address.id === selectedAddressId) ?? null,
+    [pinnedAddresses, selectedAddressId]
+  );
+  const hasConfiguredAddress = pinnedAddresses.length > 0;
+  const selectedAddressLabel =
+    hasConfiguredAddress && selectedAddress
+      ? `${selectedAddress.label || "Dirección"} · ${selectedAddress.street}`
+      : "Ubicación actual";
 
   return (
     <Screen noScroll>
@@ -192,9 +243,44 @@ export function CatalogScreen(_props: Props) {
               </View>
               <View>
                 <Text style={styles.greeting}>{user ? `Hola, ${firstName}` : "Pedí cerca"}</Text>
-                <Text style={styles.headerSubtitle}>Comercios, farmacias y compras cerca de vos.</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: addressSelectorOpen }}
+                  disabled={!hasConfiguredAddress}
+                  onPress={() => setAddressSelectorOpen((current) => !current)}
+                  style={({ pressed }) => [styles.compactLocation, pressed && hasConfiguredAddress && styles.pressed]}
+                >
+                  <Ionicons name={hasConfiguredAddress ? "location" : "navigate"} size={15} color={colors.primary} />
+                  <Text style={styles.compactLocationText} numberOfLines={1}>{selectedAddressLabel}</Text>
+                  {hasConfiguredAddress ? <Ionicons name={addressSelectorOpen ? "chevron-up" : "chevron-down"} size={15} color={colors.mutedText} /> : null}
+                </Pressable>
               </View>
             </View>
+
+            {addressSelectorOpen && hasConfiguredAddress ? (
+              <View style={styles.addressSelector}>
+                {pinnedAddresses.map((address) => {
+                  const active = selectedAddressId === address.id;
+                  return (
+                    <Pressable
+                      key={address.id}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      onPress={() => selectAddress(address)}
+                      style={({ pressed }) => [styles.addressOption, active && styles.addressOptionActive, pressed && styles.pressed]}
+                    >
+                      <View style={styles.addressOptionMain}>
+                        <Text style={[styles.addressOptionTitle, active && styles.addressOptionTitleActive]} numberOfLines={1}>
+                          {address.label || "Dirección"}
+                        </Text>
+                        <Text style={styles.addressOptionMeta} numberOfLines={1}>{address.street} - {address.locality}</Text>
+                      </View>
+                      {active ? <Ionicons name="checkmark-circle" size={18} color={colors.primary} /> : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
 
             <Image source={bannerSource} style={styles.banner} resizeMode="cover" accessibilityLabel="Banner de catálogo KePedimos" />
 
@@ -323,11 +409,64 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     fontWeight: "900"
   },
-  headerSubtitle: {
+  compactLocation: {
+    minHeight: 36,
+    maxWidth: "100%",
+    alignSelf: "flex-start",
+    borderRadius: radii.pill,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.sm,
+    marginTop: spacing.xs,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs
+  },
+  compactLocationText: {
+    flexShrink: 1,
+    maxWidth: 220,
     color: colors.mutedText,
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 2
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "800"
+  },
+  addressSelector: {
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    overflow: "hidden",
+    ...shadow.soft
+  },
+  addressOption: {
+    minHeight: 48,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm
+  },
+  addressOptionActive: {
+    backgroundColor: colors.primarySoft
+  },
+  addressOptionMain: {
+    flex: 1,
+    minWidth: 0
+  },
+  addressOptionTitle: {
+    color: colors.text,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: "900"
+  },
+  addressOptionTitleActive: {
+    color: colors.primaryDark
+  },
+  addressOptionMeta: {
+    color: colors.mutedText,
+    fontSize: 12,
+    lineHeight: 16
   },
   headerActions: {
     flexDirection: "row",
