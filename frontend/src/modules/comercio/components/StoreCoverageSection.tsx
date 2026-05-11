@@ -104,6 +104,7 @@ function CoveragePolygonEditor({
   const pointsRef = useRef(points);
   const onChangeRef = useRef(onChange);
   const disabledRef = useRef(disabled);
+  const pointerStartRef = useRef<{ x: number; y: number; ignored: boolean } | null>(null);
   const initialCenterRef = useRef(resolveInitialCenter(points, fallbackCenter));
   const sourceId = useMemo(() => `coverage-${title.toLowerCase().replace(/\W+/g, "-")}`, [title]);
   const normalizedPoints = useMemo(() => normalizePoints(points), [points]);
@@ -114,27 +115,58 @@ function CoveragePolygonEditor({
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+    const container = containerRef.current;
     const center = initialCenterRef.current;
     const map = new maplibregl.Map({
-      container: containerRef.current,
+      container,
       style: resolveMapStyle(),
       center: [center.longitude, center.latitude],
       zoom: 13,
       attributionControl: false,
     });
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-right");
-    map.on("click", (event) => {
+
+    function isIgnoredPointerTarget(target: EventTarget | null) {
+      if (!(target instanceof Element)) return false;
+      return Boolean(target.closest(".maplibregl-ctrl") || target.closest("[data-coverage-marker='true']"));
+    }
+
+    function addPointFromClientPosition(clientX: number, clientY: number) {
       if (disabledRef.current) return;
+      const bounds = container.getBoundingClientRect();
+      const lngLat = map.unproject([clientX - bounds.left, clientY - bounds.top]);
       onChangeRef.current([
-        ...pointsRef.current,
+        ...normalizePoints(pointsRef.current),
         {
-          latitude: Number(event.lngLat.lat.toFixed(7)),
-          longitude: Number(event.lngLat.lng.toFixed(7)),
+          latitude: Number(lngLat.lat.toFixed(7)),
+          longitude: Number(lngLat.lng.toFixed(7)),
         },
       ]);
-    });
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      pointerStartRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+        ignored: isIgnoredPointerTarget(event.target),
+      };
+    }
+
+    function handlePointerUp(event: PointerEvent) {
+      const start = pointerStartRef.current;
+      pointerStartRef.current = null;
+      if (!start || start.ignored || isIgnoredPointerTarget(event.target)) return;
+      const movement = Math.hypot(event.clientX - start.x, event.clientY - start.y);
+      if (movement > 6) return;
+      addPointFromClientPosition(event.clientX, event.clientY);
+    }
+
+    container.addEventListener("pointerdown", handlePointerDown);
+    container.addEventListener("pointerup", handlePointerUp);
     mapRef.current = map;
     return () => {
+      container.removeEventListener("pointerdown", handlePointerDown);
+      container.removeEventListener("pointerup", handlePointerUp);
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
       map.remove();
@@ -190,8 +222,9 @@ function CoveragePolygonEditor({
     markersRef.current = normalizedPoints.map((point, index) => {
       const element = document.createElement("button");
       element.type = "button";
+      element.dataset.coverageMarker = "true";
       element.className =
-        "flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-emerald-600 text-[11px] font-bold text-white shadow-lg";
+        "flex h-7 w-7 cursor-grab items-center justify-center rounded-full border-2 border-white bg-emerald-600 text-[11px] font-bold text-white shadow-lg active:cursor-grabbing";
       element.textContent = String(index + 1);
       const marker = new maplibregl.Marker({ element, draggable: !disabled })
         .setLngLat([point.longitude, point.latitude])
@@ -282,7 +315,6 @@ export function StoreCoverageSection({
         description="Click en el mapa para agregar vertices; arrastra un punto para corregirlo."
         points={settings.delivery_area_polygon}
         fallbackCenter={fallbackCenter}
-        disabled={!settings.delivery_enabled}
         onChange={(points) => updateSettings({ delivery_area_polygon: normalizePoints(points) })}
       />
 
@@ -305,7 +337,6 @@ export function StoreCoverageSection({
           description="Define desde donde permites que un cliente genere pedidos para retirar."
           points={settings.pickup_area_polygon}
           fallbackCenter={fallbackCenter}
-          disabled={!settings.pickup_enabled}
           onChange={(points) => updateSettings({ pickup_area_polygon: normalizePoints(points) })}
         />
       ) : null}
