@@ -4,6 +4,7 @@ import { RequireRoles, GuestOnlyRoute, PasswordChangeRoute } from "./guards";
 import { LegacyCustomerOrderRedirectRoute, LegacyCustomerOrdersRedirectRoute } from "./legacyCustomerRoutes";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
 import {
+  LazyAdminAppearanceRoute,
   LazyAdminDashboardRoute,
   LazyAdminLiquidationsRoute,
   LazyAdminMercadoPagoRoute,
@@ -149,7 +150,9 @@ export const router = createBrowserRouter([
               { path: "comercios", element: <LazyAdminStoresRoute /> },
               { path: "pedidos", element: <LazyAdminOrdersRoute /> },
               { path: "mercadopago", element: <LazyAdminMercadoPagoRoute /> },
-              { path: "configuracion", element: <LazyAdminSettingsRoute /> }
+              { path: "apariencia", element: <LazyAdminAppearanceRoute /> },
+              { path: "rubros", element: <LazyAdminSettingsRoute /> },
+              { path: "configuracion", element: <Navigate to="rubros" replace /> }
             ]
           }
         ]

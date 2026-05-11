@@ -1,32 +1,15 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { BrandWordmark, CatalogBanner, EmptyState, ImageAssetField, LoadingCard, PageHeader } from "../../../shared/components";
-import { CATALOG_BANNER_RECOMMENDATION, formatCatalogBannerRatio, resolveCatalogBannerDimensions } from "../../../shared/config/catalogBanner";
+import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import { useCategoryStore } from "../../../shared/stores";
 import {
   createAdminCategory,
-  createAdminSettlementPayment,
   deleteAdminCategory,
   fetchAdminCategories,
-  fetchAdminSettlementNotices,
-  fetchAdminSettlementPayments,
-  fetchAdminSettlementStores,
-  fetchPlatformSettings,
-  reviewAdminSettlementNotice,
-  updateAdminCategory,
-  updatePlatformSettings
+  updateAdminCategory
 } from "../../../shared/services/api";
-import type {
-  AdminSettlementStore,
-  Category,
-  CategoryWrite,
-  PlatformSettings,
-  SettlementNotice,
-  SettlementPayment
-} from "../../../shared/types";
+import type { Category, CategoryWrite } from "../../../shared/types";
 import { hexToRgba, isHexColor, normalizeHexColor, resolveCategoryPalette } from "../../../shared/utils/categoryTheme";
-import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
-import { statusLabels } from "../../../shared/utils/labels";
 import { Button } from "../../../shared/ui/Button";
 
 type CategoryFormState = {
@@ -90,66 +73,28 @@ export function SettingsPage() {
   const { token } = useAuthSession();
   const syncPublicCategories = useCategoryStore((state) => state.setCategories);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
-  const [settlementStores, setSettlementStores] = useState<AdminSettlementStore[]>([]);
-  const [settlementNotices, setSettlementNotices] = useState<SettlementNotice[]>([]);
-  const [settlementPayments, setSettlementPayments] = useState<SettlementPayment[]>([]);
   const [categoryForm, setCategoryForm] = useState<CategoryFormState>(emptyCategoryForm);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
-  const [serviceFee, setServiceFee] = useState("0");
-  const [catalogBannerImageUrl, setCatalogBannerImageUrl] = useState("");
-  const [catalogBannerWidth, setCatalogBannerWidth] = useState(String(CATALOG_BANNER_RECOMMENDATION.width));
-  const [catalogBannerHeight, setCatalogBannerHeight] = useState(String(CATALOG_BANNER_RECOMMENDATION.height));
-  const [paymentForm, setPaymentForm] = useState({ store_id: "", amount: "", reference: "", notes: "" });
-  const [noticeNotes, setNoticeNotes] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [categorySaving, setCategorySaving] = useState(false);
-  const [serviceSaving, setServiceSaving] = useState(false);
-  const [bannerSaving, setBannerSaving] = useState(false);
-  const [paymentSaving, setPaymentSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState<string | null>(null);
-  const [serviceError, setServiceError] = useState<string | null>(null);
-  const [bannerError, setBannerError] = useState<string | null>(null);
-  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const categoryPreview = useMemo(
     () => resolveCategoryPalette({ color: categoryForm.color, color_light: categoryForm.color_light || null }),
     [categoryForm.color, categoryForm.color_light]
   );
-  const previewBannerDimensions = useMemo(
-    () => resolveCatalogBannerDimensions(Number(catalogBannerWidth), Number(catalogBannerHeight)),
-    [catalogBannerHeight, catalogBannerWidth]
-  );
-  const previewBannerRatio = useMemo(
-    () => formatCatalogBannerRatio(previewBannerDimensions.width, previewBannerDimensions.height),
-    [previewBannerDimensions.height, previewBannerDimensions.width]
-  );
+
   async function load() {
     if (!token) return;
     setLoading(true);
     try {
-      const [noticeResult, paymentResult, categoriesResult, platformResult, storesWithBalanceResult] = await Promise.all([
-        fetchAdminSettlementNotices(token),
-        fetchAdminSettlementPayments(token),
-        fetchAdminCategories(token),
-        fetchPlatformSettings(token),
-        fetchAdminSettlementStores(token)
-      ]);
+      const categoriesResult = await fetchAdminCategories(token);
       setCategories(categoriesResult);
       syncPublicCategories(categoriesResult.filter((category) => category.is_active));
-      setPlatformSettings(platformResult);
-      setServiceFee(platformResult.service_fee_amount.toFixed(2));
-      setCatalogBannerImageUrl(platformResult.catalog_banner_image_url ?? "");
-      setCatalogBannerWidth(String(platformResult.catalog_banner_width ?? CATALOG_BANNER_RECOMMENDATION.width));
-      setCatalogBannerHeight(String(platformResult.catalog_banner_height ?? CATALOG_BANNER_RECOMMENDATION.height));
-      setSettlementStores(storesWithBalanceResult);
-      setSettlementNotices(noticeResult);
-      setSettlementPayments(paymentResult);
-      setPaymentForm((current) => ({ ...current, store_id: current.store_id || String(storesWithBalanceResult[0]?.id ?? "") }));
       setError(null);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No se pudo cargar la configuracion");
+      setError(requestError instanceof Error ? requestError.message : "No se pudo cargar rubros");
     } finally {
       setLoading(false);
     }
@@ -238,109 +183,26 @@ export function SettingsPage() {
     }
   }
 
-  async function handleServiceFeeSave(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!token) return;
-    setServiceSaving(true);
-    setServiceError(null);
-    try {
-      await updatePlatformSettings(token, { service_fee_amount: Number(serviceFee) || 0 });
-      await load();
-    } catch (requestError) {
-      setServiceError(requestError instanceof Error ? requestError.message : "No se pudo guardar la tarifa");
-    } finally {
-      setServiceSaving(false);
-    }
-  }
-
-  async function handleCatalogBannerSave(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!token || !platformSettings) return;
-    const nextWidth = Number(catalogBannerWidth);
-    const nextHeight = Number(catalogBannerHeight);
-    if (!Number.isInteger(nextWidth) || nextWidth <= 0) {
-      setBannerError("El ancho del banner debe ser un numero entero positivo.");
-      return;
-    }
-    if (!Number.isInteger(nextHeight) || nextHeight <= 0) {
-      setBannerError("El alto del banner debe ser un numero entero positivo.");
-      return;
-    }
-    setBannerSaving(true);
-    setBannerError(null);
-    try {
-      await updatePlatformSettings(token, {
-        service_fee_amount: platformSettings.service_fee_amount,
-        catalog_banner_image_url: catalogBannerImageUrl.trim() || null,
-        catalog_banner_width: nextWidth,
-        catalog_banner_height: nextHeight,
-      });
-      await load();
-    } catch (requestError) {
-      setBannerError(requestError instanceof Error ? requestError.message : "No se pudo guardar el banner");
-    } finally {
-      setBannerSaving(false);
-    }
-  }
-
-  async function handlePaymentSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!token) return;
-    setPaymentSaving(true);
-    setPaymentError(null);
-    try {
-      await createAdminSettlementPayment(token, {
-        store_id: Number(paymentForm.store_id),
-        amount: Number(paymentForm.amount),
-        reference: paymentForm.reference || null,
-        notes: paymentForm.notes || null
-      });
-      setPaymentForm((current) => ({ ...current, amount: "", reference: "", notes: "" }));
-      await load();
-    } catch (requestError) {
-      setPaymentError(requestError instanceof Error ? requestError.message : "No se pudo registrar el pago");
-    } finally {
-      setPaymentSaving(false);
-    }
-  }
-
-  async function handleNoticeReview(noticeId: number, status: "approved" | "rejected") {
-    if (!token) return;
-    setPaymentSaving(true);
-    setPaymentError(null);
-    try {
-      await reviewAdminSettlementNotice(token, noticeId, {
-        status,
-        review_notes: noticeNotes[noticeId] ?? null
-      });
-      await load();
-    } catch (requestError) {
-      setPaymentError(requestError instanceof Error ? requestError.message : "No se pudo revisar el aviso");
-    } finally {
-      setPaymentSaving(false);
-    }
-  }
-
   if (loading) return <LoadingCard />;
-  if (error || !platformSettings) {
-    return <EmptyState title="Configuracion no disponible" description={error ?? "Sin datos"} />;
+  if (error) {
+    return <EmptyState title="Rubros no disponibles" description={error} />;
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Admin"
-        title="Configuracion"
-        description="Administra rubros, el fee global cobrado al comprador y la revision de liquidaciones de cuenta corriente."
+        title="Rubros"
+        description="Administra categorias comerciales: nombre, color, icono, orden y estado visible en catalogo, filtros y comercios."
       />
 
       <section className="rounded bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Configuracion</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Rubros</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Catalogo</p>
+            <h2 className="mt-2 text-xl font-bold text-ink">Rubros comerciales</h2>
             <p className="mt-2 max-w-2xl text-sm leading-7 text-zinc-600">
-              Define nombre, color, icono, orden y estado. Estos cambios impactan en home, filtros y badges de comercios sin tocar codigo.
+              Estos cambios impactan en home, filtros y badges de comercios sin tocar codigo.
             </p>
           </div>
           <span className="rounded bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-600">
@@ -422,9 +284,7 @@ export function SettingsPage() {
                 Color claro opcional
                 <input
                   value={categoryForm.color_light}
-                  onChange={(event) =>
-                    setCategoryForm((current) => ({ ...current, color_light: event.target.value.toUpperCase() }))
-                  }
+                  onChange={(event) => setCategoryForm((current) => ({ ...current, color_light: event.target.value.toUpperCase() }))}
                   placeholder="#FBE9E7"
                   className="rounded border border-black/10 bg-white px-4 py-3"
                 />
@@ -434,7 +294,7 @@ export function SettingsPage() {
                 <input
                   value={categoryForm.icon}
                   onChange={(event) => setCategoryForm((current) => ({ ...current, icon: event.target.value }))}
-                  placeholder="FX o emoji"
+                  placeholder="FX"
                   className="rounded border border-black/10 bg-white px-4 py-3"
                 />
               </label>
@@ -480,7 +340,7 @@ export function SettingsPage() {
                     {categoryForm.name.trim() || "Nuevo rubro"}
                   </p>
                   <p className="text-sm text-zinc-600">
-                    {categoryForm.description.trim() || "Se verá en badges, filtros y secciones destacadas."}
+                    {categoryForm.description.trim() || "Se vera en badges, filtros y secciones destacadas."}
                   </p>
                 </div>
               </div>
@@ -582,151 +442,11 @@ export function SettingsPage() {
             {!categories.length ? (
               <EmptyState
                 title="Sin rubros configurados"
-                description="Crea tu primer rubro para activar identidad visual dinámica en home, filtros y badges."
+                description="Crea tu primer rubro para activar identidad visual dinamica en home, filtros y badges."
               />
             ) : null}
           </div>
         </div>
-      </section>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="app-panel p-5">
-          <h3 className="text-lg font-bold text-ink">Identidad visual</h3>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
-            La marca publica del producto queda fija como KePedimos para mantener consistencia entre landing,
-            catalogo, paneles y PWA.
-          </p>
-          <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_0.9fr]">
-            <div className="space-y-3 text-sm text-zinc-600">
-              <div className="border border-[var(--color-border-default)] bg-white px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Marca visible</p>
-                <p className="mt-2 text-lg font-bold text-ink">KePedimos</p>
-              </div>
-              <div className="border border-[var(--color-border-default)] bg-white px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Assets</p>
-                <p className="mt-2 leading-6">Wordmark, logo de navegacion y favicon usan los archivos versionados del frontend.</p>
-              </div>
-              <div className="border border-[var(--color-border-default)] bg-brand-50 px-4 py-3 text-brand-900">
-                Los campos de carga de identidad quedan deshabilitados por decision de producto.
-              </div>
-            </div>
-            <div className="border border-[var(--color-border-default)] bg-zinc-50 p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Preview</p>
-              <div className="mt-4 border border-[var(--color-border-default)] bg-white px-4 py-3">
-                <div className="flex items-center justify-between gap-4">
-                  <BrandWordmark size="title" />
-                  <span className="border border-[var(--color-border-default)] bg-white px-3 py-2 text-xs font-semibold text-zinc-700">
-                    Ingresar
-                  </span>
-                </div>
-              </div>
-              <div className="kp-install-banner mt-4 px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--kp-accent)]">Acceso</p>
-                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 font-display text-2xl font-bold leading-tight text-ink">
-                  <span>Ingresar a</span>
-                  <BrandWordmark size="hero" className="min-w-0" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <form onSubmit={(event) => void handleServiceFeeSave(event)} className="rounded bg-white p-5 shadow-sm">
-          <h3 className="text-lg font-bold text-ink">Tarifa global de servicio</h3>
-          <p className="mt-2 text-sm text-zinc-600">Valor actual: {formatCurrency(platformSettings.service_fee_amount)}</p>
-          <div className="mt-4 grid gap-3">
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={serviceFee}
-              onChange={(event) => setServiceFee(event.target.value)}
-              className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
-            />
-            {serviceError ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{serviceError}</p> : null}
-            <Button type="submit" disabled={serviceSaving}>
-              {serviceSaving ? "Guardando..." : "Guardar tarifa"}
-            </Button>
-          </div>
-        </form>
-
-        <form onSubmit={(event) => void handleCatalogBannerSave(event)} className="rounded bg-white p-5 shadow-sm">
-          <h3 className="text-lg font-bold text-ink">Banner del catalogo cliente</h3>
-          <p className="mt-2 text-sm text-zinc-600">
-            Reemplaza por completo el texto de la cabecera en <code>/c</code>. Puedes definir imagen, tamano base y relacion visual
-            desde esta pantalla.
-          </p>
-          <div className="mt-4 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-4">
-              <ImageAssetField
-                label="Imagen del banner"
-                value={catalogBannerImageUrl}
-                onChange={setCatalogBannerImageUrl}
-                folder="platform-banners"
-                placeholder="https://..."
-                description="Carga un archivo desde tu dispositivo o pega una URL. Si dejas el campo vacio, el catalogo usa el banner por defecto de la app."
-                previewClassName="h-full w-full object-cover"
-                previewWrapperStyle={{ aspectRatio: `${previewBannerDimensions.width} / ${previewBannerDimensions.height}` }}
-                emptyLabel="Sin banner configurado"
-              />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Ancho base</span>
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={catalogBannerWidth}
-                    onChange={(event) => setCatalogBannerWidth(event.target.value)}
-                    className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
-                  />
-                </label>
-                <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Alto base</span>
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={catalogBannerHeight}
-                    onChange={(event) => setCatalogBannerHeight(event.target.value)}
-                    className="w-full rounded border border-black/10 bg-zinc-50 px-4 py-3"
-                  />
-                </label>
-              </div>
-              <p className="text-sm text-zinc-500">
-                Recomendado: {CATALOG_BANNER_RECOMMENDATION.width} x {CATALOG_BANNER_RECOMMENDATION.height} px. Relacion actual:{" "}
-                {previewBannerRatio}.
-              </p>
-            </div>
-            <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Preview</p>
-              <CatalogBanner imageUrl={catalogBannerImageUrl} width={previewBannerDimensions.width} height={previewBannerDimensions.height} />
-            </div>
-          </div>
-          {bannerError ? <p className="mt-4 rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{bannerError}</p> : null}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button type="submit" disabled={bannerSaving}>
-              {bannerSaving ? "Guardando..." : "Guardar banner"}
-            </Button>
-            <button
-              type="button"
-              onClick={() => setCatalogBannerImageUrl("")}
-              className="rounded bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700"
-            >
-              Quitar banner
-            </button>
-          </div>
-        </form>
-
-      </div>
-
-      <section className="rounded border border-[#d9e6ff] bg-[#f6f9ff] p-5 text-sm text-[#38558a] shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#6a88bf]">Liquidaciones</p>
-        <h3 className="mt-2 text-lg font-bold text-ink">La operatoria se movio a su menu propio</h3>
-        <p className="mt-2 leading-7">
-          Revisiones de avisos, pagos manuales, auditoria y confirmaciones ahora viven en <strong>Liquidaciones</strong>
-          para que Configuracion quede enfocada en rubros, branding y fee global.
-        </p>
       </section>
     </div>
   );

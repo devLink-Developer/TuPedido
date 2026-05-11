@@ -101,6 +101,10 @@ export const LazyRiderEarningsRoute = createLazyRoute(() => import("../../module
 
 export const LazyAdminModuleLayoutRoute = createLazyRoute(() => import("../../modules/admin/routes"), "AdminModuleLayoutRoute");
 export const LazyAdminDashboardRoute = createLazyRoute(() => import("../../modules/admin/routes"), "AdminDashboardRoute");
+export const LazyAdminAppearanceRoute = createLazyRoute(
+  () => import("../../modules/admin/routes"),
+  "AdminAppearanceRoute"
+);
 export const LazyAdminLiquidationsRoute = createLazyRoute(
   () => import("../../modules/admin/routes"),
   "AdminLiquidationsRoute"

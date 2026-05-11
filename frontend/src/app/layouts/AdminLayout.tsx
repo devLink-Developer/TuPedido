@@ -11,7 +11,8 @@ const navItems = [
   { to: "/a/comercios", label: "Comercios" },
   { to: "/a/pedidos", label: "Pedidos" },
   { to: "/a/mercadopago", label: "Mercado Pago" },
-  { to: "/a/configuracion", label: "Configuracion" }
+  { to: "/a/apariencia", label: "Apariencia" },
+  { to: "/a/rubros", label: "Rubros" }
 ];
 
 export function AdminLayout({ children }: PropsWithChildren) {
