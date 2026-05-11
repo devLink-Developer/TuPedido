@@ -1,4 +1,5 @@
 import { KE_BRAND_NAME } from "../../config/brand";
+import { resolveApiMediaUrl } from "../../services/api/client";
 
 type BrandWordmarkProps = {
   brandName?: string;
@@ -27,25 +28,42 @@ const spriteStyles: Record<NonNullable<BrandWordmarkProps["size"]>, { background
 
 export function BrandWordmark({
   brandName = KE_BRAND_NAME,
+  wordmarkUrl,
   size = "inline",
+  fit = "contain",
   className = "",
   frameClassName = "",
   imageClassName = "",
 }: BrandWordmarkProps) {
+  const resolvedWordmarkUrl = wordmarkUrl?.trim() ? resolveApiMediaUrl(wordmarkUrl) : null;
+
   return (
     <span className={["inline-flex items-center", className].filter(Boolean).join(" ")}>
-      <span
-        aria-hidden="true"
-        className={[
-          "ke-brand-sprite shrink-0",
-          sizeFrames[size],
-          frameClassName,
-          imageClassName,
-        ]
-          .filter(Boolean)
-          .join(" ")}
-        style={spriteStyles[size]}
-      />
+      {resolvedWordmarkUrl ? (
+        <span
+          aria-hidden="true"
+          className={["shrink-0 overflow-hidden", sizeFrames[size], frameClassName].filter(Boolean).join(" ")}
+        >
+          <img
+            src={resolvedWordmarkUrl}
+            alt=""
+            className={["h-full w-full", fit === "cover" ? "object-cover" : "object-contain", imageClassName].filter(Boolean).join(" ")}
+          />
+        </span>
+      ) : (
+        <span
+          aria-hidden="true"
+          className={[
+            "ke-brand-sprite shrink-0",
+            sizeFrames[size],
+            frameClassName,
+            imageClassName,
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          style={spriteStyles[size]}
+        />
+      )}
       <span className="sr-only">{brandName}</span>
     </span>
   );
