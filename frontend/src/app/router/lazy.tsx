@@ -72,6 +72,10 @@ export const LazyComercioLiquidationsRoute = createLazyRoute(
   () => import("../../modules/comercio/routes"),
   "ComercioLiquidationsRoute"
 );
+export const LazyComercioMercadoPagoRoute = createLazyRoute(
+  () => import("../../modules/comercio/routes"),
+  "ComercioMercadoPagoRoute"
+);
 export const LazyComercioProductsRoute = createLazyRoute(
   () => import("../../modules/comercio/routes"),
   "ComercioProductsRoute"

@@ -44,6 +44,14 @@ type RiderPaymentDraft = {
   notes: string;
 };
 
+type LiquidationSection = "platform" | "riders" | "history";
+
+const liquidationSections: Array<{ id: LiquidationSection; label: string; description: string }> = [
+  { id: "platform", label: "Plataforma", description: "Cargos y transferencias a la plataforma" },
+  { id: "riders", label: "Repartidores", description: "Pagos pendientes a repartidores" },
+  { id: "history", label: "Historial", description: "Movimientos auditables y revisiones" }
+];
+
 function todayInputValue() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -104,6 +112,7 @@ export function LiquidationsPage() {
   const [savingNotice, setSavingNotice] = useState(false);
   const [uploadingProof, setUploadingProof] = useState(false);
   const [busyPaymentId, setBusyPaymentId] = useState<number | null>(null);
+  const [activeSection, setActiveSection] = useState<LiquidationSection>("platform");
   const [error, setError] = useState<string | null>(null);
   const [noticeError, setNoticeError] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
@@ -294,8 +303,33 @@ export function LiquidationsPage() {
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-        <section className="space-y-4">
+      <div className="rounded bg-white p-2 shadow-sm">
+        <div className="grid gap-2 md:grid-cols-3" role="tablist" aria-label="Secciones de liquidaciones">
+          {liquidationSections.map((section) => {
+            const selected = activeSection === section.id;
+            return (
+              <button
+                key={section.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setActiveSection(section.id)}
+                className={`rounded px-4 py-3 text-left text-sm transition ${
+                  selected ? "bg-ink text-white shadow-sm" : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
+                }`}
+              >
+                <span className="block font-semibold">{section.label}</span>
+                <span className={`mt-1 block text-xs ${selected ? "text-white/70" : "text-zinc-500"}`}>
+                  {section.description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className={activeSection === "history" ? "hidden" : "grid gap-4"}>
+        <section className={activeSection === "platform" ? "space-y-4" : "hidden"}>
           <article className="rounded bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -449,7 +483,7 @@ export function LiquidationsPage() {
           </article>
         </section>
 
-        <section className="space-y-4">
+        <section className={activeSection === "riders" ? "space-y-4" : "hidden"}>
           <article className="rounded bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -590,7 +624,7 @@ export function LiquidationsPage() {
         </section>
       </div>
 
-      <section className="rounded bg-white p-5 shadow-sm">
+      <section className={activeSection === "history" ? "rounded bg-white p-5 shadow-sm" : "hidden"}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pagos y revisiones</p>

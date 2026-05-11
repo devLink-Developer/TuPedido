@@ -3,6 +3,7 @@ import { MerchantDashboardLayout } from "../../app/layouts/MerchantDashboardLayo
 import { MerchantMobileHeaderProvider } from "./MerchantMobileHeaderContext";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LiquidationsPage } from "./pages/LiquidationsPage";
+import { MercadoPagoPage } from "./pages/MercadoPagoPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { ProductsPage } from "./pages/ProductsPage";
 import { PromotionsPage } from "./pages/PromotionsPage";
@@ -29,6 +30,10 @@ export function ComercioProductsRoute() {
 
 export function ComercioLiquidationsRoute() {
   return <LiquidationsPage />;
+}
+
+export function ComercioMercadoPagoRoute() {
+  return <MercadoPagoPage />;
 }
 
 export function ComercioOrdersRoute() {

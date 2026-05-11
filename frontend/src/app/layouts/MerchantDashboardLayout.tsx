@@ -38,7 +38,7 @@ const navSections: MerchantNavSection[] = [
     items: [
       { to: "/m/dashboard", label: "Resumen", icon: BarChart3 },
       { to: "/m/liquidaciones", label: "Liquidaciones", icon: WalletCards },
-      { to: "/m/configuracion?tab=payments", label: "Mercado Pago", icon: CreditCard }
+      { to: "/m/mercadopago", label: "Mercado Pago", icon: CreditCard }
     ]
   },
   {

@@ -53,7 +53,7 @@ def _oauth_cookie_path() -> str:
 
 
 def _merchant_redirect_url(status_value: str, detail: str | None = None) -> str:
-    base = f"{settings.frontend_base_url.rstrip('/')}/m/configuracion"
+    base = f"{settings.frontend_base_url.rstrip('/')}/m/mercadopago"
     query = {"mercadopago_oauth": status_value}
     if detail:
         query["detail"] = detail
@@ -82,7 +82,7 @@ def _api_base_url_from_request(request: Request) -> str:
 
 
 def _merchant_redirect_url_for_origin(origin: str | None, status_value: str, detail: str | None = None) -> str:
-    base = f"{normalize_frontend_origin(origin)}/m/configuracion"
+    base = f"{normalize_frontend_origin(origin)}/m/mercadopago"
     query = {"mercadopago_oauth": status_value}
     if detail:
         query["detail"] = detail
