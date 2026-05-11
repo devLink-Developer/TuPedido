@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 import type { LucideIcon } from "lucide-react";
-import { BadgePercent, BarChart3, Bike, ClipboardList, Menu, Package, Settings, WalletCards, X } from "lucide-react";
+import { BadgePercent, BarChart3, Bike, ClipboardList, CreditCard, Menu, Package, Settings, WalletCards, X } from "lucide-react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useMerchantMobileHeader } from "../../modules/comercio/MerchantMobileHeaderContext";
 import { BrandMark } from "../../shared/components";
@@ -37,7 +37,8 @@ const navSections: MerchantNavSection[] = [
     label: "Finanzas",
     items: [
       { to: "/m/dashboard", label: "Resumen", icon: BarChart3 },
-      { to: "/m/liquidaciones", label: "Liquidaciones", icon: WalletCards }
+      { to: "/m/liquidaciones", label: "Liquidaciones", icon: WalletCards },
+      { to: "/m/configuracion?tab=payments", label: "Mercado Pago", icon: CreditCard }
     ]
   },
   {

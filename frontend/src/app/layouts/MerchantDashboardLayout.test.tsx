@@ -15,7 +15,7 @@ const configuracionLabel = /Configuraci[oó]n/;
 const expectedMerchantMenuGroups = [
   { group: /Operaci[oó]n/, links: ["Pedidos", "Repartidores"] },
   { group: "Comercial", links: ["Catálogo", "Promociones"] },
-  { group: "Finanzas", links: ["Resumen", "Liquidaciones"] },
+  { group: "Finanzas", links: ["Resumen", "Liquidaciones", "Mercado Pago"] },
   { group: "Ajustes", links: [configuracionLabel] }
 ];
 

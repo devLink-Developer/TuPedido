@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   createMerchantProduct,
   createMerchantSettlementNotice,
@@ -78,6 +78,7 @@ function todayInputValue() {
 
 export function MerchantDashboardPage() {
   const { token } = useSession();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [store, setStore] = useState<MerchantStore | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -194,6 +195,13 @@ export function MerchantDashboardPage() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    const requestedTab = searchParams.get("tab");
+    if (requestedTab === "overview" || requestedTab === "store" || requestedTab === "orders" || requestedTab === "products" || requestedTab === "payments") {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     void load();
