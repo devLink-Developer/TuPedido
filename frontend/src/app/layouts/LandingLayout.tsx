@@ -20,6 +20,9 @@ export function LandingLayout({ children }: PropsWithChildren) {
             <Link className="kp-button kp-button-outline" to="/login">
               Ingresar
             </Link>
+            <Link className="kp-button kp-button-accent-outline" to="/registro-comercio">
+              Registrar comercio
+            </Link>
             <Link className="kp-button kp-button-primary" to="/registro">
               Crear cuenta
             </Link>

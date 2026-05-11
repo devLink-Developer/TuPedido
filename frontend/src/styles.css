@@ -733,6 +733,13 @@ textarea.rounded {
   border-color: rgba(255, 106, 26, 0.24);
 }
 
+.kp-button-on-dark {
+  color: #151515;
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(255, 255, 255, 0.68);
+  box-shadow: none;
+}
+
 .kp-landing {
   position: relative;
   background: #fff;
@@ -1483,6 +1490,85 @@ textarea.rounded {
   color: var(--kp-ink-soft);
 }
 
+.kp-merchant-cta {
+  margin-top: 76px;
+  padding: 76px 0;
+  background: #171717;
+  color: #fff;
+}
+
+.kp-merchant-band {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+  align-items: center;
+  gap: 56px;
+}
+
+.kp-merchant-copy h2 {
+  max-width: 760px;
+  margin: 14px 0 0;
+  color: #fff;
+  font-size: clamp(2.45rem, 4vw, 3.65rem);
+  line-height: 1.04;
+  letter-spacing: -0.055em;
+}
+
+.kp-merchant-copy p {
+  max-width: 680px;
+  margin: 22px 0 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 1.08rem;
+  line-height: 1.78;
+}
+
+.kp-merchant-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 30px;
+}
+
+.kp-merchant-steps {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.kp-merchant-steps li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  padding: 22px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.kp-merchant-steps span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+  color: #ff9a5b;
+  font-weight: 800;
+}
+
+.kp-merchant-steps strong {
+  display: block;
+  color: #fff;
+  font-size: 1.04rem;
+}
+
+.kp-merchant-steps p {
+  margin: 7px 0 0;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
 .kp-final-cta {
   padding-bottom: 72px;
 }
@@ -1555,7 +1641,8 @@ textarea.rounded {
 @media (max-width: 1080px) {
   .kp-value-strip,
   .kp-today-card,
-  .kp-final-card {
+  .kp-final-card,
+  .kp-merchant-band {
     grid-template-columns: 1fr;
   }
 
@@ -1675,12 +1762,26 @@ textarea.rounded {
     width: min(100% - 24px, var(--kp-content-max));
   }
 
-  .kp-header-actions,
+  .kp-header-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .kp-header-actions .kp-button {
+    min-width: 0;
+    min-height: 42px;
+    padding: 0 10px;
+    white-space: normal;
+    font-size: 0.78rem;
+    line-height: 1.15;
+  }
+
   .kp-final-actions {
     width: 100%;
   }
 
-  .kp-header-actions .kp-button,
   .kp-final-actions .kp-button {
     flex: 1 1 100%;
   }

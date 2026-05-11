@@ -13,7 +13,7 @@ const titles: Record<string, string> = {
   "/register": "Registro",
   "/addresses": "Direcciones",
   "/orders": "Pedidos",
-  "/merchant-apply": "Postulacion",
+  "/registro-comercio": "Postulacion",
   "/delivery-apply": "Registro rider",
   "/merchant": "Comercio",
   "/admin": "Administracion",
@@ -30,14 +30,14 @@ export function MobileShell() {
     ? [
         { to: "/", label: "Comprar" },
         { to: "/register", label: "Cuenta" },
-        { to: "/merchant-apply", label: "Vender" },
+        { to: "/registro-comercio", label: "Vender" },
         { to: "/delivery-apply", label: "Repartir" }
       ]
     : user?.role === "customer"
       ? [
           { to: "/", label: "Comprar" },
           { to: "/orders", label: "Pedidos" },
-          { to: "/merchant-apply", label: "Vender" }
+          { to: "/registro-comercio", label: "Vender" }
         ]
       : user?.role === "merchant"
         ? [

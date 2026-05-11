@@ -363,7 +363,7 @@ export function HomePage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
-              to="/merchant-apply"
+              to="/registro-comercio"
               className="rounded border border-black/10 bg-zinc-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-700"
             >
               Vender
@@ -755,7 +755,7 @@ export function HomePage() {
               <span className="text-zinc-400">{">"}</span>
             </Link>
             <Link
-              to="/merchant-apply"
+              to="/registro-comercio"
               className="flex items-center justify-between rounded border border-black/10 bg-zinc-50 px-4 py-4 text-sm font-semibold text-zinc-700"
             >
               <span>Solicitud de vendedor</span>

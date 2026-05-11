@@ -278,6 +278,52 @@ export function LandingPage() {
         </div>
       </section>
 
+      <section className="kp-section kp-merchant-cta" id="registro-comercio">
+        <div className="kp-shell kp-merchant-band">
+          <div className="kp-merchant-copy">
+            <span className="kp-section-kicker kp-section-kicker-accent">PARA COMERCIOS</span>
+            <h2>Solicita el alta de tu comercio</h2>
+            <p>
+              Crea tu acceso, carga los datos del negocio y deja listo el panel para configurar productos,
+              pagos y zonas antes de empezar a recibir pedidos.
+            </p>
+            <div className="kp-merchant-actions">
+              <Link to="/registro-comercio" className="kp-button kp-button-primary">
+                Registrar comercio
+                <ArrowRight aria-hidden="true" />
+              </Link>
+              <Link to="/login" className="kp-button kp-button-on-dark">
+                Ya tengo cuenta
+              </Link>
+            </div>
+          </div>
+
+          <ol className="kp-merchant-steps" aria-label="Proceso de alta de comercio">
+            <li>
+              <span>1</span>
+              <div>
+                <strong>Solicitud</strong>
+                <p>Completa responsable, contacto, direccion, rubros y descripcion comercial.</p>
+              </div>
+            </li>
+            <li>
+              <span>2</span>
+              <div>
+                <strong>Revision</strong>
+                <p>El equipo valida el alta antes de publicar el comercio en el catalogo.</p>
+              </div>
+            </li>
+            <li>
+              <span>3</span>
+              <div>
+                <strong>Panel comercial</strong>
+                <p>Configura productos, medios de pago y zonas de alcance para poder vender.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
       <section className="kp-section kp-final-cta">
         <div className="kp-shell">
           <div className="kp-final-card">
@@ -292,6 +338,9 @@ export function LandingPage() {
               </Link>
               <Link to="/registro" className="kp-button kp-button-primary">
                 Crear cuenta
+              </Link>
+              <Link to="/registro-comercio" className="kp-button kp-button-accent-outline">
+                <Store aria-hidden="true" /> Registrar comercio
               </Link>
             </div>
           </div>

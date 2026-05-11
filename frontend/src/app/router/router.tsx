@@ -69,6 +69,7 @@ export const router = createBrowserRouter([
       },
       { path: "payments/mercadopago/simulated", element: <LazyMercadoPagoSimulatedRoute /> },
       { path: "payments/mercadopago/card", element: <LazyMercadoPagoCardPaymentRoute /> },
+      { path: "merchant-apply", element: <Navigate to="/registro-comercio" replace /> },
       {
         path: "cambiar-contrasena",
         element: (
