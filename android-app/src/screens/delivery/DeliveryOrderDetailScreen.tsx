@@ -99,7 +99,9 @@ export function DeliveryOrderDetailScreen({ route, navigation }: Props) {
               ? await pickupDeliveryOrder(token, order.id)
               : await deliverDeliveryOrder(token, order.id, otp.trim() || null);
         setOrder(nextOrder);
-        if (action === "deliver") await stopDeliveryLocationTracking();
+        if (action === "deliver") {
+          void stopDeliveryLocationTracking().catch(() => undefined);
+        }
       } catch (actionError) {
         const message = friendlyErrorMessage(actionError);
         if (action === "deliver") setOtpFeedback(message);

@@ -1,0 +1,33 @@
+diff --git a/node_modules/expo-speech/android/src/main/java/expo/modules/speech/SpeechModule.kt b/node_modules/expo-speech/android/src/main/java/expo/modules/speech/SpeechModule.kt
+index 33b9587..2259bfd 100644
+--- a/node_modules/expo-speech/android/src/main/java/expo/modules/speech/SpeechModule.kt
++++ b/node_modules/expo-speech/android/src/main/java/expo/modules/speech/SpeechModule.kt
+@@ -123,10 +123,16 @@ class SpeechModule : Module() {
+         ?.let(textToSpeech::setVoice)
+     }
+ 
++    val speechParams = Bundle().apply {
++      options.volume?.let { volume ->
++        putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, volume.coerceIn(0f, 1f))
++      }
++    }
++
+     textToSpeech.speak(
+       text,
+       TextToSpeech.QUEUE_ADD,
+-      null,
++      speechParams,
+       id
+     )
+   }
+diff --git a/node_modules/expo-speech/android/src/main/java/expo/modules/speech/SpeechOptions.kt b/node_modules/expo-speech/android/src/main/java/expo/modules/speech/SpeechOptions.kt
+index b86a623..2d1927c 100644
+--- a/node_modules/expo-speech/android/src/main/java/expo/modules/speech/SpeechOptions.kt
++++ b/node_modules/expo-speech/android/src/main/java/expo/modules/speech/SpeechOptions.kt
+@@ -7,5 +7,6 @@ data class SpeechOptions(
+   @Field val language: String?,
+   @Field val pitch: Float?,
+   @Field val rate: Float?,
++  @Field val volume: Float?,
+   @Field val voice: String?
+ ) : Record

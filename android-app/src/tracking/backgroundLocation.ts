@@ -65,6 +65,7 @@ export async function requestDeliveryLocationPermissions(): Promise<{ granted: b
 }
 
 export async function startDeliveryLocationTracking(orderId: number): Promise<void> {
+  registerDeliveryLocationTask();
   await AsyncStorage.setItem(ACTIVE_ORDER_ID_KEY, String(orderId));
   const alreadyStarted = await Location.hasStartedLocationUpdatesAsync(DELIVERY_LOCATION_TASK);
   if (alreadyStarted) return;
@@ -82,6 +83,11 @@ export async function startDeliveryLocationTracking(orderId: number): Promise<vo
   });
 }
 
+function isMissingLocationTaskError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error || "");
+  return /TaskNotFoundException|Task .*not found|task .*not found/i.test(message);
+}
+
 export async function pushCurrentDeliveryLocation(authToken: string, orderId: number): Promise<void> {
   const current = await Location.getCurrentPositionAsync({
     accuracy: Location.Accuracy.High
@@ -97,10 +103,25 @@ export async function pushCurrentDeliveryLocation(authToken: string, orderId: nu
 }
 
 export async function stopDeliveryLocationTracking(): Promise<void> {
-  await AsyncStorage.removeItem(ACTIVE_ORDER_ID_KEY);
-  const alreadyStarted = await Location.hasStartedLocationUpdatesAsync(DELIVERY_LOCATION_TASK);
-  if (alreadyStarted) {
-    await Location.stopLocationUpdatesAsync(DELIVERY_LOCATION_TASK);
+  try {
+    const registered = await TaskManager.isTaskRegisteredAsync(DELIVERY_LOCATION_TASK).catch((error) => {
+      if (isMissingLocationTaskError(error)) return false;
+      throw error;
+    });
+    if (!registered) return;
+
+    const alreadyStarted = await Location.hasStartedLocationUpdatesAsync(DELIVERY_LOCATION_TASK).catch((error) => {
+      if (isMissingLocationTaskError(error)) return false;
+      throw error;
+    });
+    if (!alreadyStarted) return;
+
+    await Location.stopLocationUpdatesAsync(DELIVERY_LOCATION_TASK).catch((error) => {
+      if (isMissingLocationTaskError(error)) return;
+      throw error;
+    });
+  } finally {
+    await AsyncStorage.removeItem(ACTIVE_ORDER_ID_KEY);
   }
 }
 

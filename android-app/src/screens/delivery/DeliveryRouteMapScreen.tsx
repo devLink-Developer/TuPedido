@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { IconButton } from "../../components/IconButton";
@@ -10,16 +10,18 @@ import { useAsyncLoad } from "../../hooks/useAsyncLoad";
 import { useAutoDeliveryLocationTracking } from "../../hooks/useAutoDeliveryLocationTracking";
 import { useDeliveryRoute } from "../../hooks/useDeliveryRoute";
 import { useOrderRealtime } from "../../hooks/useOrderRealtime";
+import { useVoiceDirections } from "../../hooks/useVoiceDirections";
 import { fetchDeliveryOrders } from "../../services/api";
 import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useAuth } from "../../state/AuthContext";
-import { colors, radii, shadow, spacing } from "../../theme";
+import { colors, opacity, radii, shadow, spacing, touchTarget } from "../../theme";
 import type { Order, OrderTracking } from "../../types/api";
 import type { RootStackParamList } from "../../navigation/types";
 import { formatDistance, formatMinutes } from "../../utils/format";
 import { labelForStatus } from "../../utils/labels";
 
 type Props = NativeStackScreenProps<RootStackParamList, "DeliveryRouteMap">;
+const VOLUME_SEGMENTS = [0.2, 0.4, 0.6, 0.8, 1];
 
 function trackingStatusLabel(status: "idle" | "starting" | "active" | "blocked" | "error") {
   if (status === "active") return "Ubicacion compartida";
@@ -77,6 +79,7 @@ export function DeliveryRouteMapScreen({ route, navigation }: Props) {
   });
 
   const instructions = directions?.instructions ?? [];
+  const voice = useVoiceDirections({ orderId, routeTitle: title, instructions });
   const mapHeight = Math.max(420, height);
   const routeMeta = useMemo(
     () =>
@@ -85,6 +88,7 @@ export function DeliveryRouteMapScreen({ route, navigation }: Props) {
         : ["Ruta pendiente"],
     [directions]
   );
+  const voicePlaybackDisabled = !instructions.length || !voice.voiceEnabled;
 
   if (loading && !order) {
     return <StateMessage title="Cargando ruta" loading />;
@@ -127,7 +131,7 @@ export function DeliveryRouteMapScreen({ route, navigation }: Props) {
           <IconButton icon="document-text-outline" label="Ver detalle" tone="dark" onPress={() => navigation.navigate("DeliveryOrderDetail", { orderId: order.id })} />
         </View>
 
-        <View style={styles.bottomSheet}>
+        <View style={[styles.bottomSheet, { maxHeight: Math.min(460, Math.max(360, height * 0.56)) }]}>
           <View style={styles.sheetHandle} />
           <View style={styles.statusRow}>
             <View style={styles.statusPill}>
@@ -145,6 +149,114 @@ export function DeliveryRouteMapScreen({ route, navigation }: Props) {
             ))}
           </View>
           {liveError || routeError ? <Text style={styles.warning}>{liveError ?? routeError}</Text> : null}
+          {voice.speechError ? <Text style={styles.warning}>{voice.speechError}</Text> : null}
+
+          <View style={styles.voicePanel}>
+            <View style={styles.voiceHeader}>
+              <View style={styles.voiceTitleRow}>
+                <Ionicons
+                  name={voice.voiceEnabled ? "volume-high-outline" : "volume-mute-outline"}
+                  size={18}
+                  color={voice.voiceEnabled ? colors.primary : colors.mutedText}
+                />
+                <View>
+                  <Text style={styles.voiceTitle}>Voz de ruta</Text>
+                  <Text style={styles.voiceMeta}>{voice.voiceEnabled ? `Volumen ${voice.volumePercent}%` : "Silenciada"}</Text>
+                </View>
+              </View>
+              <View style={styles.voiceActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={voice.voiceEnabled ? "Silenciar indicaciones" : "Activar indicaciones por voz"}
+                  android_ripple={{ color: colors.borderStrong, borderless: false }}
+                  hitSlop={6}
+                  onPress={voice.toggleVoice}
+                  style={({ pressed }) => [styles.voiceAction, pressed && styles.pressed]}
+                >
+                  <Ionicons name={voice.voiceEnabled ? "volume-mute-outline" : "volume-high-outline"} size={20} color={colors.text} />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Repetir proxima indicacion"
+                  accessibilityState={{ disabled: voicePlaybackDisabled }}
+                  android_ripple={!voicePlaybackDisabled ? { color: colors.borderStrong, borderless: false } : undefined}
+                  disabled={voicePlaybackDisabled}
+                  hitSlop={6}
+                  onPress={() => voice.speakCurrentInstruction({ force: true })}
+                  style={({ pressed }) => [styles.voiceAction, pressed && styles.pressed, voicePlaybackDisabled && styles.disabledAction]}
+                >
+                  <Ionicons name="repeat-outline" size={20} color={!voicePlaybackDisabled ? colors.text : colors.mutedText} />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={voice.isSpeaking ? "Detener indicaciones por voz" : "Leer indicaciones visibles"}
+                  accessibilityState={{ disabled: voicePlaybackDisabled }}
+                  android_ripple={!voicePlaybackDisabled ? { color: colors.borderStrong, borderless: false } : undefined}
+                  disabled={voicePlaybackDisabled}
+                  hitSlop={6}
+                  onPress={voice.isSpeaking ? voice.stop : voice.speakRouteOverview}
+                  style={({ pressed }) => [styles.voiceAction, pressed && styles.pressed, voicePlaybackDisabled && styles.disabledAction]}
+                >
+                  <Ionicons name={voice.isSpeaking ? "stop-circle-outline" : "play-circle-outline"} size={21} color={!voicePlaybackDisabled ? colors.text : colors.mutedText} />
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={styles.volumeRow}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Bajar volumen de indicaciones"
+                android_ripple={{ color: colors.borderStrong, borderless: false }}
+                hitSlop={6}
+                onPress={voice.decreaseVolume}
+                style={({ pressed }) => [styles.volumeStepButton, pressed && styles.pressed]}
+              >
+                <Ionicons name="remove" size={19} color={colors.text} />
+              </Pressable>
+              <View
+                accessibilityActions={[{ name: "increment", label: "Subir volumen" }, { name: "decrement", label: "Bajar volumen" }]}
+                accessibilityLabel="Volumen de indicaciones"
+                accessibilityRole="adjustable"
+                accessibilityValue={{ text: `${voice.volumePercent}%` }}
+                onAccessibilityAction={(event) => {
+                  if (event.nativeEvent.actionName === "increment") {
+                    voice.increaseVolume();
+                  } else if (event.nativeEvent.actionName === "decrement") {
+                    voice.decreaseVolume();
+                  }
+                }}
+                style={styles.volumeTrack}
+              >
+                {VOLUME_SEGMENTS.map((value) => {
+                  const active = value <= voice.volume + 0.01;
+                  return (
+                    <Pressable
+                      key={value}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Volumen ${Math.round(value * 100)}%`}
+                      hitSlop={6}
+                      onPress={() => voice.setVolume(value)}
+                      style={({ pressed }) => [
+                        styles.volumeSegment,
+                        active && styles.volumeSegmentActive,
+                        pressed && styles.pressed
+                      ]}
+                    />
+                  );
+                })}
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Subir volumen de indicaciones"
+                android_ripple={{ color: colors.borderStrong, borderless: false }}
+                hitSlop={6}
+                onPress={voice.increaseVolume}
+                style={({ pressed }) => [styles.volumeStepButton, pressed && styles.pressed]}
+              >
+                <Ionicons name="add" size={19} color={colors.text} />
+              </Pressable>
+            </View>
+          </View>
 
           <Text style={styles.sheetTitle}>Indicaciones</Text>
           {instructions.length ? (
@@ -269,6 +381,90 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     lineHeight: 18,
     marginTop: spacing.sm
+  },
+  voicePanel: {
+    borderRadius: radii.lg,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.sm,
+    marginTop: spacing.sm
+  },
+  voiceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm
+  },
+  voiceTitleRow: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm
+  },
+  voiceTitle: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  voiceMeta: {
+    color: colors.mutedText,
+    fontSize: 12,
+    marginTop: 1
+  },
+  voiceActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs
+  },
+  voiceAction: {
+    width: touchTarget.min,
+    height: touchTarget.min,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  disabledAction: {
+    opacity: opacity.disabled
+  },
+  pressed: {
+    opacity: opacity.pressed
+  },
+  volumeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: spacing.sm
+  },
+  volumeStepButton: {
+    width: touchTarget.min,
+    height: touchTarget.min,
+    borderRadius: radii.md,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  volumeTrack: {
+    flex: 1,
+    minHeight: touchTarget.min,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs
+  },
+  volumeSegment: {
+    flex: 1,
+    height: 16,
+    borderRadius: radii.pill,
+    backgroundColor: colors.borderStrong
+  },
+  volumeSegmentActive: {
+    backgroundColor: colors.primary
   },
   sheetTitle: {
     color: colors.text,
