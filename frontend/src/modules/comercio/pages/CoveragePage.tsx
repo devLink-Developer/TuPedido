@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { EmptyState, LoadingCard, PageHeader, StatusPill } from "../../../shared/components";
+import { EmptyState, LoadingCard, StatusPill } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   fetchMerchantStore,
@@ -19,6 +19,7 @@ import {
   type StoreAddressFormState
 } from "../components/StoreAddressSection";
 import { StoreCoverageSection, hasAnyCoverageArea } from "../components/StoreCoverageSection";
+import { MerchantPageBar } from "../components/MerchantPageBar";
 import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync";
 
 function toStoreUpdatePayload(store: MerchantStore, acceptingOrders: boolean): StoreUpdate {
@@ -202,14 +203,20 @@ export function CoveragePage() {
   }
 
   return (
-    <div className="space-y-5">
-      <PageHeader
+    <div className="space-y-3">
+      <MerchantPageBar
         eyebrow="Ajustes"
         title="Direccion y alcance"
         description="Define el punto exacto del local, las modalidades disponibles y las zonas donde el comercio puede vender."
+        stats={[
+          { label: "Estado", value: store.status, tone: store.status === "approved" ? "success" : "warning" },
+          { label: "Direccion", value: deliveryAddressReady ? "Completa" : "Pendiente", tone: deliveryAddressReady ? "success" : "warning" },
+          { label: "Zonas", value: coverageReady ? "Configuradas" : "Sin alcance", tone: coverageReady ? "success" : "warning" },
+          { label: "Venta", value: store.accepting_orders ? "Activa" : "Pausada", tone: store.accepting_orders ? "success" : "neutral" }
+        ]}
       />
 
-      <section className="rounded border border-black/5 bg-white p-4 shadow-sm md:p-5">
+      <section hidden className="hidden">
         <div className="grid gap-3 md:grid-cols-[auto_1fr] md:items-center md:gap-5">
           <StatusPill value={store.status} />
           <div className="grid gap-2 sm:grid-cols-3">
@@ -235,7 +242,7 @@ export function CoveragePage() {
         </div>
       </section>
 
-      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5 rounded bg-white p-5 shadow-sm">
+      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4 rounded bg-white p-4 shadow-sm">
         <section className="space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>

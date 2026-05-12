@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
-import { EmptyState, LoadingCard, PageHeader, StatCard, StatusPill } from "../../../shared/components";
+import { EmptyState, LoadingCard, StatCard, StatusPill } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   fetchMerchantOrders,
@@ -13,6 +13,7 @@ import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
 import { buildNamedPeriodStats, compareOperationalOrders } from "../../../shared/utils/orderAnalytics";
 import { statusLabels } from "../../../shared/utils/labels";
+import { MerchantPageBar } from "../components/MerchantPageBar";
 import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync";
 
 const dashboardMessages: Record<string, { title: string; description: string }> = {
@@ -122,18 +123,22 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-4 md:space-y-5">
-      <PageHeader
+      <MerchantPageBar
         eyebrow="Finanzas"
-        compact
         title={
           <span className="inline-flex items-center gap-3">
             <span>{store.name}</span>
-            <HelpTooltip label="Ayuda sobre resumen" variant="inverse">
+            <HelpTooltip label="Ayuda sobre resumen">
               Mira ventas por período, pedidos abiertos y saldo financiero. Los cobros y pagos se gestionan desde Liquidaciones.
             </HelpTooltip>
           </span>
         }
-        backgroundImageUrl={store.cover_image_url}
+        stats={[
+          { label: "Abiertos", value: orders.filter((order) => !["cancelled", "delivered"].includes(order.status)).length },
+          { label: "Ventas mes", value: formatCurrency(currentMonth?.sales ?? 0), tone: "success" },
+          { label: "Pendiente", value: formatCurrency(outstandingBalance), tone: outstandingBalance > 0 ? "warning" : "neutral" },
+          { label: "Liquidado", value: formatCurrency(overview.paid_balance) }
+        ]}
         action={
           <div className="flex flex-wrap gap-2">
             <Link to="/m/liquidaciones">
@@ -142,7 +147,7 @@ export function DashboardPage() {
               </Button>
             </Link>
             <Link to="/m/pedidos">
-              <Button type="button" className="bg-white/10 text-white shadow-none">
+              <Button type="button" className="shadow-none">
                 Ver pedidos
               </Button>
             </Link>
@@ -177,7 +182,7 @@ export function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="hidden">
         <StatCard
           compact
           label="Pedidos abiertos"

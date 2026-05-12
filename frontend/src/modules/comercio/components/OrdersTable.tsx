@@ -113,9 +113,9 @@ export function OrdersTable({
   }, [groups, riders]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {groups.map((group) => (
-        <section key={group.dateKey} className="space-y-3">
+        <section key={group.dateKey} className="space-y-2">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{group.dateKey}</p>
@@ -137,11 +137,11 @@ export function OrdersTable({
             return (
               <article
                 key={order.id}
-                className="rounded border border-[var(--color-border-default)] bg-white/95 p-4 shadow-[0_18px_36px_-30px_rgba(24,19,18,0.28)]"
+                className="rounded border border-[var(--color-border-default)] bg-white/95 p-3 shadow-[0_18px_36px_-30px_rgba(24,19,18,0.28)]"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-lg font-bold text-ink">Pedido #{order.id}</h3>
+                    <h3 className="text-base font-bold text-ink">Pedido #{order.id}</h3>
                     <p className="mt-1 text-[13px] text-zinc-600">
                       {order.customer_name} | {formatDateTime(order.created_at)}
                     </p>
@@ -155,7 +155,7 @@ export function OrdersTable({
                   </div>
                 </div>
 
-                <div className="mt-3.5 grid gap-2.5 text-[13px] leading-5 text-zinc-600 md:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-2.5 grid gap-2 text-[13px] leading-5 text-zinc-600 md:grid-cols-2 xl:grid-cols-4">
                   <p>Pago: {paymentMethodLabels[order.payment_method]}</p>
                   <p>Estado pago: {statusLabels[order.payment_status] ?? order.payment_status}</p>
                   <p>Total cliente: {formatCurrency(order.pricing.total)}</p>
@@ -167,12 +167,12 @@ export function OrdersTable({
                 </div>
 
                 {paymentBlocked && order.status === "created" ? (
-                  <p className="mt-3.5 rounded border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[13px] text-amber-950">
+                  <p className="mt-2.5 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-950">
                     Espera la aprobación de Mercado Pago antes de aceptar este pedido.
                   </p>
                 ) : null}
 
-                <div className="mt-3.5 rounded border border-black/5 bg-[#fffaf5] p-3">
+                <div className="mt-2.5 rounded border border-black/5 bg-[#fffaf5] p-2.5">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Siguiente acción</p>
                   <div className="flex flex-wrap gap-2">
                   {(order.status === "created" || order.status === "accepted") && (
@@ -233,7 +233,7 @@ export function OrdersTable({
                 </div>
 
                 {canAssignRider(order) ? (
-                  <div className="mt-3.5 rounded border border-black/5 bg-zinc-50 p-3.5">
+                  <div className="mt-2.5 rounded border border-black/5 bg-zinc-50 p-2.5">
                     <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Asignación</p>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { EmptyState, ImageAssetField, LoadingCard, PageHeader, PlatformWordmark, RubroChip, StatusPill } from "../../../shared/components";
+import { EmptyState, ImageAssetField, LoadingCard, PlatformWordmark, RubroChip, StatusPill } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   fetchMerchantStore,
@@ -12,6 +12,7 @@ import {
 import { useCategoryStore } from "../../../shared/stores";
 import type { MerchantStore } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
+import { MerchantPageBar } from "../components/MerchantPageBar";
 import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync";
 
 const storeStatusMessages: Record<string, string> = {
@@ -137,14 +138,26 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-4 md:space-y-5">
-      <PageHeader
+      <MerchantPageBar
         eyebrow="Ajustes"
-        compact
         title="Configura tu local"
         description="Administra identidad, imagenes, pagos simples, tarifas y rubros. La direccion y los poligonos se configuran desde su menu dedicado."
+        stats={[
+          { label: "Estado", value: store.status, tone: store.status === "approved" ? "success" : "warning" },
+          { label: "Venta", value: store.accepting_orders ? "Activa" : "Pausada", tone: store.accepting_orders ? "success" : "neutral" },
+          { label: "Rubros", value: selectedCategoryIds.length }
+        ]}
+        action={
+          <Link
+            to="/m/alcance"
+            className="inline-flex min-h-[44px] items-center justify-center rounded bg-ink px-3 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
+          >
+            Abrir direccion y alcance
+          </Link>
+        }
       />
 
-      <section className="rounded border border-black/5 bg-white p-4 shadow-sm">
+      <section hidden className="hidden">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Estado de alta</p>
@@ -156,7 +169,7 @@ export function SettingsPage() {
         </div>
       </section>
 
-      <section className="rounded border border-[var(--kp-stroke)] bg-[#fffaf5] p-4 shadow-sm">
+      <section hidden className="hidden">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--kp-accent)]">Direccion y alcance</p>

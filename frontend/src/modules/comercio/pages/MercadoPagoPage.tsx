@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
+import { EmptyState, LoadingCard } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   disconnectMerchantMercadoPago,
@@ -11,6 +11,7 @@ import {
 import type { MerchantStore } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
 import { deriveMercadoPagoState } from "../../../shared/utils/mercadopago";
+import { MerchantPageBar } from "../components/MerchantPageBar";
 import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync";
 
 const connectionMessages: Record<string, string> = {
@@ -173,17 +174,25 @@ export function MercadoPagoPage() {
 
   return (
     <div className="space-y-4 md:space-y-5">
-      <PageHeader
+      <MerchantPageBar
         eyebrow="Finanzas"
-        compact
         title="Mercado Pago"
         description="Conecta la cuenta propia del comercio y habilita el cobro online con split automatico de marketplace."
+        stats={[
+          {
+            label: "Conexion",
+            value: connectionLabels[connectionStatus] ?? connectionLabels.disconnected,
+            tone: canOperate ? "success" : connectionStatus === "reconnect_required" ? "warning" : "neutral"
+          },
+          { label: "Operacion", value: canOperate ? "Listo" : "No operativo", tone: canOperate ? "success" : "warning" },
+          { label: "Modo", value: modeLabel }
+        ]}
       />
 
       {oauthBanner ? <p className={oauthBanner.className}>{oauthBanner.message}</p> : null}
       {error ? <p className="rounded border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-900">{error}</p> : null}
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="hidden">
         <section className="rounded bg-white p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Conexion</p>
           <div className="mt-3 flex items-center gap-2">

@@ -301,11 +301,11 @@ export function StoreCoverageSection({
   }
 
   return (
-    <section className="space-y-4 rounded border border-black/5 bg-white p-5 shadow-sm">
+    <section className="space-y-3 rounded border border-black/5 bg-white p-4 shadow-sm">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Zonas de alcance</p>
-        <h2 className="mt-2 text-xl font-bold text-ink">Poligonos de venta</h2>
-        <p className="mt-2 text-sm text-zinc-600">
+        <h2 className="mt-1.5 text-lg font-bold text-ink">Poligonos de venta</h2>
+        <p className="mt-1.5 text-sm text-zinc-600">
           Define las zonas donde aceptas pedidos. Sin una zona valida para una modalidad habilitada, el local no podra recibir pedidos.
         </p>
       </div>

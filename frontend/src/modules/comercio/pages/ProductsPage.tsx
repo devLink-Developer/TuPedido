@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
+import { EmptyState, LoadingCard } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   createMerchantProduct,
@@ -11,6 +11,7 @@ import {
 import type { Product, ProductCategory, ProductWrite } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
 import { CatalogTaxonomyManager } from "../components/CatalogTaxonomyManager";
+import { MerchantPageBar } from "../components/MerchantPageBar";
 import { ProductForm } from "../components/ProductForm";
 import { ProductList } from "../components/ProductList";
 
@@ -78,9 +79,8 @@ export function ProductsPage() {
 
   return (
     <div className="space-y-4 md:space-y-5">
-      <PageHeader
+      <MerchantPageBar
         eyebrow="Comercial"
-        compact
         title="Catálogo"
         description="Gestiona productos, categorías y subcategorías desde una sola pantalla compacta."
         action={

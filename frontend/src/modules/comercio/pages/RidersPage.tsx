@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Plus, RefreshCw } from "lucide-react";
-import { EmptyState, ImageAssetField, LoadingCard, PageHeader, StatCard } from "../../../shared/components";
+import { EmptyState, ImageAssetField, LoadingCard } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   assignMerchantOrderRider,
@@ -14,6 +14,7 @@ import { Button } from "../../../shared/ui/Button";
 import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { formatDateTime } from "../../../shared/utils/format";
 import { statusLabels } from "../../../shared/utils/labels";
+import { MerchantPageBar } from "../components/MerchantPageBar";
 
 type RiderFormState = {
   full_name: string;
@@ -239,17 +240,22 @@ export function RidersPage() {
 
   return (
     <div className="space-y-4 md:space-y-5">
-      <PageHeader
+      <MerchantPageBar
         eyebrow="Comercio"
-        compact
         title={
           <span className="inline-flex items-center gap-3">
             <span>Repartidores</span>
-            <HelpTooltip label="Ayuda sobre repartidores" variant="inverse">
+            <HelpTooltip label="Ayuda sobre repartidores">
               Administra tu equipo de reparto y asigna repartidores a los pedidos listos.
             </HelpTooltip>
           </span>
         }
+        stats={[
+          { label: "Disponibles", value: idleRiders.length, tone: idleRiders.length ? "success" : "neutral" },
+          { label: "Ocupados", value: busyRiders.length, tone: busyRiders.length ? "warning" : "neutral" },
+          { label: "Por asignar", value: dispatchOrders.length, tone: dispatchOrders.length ? "warning" : "neutral" },
+          { label: "Activos", value: activeRiders.length }
+        ]}
         action={
           <div className="flex flex-wrap gap-2">
             <Button
@@ -271,13 +277,6 @@ export function RidersPage() {
           </div>
         }
       />
-
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard compact label="Disponibles" value={String(idleRiders.length)} description="Repartidores listos para tomar pedidos" />
-        <StatCard compact label="Ocupados" value={String(busyRiders.length)} description="Asignados o con entrega en curso" />
-        <StatCard compact label="Por asignar" value={String(dispatchOrders.length)} description="Pedidos listos o en reasignación" />
-        <StatCard compact label="Activos" value={String(activeRiders.length)} description="Repartidores operativos en el comercio" />
-      </div>
 
       <section className="app-panel rounded p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">

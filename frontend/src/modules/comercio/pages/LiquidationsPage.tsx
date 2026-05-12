@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "../../../shared/ui/Button";
-import { EmptyState, LoadingCard, PageHeader, StatCard } from "../../../shared/components";
+import { EmptyState, LoadingCard, StatCard } from "../../../shared/components";
 import { useAuthSession, useRealtimeNotifications } from "../../../shared/hooks";
 import {
   createMerchantRiderSettlementPayment,
@@ -25,6 +25,7 @@ import type {
 import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
 import { statusLabels } from "../../../shared/utils/labels";
+import { MerchantPageBar } from "../components/MerchantPageBar";
 
 type NoticeFormState = {
   amount: number;
@@ -268,20 +269,25 @@ export function LiquidationsPage() {
 
   return (
     <div className="space-y-4 md:space-y-5">
-      <PageHeader
+      <MerchantPageBar
         eyebrow="Comercio"
-        compact
         title={
           <span className="inline-flex items-center gap-3">
             <span>Liquidaciones</span>
-            <HelpTooltip label="Ayuda sobre liquidaciones" variant="inverse">
+            <HelpTooltip label="Ayuda sobre liquidaciones">
               Informa pagos a la plataforma, registra pagos a repartidores y revisa el historial.
             </HelpTooltip>
           </span>
         }
+        stats={[
+          { label: "Plataforma", value: formatCurrency(overview.pending_balance), tone: overview.pending_balance > 0 ? "warning" : "neutral" },
+          { label: "Pagado", value: formatCurrency(overview.paid_balance), tone: "success" },
+          { label: "Riders", value: formatCurrency(ridersPendingTotal), tone: ridersPendingTotal > 0 ? "warning" : "neutral" },
+          { label: "Alertas", value: notifications.length }
+        ]}
       />
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="hidden">
         <StatCard
           compact
           label="Pendiente plataforma"
