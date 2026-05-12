@@ -366,6 +366,29 @@ a {
   padding: 0.35rem 0.62rem;
 }
 
+.merchant-density main {
+  font-size: 0.95rem;
+}
+
+.merchant-density .merchant-compact-panel {
+  border: 1px solid var(--kp-stroke);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 20px rgba(126, 89, 41, 0.07);
+}
+
+.merchant-density .merchant-compact-row {
+  border: 1px solid rgba(126, 89, 41, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.merchant-density .merchant-tab-button {
+  min-height: 38px;
+  border-radius: 8px !important;
+  padding: 0.55rem 0.75rem;
+}
+
 .merchant-density article.rounded.bg-white,
 .merchant-density section.rounded.bg-white,
 .merchant-density form.rounded.bg-white,

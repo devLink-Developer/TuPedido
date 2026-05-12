@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { EmptyState, LoadingCard, StatusPill } from "../../../shared/components";
+import { EmptyState, LoadingCard } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   fetchMerchantStore,
@@ -216,39 +216,13 @@ export function CoveragePage() {
         ]}
       />
 
-      <section hidden className="hidden">
-        <div className="grid gap-3 md:grid-cols-[auto_1fr] md:items-center md:gap-5">
-          <StatusPill value={store.status} />
-          <div className="grid gap-2 sm:grid-cols-3">
-            <div className="rounded bg-zinc-50 px-3 py-2 text-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Direccion</p>
-              <p className={deliveryAddressReady ? "mt-1 font-semibold text-emerald-700" : "mt-1 font-semibold text-amber-700"}>
-                {deliveryAddressReady ? "Completa" : "Pendiente"}
-              </p>
-            </div>
-            <div className="rounded bg-zinc-50 px-3 py-2 text-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Zonas</p>
-              <p className={coverageReady ? "mt-1 font-semibold text-emerald-700" : "mt-1 font-semibold text-amber-700"}>
-                {coverageReady ? "Configuradas" : "Sin alcance"}
-              </p>
-            </div>
-            <div className="rounded bg-zinc-50 px-3 py-2 text-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Venta</p>
-              <p className={store.accepting_orders ? "mt-1 font-semibold text-emerald-700" : "mt-1 font-semibold text-zinc-700"}>
-                {store.accepting_orders ? "Activa" : "Pausada"}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4 rounded bg-white p-4 shadow-sm">
-        <section className="space-y-4">
+      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-3 rounded bg-white p-3 shadow-sm">
+        <section className="space-y-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Direccion del local</p>
-              <h2 className="mt-2 text-xl font-bold text-ink">Ubicacion comercial</h2>
-              <p className="mt-2 text-sm leading-6 text-zinc-600">
+              <h2 className="mt-1.5 text-lg font-bold text-ink">Ubicacion comercial</h2>
+              <p className="mt-1.5 text-sm leading-6 text-zinc-600">
                 Esta direccion se usa para validar delivery, mostrar el local y calcular si el cliente esta dentro del alcance.
               </p>
             </div>
@@ -270,7 +244,7 @@ export function CoveragePage() {
             </div>
           </div>
 
-          <div className="rounded bg-zinc-50 p-4 text-sm text-zinc-600">
+          <div className="rounded bg-zinc-50 p-3 text-sm text-zinc-600">
             {hasAddressDraft ? (
               <div className="space-y-1">
                 <p className="font-semibold text-ink">{addressSummary.streetLine || "Direccion cargada"}</p>
@@ -287,7 +261,7 @@ export function CoveragePage() {
           </div>
 
           {showAddressEditor ? (
-            <div className="rounded border border-black/10 bg-white p-4">
+            <div className="rounded border border-black/10 bg-white p-3">
               <StoreAddressSection
                 token={token}
                 form={storeAddressForm}
@@ -310,11 +284,11 @@ export function CoveragePage() {
           ) : null}
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Modalidades</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Delivery y retiro</h2>
-            <p className="mt-2 text-sm leading-6 text-zinc-600">
+            <h2 className="mt-1.5 text-lg font-bold text-ink">Delivery y retiro</h2>
+            <p className="mt-1.5 text-sm leading-6 text-zinc-600">
               Cada modalidad habilitada necesita una zona de alcance efectiva. La venta se pausa si no queda ninguna disponible.
             </p>
           </div>

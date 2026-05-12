@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { MerchantPageBar } from "../components/MerchantPageBar";
-import { PromoManager } from "../components/PromoManager";
+import { PromoManager, type PromoManagerSummary } from "../components/PromoManager";
 
 export function PromotionsPage() {
+  const [summary, setSummary] = useState<PromoManagerSummary>({ total: 0, active: 0, paused: 0, products: 0 });
+
   return (
-    <div className="space-y-4 md:space-y-5">
+    <div className="space-y-3">
       <MerchantPageBar
         eyebrow="Comercial"
         title={
@@ -15,8 +18,14 @@ export function PromotionsPage() {
             </HelpTooltip>
           </span>
         }
+        stats={[
+          { label: "Promos", value: summary.total },
+          { label: "Activas", value: summary.active, tone: summary.active ? "success" : "neutral" },
+          { label: "Pausadas", value: summary.paused, tone: summary.paused ? "warning" : "neutral" },
+          { label: "Productos", value: summary.products }
+        ]}
       />
-      <PromoManager />
+      <PromoManager onSummaryChange={setSummary} />
     </div>
   );
 }

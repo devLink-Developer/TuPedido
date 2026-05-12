@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EmptyState, LoadingCard } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
@@ -24,6 +24,11 @@ export function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const availableProducts = useMemo(() => products.filter((product) => product.is_available).length, [products]);
+  const noStockProducts = useMemo(
+    () => products.filter((product) => product.stock_quantity !== null && product.stock_quantity <= 0).length,
+    [products]
+  );
 
   async function load(options?: { silent?: boolean }) {
     if (!token) return;
@@ -78,11 +83,17 @@ export function ProductsPage() {
   if (error) return <EmptyState title="Productos no disponibles" description={error} />;
 
   return (
-    <div className="space-y-4 md:space-y-5">
+    <div className="space-y-3">
       <MerchantPageBar
         eyebrow="Comercial"
         title="Catálogo"
         description="Gestiona productos, categorías y subcategorías desde una sola pantalla compacta."
+        stats={[
+          { label: "Productos", value: products.length },
+          { label: "Activos", value: availableProducts, tone: availableProducts ? "success" : "neutral" },
+          { label: "Categorias", value: categories.length },
+          { label: "Sin stock", value: noStockProducts, tone: noStockProducts ? "warning" : "neutral" }
+        ]}
         action={
           <Button
             type="button"
@@ -104,7 +115,8 @@ export function ProductsPage() {
         </section>
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_390px] xl:items-start">
+      <div className="grid gap-3 xl:grid-cols-[300px_minmax(0,1fr)_360px] xl:items-start">
+        <CatalogTaxonomyManager categories={categories} onRefresh={() => load({ silent: true })} />
         <ProductList
           products={products}
           onEdit={(product) => {
@@ -113,11 +125,43 @@ export function ProductsPage() {
           }}
           onDelete={handleDelete}
         />
-        <CatalogTaxonomyManager categories={categories} onRefresh={() => load({ silent: true })} />
+        <aside className="hidden rounded bg-white p-3 shadow-sm xl:block xl:max-h-[calc(100vh-130px)] xl:overflow-y-auto">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Inspector</p>
+              <h2 className="mt-1 text-lg font-bold text-ink">{editingProduct ? "Editar producto" : "Alta rapida"}</h2>
+            </div>
+            {formOpen ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingProduct(null);
+                  setFormOpen(false);
+                }}
+                className="rounded bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-700"
+              >
+                Cerrar
+              </button>
+            ) : null}
+          </div>
+          {formOpen ? (
+            <ProductForm
+              key={editingProduct?.id ?? "new-desktop"}
+              categories={categories}
+              initialProduct={editingProduct}
+              onSubmit={handleSubmit}
+              loading={saving}
+            />
+          ) : (
+            <div className="rounded bg-zinc-50 p-3 text-sm leading-6 text-zinc-600">
+              Selecciona un producto para editarlo o usa el boton superior para cargar uno nuevo.
+            </div>
+          )}
+        </aside>
       </div>
 
       {formOpen ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(92,52,24,0.24)] p-4 backdrop-blur-[2px] md:items-center">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(92,52,24,0.24)] p-4 backdrop-blur-[2px] md:items-center xl:hidden">
           <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded bg-[linear-gradient(180deg,#fcf6ef_0%,#fffdfa_100%)] p-3 shadow-[0_32px_80px_rgba(24,19,18,0.28)] md:p-4">
             <div className="mb-3 flex items-center justify-between gap-3 px-1">
               <div>

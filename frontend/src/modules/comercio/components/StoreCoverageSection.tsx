@@ -273,7 +273,7 @@ function CoveragePolygonEditor({
           </Button>
         </div>
       </div>
-      <div ref={containerRef} className="h-72 overflow-hidden rounded border border-black/10 bg-white" />
+      <div ref={containerRef} className="h-56 overflow-hidden rounded border border-black/10 bg-white lg:h-64" />
       <p className={hasCoveragePolygon(points) ? "text-sm text-emerald-700" : "text-sm text-amber-700"}>
         {hasCoveragePolygon(points)
           ? `${normalizedPoints.length} vertices definidos.`
@@ -301,7 +301,7 @@ export function StoreCoverageSection({
   }
 
   return (
-    <section className="space-y-3 rounded border border-black/5 bg-white p-4 shadow-sm">
+    <section className="space-y-3 rounded border border-black/5 bg-white p-3 shadow-sm">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Zonas de alcance</p>
         <h2 className="mt-1.5 text-lg font-bold text-ink">Poligonos de venta</h2>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "../../../shared/ui/Button";
-import { EmptyState, LoadingCard, StatCard } from "../../../shared/components";
+import { EmptyState, LoadingCard } from "../../../shared/components";
 import { useAuthSession, useRealtimeNotifications } from "../../../shared/hooks";
 import {
   createMerchantRiderSettlementPayment,
@@ -91,7 +91,7 @@ function StatusBadge({ value }: { value: string }) {
 function SectionTitle({ title, help }: { title: string; help: string }) {
   return (
     <div className="flex items-center gap-2">
-      <h2 className="text-xl font-bold text-ink">{title}</h2>
+      <h2 className="text-lg font-bold text-ink">{title}</h2>
       <HelpTooltip label={`Ayuda sobre ${title}`}>{help}</HelpTooltip>
     </div>
   );
@@ -268,7 +268,7 @@ export function LiquidationsPage() {
   if (error || !overview) return <EmptyState title="Liquidaciones no disponibles" description={error ?? "Sin datos"} />;
 
   return (
-    <div className="space-y-4 md:space-y-5">
+    <div className="space-y-3">
       <MerchantPageBar
         eyebrow="Comercio"
         title={
@@ -287,33 +287,6 @@ export function LiquidationsPage() {
         ]}
       />
 
-      <div className="hidden">
-        <StatCard
-          compact
-          label="Pendiente plataforma"
-          value={formatCurrency(overview.pending_balance)}
-          description={`${overview.pending_notices_count} avisos pendientes.`}
-        />
-        <StatCard
-          compact
-          label="Pagado plataforma"
-          value={formatCurrency(overview.paid_balance)}
-          description="Pagos ya revisados."
-        />
-        <StatCard
-          compact
-          label="Pendiente repartidores"
-          value={formatCurrency(ridersPendingTotal)}
-          description="Saldo por pagar."
-        />
-        <StatCard
-          compact
-          label="Notificaciones"
-          value={String(notifications.length)}
-          description="Alertas recientes."
-        />
-      </div>
-
       <div className="rounded bg-white p-2 shadow-sm">
         <div className="grid gap-2 md:grid-cols-3" role="tablist" aria-label="Secciones de liquidaciones">
           {liquidationSections.map((section) => {
@@ -325,7 +298,7 @@ export function LiquidationsPage() {
                 role="tab"
                 aria-selected={selected}
                 onClick={() => setActiveSection(section.id)}
-                className={`rounded px-4 py-3 text-left text-sm transition ${
+                className={`merchant-tab-button text-left text-sm transition ${
                   selected ? "bg-ink text-white shadow-sm" : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
                 }`}
               >
@@ -340,8 +313,8 @@ export function LiquidationsPage() {
       </div>
 
       <div className={activeSection === "history" ? "hidden" : "grid gap-4"}>
-        <section className={activeSection === "platform" ? "space-y-4" : "hidden"}>
-          <article className="rounded bg-white p-4 shadow-sm">
+        <section className={activeSection === "platform" ? "grid gap-3 xl:grid-cols-[0.85fr_1.15fr] xl:items-start" : "hidden"}>
+          <article className="rounded bg-white p-3 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Plataforma</p>
@@ -362,7 +335,7 @@ export function LiquidationsPage() {
               </p>
             ) : null}
 
-            <form onSubmit={(event) => void handleNoticeSubmit(event)} className="mt-4 grid gap-3">
+            <form onSubmit={(event) => void handleNoticeSubmit(event)} className="mt-3 grid gap-2">
               <input
                 type="number"
                 value={Number(overview.pending_balance.toFixed(2))}
@@ -434,7 +407,7 @@ export function LiquidationsPage() {
             </form>
           </article>
 
-          <article className="rounded bg-white p-4 shadow-sm">
+          <article className="rounded bg-white p-3 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Acciones</p>
@@ -446,9 +419,9 @@ export function LiquidationsPage() {
                 {charges.length} cargos
               </span>
             </div>
-            <div className="mt-4 space-y-3">
+            <div className="mt-3 space-y-2">
               {charges.slice(0, 5).map((charge) => (
-                <div key={charge.id} className="rounded bg-zinc-50 p-3 text-sm">
+                <div key={charge.id} className="rounded bg-zinc-50 p-2.5 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold text-ink">Pedido #{charge.order_id}</p>
@@ -462,7 +435,7 @@ export function LiquidationsPage() {
                 </div>
               ))}
               {notices.map((notice) => (
-                <div key={notice.id} className="rounded border border-black/5 bg-white p-3 text-sm">
+                <div key={notice.id} className="rounded border border-black/5 bg-white p-2.5 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold text-ink">{formatCurrency(notice.amount)}</p>
@@ -494,8 +467,8 @@ export function LiquidationsPage() {
           </article>
         </section>
 
-        <section className={activeSection === "riders" ? "space-y-4" : "hidden"}>
-          <article className="rounded bg-white p-4 shadow-sm">
+        <section className={activeSection === "riders" ? "grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start" : "hidden"}>
+          <article className="rounded bg-white p-3 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Repartidores</p>
@@ -511,7 +484,7 @@ export function LiquidationsPage() {
               </span>
             </div>
             {paymentError ? <p className="mt-4 rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{paymentError}</p> : null}
-            <div className="mt-4 space-y-4">
+            <div className="mt-3 space-y-3">
               {riderSettlements.map((settlement) => {
                 const draft = paymentDrafts[settlement.rider_user_id] ?? {
                   amount: "",
@@ -522,7 +495,7 @@ export function LiquidationsPage() {
                 const latestPayments = paymentsByRider.get(settlement.rider_user_id) ?? [];
                 const latestPayment = latestPayments[0] ?? null;
                 return (
-                  <article key={settlement.rider_user_id} className="rounded bg-zinc-50 p-3.5">
+                  <article key={settlement.rider_user_id} className="rounded bg-zinc-50 p-3">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-ink">{settlement.rider_name}</p>
@@ -530,7 +503,7 @@ export function LiquidationsPage() {
                       </div>
                       {latestPayment ? <StatusBadge value={latestPayment.receiver_status} /> : null}
                     </div>
-                    <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <div className="mt-3 grid gap-2 md:grid-cols-3">
                       <div className="rounded bg-white p-3">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Ganado</p>
                         <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(settlement.rider_fee_earned_total)}</p>
@@ -549,7 +522,7 @@ export function LiquidationsPage() {
                         Último pago: {formatCurrency(latestPayment.amount)} | {statusLabels[latestPayment.receiver_status] ?? latestPayment.receiver_status}
                       </p>
                     ) : null}
-                    <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[160px_220px_1fr_1fr_auto]">
+                    <div className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-[130px_190px_1fr_1fr_auto]">
                       <input
                         type="number"
                         min={0}
@@ -614,12 +587,12 @@ export function LiquidationsPage() {
             </div>
           </article>
 
-          <article className="rounded bg-white p-4 shadow-sm">
+          <article className="rounded bg-white p-3 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Notificaciones</p>
             <div className="mt-2 flex items-center gap-2">
               <SectionTitle title="Alertas" help="Aquí aparecen avisos recientes relacionados con tus liquidaciones." />
             </div>
-            <div className="mt-4 space-y-3">
+            <div className="mt-3 space-y-2">
               {notifications.slice(0, 5).map((notification) => (
                 <div key={notification.id} className="rounded bg-zinc-50 p-3 text-sm">
                   <p className="font-semibold text-ink">{notification.title}</p>
@@ -635,7 +608,7 @@ export function LiquidationsPage() {
         </section>
       </div>
 
-      <section className={activeSection === "history" ? "rounded bg-white p-4 shadow-sm" : "hidden"}>
+      <section className={activeSection === "history" ? "rounded bg-white p-3 shadow-sm" : "hidden"}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pagos y revisiones</p>
@@ -647,9 +620,9 @@ export function LiquidationsPage() {
             {history.length} eventos
           </span>
         </div>
-        <div className="mt-4 space-y-3">
+        <div className="mt-3 space-y-2">
           {history.map((entry) => (
-            <article key={entry.id} className="rounded bg-zinc-50 p-3.5 text-sm">
+            <article key={entry.id} className="rounded bg-zinc-50 p-3 text-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-ink">{entry.title}</p>

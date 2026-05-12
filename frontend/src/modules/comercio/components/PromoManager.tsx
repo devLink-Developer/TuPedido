@@ -24,6 +24,13 @@ type PromotionFormState = {
   items: Array<{ product_id: string; quantity: string; sort_order: string }>;
 };
 
+export type PromoManagerSummary = {
+  total: number;
+  active: number;
+  paused: number;
+  products: number;
+};
+
 const emptyForm = (): PromotionFormState => ({
   name: "",
   description: "",
@@ -50,7 +57,7 @@ function toForm(promotion: MerchantPromotion): PromotionFormState {
   };
 }
 
-export function PromoManager() {
+export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: PromoManagerSummary) => void }) {
   const { token } = useAuthSession();
   const [products, setProducts] = useState<Product[]>([]);
   const [promotions, setPromotions] = useState<MerchantPromotion[]>([]);
@@ -93,6 +100,15 @@ export function PromoManager() {
     [form.items, productMap]
   );
   const totalSavings = Math.max(baseComboTotal - Number(form.sale_price || 0), 0);
+
+  useEffect(() => {
+    onSummaryChange?.({
+      total: promotions.length,
+      active: promotions.filter((promotion) => promotion.is_active).length,
+      paused: promotions.filter((promotion) => !promotion.is_active).length,
+      products: products.length
+    });
+  }, [onSummaryChange, products.length, promotions]);
 
   function resetForm() {
     setEditingId(null);
@@ -213,33 +229,32 @@ export function PromoManager() {
   }
 
   return (
-    <div className="space-y-4">
-      {error ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+    <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-start">
+      {error ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700 xl:col-span-2">{error}</p> : null}
 
-      <section className="app-panel p-4">
-        <div className="flex flex-col gap-3 border-b border-[var(--color-border-default)] pb-3 md:flex-row md:items-end md:justify-between">
+      <section className="app-panel p-3">
+        <div className="flex flex-col gap-2 border-b border-[var(--color-border-default)] pb-2 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Combos activos</p>
             <h2 className="mt-1.5 text-lg font-bold text-ink">Promociones configuradas</h2>
-            <p className="mt-1.5 text-sm leading-5 text-zinc-600">Prioriza combos activos y edita el formulario cuando necesites ajustar precio o productos.</p>
           </div>
           <span className="app-chip text-xs text-zinc-600">{promotions.length} promociones</span>
         </div>
 
         {promotions.length ? (
-          <div className="mt-3 space-y-3">
+          <div className="mt-3 space-y-2">
             {promotions.map((promotion) => (
-              <article key={promotion.id} className="rounded border border-black/5 bg-white p-3.5 shadow-sm">
+              <article key={promotion.id} className="rounded border border-black/5 bg-white p-3 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-lg font-bold text-ink">{promotion.name}</h3>
-                    {promotion.description ? <p className="mt-2 text-sm text-zinc-600">{promotion.description}</p> : null}
+                    <h3 className="text-base font-bold text-ink">{promotion.name}</h3>
+                    {promotion.description ? <p className="mt-1 text-sm text-zinc-600">{promotion.description}</p> : null}
                   </div>
                   <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
                     {promotion.is_active ? "Activa" : "Pausada"}
                   </span>
                 </div>
-                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <div className="mt-2 grid gap-2 md:grid-cols-3">
                   <div className="rounded bg-zinc-50 p-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Precio combo</p>
                     <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(promotion.sale_price)}</p>
@@ -253,14 +268,14 @@ export function PromoManager() {
                     <p className="mt-2 text-sm font-semibold text-ink">{formatDateTime(promotion.updated_at)}</p>
                   </div>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   {promotion.items.map((item) => (
                     <span key={item.id} className="rounded bg-[#fff6ef] px-3 py-2 text-sm text-zinc-700">
                       {item.quantity} x {item.product_name}
                     </span>
                   ))}
                 </div>
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   <Button
                     type="button"
                     className="shadow-none"
@@ -290,12 +305,12 @@ export function PromoManager() {
         )}
       </section>
 
-      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4 rounded bg-white p-4 shadow-sm">
+      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-3 rounded bg-white p-3 shadow-sm xl:max-h-[calc(100vh-130px)] xl:overflow-y-auto">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Combo</p>
             <div className="mt-2 flex items-center gap-2">
-              <h2 className="text-xl font-bold text-ink">{editingId === null ? "Nueva promoción" : "Editar promoción"}</h2>
+              <h2 className="text-lg font-bold text-ink">{editingId === null ? "Nueva promoción" : "Editar promoción"}</h2>
               <HelpTooltip label="Ayuda sobre promoción">
                 Combiná productos ya creados, definí el precio final y el límite por cliente.
               </HelpTooltip>
@@ -362,12 +377,12 @@ export function PromoManager() {
           Promoción activa
         </label>
 
-        <div className="space-y-3 rounded bg-zinc-50 p-3">
+        <div className="space-y-3 rounded bg-zinc-50 p-2.5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Productos</p>
               <div className="mt-2 flex items-center gap-2">
-                <h3 className="text-lg font-bold text-ink">Configura el combo</h3>
+                <h3 className="text-base font-bold text-ink">Configura el combo</h3>
                 <HelpTooltip label="Ayuda sobre productos del combo">
                   Agregá los productos y cantidades que forman parte de la promoción.
                 </HelpTooltip>
@@ -388,7 +403,7 @@ export function PromoManager() {
           </div>
           <div className="space-y-3">
             {form.items.map((item, index) => (
-              <div key={`${index}-${item.product_id}`} className="grid gap-3 rounded bg-white p-3 md:grid-cols-[1fr_120px_120px_auto]">
+              <div key={`${index}-${item.product_id}`} className="grid gap-2 rounded bg-white p-2.5 md:grid-cols-[1fr_100px_100px_auto]">
                 <select
                   value={item.product_id}
                   onChange={(event) => updateItem(index, "product_id", event.target.value)}
@@ -430,7 +445,7 @@ export function PromoManager() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-2 md:grid-cols-3">
           <div className="rounded bg-[#fff6ef] p-3">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Base del combo</p>
             <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(baseComboTotal)}</p>

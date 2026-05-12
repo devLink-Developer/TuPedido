@@ -59,7 +59,7 @@ const navItems = navSections.flatMap((section) =>
 
 function MerchantNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <nav className="app-sidebar-nav mt-6 space-y-5" aria-label="Navegación de comercio">
+    <nav className="app-sidebar-nav mt-4 space-y-3" aria-label="Navegación de comercio">
       {navSections.map((section) => (
         <section key={section.label} aria-label={section.label}>
           <p className="mb-2 px-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#ffcfb7]/62">
@@ -77,7 +77,7 @@ function MerchantNav({ onNavigate }: { onNavigate?: () => void }) {
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     [
-                      "flex min-h-[44px] items-center gap-3 border border-transparent px-4 py-2.5 text-[13px] font-semibold transition",
+                      "flex min-h-[40px] items-center gap-2.5 border border-transparent px-3 py-2 text-[13px] font-semibold transition",
                       isActive ? "app-sidebar-link-active" : "app-sidebar-link"
                     ].join(" ")
                   }
@@ -115,20 +115,20 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
     <div className="app-shell merchant-density min-h-screen text-ink">
       <header className="hidden md:block">
         <div className="app-toolbar w-full border border-x-0 border-[var(--color-border-default)]">
-          <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-4 px-4 py-4 md:px-6 lg:px-7">
-            <div className="flex min-w-0 items-center gap-4">
+          <div className="mx-auto flex w-full max-w-[1480px] items-center justify-between gap-3 px-4 py-2.5 md:px-5 lg:px-6">
+            <div className="flex min-w-0 items-center gap-3">
               <Link to="/m/dashboard" aria-label={`Ir al panel de ${brandName}`} className="inline-flex items-center">
                 <BrandMark
                   brandName={brandName}
-                  imageClassName="h-10 max-w-[10rem] sm:h-11 sm:max-w-[11.5rem]"
-                  textClassName="text-[1.5rem] text-[#24130e]"
+                  imageClassName="h-8 max-w-[8.5rem] sm:h-9 sm:max-w-[9.5rem]"
+                  textClassName="text-[1.25rem] text-[#24130e]"
                 />
               </Link>
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8f5f4e]">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8f5f4e]">
                   Comercio / {activeSectionLabel}
                 </p>
-                <h2 className="mt-1 truncate text-lg font-bold text-ink">{activeLabel}</h2>
+                <h2 className="truncate text-base font-bold text-ink">{activeLabel}</h2>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -139,7 +139,7 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex min-h-[44px] items-center border border-[var(--color-border-default)] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-brand-200 hover:text-ink"
+                className="inline-flex min-h-[40px] items-center border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:border-brand-200 hover:text-ink"
               >
                 Cerrar sesión
               </button>
@@ -147,18 +147,15 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
           </div>
         </div>
       </header>
-      <div className="mx-auto flex min-h-screen max-w-[1440px] flex-col md:flex-row">
-        <aside className="app-sidebar hidden w-[288px] flex-col px-5 py-5 text-white md:flex">
+      <div className="mx-auto flex min-h-screen max-w-[1480px] flex-col md:flex-row">
+        <aside className="app-sidebar hidden w-[232px] flex-col px-4 py-4 text-white md:flex">
           <div className="relative">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ffcfb7]/70">Comercio</p>
-            <h1 className="mt-3 font-display text-[2.15rem] font-bold tracking-tight">Panel operativo</h1>
-            <p className="mt-3 max-w-[15rem] text-sm leading-6 text-white/62">
-              Gestiona pedidos, repartidores, promociones y liquidaciones con una sola jerarquía visual.
-            </p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#ffcfb7]/70">Comercio</p>
+            <h1 className="mt-2 font-display text-[1.45rem] font-bold leading-tight tracking-tight">Panel operativo</h1>
             <MerchantNav />
           </div>
 
-          <div className="mt-6 border-t border-white/10 pt-5">
+          <div className="mt-auto border-t border-white/10 pt-4">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#ffcfb7]/60">Sesión</p>
             <p className="mt-3 text-sm font-semibold text-white">{user?.full_name ?? "Comercio"}</p>
             <p className="mt-1 text-sm text-white/60">{user?.email ?? ""}</p>
@@ -172,7 +169,7 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
           </div>
         </aside>
 
-        <main className="flex-1 px-4 pb-5 pt-0 md:px-6 md:py-6 lg:px-7">
+        <main className="flex-1 px-4 pb-5 pt-0 md:px-4 md:py-4 lg:px-5">
           <header
             className={[
               "app-toolbar -mx-4 mb-4 border border-x-0 border-[var(--color-border-default)] px-4 py-3.5 md:hidden",

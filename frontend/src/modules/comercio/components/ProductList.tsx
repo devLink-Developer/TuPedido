@@ -14,12 +14,11 @@ export function ProductList({
   const availableProducts = products.filter((product) => product.is_available).length;
 
   return (
-    <section className="app-panel p-4">
-      <div className="flex flex-col gap-3 border-b border-[var(--color-border-default)] pb-3 md:flex-row md:items-end md:justify-between">
+    <section className="app-panel p-3">
+      <div className="flex flex-col gap-2 border-b border-[var(--color-border-default)] pb-2 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Listado</p>
           <h2 className="mt-1.5 text-lg font-bold text-ink">Productos cargados</h2>
-          <p className="mt-1.5 text-sm leading-5 text-zinc-600">Revisa disponibilidad, stock y precio final antes de publicar cambios.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <span className="app-chip text-xs text-zinc-600">{products.length} productos</span>
@@ -27,11 +26,11 @@ export function ProductList({
         </div>
       </div>
 
-      <div className="mt-3 space-y-3">
+      <div className="mt-3 space-y-2">
         {products.map((product) => (
-          <article key={product.id} className="rounded border border-black/5 bg-white p-3 shadow-sm">
+          <article key={product.id} className="rounded border border-black/5 bg-white p-2.5 shadow-sm">
             <div className="flex gap-3">
-              <div className="h-20 w-20 shrink-0 overflow-hidden rounded bg-zinc-100 sm:h-24 sm:w-24">
+              <div className="h-16 w-16 shrink-0 overflow-hidden rounded bg-zinc-100 sm:h-[4.5rem] sm:w-[4.5rem]">
                 {product.image_url ? <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" /> : null}
               </div>
               <div className="min-w-0 flex-1">
@@ -39,7 +38,7 @@ export function ProductList({
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400">{product.sku}</p>
                     <h4 className="mt-1 font-bold text-ink">{product.name}</h4>
-                    <p className="mt-1 text-sm leading-5 text-zinc-600">
+                    <p className="mt-0.5 text-[13px] leading-5 text-zinc-600">
                       {product.brand ? `${product.brand} · ` : ""}
                       {product.product_category_name ?? "Sin categoría"}
                       {product.product_subcategory_name ? ` / ${product.product_subcategory_name}` : ""}
@@ -51,7 +50,7 @@ export function ProductList({
                   </span>
                 </div>
 
-                <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+                <div className="mt-2 flex flex-wrap items-center gap-2.5">
                   <strong className="text-base text-ink sm:text-lg">{formatCurrency(product.final_price)}</strong>
                   {product.has_commercial_discount ? (
                     <>
@@ -63,7 +62,7 @@ export function ProductList({
                   ) : null}
                 </div>
 
-                <div className="mt-2.5 flex flex-wrap gap-2 text-xs font-semibold text-zinc-500">
+                <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-zinc-500">
                   <span className="rounded bg-zinc-100 px-2.5 py-1">Stock: {product.stock_quantity ?? "Sin control"}</span>
                   <span className="rounded bg-zinc-100 px-2.5 py-1">
                     Máx. por pedido: {product.max_per_order ?? "Sin límite"}
@@ -72,7 +71,7 @@ export function ProductList({
               </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => onEdit(product)}

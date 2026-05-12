@@ -171,17 +171,14 @@ export function CatalogTaxonomyManager({
   }
 
   return (
-    <section className="app-panel p-4">
-      <div className="flex flex-col gap-3 border-b border-[var(--color-border-default)] pb-3 lg:flex-row lg:items-end lg:justify-between">
+    <section className="app-panel p-3">
+      <div className="flex flex-col gap-2 border-b border-[var(--color-border-default)] pb-2 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--kp-accent)]">Taxonomia</p>
           <div className="mt-1.5 flex items-center gap-2">
             <Layers3 className="h-5 w-5 text-[var(--kp-accent)]" aria-hidden="true" />
             <h2 className="text-lg font-bold text-ink">Categorias y subcategorias</h2>
           </div>
-          <p className="mt-1.5 text-sm leading-5 text-zinc-600">
-            Ordena el alta de productos desde el mismo flujo de catalogo.
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <span className="app-chip text-xs text-zinc-600">{categories.length} categorias</span>
@@ -191,7 +188,7 @@ export function CatalogTaxonomyManager({
 
       <form
         onSubmit={(event) => void handleCategorySubmit(event)}
-        className="mt-3 grid gap-2 rounded border border-black/5 bg-zinc-50 p-3 lg:grid-cols-[minmax(0,1fr)_92px_auto]"
+        className="mt-3 grid gap-2 rounded border border-black/5 bg-zinc-50 p-2.5 lg:grid-cols-[minmax(0,1fr)_72px_auto]"
       >
         <input
           value={categoryForm.name}
@@ -231,7 +228,7 @@ export function CatalogTaxonomyManager({
         {categories.map((category) => {
           const draft = subcategoryDrafts[category.id] ?? emptySubcategoryDraft();
           return (
-            <article key={category.id} className="rounded border border-black/5 bg-white p-3 shadow-sm">
+            <article key={category.id} className="rounded border border-black/5 bg-white p-2.5 shadow-sm">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -270,7 +267,7 @@ export function CatalogTaxonomyManager({
 
               <form
                 onSubmit={(event) => void handleSubcategorySubmit(event, category.id)}
-                className="mt-3 grid gap-2 rounded border border-black/5 bg-zinc-50 p-3 lg:grid-cols-[minmax(0,1fr)_88px_auto]"
+                className="mt-2.5 grid gap-2 rounded border border-black/5 bg-zinc-50 p-2.5 lg:grid-cols-[minmax(0,1fr)_72px_auto]"
               >
                 <input
                   value={draft.name}
@@ -304,7 +301,7 @@ export function CatalogTaxonomyManager({
                 </div>
               </form>
 
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-2.5 flex flex-wrap gap-2">
                 {category.subcategories.map((subcategory) => (
                   <span
                     key={subcategory.id}

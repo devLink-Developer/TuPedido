@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { EmptyState, ImageAssetField, LoadingCard, PlatformWordmark, RubroChip, StatusPill } from "../../../shared/components";
+import { EmptyState, ImageAssetField, LoadingCard, PlatformWordmark, RubroChip } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
   fetchMerchantStore,
@@ -141,7 +141,7 @@ export function SettingsPage() {
       <MerchantPageBar
         eyebrow="Ajustes"
         title="Configura tu local"
-        description="Administra identidad, imagenes, pagos simples, tarifas y rubros. La direccion y los poligonos se configuran desde su menu dedicado."
+        description={statusMessage}
         stats={[
           { label: "Estado", value: store.status, tone: store.status === "approved" ? "success" : "warning" },
           { label: "Venta", value: store.accepting_orders ? "Activa" : "Pausada", tone: store.accepting_orders ? "success" : "neutral" },
@@ -157,42 +157,13 @@ export function SettingsPage() {
         }
       />
 
-      <section hidden className="hidden">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Estado de alta</p>
-            <div className="mt-2">
-              <StatusPill value={store.status} />
-            </div>
-          </div>
-          <p className="max-w-2xl text-sm leading-7 text-zinc-600">{statusMessage}</p>
-        </div>
-      </section>
-
-      <section hidden className="hidden">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--kp-accent)]">Direccion y alcance</p>
-            <h2 className="mt-2 text-lg font-bold text-ink">La ubicacion y los poligonos ahora tienen menu propio</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">
-              Usa esta pantalla solo para identidad, imagenes, pagos simples, tarifas y rubros.
-            </p>
-          </div>
-          <Link
-            to="/m/alcance"
-            className="inline-flex min-h-[44px] items-center justify-center rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
-          >
-            Abrir direccion y alcance
-          </Link>
-        </div>
-      </section>
-      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4 rounded bg-white p-4 shadow-sm">
-        <section className="space-y-4">
+      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-3 rounded bg-white p-3 shadow-sm">
+        <section className="space-y-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Datos del local</p>
-              <h2 className="mt-2 text-xl font-bold text-ink">Identidad comercial</h2>
-              <p className="mt-2 text-sm text-zinc-600">
+              <h2 className="mt-1.5 text-lg font-bold text-ink">Identidad comercial</h2>
+              <p className="mt-1.5 text-sm text-zinc-600">
                 Abre este bloque solo cuando necesites editar nombre, teléfono o descripción visible del comercio.
               </p>
             </div>
@@ -207,7 +178,7 @@ export function SettingsPage() {
             </div>
           </div>
 
-          <div className="rounded bg-zinc-50 p-4 text-sm text-zinc-600">
+          <div className="rounded bg-zinc-50 p-3 text-sm text-zinc-600">
             <p className="font-semibold text-ink">{store.name}</p>
             <p className="mt-1">{store.phone || "Sin teléfono cargado"}</p>
             <p className="mt-2">
@@ -242,15 +213,15 @@ export function SettingsPage() {
           ) : null}
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Imágenes</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Logo y portada</h2>
-            <p className="mt-2 text-sm text-zinc-600">
+            <h2 className="mt-1.5 text-lg font-bold text-ink">Logo y portada</h2>
+            <p className="mt-1.5 text-sm text-zinc-600">
               Tu comercio ya recibe una imagen inicial por rubro. Si quieres personalizarla, puedes subir archivos desde tu dispositivo o pegar una URL.
             </p>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             <ImageAssetField
               label="Portada"
               value={store.cover_image_url ?? ""}
@@ -271,11 +242,11 @@ export function SettingsPage() {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Medios de pago</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Efectivo</h2>
-            <p className="mt-2 text-sm text-zinc-600">
+            <h2 className="mt-1.5 text-lg font-bold text-ink">Efectivo</h2>
+            <p className="mt-1.5 text-sm text-zinc-600">
               Mercado Pago se administra desde su menu dedicado. Aqui solo defines si aceptas efectivo.
             </p>
           </div>
@@ -298,11 +269,11 @@ export function SettingsPage() {
           </label>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Parámetros</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Detalle operativo</h2>
-            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-600">
+            <h2 className="mt-1.5 text-lg font-bold text-ink">Detalle operativo</h2>
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-600">
               <span>El fee de plataforma es global y lo administra</span>
               <PlatformWordmark
                 size="inline"

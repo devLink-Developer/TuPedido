@@ -3,13 +3,11 @@ import { Plus, RefreshCw } from "lucide-react";
 import { EmptyState, ImageAssetField, LoadingCard } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
-  assignMerchantOrderRider,
   createMerchantRider,
-  fetchMerchantOrders,
   fetchMerchantRiders,
   updateMerchantRider
 } from "../../../shared/services/api";
-import type { DeliveryProfile, DeliveryVehicleType, MerchantRiderCreate, MerchantRiderUpdate, Order } from "../../../shared/types";
+import type { DeliveryProfile, DeliveryVehicleType, MerchantRiderCreate, MerchantRiderUpdate } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
 import { HelpTooltip } from "../../../shared/ui/HelpTooltip";
 import { formatDateTime } from "../../../shared/utils/format";
@@ -49,15 +47,6 @@ const emptyForm: RiderFormState = {
   notes: "",
   is_active: true
 };
-
-function canAssign(order: Order) {
-  return (
-    order.delivery_mode === "delivery" &&
-    !["cancelled", "delivered", "delivery_failed"].includes(order.status) &&
-    (order.status === "ready_for_dispatch" ||
-      ["assignment_pending", "assigned", "heading_to_store"].includes(order.delivery_status))
-  );
-}
 
 function toForm(rider: DeliveryProfile): RiderFormState {
   return {
@@ -105,17 +94,13 @@ function AvailabilityBadge({ rider }: { rider: DeliveryProfile }) {
 export function RidersPage() {
   const { token } = useAuthSession();
   const [riders, setRiders] = useState<DeliveryProfile[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [assignmentDrafts, setAssignmentDrafts] = useState<Record<number, string>>({});
   const [form, setForm] = useState<RiderFormState>(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingForm, setSavingForm] = useState(false);
-  const [busyOrderId, setBusyOrderId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   const activeRiders = useMemo(() => riders.filter((rider) => rider.is_active), [riders]);
   const idleRiders = useMemo(() => riders.filter((rider) => rider.is_active && rider.availability === "idle"), [riders]);
@@ -123,20 +108,14 @@ export function RidersPage() {
     () => riders.filter((rider) => rider.is_active && ["reserved", "delivering", "heading_to_store"].includes(rider.availability)),
     [riders]
   );
-  const dispatchOrders = useMemo(() => orders.filter((order) => canAssign(order)), [orders]);
 
   async function load() {
     if (!token) return;
     setLoading(true);
     try {
-      const [riderResults, orderResults] = await Promise.all([
-        fetchMerchantRiders(token),
-        fetchMerchantOrders(token)
-      ]);
+      const riderResults = await fetchMerchantRiders(token);
       setRiders(riderResults);
-      setOrders(orderResults);
       setError(null);
-      setActionError(null);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudieron cargar los repartidores");
     } finally {
@@ -147,21 +126,6 @@ export function RidersPage() {
   useEffect(() => {
     void load();
   }, [token]);
-
-  useEffect(() => {
-    setAssignmentDrafts((current) => {
-      const next = { ...current };
-      for (const order of dispatchOrders) {
-        const candidates = riders.filter(
-          (rider) => rider.is_active && (rider.availability === "idle" || rider.user_id === order.assigned_rider_id)
-        );
-        if (!next[order.id] || !candidates.some((rider) => String(rider.user_id) === next[order.id])) {
-          next[order.id] = String(order.assigned_rider_id ?? candidates[0]?.user_id ?? "");
-        }
-      }
-      return next;
-    });
-  }, [dispatchOrders, riders]);
 
   function resetForm() {
     setForm(emptyForm);
@@ -219,41 +183,24 @@ export function RidersPage() {
     }
   }
 
-  async function handleAssign(orderId: number) {
-    if (!token) return;
-    const riderUserId = Number(assignmentDrafts[orderId] ?? "");
-    if (!riderUserId) return;
-    setBusyOrderId(orderId);
-    setActionError(null);
-    try {
-      await assignMerchantOrderRider(token, orderId, riderUserId);
-      await load();
-    } catch (requestError) {
-      setActionError(requestError instanceof Error ? requestError.message : "No se pudo asignar el repartidor");
-    } finally {
-      setBusyOrderId(null);
-    }
-  }
-
   if (loading) return <LoadingCard label="Cargando repartidores..." />;
   if (error) return <EmptyState title="Repartidores no disponibles" description={error} />;
 
   return (
-    <div className="space-y-4 md:space-y-5">
+    <div className="space-y-3">
       <MerchantPageBar
         eyebrow="Comercio"
         title={
           <span className="inline-flex items-center gap-3">
             <span>Repartidores</span>
             <HelpTooltip label="Ayuda sobre repartidores">
-              Administra tu equipo de reparto y asigna repartidores a los pedidos listos.
+              Administra tu equipo de reparto, su disponibilidad y sus datos operativos.
             </HelpTooltip>
           </span>
         }
         stats={[
           { label: "Disponibles", value: idleRiders.length, tone: idleRiders.length ? "success" : "neutral" },
           { label: "Ocupados", value: busyRiders.length, tone: busyRiders.length ? "warning" : "neutral" },
-          { label: "Por asignar", value: dispatchOrders.length, tone: dispatchOrders.length ? "warning" : "neutral" },
           { label: "Activos", value: activeRiders.length }
         ]}
         action={
@@ -270,7 +217,7 @@ export function RidersPage() {
               <Plus className="h-4 w-4" aria-hidden="true" />
               Nuevo repartidor
             </Button>
-            <Button type="button" className="bg-white/10 text-white shadow-none" onClick={() => void load()}>
+            <Button type="button" className="bg-white text-ink shadow-none" onClick={() => void load()}>
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
               Actualizar
             </Button>
@@ -278,172 +225,57 @@ export function RidersPage() {
         }
       />
 
-      <section className="app-panel rounded p-4">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      <section className="app-panel rounded p-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--kp-accent)]">Disponibilidad</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--kp-accent)]">Equipo</p>
             <div className="mt-2 flex items-center gap-2">
-              <h2 className="text-xl font-bold text-ink">Equipo en línea</h2>
+              <h2 className="text-lg font-bold text-ink">Repartidores operativos</h2>
               <HelpTooltip label="Ayuda sobre disponibilidad">
-                Revisa quién puede tomar pedidos antes de asignar despachos.
+                Revisa disponibilidad, datos administrativos y edita cada perfil desde una sola lista.
               </HelpTooltip>
             </div>
           </div>
-          <Button
-            type="button"
-            className="bg-brand-500 text-white"
-            onClick={() => {
-              setEditingId(null);
-              setForm(emptyForm);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            Crear repartidor
-          </Button>
         </div>
 
         {riders.length ? (
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-3 space-y-2">
             {riders.map((rider) => (
-              <article key={rider.user_id} className="rounded border border-[var(--kp-stroke)] bg-white/90 p-3.5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-bold text-ink">{rider.full_name}</h3>
-                    <p className="mt-1 text-[13px] text-zinc-600">{rider.phone}</p>
-                  </div>
-                  <AvailabilityBadge rider={rider} />
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-zinc-600">
-                  <span className="rounded bg-zinc-100 px-2.5 py-1">{vehicleLabels[rider.vehicle_type]}</span>
-                  <span className="rounded bg-zinc-100 px-2.5 py-1">{rider.is_active ? "Activo" : "Inactivo"}</span>
-                  <span className="rounded bg-zinc-100 px-2.5 py-1">{rider.completed_deliveries} entregas</span>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <EmptyState title="Sin repartidores cargados" description="Crea el primer repartidor del comercio para empezar a operar con envíos." />
-        )}
-      </section>
-
-      {actionError ? (
-        <p className="rounded border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
-          {actionError}
-        </p>
-      ) : null}
-
-      <section className="space-y-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Asignación</p>
-          <div className="mt-2 flex items-center gap-2">
-            <h2 className="text-xl font-bold text-ink">Pedidos listos para repartir</h2>
-            <HelpTooltip label="Ayuda sobre asignación">
-              Elige un repartidor disponible para los pedidos listos para despacho.
-            </HelpTooltip>
-          </div>
-        </div>
-        {dispatchOrders.length ? (
-          <div className="space-y-4">
-            {dispatchOrders.map((order) => {
-              const candidates = riders.filter(
-                (rider) => rider.is_active && (rider.availability === "idle" || rider.user_id === order.assigned_rider_id)
-              );
-              return (
-                <article key={order.id} className="app-panel rounded p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-lg font-bold text-ink">Pedido #{order.id}</h3>
-                      <p className="text-sm text-zinc-600">
-                        {order.customer_name} | {formatDateTime(order.created_at)}
-                      </p>
+              <article key={rider.user_id} className="rounded border border-[var(--kp-stroke)] bg-white/90 p-3">
+                <div className="grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.25fr)_auto] lg:items-center">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-bold text-ink">{rider.full_name}</h3>
+                      <AvailabilityBadge rider={rider} />
+                      <span className="rounded bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-600">
+                        {rider.is_active ? "Activo" : "Inactivo"}
+                      </span>
                     </div>
-                    <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
-                      {statusLabels[order.delivery_status] ?? order.delivery_status}
-                    </span>
-                  </div>
-                  <div className="mt-4 grid gap-2 text-sm text-zinc-600 md:grid-cols-2 xl:grid-cols-4">
-                    <p>Pago: {statusLabels[order.payment_status] ?? order.payment_status}</p>
-                    <p>Repartidor actual: {order.assigned_rider_name ?? "Sin asignar"}</p>
-                    <p>Estado pedido: {statusLabels[order.status] ?? order.status}</p>
-                    <p>Tipo: {order.delivery_mode === "delivery" ? "Envío" : "Retiro"}</p>
-                  </div>
-                  <div className="mt-4 flex flex-col gap-2 md:flex-row">
-                    <select
-                      value={assignmentDrafts[order.id] ?? ""}
-                      onChange={(event) => setAssignmentDrafts((current) => ({ ...current, [order.id]: event.target.value }))}
-                      disabled={!candidates.length || busyOrderId === order.id}
-                      className="min-w-[240px] rounded border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-700 outline-none"
-                    >
-                      {!candidates.length ? <option value="">Sin repartidores disponibles</option> : null}
-                      {candidates.map((rider) => (
-                        <option key={rider.user_id} value={rider.user_id}>
-                          {rider.full_name} | {statusLabels[rider.availability] ?? rider.availability}
-                        </option>
-                      ))}
-                    </select>
-                    <Button
-                      type="button"
-                      disabled={!assignmentDrafts[order.id] || busyOrderId === order.id}
-                      onClick={() => void handleAssign(order.id)}
-                    >
-                      {busyOrderId === order.id ? "Asignando..." : order.assigned_rider_id ? "Reasignar repartidor" : "Asignar repartidor"}
-                    </Button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <EmptyState title="Sin pedidos para asignar" description="Cuando un pedido quede listo para despacho aparecerá aquí." />
-        )}
-      </section>
-
-      <section className="space-y-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Equipo</p>
-          <div className="mt-2 flex items-center gap-2">
-            <h2 className="text-xl font-bold text-ink">Datos de repartidores</h2>
-            <HelpTooltip label="Ayuda sobre datos de repartidores">
-              Consulta datos administrativos y edita cada perfil cuando lo necesites.
-            </HelpTooltip>
-          </div>
-        </div>
-        {riders.length ? (
-          <div className="grid gap-4 xl:grid-cols-2">
-            {riders.map((rider) => (
-              <article key={rider.user_id} className="rounded bg-white p-4 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-lg font-bold text-ink">{rider.full_name}</h3>
-                    <p className="text-sm text-zinc-600">
+                    <p className="mt-1 text-[13px] text-zinc-600">
                       {rider.phone} | {rider.email}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <AvailabilityBadge rider={rider} />
-                    <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
-                      {rider.is_active ? "Activo" : "Inactivo"}
-                    </span>
+                  <div className="grid gap-1.5 text-[13px] text-zinc-600 sm:grid-cols-2">
+                    <p>Vehiculo: <span className="font-semibold text-ink">{vehicleLabels[rider.vehicle_type]}</span></p>
+                    <p>DNI: <span className="font-semibold text-ink">{rider.dni_number}</span></p>
+                    <p>Entregas: <span className="font-semibold text-ink">{rider.completed_deliveries}</span></p>
+                    <p>
+                      Ubicacion:{" "}
+                      <span className="font-semibold text-ink">
+                        {rider.last_location_at ? formatDateTime(rider.last_location_at) : "Sin datos"}
+                      </span>
+                    </p>
+                    {(rider.license_number || rider.vehicle_plate) ? (
+                      <p className="sm:col-span-2">
+                        {rider.license_number ? `Licencia: ${rider.license_number}` : ""}
+                        {rider.license_number && rider.vehicle_plate ? " | " : ""}
+                        {rider.vehicle_plate ? `Patente: ${rider.vehicle_plate}` : ""}
+                      </p>
+                    ) : null}
                   </div>
-                </div>
-                <div className="mt-4 grid gap-2 text-sm text-zinc-600 md:grid-cols-2">
-                  <p>Vehículo: {vehicleLabels[rider.vehicle_type]}</p>
-                  <p>DNI: {rider.dni_number}</p>
-                  <p>Entregas: {rider.completed_deliveries}</p>
-                  <p>Última ubicación: {rider.last_location_at ? formatDateTime(rider.last_location_at) : "Sin datos"}</p>
-                </div>
-                {(rider.license_number || rider.vehicle_plate || rider.notes) ? (
-                  <div className="mt-3 rounded bg-zinc-50 p-3 text-sm text-zinc-600">
-                    {rider.license_number ? <p>Licencia: {rider.license_number}</p> : null}
-                    {rider.vehicle_plate ? <p>Patente: {rider.vehicle_plate}</p> : null}
-                    {rider.notes ? <p className="mt-2">{rider.notes}</p> : null}
-                  </div>
-                ) : null}
-                <div className="mt-4">
                   <Button
                     type="button"
-                    className="shadow-none"
+                    className="justify-center shadow-none"
                     onClick={() => {
                       setEditingId(rider.user_id);
                       setForm(toForm(rider));
@@ -451,7 +283,7 @@ export function RidersPage() {
                       setFormError(null);
                     }}
                   >
-                    Editar repartidor
+                    Editar
                   </Button>
                 </div>
               </article>

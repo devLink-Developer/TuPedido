@@ -173,7 +173,7 @@ export function MercadoPagoPage() {
   if (!store) return <EmptyState title="Mercado Pago no disponible" description={error ?? "Faltan datos del comercio"} />;
 
   return (
-    <div className="space-y-4 md:space-y-5">
+    <div className="space-y-3">
       <MerchantPageBar
         eyebrow="Finanzas"
         title="Mercado Pago"
@@ -192,45 +192,25 @@ export function MercadoPagoPage() {
       {oauthBanner ? <p className={oauthBanner.className}>{oauthBanner.message}</p> : null}
       {error ? <p className="rounded border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-900">{error}</p> : null}
 
-      <div className="hidden">
-        <section className="rounded bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Conexion</p>
-          <div className="mt-3 flex items-center gap-2">
-            <span className={`rounded px-3 py-1 text-xs font-semibold ${statusClass(connectionStatus)}`}>
-              {connectionLabels[connectionStatus] ?? connectionLabels.disconnected}
-            </span>
-          </div>
-          <p className="mt-4 text-sm text-zinc-600">
-            {providerEnabled
-              ? connectionMessages[connectionStatus] ?? connectionMessages.disconnected
-              : "Mercado Pago esta desactivado por la plataforma."}
-          </p>
-        </section>
-
-        <section className="rounded bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Operacion</p>
-          <p className="mt-3 text-2xl font-bold text-ink">{canOperate ? "Listo" : "No operativo"}</p>
-          <p className="mt-2 text-sm text-zinc-600">{mercadoPagoState?.reason ?? "Puede cobrar online con Mercado Pago."}</p>
-        </section>
-
-        <section className="rounded bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Modo</p>
-          <p className="mt-3 text-2xl font-bold text-ink">{modeLabel}</p>
-          <p className="mt-2 text-sm text-zinc-600">Lo define el admin desde la configuracion global de Mercado Pago.</p>
-        </section>
-      </div>
-
-      <section className="rounded bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr] xl:items-start">
+      <section className="rounded bg-white p-3 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Cuenta del comercio</p>
-              <h2 className="mt-2 text-xl font-bold text-ink">Conexion OAuth</h2>
-              <p className="mt-2 max-w-3xl text-sm text-zinc-600">
-                Usa siempre la cuenta Mercado Pago del comercio. La plataforma no cobra en una cuenta central ni transfiere dinero manualmente.
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-bold text-ink">Conexion OAuth</h2>
+                <span className={`rounded px-2.5 py-1 text-xs font-semibold ${statusClass(connectionStatus)}`}>
+                  {connectionLabels[connectionStatus] ?? connectionLabels.disconnected}
+                </span>
+              </div>
+              <p className="mt-1.5 max-w-3xl text-sm text-zinc-600">
+                {providerEnabled
+                  ? connectionMessages[connectionStatus] ?? connectionMessages.disconnected
+                  : "Mercado Pago esta desactivado por la plataforma."}
               </p>
             </div>
-            <div className="grid gap-3 text-sm text-zinc-600 md:grid-cols-2">
+            <div className="grid gap-2 text-sm text-zinc-600 md:grid-cols-2">
               <p className="rounded bg-zinc-50 px-4 py-3">
                 MP user id: <span className="font-semibold text-ink">{mpUserId ?? "Sin cuenta conectada"}</span>
               </p>
@@ -274,12 +254,12 @@ export function MercadoPagoPage() {
         </div>
       </section>
 
-      <section className="rounded bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <section className="rounded bg-white p-3 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Clientes</p>
-            <h2 className="mt-2 text-xl font-bold text-ink">Cobro online</h2>
-            <p className="mt-2 max-w-2xl text-sm text-zinc-600">
+            <h2 className="mt-1.5 text-lg font-bold text-ink">Cobro online</h2>
+            <p className="mt-1.5 max-w-2xl text-sm text-zinc-600">
               Esta opcion muestra Mercado Pago en el checkout del cliente cuando la cuenta esta operativa. Efectivo se administra en Configuracion.
             </p>
           </div>
@@ -288,7 +268,7 @@ export function MercadoPagoPage() {
           </Button>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-2">
+        <div className="mt-3 grid gap-2">
           <label
             className={`flex items-center gap-3 rounded border border-black/5 bg-zinc-50 px-4 py-4 text-sm font-semibold ${
               canOperate ? "text-zinc-700" : "cursor-not-allowed text-zinc-400"
@@ -320,7 +300,7 @@ export function MercadoPagoPage() {
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => navigate("/m/pedidos")}
@@ -344,6 +324,7 @@ export function MercadoPagoPage() {
           </button>
         </div>
       </section>
+      </div>
     </div>
   );
 }
