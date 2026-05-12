@@ -238,9 +238,10 @@ export function RidersPage() {
   if (error) return <EmptyState title="Repartidores no disponibles" description={error} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-5">
       <PageHeader
         eyebrow="Comercio"
+        compact
         title={
           <span className="inline-flex items-center gap-3">
             <span>Repartidores</span>
@@ -272,13 +273,13 @@ export function RidersPage() {
       />
 
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Disponibles" value={String(idleRiders.length)} description="Repartidores listos para tomar pedidos" />
-        <StatCard label="Ocupados" value={String(busyRiders.length)} description="Asignados o con entrega en curso" />
-        <StatCard label="Por asignar" value={String(dispatchOrders.length)} description="Pedidos listos o en reasignación" />
-        <StatCard label="Activos" value={String(activeRiders.length)} description="Repartidores operativos en el comercio" />
+        <StatCard compact label="Disponibles" value={String(idleRiders.length)} description="Repartidores listos para tomar pedidos" />
+        <StatCard compact label="Ocupados" value={String(busyRiders.length)} description="Asignados o con entrega en curso" />
+        <StatCard compact label="Por asignar" value={String(dispatchOrders.length)} description="Pedidos listos o en reasignación" />
+        <StatCard compact label="Activos" value={String(activeRiders.length)} description="Repartidores operativos en el comercio" />
       </div>
 
-      <section className="app-panel rounded p-4 md:p-5">
+      <section className="app-panel rounded p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--kp-accent)]">Disponibilidad</p>
@@ -306,7 +307,7 @@ export function RidersPage() {
         {riders.length ? (
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {riders.map((rider) => (
-              <article key={rider.user_id} className="rounded border border-[var(--kp-stroke)] bg-white/90 p-4">
+              <article key={rider.user_id} className="rounded border border-[var(--kp-stroke)] bg-white/90 p-3.5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="font-bold text-ink">{rider.full_name}</h3>
@@ -350,7 +351,7 @@ export function RidersPage() {
                 (rider) => rider.is_active && (rider.availability === "idle" || rider.user_id === order.assigned_rider_id)
               );
               return (
-                <article key={order.id} className="app-panel rounded p-5">
+                <article key={order.id} className="app-panel rounded p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <h3 className="text-lg font-bold text-ink">Pedido #{order.id}</h3>
@@ -412,7 +413,7 @@ export function RidersPage() {
         {riders.length ? (
           <div className="grid gap-4 xl:grid-cols-2">
             {riders.map((rider) => (
-              <article key={rider.user_id} className="rounded bg-white p-5 shadow-sm">
+              <article key={rider.user_id} className="rounded bg-white p-4 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-bold text-ink">{rider.full_name}</h3>
@@ -434,7 +435,7 @@ export function RidersPage() {
                   <p>Última ubicación: {rider.last_location_at ? formatDateTime(rider.last_location_at) : "Sin datos"}</p>
                 </div>
                 {(rider.license_number || rider.vehicle_plate || rider.notes) ? (
-                  <div className="mt-4 rounded bg-zinc-50 p-4 text-sm text-zinc-600">
+                  <div className="mt-3 rounded bg-zinc-50 p-3 text-sm text-zinc-600">
                     {rider.license_number ? <p>Licencia: {rider.license_number}</p> : null}
                     {rider.vehicle_plate ? <p>Patente: {rider.vehicle_plate}</p> : null}
                     {rider.notes ? <p className="mt-2">{rider.notes}</p> : null}
@@ -464,11 +465,11 @@ export function RidersPage() {
 
       {formOpen ? (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(92,52,24,0.24)] p-4 backdrop-blur-[2px] md:items-center">
-          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded bg-[linear-gradient(180deg,#fcf6ef_0%,#fffdfa_100%)] p-3 shadow-[0_32px_80px_rgba(24,19,18,0.28)] md:p-5">
-            <div className="mb-4 flex items-center justify-between gap-3 px-2">
+          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded bg-[linear-gradient(180deg,#fcf6ef_0%,#fffdfa_100%)] p-3 shadow-[0_32px_80px_rgba(24,19,18,0.28)] md:p-4">
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Repartidores</p>
-                <h2 className="mt-2 text-2xl font-bold text-ink">{editingId === null ? "Nuevo repartidor" : "Editar repartidor"}</h2>
+                <h2 className="mt-2 text-xl font-bold text-ink">{editingId === null ? "Nuevo repartidor" : "Editar repartidor"}</h2>
               </div>
               <button
                 type="button"
@@ -479,7 +480,7 @@ export function RidersPage() {
               </button>
             </div>
 
-            <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5 rounded bg-white p-5 shadow-sm">
+            <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4 rounded bg-white p-4 shadow-sm">
               <div className="grid gap-3 md:grid-cols-2">
                 <input
                   value={form.full_name}

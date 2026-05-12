@@ -51,10 +51,10 @@ function PeriodPanel({
   cancellationCount: number;
 }) {
   return (
-    <article className="rounded bg-white p-5 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{label}</p>
-      <p className="mt-3 font-display text-3xl font-bold tracking-tight text-ink">{formatCurrency(sales)}</p>
-      <div className="mt-4 grid gap-2 text-sm text-zinc-600 sm:grid-cols-2">
+    <article className="rounded bg-white p-4 shadow-sm">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">{label}</p>
+      <p className="mt-2 font-display text-2xl font-bold tracking-tight text-ink">{formatCurrency(sales)}</p>
+      <div className="mt-3 grid gap-1.5 text-sm text-zinc-600 sm:grid-cols-2">
         <p>Pedidos: {orderCount}</p>
         <p>Entregados: {deliveredCount}</p>
         <p>Ticket promedio: {formatCurrency(averageTicket)}</p>
@@ -121,9 +121,10 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-5">
       <PageHeader
         eyebrow="Finanzas"
+        compact
         title={
           <span className="inline-flex items-center gap-3">
             <span>{store.name}</span>
@@ -150,7 +151,7 @@ export function DashboardPage() {
       />
 
       {approvalMessage ? (
-        <section className="app-panel rounded p-5">
+        <section className="app-panel rounded p-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Lectura ejecutiva</p>
@@ -178,21 +179,25 @@ export function DashboardPage() {
 
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard
+          compact
           label="Pedidos abiertos"
           value={String(orders.filter((order) => !["cancelled", "delivered"].includes(order.status)).length)}
           description="Pedidos por atender."
         />
         <StatCard
+          compact
           label="Ventas mes"
           value={formatCurrency(currentMonth?.sales ?? 0)}
-              description="Facturación total del mes en curso."
+          description="Facturación total del mes en curso."
         />
         <StatCard
+          compact
           label="Saldo pendiente"
           value={formatCurrency(outstandingBalance)}
           description={`${overview.pending_notices_count} avisos pendientes de revisión.`}
         />
         <StatCard
+          compact
           label="Saldo liquidado"
           value={formatCurrency(overview.paid_balance)}
           description="Cobros ya aplicados a la cuenta corriente."
@@ -200,7 +205,7 @@ export function DashboardPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-        <section className="app-panel rounded p-5">
+        <section className="app-panel rounded p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Operación</p>
@@ -218,7 +223,7 @@ export function DashboardPage() {
 
           <div className="mt-4 space-y-3">
             {openOrders.map((order) => (
-              <article key={order.id} className="rounded bg-zinc-50 p-4 text-sm">
+              <article key={order.id} className="rounded bg-zinc-50 p-3.5 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="font-semibold text-ink">Pedido #{order.id}</p>
@@ -247,15 +252,15 @@ export function DashboardPage() {
         </section>
 
         <section className="space-y-4">
-          <article className="app-panel rounded p-5">
+          <article className="app-panel rounded p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Finanzas</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Resumen financiero</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded bg-[#fff6ef] p-4">
+              <div className="rounded bg-[#fff6ef] p-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pendiente</p>
                 <p className="mt-2 text-2xl font-bold text-ink">{formatCurrency(outstandingBalance)}</p>
               </div>
-              <div className="rounded bg-[#f6fbf7] p-4">
+              <div className="rounded bg-[#f6fbf7] p-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Liquidado</p>
                 <p className="mt-2 text-2xl font-bold text-ink">{formatCurrency(overview.paid_balance)}</p>
               </div>
@@ -270,7 +275,7 @@ export function DashboardPage() {
             </Link>
           </article>
 
-          <article className="app-panel rounded p-5">
+          <article className="app-panel rounded p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Próximo paso</p>
             <h2 className="mt-2 text-xl font-bold text-ink">Mantener el panel al día</h2>
             <p className="mt-2 text-sm leading-7 text-zinc-600">

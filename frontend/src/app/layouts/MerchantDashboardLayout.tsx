@@ -112,7 +112,7 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
   }
 
   return (
-    <div className="app-shell min-h-screen text-ink">
+    <div className="app-shell merchant-density min-h-screen text-ink">
       <header className="hidden md:block">
         <div className="app-toolbar w-full border border-x-0 border-[var(--color-border-default)]">
           <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-4 px-4 py-4 md:px-6 lg:px-7">

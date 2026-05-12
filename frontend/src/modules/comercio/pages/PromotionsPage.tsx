@@ -4,9 +4,10 @@ import { PromoManager } from "../components/PromoManager";
 
 export function PromotionsPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-5">
       <PageHeader
         eyebrow="Comercial"
+        compact
         title={
           <span className="inline-flex items-center gap-3">
             <span>Promociones</span>

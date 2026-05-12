@@ -267,9 +267,10 @@ export function LiquidationsPage() {
   if (error || !overview) return <EmptyState title="Liquidaciones no disponibles" description={error ?? "Sin datos"} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-5">
       <PageHeader
         eyebrow="Comercio"
+        compact
         title={
           <span className="inline-flex items-center gap-3">
             <span>Liquidaciones</span>
@@ -282,21 +283,25 @@ export function LiquidationsPage() {
 
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard
+          compact
           label="Pendiente plataforma"
           value={formatCurrency(overview.pending_balance)}
           description={`${overview.pending_notices_count} avisos pendientes.`}
         />
         <StatCard
+          compact
           label="Pagado plataforma"
           value={formatCurrency(overview.paid_balance)}
           description="Pagos ya revisados."
         />
         <StatCard
+          compact
           label="Pendiente repartidores"
           value={formatCurrency(ridersPendingTotal)}
           description="Saldo por pagar."
         />
         <StatCard
+          compact
           label="Notificaciones"
           value={String(notifications.length)}
           description="Alertas recientes."
@@ -330,7 +335,7 @@ export function LiquidationsPage() {
 
       <div className={activeSection === "history" ? "hidden" : "grid gap-4"}>
         <section className={activeSection === "platform" ? "space-y-4" : "hidden"}>
-          <article className="rounded bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Plataforma</p>
@@ -345,7 +350,7 @@ export function LiquidationsPage() {
             </div>
 
             {pendingNotice ? (
-              <p className="mt-4 rounded border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+              <p className="mt-3 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
                 Ya existe un aviso pendiente por {formatCurrency(pendingNotice.amount)}. Espera revisión antes de enviar
                 otro.
               </p>
@@ -395,7 +400,7 @@ export function LiquidationsPage() {
                 disabled={noticeFormDisabled}
               />
               {noticeForm.proof_url ? (
-                <div className="rounded bg-zinc-50 p-4">
+                <div className="rounded bg-zinc-50 p-3">
                   <p className="text-sm font-semibold text-ink">{noticeForm.proof_original_name}</p>
                   <div className="mt-3">
                     {noticeForm.proof_content_type.startsWith("image/") ? (
@@ -423,7 +428,7 @@ export function LiquidationsPage() {
             </form>
           </article>
 
-          <article className="rounded bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Acciones</p>
@@ -437,7 +442,7 @@ export function LiquidationsPage() {
             </div>
             <div className="mt-4 space-y-3">
               {charges.slice(0, 5).map((charge) => (
-                <div key={charge.id} className="rounded bg-zinc-50 p-4 text-sm">
+                <div key={charge.id} className="rounded bg-zinc-50 p-3 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold text-ink">Pedido #{charge.order_id}</p>
@@ -451,7 +456,7 @@ export function LiquidationsPage() {
                 </div>
               ))}
               {notices.map((notice) => (
-                <div key={notice.id} className="rounded border border-black/5 bg-white p-4 text-sm">
+                <div key={notice.id} className="rounded border border-black/5 bg-white p-3 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold text-ink">{formatCurrency(notice.amount)}</p>
@@ -484,7 +489,7 @@ export function LiquidationsPage() {
         </section>
 
         <section className={activeSection === "riders" ? "space-y-4" : "hidden"}>
-          <article className="rounded bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Repartidores</p>
@@ -511,7 +516,7 @@ export function LiquidationsPage() {
                 const latestPayments = paymentsByRider.get(settlement.rider_user_id) ?? [];
                 const latestPayment = latestPayments[0] ?? null;
                 return (
-                  <article key={settlement.rider_user_id} className="rounded bg-zinc-50 p-4">
+                  <article key={settlement.rider_user_id} className="rounded bg-zinc-50 p-3.5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-ink">{settlement.rider_name}</p>
@@ -603,14 +608,14 @@ export function LiquidationsPage() {
             </div>
           </article>
 
-          <article className="rounded bg-white p-5 shadow-sm">
+          <article className="rounded bg-white p-4 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Notificaciones</p>
             <div className="mt-2 flex items-center gap-2">
               <SectionTitle title="Alertas" help="Aquí aparecen avisos recientes relacionados con tus liquidaciones." />
             </div>
             <div className="mt-4 space-y-3">
               {notifications.slice(0, 5).map((notification) => (
-                <div key={notification.id} className="rounded bg-zinc-50 p-4 text-sm">
+                <div key={notification.id} className="rounded bg-zinc-50 p-3 text-sm">
                   <p className="font-semibold text-ink">{notification.title}</p>
                   <p className="mt-2 text-zinc-600">{notification.body}</p>
                   <p className="mt-2 text-xs uppercase tracking-[0.18em] text-zinc-400">
@@ -624,7 +629,7 @@ export function LiquidationsPage() {
         </section>
       </div>
 
-      <section className={activeSection === "history" ? "rounded bg-white p-5 shadow-sm" : "hidden"}>
+      <section className={activeSection === "history" ? "rounded bg-white p-4 shadow-sm" : "hidden"}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pagos y revisiones</p>
@@ -638,7 +643,7 @@ export function LiquidationsPage() {
         </div>
         <div className="mt-4 space-y-3">
           {history.map((entry) => (
-            <article key={entry.id} className="rounded bg-zinc-50 p-4 text-sm">
+            <article key={entry.id} className="rounded bg-zinc-50 p-3.5 text-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-ink">{entry.title}</p>

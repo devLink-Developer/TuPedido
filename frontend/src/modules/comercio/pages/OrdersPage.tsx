@@ -623,10 +623,11 @@ export function OrdersPage() {
       {isDesktop ? (
         <PageHeader
           eyebrow="Comercio"
-          className="!rounded !p-5 sm:!p-6"
+          compact
+          className="!rounded !p-4 sm:!p-5"
           contentClassName="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-end"
-          titleClassName="!text-[1.85rem] sm:!text-[2.08rem] md:!text-[2.28rem]"
-          descriptionClassName="!leading-6"
+          titleClassName="!text-[1.55rem] sm:!text-[1.8rem] md:!text-[2rem]"
+          descriptionClassName="!leading-5"
           title={
             <span className="inline-flex items-center gap-3">
               <span>Pedidos</span>
@@ -734,18 +735,21 @@ export function OrdersPage() {
       </section>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Abiertos" value={String(openOrders.length)} description="Pedidos visibles para operar ahora." />
+        <StatCard compact label="Abiertos" value={String(openOrders.length)} description="Pedidos visibles para operar ahora." />
         <StatCard
+          compact
           label="Hoy"
           value={formatCurrency(todayStats?.sales ?? 0)}
           description={`${todayStats?.orderCount ?? 0} pedidos dentro del filtro actual.`}
         />
         <StatCard
+          compact
           label="Entregados"
           value={String(statusCounts.get("delivered") ?? 0)}
           description="Solo aparecen si activas el filtro correspondiente."
         />
         <StatCard
+          compact
           label="Cancelados"
           value={String(statusCounts.get("cancelled") ?? 0)}
           description="También quedan ocultos hasta que los filtres."

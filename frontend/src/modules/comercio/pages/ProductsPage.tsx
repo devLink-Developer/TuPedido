@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
@@ -11,6 +10,7 @@ import {
 } from "../../../shared/services/api";
 import type { Product, ProductCategory, ProductWrite } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
+import { CatalogTaxonomyManager } from "../components/CatalogTaxonomyManager";
 import { ProductForm } from "../components/ProductForm";
 import { ProductList } from "../components/ProductList";
 
@@ -24,10 +24,12 @@ export function ProductsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function load() {
+  async function load(options?: { silent?: boolean }) {
     if (!token) return;
-    setLoading(true);
-    setError(null);
+    if (!options?.silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const [categoryResult, productResult] = await Promise.all([
         fetchMerchantProductCategories(token),
@@ -38,7 +40,9 @@ export function ProductsPage() {
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudieron cargar los productos");
     } finally {
-      setLoading(false);
+      if (!options?.silent) {
+        setLoading(false);
+      }
     }
   }
 
@@ -57,7 +61,7 @@ export function ProductsPage() {
       }
       setEditingProduct(null);
       setFormOpen(false);
-      await load();
+      await load({ silent: true });
     } finally {
       setSaving(false);
     }
@@ -66,18 +70,19 @@ export function ProductsPage() {
   async function handleDelete(productId: number) {
     if (!token) return;
     await deleteMerchantProduct(token, productId);
-    await load();
+    await load({ silent: true });
   }
 
   if (loading) return <LoadingCard />;
   if (error) return <EmptyState title="Productos no disponibles" description={error} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-5">
       <PageHeader
         eyebrow="Comercial"
+        compact
         title="Catálogo"
-        description="Da de alta productos y mantené el listado ordenado por disponibilidad, stock y precio."
+        description="Gestiona productos, categorías y subcategorías desde una sola pantalla compacta."
         action={
           <Button
             type="button"
@@ -94,33 +99,30 @@ export function ProductsPage() {
       />
 
       {!categories.length ? (
-        <EmptyState
-          title="Primero crea la taxonomía del catálogo"
-          description="Configura categorías y subcategorías en Configuración antes de dar de alta productos."
-          action={
-            <Link to="/m/configuracion" className="rounded bg-brand-500 px-4 py-2 text-sm font-semibold text-white">
-              Ir a configuración
-            </Link>
-          }
-        />
+        <section className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          Primero crea al menos una categoría en el bloque de taxonomía. Después podrás cargar productos.
+        </section>
       ) : null}
 
-      <ProductList
-        products={products}
-        onEdit={(product) => {
-          setEditingProduct(product);
-          setFormOpen(true);
-        }}
-        onDelete={handleDelete}
-      />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_390px] xl:items-start">
+        <ProductList
+          products={products}
+          onEdit={(product) => {
+            setEditingProduct(product);
+            setFormOpen(true);
+          }}
+          onDelete={handleDelete}
+        />
+        <CatalogTaxonomyManager categories={categories} onRefresh={() => load({ silent: true })} />
+      </div>
 
       {formOpen ? (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(92,52,24,0.24)] p-4 backdrop-blur-[2px] md:items-center">
-          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded bg-[linear-gradient(180deg,#fcf6ef_0%,#fffdfa_100%)] p-3 shadow-[0_32px_80px_rgba(24,19,18,0.28)] md:p-5">
-            <div className="mb-4 flex items-center justify-between gap-3 px-2">
+          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded bg-[linear-gradient(180deg,#fcf6ef_0%,#fffdfa_100%)] p-3 shadow-[0_32px_80px_rgba(24,19,18,0.28)] md:p-4">
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Catálogo</p>
-                <h2 className="mt-2 text-2xl font-bold text-ink">
+                <h2 className="mt-2 text-xl font-bold text-ink">
                   {editingProduct ? "Editar producto" : "Nuevo producto"}
                 </h2>
               </div>

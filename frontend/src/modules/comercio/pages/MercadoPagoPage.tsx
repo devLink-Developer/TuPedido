@@ -172,9 +172,10 @@ export function MercadoPagoPage() {
   if (!store) return <EmptyState title="Mercado Pago no disponible" description={error ?? "Faltan datos del comercio"} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-5">
       <PageHeader
         eyebrow="Finanzas"
+        compact
         title="Mercado Pago"
         description="Conecta la cuenta propia del comercio y habilita el cobro online con split automatico de marketplace."
       />
@@ -183,7 +184,7 @@ export function MercadoPagoPage() {
       {error ? <p className="rounded border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-900">{error}</p> : null}
 
       <div className="grid gap-4 md:grid-cols-3">
-        <section className="rounded bg-white p-5 shadow-sm">
+        <section className="rounded bg-white p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Conexion</p>
           <div className="mt-3 flex items-center gap-2">
             <span className={`rounded px-3 py-1 text-xs font-semibold ${statusClass(connectionStatus)}`}>
@@ -197,20 +198,20 @@ export function MercadoPagoPage() {
           </p>
         </section>
 
-        <section className="rounded bg-white p-5 shadow-sm">
+        <section className="rounded bg-white p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Operacion</p>
           <p className="mt-3 text-2xl font-bold text-ink">{canOperate ? "Listo" : "No operativo"}</p>
           <p className="mt-2 text-sm text-zinc-600">{mercadoPagoState?.reason ?? "Puede cobrar online con Mercado Pago."}</p>
         </section>
 
-        <section className="rounded bg-white p-5 shadow-sm">
+        <section className="rounded bg-white p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Modo</p>
           <p className="mt-3 text-2xl font-bold text-ink">{modeLabel}</p>
           <p className="mt-2 text-sm text-zinc-600">Lo define el admin desde la configuracion global de Mercado Pago.</p>
         </section>
       </div>
 
-      <section className="rounded bg-white p-5 shadow-sm">
+      <section className="rounded bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-4">
             <div>
@@ -264,7 +265,7 @@ export function MercadoPagoPage() {
         </div>
       </section>
 
-      <section className="rounded bg-white p-5 shadow-sm">
+      <section className="rounded bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Clientes</p>

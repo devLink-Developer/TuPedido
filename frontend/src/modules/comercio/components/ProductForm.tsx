@@ -169,10 +169,10 @@ export function ProductForm({
   }
 
   return (
-    <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5 rounded bg-white p-5 shadow-sm">
+    <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4 rounded bg-white p-4 shadow-sm">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Catálogo</p>
-        <h3 className="mt-2 text-2xl font-bold text-ink">{initialProduct ? "Editar producto" : "Nuevo producto"}</h3>
+        <h3 className="mt-2 text-xl font-bold text-ink">{initialProduct ? "Editar producto" : "Nuevo producto"}</h3>
         <p className="mt-2 text-sm text-zinc-600">
           Cargá información comercial real: identificación, precio de lista, descuento, stock e imagen.
         </p>
@@ -266,7 +266,7 @@ export function ProductForm({
           <textarea
             value={form.description}
             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-            rows={5}
+            rows={4}
             placeholder="Descripción comercial y detalles útiles para el cliente"
             className="rounded border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
           />
@@ -324,7 +324,7 @@ export function ProductForm({
         </div>
         <div className="rounded border border-black/5 bg-zinc-50 px-4 py-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Precio final al cliente</p>
-          <p className="mt-2 text-2xl font-black text-ink">{formatCurrency(pricePreview)}</p>
+          <p className="mt-2 text-xl font-black text-ink">{formatCurrency(pricePreview)}</p>
         </div>
       </section>
 

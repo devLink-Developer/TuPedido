@@ -343,6 +343,54 @@ a {
   box-shadow: none;
 }
 
+.merchant-density .app-panel,
+.merchant-density .card-base {
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(126, 89, 41, 0.08);
+}
+
+.merchant-density .app-panel:hover,
+.merchant-density .card-base:hover {
+  box-shadow: 0 12px 28px rgba(126, 89, 41, 0.1);
+}
+
+.merchant-density .app-button {
+  min-height: 44px;
+  border-radius: 8px;
+  padding: 0.62rem 0.95rem;
+  font-size: 0.82rem;
+}
+
+.merchant-density .app-chip {
+  min-height: 28px;
+  padding: 0.35rem 0.62rem;
+}
+
+.merchant-density article.rounded.bg-white,
+.merchant-density section.rounded.bg-white,
+.merchant-density form.rounded.bg-white,
+.merchant-density div.rounded.bg-white,
+.merchant-density a.group.rounded.bg-white {
+  border-radius: 8px !important;
+  box-shadow: 0 10px 24px rgba(126, 89, 41, 0.08) !important;
+}
+
+.merchant-density input.rounded,
+.merchant-density select.rounded,
+.merchant-density textarea.rounded {
+  min-height: 44px;
+  border-radius: 8px !important;
+  padding: 0.62rem 0.78rem;
+}
+
+.merchant-density button.rounded.bg-brand-500,
+.merchant-density a.rounded.bg-brand-500,
+.merchant-density button.rounded.bg-zinc-100,
+.merchant-density button.rounded.bg-white,
+.merchant-density a.rounded.bg-white:not(.group) {
+  border-radius: 8px !important;
+}
+
 .app-button.bg-white,
 .app-button.shadow-none:not(.bg-white\/10) {
   border-color: var(--kp-stroke-strong);
@@ -436,6 +484,28 @@ textarea.rounded {
   border-radius: 18px !important;
   background: rgba(255, 255, 255, 0.96) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86) !important;
+}
+
+.merchant-density article.rounded.bg-white,
+.merchant-density section.rounded.bg-white,
+.merchant-density form.rounded.bg-white,
+.merchant-density div.rounded.bg-white,
+.merchant-density a.group.rounded.bg-white {
+  border-radius: 8px !important;
+  box-shadow: 0 10px 24px rgba(126, 89, 41, 0.08) !important;
+}
+
+.merchant-density button.rounded.bg-brand-500,
+.merchant-density a.rounded.bg-brand-500,
+.merchant-density button.rounded.bg-\[linear-gradient\(135deg\2c \#fb923c\2c \#c2410c\)\],
+.merchant-density a.rounded.bg-\[linear-gradient\(135deg\2c \#fb923c\2c \#c2410c\)\],
+.merchant-density button.rounded.bg-zinc-100,
+.merchant-density button.rounded.bg-white,
+.merchant-density a.rounded.bg-white:not(.group),
+.merchant-density input.rounded,
+.merchant-density select.rounded,
+.merchant-density textarea.rounded {
+  border-radius: 8px !important;
 }
 
 .bg-zinc-50 {

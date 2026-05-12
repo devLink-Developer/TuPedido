@@ -116,6 +116,7 @@ export function PageHeader({
   description,
   action,
   backgroundImageUrl,
+  compact = false,
   className,
   contentClassName,
   titleClassName,
@@ -126,6 +127,7 @@ export function PageHeader({
   description?: ReactNode;
   action?: ReactNode;
   backgroundImageUrl?: string | null;
+  compact?: boolean;
   className?: string;
   contentClassName?: string;
   titleClassName?: string;
@@ -137,7 +139,13 @@ export function PageHeader({
   return (
     <div
       className={[
-        hasBanner ? "app-panel-dark ambient-grid min-h-[188px] overflow-hidden p-5 sm:p-6" : "app-panel p-5 sm:p-6",
+        hasBanner
+          ? compact
+            ? "app-panel-dark ambient-grid min-h-[150px] overflow-hidden p-4 sm:p-5"
+            : "app-panel-dark ambient-grid min-h-[188px] overflow-hidden p-5 sm:p-6"
+          : compact
+            ? "app-panel p-4 sm:p-5"
+            : "app-panel p-5 sm:p-6",
         className ?? ""
       ].join(" ")}
       style={
@@ -156,11 +164,12 @@ export function PageHeader({
           <div className="pointer-events-none absolute bottom-0 left-0 h-28 w-full bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.12))]" />
         </>
       ) : null}
-      <div className={["relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between", contentClassName ?? ""].join(" ")}>
+      <div className={["relative flex flex-col md:flex-row md:items-end md:justify-between", compact ? "gap-3" : "gap-4", contentClassName ?? ""].join(" ")}>
         <div className="min-w-0">
           <span
             className={[
-              "inline-flex border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.24em] sm:text-[11px]",
+              "inline-flex border px-3 font-semibold uppercase",
+              compact ? "py-1 text-[10px] tracking-[0.2em]" : "py-1.5 text-[10px] tracking-[0.24em] sm:text-[11px]",
               hasBanner ? "border-white/12 bg-white/8 text-[#ffd3bf]" : "app-chip text-[var(--kp-accent)]"
             ].join(" ")}
           >
@@ -168,7 +177,8 @@ export function PageHeader({
           </span>
           <h1
             className={[
-              "mt-3.5 max-w-4xl font-display text-[1.65rem] font-bold leading-tight sm:text-[1.95rem] md:text-[2.2rem]",
+              "max-w-4xl font-display font-bold leading-tight",
+              compact ? "mt-2.5 text-[1.45rem] sm:text-[1.68rem] md:text-[1.92rem]" : "mt-3.5 text-[1.65rem] sm:text-[1.95rem] md:text-[2.2rem]",
               hasBanner ? "text-white" : "text-ink",
               titleClassName ?? ""
             ].join(" ")}
@@ -178,7 +188,8 @@ export function PageHeader({
           {description ? (
             <div
               className={[
-                "mt-3 max-w-3xl text-sm leading-6 md:text-[15px]",
+                "max-w-3xl text-sm",
+                compact ? "mt-2 leading-5" : "mt-3 leading-6 md:text-[15px]",
                 hasBanner ? "text-white/74" : "text-zinc-600",
                 descriptionClassName ?? ""
               ].join(" ")}
@@ -245,20 +256,22 @@ export function StatusPill({ value }: { value: string }) {
 export function StatCard({
   label,
   value,
-  description
+  description,
+  compact = false
 }: {
   label: string;
   value: string;
   description?: string;
+  compact?: boolean;
 }) {
   return (
-    <article className="app-panel p-4">
+    <article className={compact ? "app-panel p-3.5" : "app-panel p-4"}>
       <div className="relative">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">{label}</p>
-        <p className="mt-3 font-display text-[1.5rem] font-bold leading-tight text-ink sm:text-[1.75rem]">
+        <p className={compact ? "text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400" : "text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400"}>{label}</p>
+        <p className={compact ? "mt-2 font-display text-[1.28rem] font-bold leading-tight text-ink sm:text-[1.48rem]" : "mt-3 font-display text-[1.5rem] font-bold leading-tight text-ink sm:text-[1.75rem]"}>
           {value}
         </p>
-        {description ? <p className="mt-2.5 text-sm leading-6 text-zinc-600">{description}</p> : null}
+        {description ? <p className={compact ? "mt-1.5 text-[13px] leading-5 text-zinc-600" : "mt-2.5 text-sm leading-6 text-zinc-600"}>{description}</p> : null}
       </div>
     </article>
   );
