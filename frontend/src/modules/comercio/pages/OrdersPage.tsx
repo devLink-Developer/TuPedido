@@ -1,5 +1,5 @@
-import { useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from "react";
-import { EmptyState, LoadingCard, PageHeader, StatCard } from "../../../shared/components";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { EmptyState, LoadingCard } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
 import {
@@ -149,34 +149,6 @@ function OrdersToggleControl({
         onToggle={onToggle}
         surface="light"
       />
-    </div>
-  );
-}
-
-function OrdersSalesStatusCard({
-  acceptingOrders,
-  toggleDescription,
-  toggleError,
-  control,
-  className = ""
-}: {
-  acceptingOrders: boolean;
-  toggleDescription: string;
-  toggleError: string | null;
-  control?: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={`rounded border border-[var(--kp-stroke)] bg-white/82 p-3.5 shadow-sm backdrop-blur md:p-4 ${className}`.trim()}>
-      <div className={`flex items-start gap-3 ${control ? "justify-between" : ""}`.trim()}>
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--kp-accent)]">Venta</p>
-          <p className="mt-1.5 text-[1.02rem] font-bold text-ink">{acceptingOrders ? "Venta habilitada" : "Venta pausada"}</p>
-          <p className="mt-1 text-[13px] leading-5 text-zinc-600 md:max-w-[220px]">{toggleDescription}</p>
-        </div>
-        {control}
-      </div>
-      {toggleError ? <p className="mt-2.5 rounded bg-rose-50 px-3 py-2 text-[13px] text-rose-700">{toggleError}</p> : null}
     </div>
   );
 }
@@ -619,41 +591,114 @@ export function OrdersPage() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-5">
+    <div className="space-y-3">
       {isDesktop ? (
-        <PageHeader
-          eyebrow="Comercio"
-          compact
-          className="!rounded !p-4 sm:!p-5"
-          contentClassName="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-end"
-          titleClassName="!text-[1.55rem] sm:!text-[1.8rem] md:!text-[2rem]"
-          descriptionClassName="!leading-5"
-          title={
-            <span className="inline-flex items-center gap-3">
-              <span>Pedidos</span>
-              <HelpTooltip label="Ayuda sobre pedidos" variant="inverse">
-                Revisa tus pedidos abiertos y muestra entregados o cancelados solo cuando los necesites.
+        <section className="rounded border border-[var(--kp-stroke)] bg-white/94 px-3 py-2.5 shadow-sm backdrop-blur">
+          <div className="grid gap-2 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-center">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold leading-tight text-ink">Pedidos</h1>
+                <HelpTooltip label="Ayuda sobre pedidos">
+                  Opera pedidos abiertos y muestra entregados o cancelados solo cuando los necesites.
+                </HelpTooltip>
+              </div>
+              <span
+                className={[
+                  "inline-flex min-h-[30px] items-center gap-2 rounded border px-2.5 text-xs font-semibold",
+                  acceptingOrders
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-amber-200 bg-amber-50 text-amber-800"
+                ].join(" ")}
+              >
+                <span className={["h-2 w-2 rounded", acceptingOrders ? "bg-emerald-500" : "bg-amber-500"].join(" ")} />
+                {acceptingOrders ? "Venta habilitada" : "Venta pausada"}
+              </span>
+              <p className="min-w-[220px] flex-1 truncate text-[13px] text-zinc-600">{toggleDescription}</p>
+            </div>
+
+            <div className="flex items-center gap-2 2xl:justify-end">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8f5f4e]">Recibir pedidos</span>
+              <OrdersToggleSwitch
+                acceptingOrders={acceptingOrders}
+                canToggleOrders={canToggleOrders}
+                savingToggle={savingToggle}
+                onToggle={handleToggleOrdersAction}
+                surface="light"
+              />
+            </div>
+          </div>
+
+          {toggleError ? <p className="mt-2 rounded bg-rose-50 px-3 py-2 text-[13px] text-rose-700">{toggleError}</p> : null}
+
+          <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-[var(--kp-stroke)] pt-2">
+            <span className="inline-flex min-h-[32px] items-center gap-1.5 rounded bg-[#fffaf5] px-2.5 text-xs font-semibold text-ink">
+              <span className="uppercase tracking-[0.16em] text-[var(--kp-accent)]">Accionables</span>
+              <span className="text-base tabular-nums">{actionableOrders.length}</span>
+              <HelpTooltip label="Ayuda sobre pedidos accionables">
+                Prioriza pedidos nuevos, en preparacion y listos para despacho o retiro.
               </HelpTooltip>
             </span>
-          }
-          action={
-            <OrdersSalesStatusCard
-              acceptingOrders={acceptingOrders}
-              toggleDescription={toggleDescription}
-              toggleError={toggleError}
-              control={
-                <OrdersToggleControl
-                  acceptingOrders={acceptingOrders}
-                  canToggleOrders={canToggleOrders}
-                  savingToggle={savingToggle}
-                  onToggle={handleToggleOrdersAction}
-                  layout="stacked"
-                />
-              }
-              className="min-w-[280px] max-w-[340px]"
-            />
-          }
-        />
+            <span className="inline-flex min-h-[32px] items-center rounded bg-zinc-50 px-2.5 text-xs font-semibold text-zinc-700">
+              Por aceptar {(statusCounts.get("created") ?? 0) + (statusCounts.get("accepted") ?? 0)}
+            </span>
+            <span className="inline-flex min-h-[32px] items-center rounded bg-zinc-50 px-2.5 text-xs font-semibold text-zinc-700">
+              Listos {readyForDispatchCount}
+            </span>
+            <span className="inline-flex min-h-[32px] items-center rounded bg-zinc-50 px-2.5 text-xs font-semibold text-zinc-700">
+              Abiertos {openOrders.length}
+            </span>
+            <span className="inline-flex min-h-[32px] items-center rounded bg-zinc-50 px-2.5 text-xs font-semibold text-zinc-700">
+              Hoy {formatCurrency(todayStats?.sales ?? 0)}
+            </span>
+            <span className="inline-flex min-h-[32px] items-center rounded bg-zinc-50 px-2.5 text-xs font-semibold text-zinc-700">
+              Entregados {statusCounts.get("delivered") ?? 0}
+            </span>
+            <span className="inline-flex min-h-[32px] items-center rounded bg-zinc-50 px-2.5 text-xs font-semibold text-zinc-700">
+              Cancelados {statusCounts.get("cancelled") ?? 0}
+            </span>
+
+            <span className="ml-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400 xl:ml-auto">Filtros</span>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("")}
+              className={`min-h-[34px] rounded px-2.5 text-xs font-semibold transition ${
+                statusFilter === "" ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+              }`}
+            >
+              Abiertos
+            </button>
+            {["created", "preparing", "ready_for_dispatch", "ready_for_pickup", "out_for_delivery"].map((status) => (
+              <button
+                key={status}
+                type="button"
+                onClick={() => setStatusFilter(status)}
+                className={`min-h-[34px] rounded px-2.5 text-xs font-semibold transition ${
+                  statusFilter === status ? "bg-brand-500 text-white" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                }`}
+              >
+                {(statusLabels[status] ?? status)} ({statusCounts.get(status) ?? 0})
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setShowDelivered((current) => !current)}
+              className={`min-h-[34px] rounded px-2.5 text-xs font-semibold transition ${
+                showDelivered ? "bg-emerald-600 text-white" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+              }`}
+            >
+              {showDelivered ? "Sin entregados" : `Entregados ${statusCounts.get("delivered") ?? 0}`}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCancelled((current) => !current)}
+              className={`min-h-[34px] rounded px-2.5 text-xs font-semibold transition ${
+                showCancelled ? "bg-rose-600 text-white" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+              }`}
+            >
+              {showCancelled ? "Sin cancelados" : `Cancelados ${statusCounts.get("cancelled") ?? 0}`}
+            </button>
+          </div>
+        </section>
       ) : (
         <section className="rounded border border-black/5 bg-white/80 px-4 py-3 text-sm shadow-sm backdrop-blur">
           <OrdersSalesStatusCompactSummary
@@ -670,7 +715,7 @@ export function OrdersPage() {
         </p>
       ) : null}
 
-      <section className="rounded border border-[var(--kp-stroke)] bg-white/92 px-3 py-3 shadow-sm md:px-4">
+      <section className="rounded border border-[var(--kp-stroke)] bg-white/92 px-3 py-3 shadow-sm md:hidden">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex min-h-[44px] items-center gap-2 rounded bg-[#fffaf5] px-3 text-sm font-semibold text-ink">
@@ -733,28 +778,6 @@ export function OrdersPage() {
           </div>
         </div>
       </section>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard compact label="Abiertos" value={String(openOrders.length)} description="Pedidos visibles para operar ahora." />
-        <StatCard
-          compact
-          label="Hoy"
-          value={formatCurrency(todayStats?.sales ?? 0)}
-          description={`${todayStats?.orderCount ?? 0} pedidos dentro del filtro actual.`}
-        />
-        <StatCard
-          compact
-          label="Entregados"
-          value={String(statusCounts.get("delivered") ?? 0)}
-          description="Solo aparecen si activas el filtro correspondiente."
-        />
-        <StatCard
-          compact
-          label="Cancelados"
-          value={String(statusCounts.get("cancelled") ?? 0)}
-          description="También quedan ocultos hasta que los filtres."
-        />
-      </div>
 
       {groups.length ? (
         <OrdersTable
