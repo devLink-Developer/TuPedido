@@ -129,6 +129,23 @@ describe("MercadoPagoPage", () => {
     expect(screen.getByText("La cuenta de Mercado Pago quedo conectada correctamente.")).toBeInTheDocument();
   });
 
+  it("muestra la guia de conexion OAuth para comercios", async () => {
+    render(
+      <MemoryRouter>
+        <MercadoPagoPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Mercado Pago" })).toBeInTheDocument());
+    expect(screen.getByRole("heading", { name: "Conexion OAuth con Mercado Pago" })).toBeInTheDocument();
+    expect(screen.getByText(/Conectar desde KePedimos, iniciar sesion en Mercado Pago, autorizar permisos/)).toBeInTheDocument();
+    expect(screen.queryByText(/Checkout API/)).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ver guia OAuth" })).toHaveAttribute(
+      "href",
+      "https://www.mercadopago.com.ar/developers/es/docs/security/oauth/creation"
+    );
+  });
+
   it("redirige al flujo OAuth cuando el comercio conecta Mercado Pago", async () => {
     const user = userEvent.setup();
     const assignMock = vi.fn();

@@ -28,6 +28,47 @@ const connectionLabels: Record<string, string> = {
   disconnected: "No conectado"
 };
 
+const oauthConnectionGuideSteps = [
+  {
+    title: "Ingresar con la cuenta que cobra",
+    detail:
+      "Usa la cuenta Mercado Pago del comercio que recibira los pagos. Si Mercado Pago pide validar identidad o seguridad, completa ese paso antes de autorizar."
+  },
+  {
+    title: "Iniciar la conexion",
+    detail:
+      "Desde esta pantalla toca Conectar con Mercado Pago. KePedimos abrira el flujo seguro de autorizacion OAuth en Mercado Pago."
+  },
+  {
+    title: "Autorizar a KePedimos",
+    detail:
+      "Revisa la cuenta mostrada por Mercado Pago y acepta los permisos. El comercio no debe copiar ni compartir Access Token, Client Secret ni Public Key."
+  },
+  {
+    title: "Volver a la plataforma",
+    detail:
+      "Al finalizar la autorizacion, Mercado Pago redirige nuevamente a KePedimos. Espera a que aparezca el resultado de conexion en esta pantalla."
+  },
+  {
+    title: "Confirmar estado operativo",
+    detail:
+      "Verifica que la conexion figure Conectado y que el onboarding este completo. Si aparece Reconectar u Onboarding pendiente, sigue el estado indicado antes de activar el cobro."
+  },
+  {
+    title: "Activar para clientes",
+    detail:
+      "Activa Mercado Pago visible para clientes y guarda los cambios. Luego revisa los pagos desde Pedidos y Liquidaciones."
+  }
+];
+
+const oauthConnectionReadinessItems = [
+  "Cuenta Mercado Pago del comercio activa y con acceso disponible.",
+  "Sesion iniciada con la cuenta que recibira los pagos.",
+  "Autorizacion OAuth iniciada desde el boton de KePedimos.",
+  "Credenciales privadas administradas por la plataforma, no por el comercio.",
+  "Reconectar desde esta pantalla si Mercado Pago revoca o vence la autorizacion."
+];
+
 function statusClass(status: string) {
   if (status === "connected") return "bg-emerald-100 text-emerald-800";
   if (status === "reconnect_required") return "bg-amber-100 text-amber-900";
@@ -325,6 +366,72 @@ export function MercadoPagoPage() {
         </div>
       </section>
       </div>
+
+      <section className="rounded bg-white p-4 shadow-sm">
+        <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Guia de conexion</p>
+              <h2 className="mt-1.5 text-lg font-bold text-ink">Conexion OAuth con Mercado Pago</h2>
+              <p className="mt-1.5 max-w-2xl text-sm text-zinc-600">
+                Usa esta guia para vincular la cuenta Mercado Pago del comercio sin manipular credenciales privadas. KePedimos inicia OAuth, Mercado Pago solicita autorizacion y luego devuelve el resultado a esta pantalla.
+              </p>
+            </div>
+
+            <div className="rounded border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-950">
+              <p className="font-semibold">Flujo esperado</p>
+              <p className="mt-1">
+                Conectar desde KePedimos, iniciar sesion en Mercado Pago, autorizar permisos, volver automaticamente y confirmar el estado Conectado.
+              </p>
+            </div>
+
+            <div className="rounded border border-black/5 bg-zinc-50 px-4 py-3">
+              <p className="text-sm font-semibold text-ink">Antes de conectar</p>
+              <ul className="mt-2 space-y-2 text-sm text-zinc-600">
+                {oauthConnectionReadinessItems.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-600" aria-hidden="true" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-sm">
+              <a
+                href="https://www.mercadopago.com.ar/developers/es/docs/security/oauth/creation"
+                target="_blank"
+                rel="noreferrer"
+                className="rounded bg-zinc-100 px-4 py-2 font-semibold text-zinc-700 hover:bg-zinc-200"
+              >
+                Ver guia OAuth
+              </a>
+              <a
+                href="https://www.mercadopago.com.ar/developers/es/docs/security/oauth/apis-map"
+                target="_blank"
+                rel="noreferrer"
+                className="rounded bg-zinc-100 px-4 py-2 font-semibold text-zinc-700 hover:bg-zinc-200"
+              >
+                Ver endpoints OAuth
+              </a>
+            </div>
+          </div>
+
+          <ol className="grid gap-2 md:grid-cols-2">
+            {oauthConnectionGuideSteps.map((step, index) => (
+              <li key={step.title} className="rounded border border-black/5 bg-zinc-50 px-4 py-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded bg-brand-600 text-xs font-bold text-white">
+                    {index + 1}
+                  </span>
+                  <h3 className="font-semibold text-ink">{step.title}</h3>
+                </div>
+                <p className="mt-2 text-zinc-600">{step.detail}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
     </div>
   );
 }
