@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Image, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { Image, KeyboardAvoidingView, Linking, Platform, StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { brandAssets } from "../../assets/brand";
 import { AppButton } from "../../components/AppButton";
@@ -7,6 +7,7 @@ import { BrandWordmark } from "../../components/BrandWordmark";
 import { Card } from "../../components/Card";
 import { Screen } from "../../components/Screen";
 import { TextField } from "../../components/TextField";
+import { PRIVACY_POLICY_URL } from "../../config/legal";
 import { colors, radii, shadow, spacing } from "../../theme";
 import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useAuth } from "../../state/AuthContext";
@@ -46,6 +47,7 @@ export function LoginScreen({ navigation }: Props) {
           <TextField label="Contraseña" leftIcon="lock-closed-outline" value={password} onChangeText={setPassword} secureTextEntry textContentType="password" />
           <AppButton title="Iniciar sesión" icon="log-in-outline" onPress={handleLogin} loading={loading} fullWidth />
           <AppButton title="Crear cuenta cliente" icon="person-add-outline" onPress={() => navigation.navigate("Register")} variant="ghost" fullWidth />
+          <AppButton title="Politica de privacidad" icon="shield-checkmark-outline" onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)} variant="ghost" fullWidth />
         </Card>
       </Screen>
     </KeyboardAvoidingView>

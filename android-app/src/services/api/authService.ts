@@ -26,3 +26,10 @@ export function changePassword(token: string, current_password: string, new_pass
     body: JSON.stringify({ current_password, new_password })
   });
 }
+
+export function deleteAccount(token: string): Promise<void> {
+  return apiRequest<void>("/auth/me", {
+    method: "DELETE",
+    token
+  });
+}

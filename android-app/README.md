@@ -3,7 +3,7 @@
 Aplicacion Android nativa separada de la PWA existente. Usa Expo/React Native y consume el backend de KePedimos por defecto en:
 
 ```txt
-http://200.58.107.187:8016/api/v1
+https://kepedimos.com/api/v1
 ```
 
 ## Comandos
@@ -22,11 +22,11 @@ npm test
 La URL puede cambiarse por build con:
 
 ```bash
-EXPO_PUBLIC_API_BASE_URL=http://host:8016/api/v1
-EXPO_PUBLIC_BACKEND_ROOT_URL=http://host:8016
+EXPO_PUBLIC_API_BASE_URL=https://kepedimos.com/api/v1
+EXPO_PUBLIC_BACKEND_ROOT_URL=https://kepedimos.com
 ```
 
-Android permite HTTP solo para `200.58.107.187` mediante `plugins/withAndroidNetworkSecurity.js`. Para produccion conviene publicar el backend con HTTPS y quitar la excepcion cleartext.
+Para desarrollo local o emulador se pueden sobreescribir estas variables, por ejemplo con `http://10.0.2.2:8016/api/v1`. La configuracion Android de produccion mantiene `android:usesCleartextTraffic="false"` y no incluye excepciones HTTP.
 
 La API key de OpenRouteService va en el `.env` del backend, no en Android:
 
@@ -35,6 +35,13 @@ OPENROUTESERVICE_API_KEY=tu_api_key
 ```
 
 La app consume `/api/v1/routing/directions` con token para ruta y ETA.
+
+## Google Play
+
+- Politica de privacidad publica: `https://kepedimos.com/legal/privacy.html`.
+- Eliminacion de cuenta publica: `https://kepedimos.com/legal/account-deletion.html`.
+- La app incluye eliminacion de cuenta desde Perfil y disclosure antes del permiso de ubicacion en segundo plano para repartidores.
+- Checklist de consola y datos: `../docs/google-play-compliance.md`.
 
 ## Alcance v1
 

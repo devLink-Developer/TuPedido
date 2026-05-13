@@ -13,10 +13,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = [
         "http://localhost:8015",
         "http://127.0.0.1:8015",
-        "http://200.58.107.187",
-        "https://200.58.107.187",
-        "http://200.58.107.187:8015",
-        "https://200.58.107.187:8015",
+        "https://kepedimos.com",
     ]
     frontend_base_url: str = "http://localhost:8015"
     backend_base_url: str = "http://localhost:8016"

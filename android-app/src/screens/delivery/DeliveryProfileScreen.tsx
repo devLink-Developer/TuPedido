@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { Linking, StyleSheet, Text } from "react-native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { useFocusEffect } from "@react-navigation/native";
 import { AppButton } from "../../components/AppButton";
@@ -8,6 +8,8 @@ import { Screen } from "../../components/Screen";
 import { SectionHeader } from "../../components/SectionHeader";
 import { StateMessage } from "../../components/StateMessage";
 import { fetchDeliveryMe } from "../../services/api";
+import { PRIVACY_POLICY_URL } from "../../config/legal";
+import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useAuth } from "../../state/AuthContext";
 import { colors, spacing } from "../../theme";
 import type { DeliveryProfile } from "../../types/api";
@@ -18,9 +20,11 @@ import { stopDeliveryLocationTracking } from "../../tracking/backgroundLocation"
 type Props = BottomTabScreenProps<DeliveryTabsParamList, "DeliveryProfile">;
 
 export function DeliveryProfileScreen(_props: Props) {
-  const { token, logout } = useAuth();
+  const { token, logout, deleteAccount } = useAuth();
+  const { showDialog, showError } = useAppFeedback();
   const [profile, setProfile] = useState<DeliveryProfile | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -43,6 +47,30 @@ export function DeliveryProfileScreen(_props: Props) {
     await logout();
   }
 
+  async function handleDeleteAccount() {
+    setDeletingAccount(true);
+    try {
+      await stopDeliveryLocationTracking();
+      await deleteAccount();
+    } catch (error) {
+      showError("No pudimos eliminar la cuenta", error instanceof Error ? error.message : "Intentalo nuevamente.");
+    } finally {
+      setDeletingAccount(false);
+    }
+  }
+
+  function requestAccountDeletion() {
+    showDialog({
+      title: "Eliminar cuenta",
+      message: "Se detendra el seguimiento, se cerrara tu sesion y se eliminaran o anonimizaran tus datos personales asociados al perfil de repartidor.",
+      variant: "danger",
+      actions: [
+        { label: "Cancelar", variant: "ghost" },
+        { label: "Eliminar", variant: "danger", onPress: () => void handleDeleteAccount() }
+      ]
+    });
+  }
+
   if (!profile && loading) return <StateMessage title="Cargando perfil" loading />;
 
   return (
@@ -57,6 +85,8 @@ export function DeliveryProfileScreen(_props: Props) {
           <Text style={styles.meta}>Zona: {profile.current_zone_id ?? "Sin zona"}</Text>
           <Text style={styles.meta}>DNI: {profile.dni_number ?? "No informado"}</Text>
           <Text style={styles.meta}>Emergencia: {profile.emergency_contact_name ?? "-"} {profile.emergency_contact_phone ?? ""}</Text>
+          <AppButton title="Politica de privacidad" icon="shield-checkmark-outline" onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)} variant="ghost" fullWidth />
+          <AppButton title="Eliminar cuenta" icon="trash-outline" onPress={requestAccountDeletion} loading={deletingAccount} variant="danger" fullWidth />
           <AppButton title="Cerrar sesión" icon="log-out-outline" onPress={() => void handleLogout()} variant="ghost" fullWidth />
         </Card>
       ) : (

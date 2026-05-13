@@ -59,5 +59,6 @@ Notas de despliegue:
 
 - Los datos demo se cargan solo cuando `APP_ENV=development` y `SEED_DEMO_DATA=true`.
 - `MERCADOPAGO_SIMULATED=true` mantiene el flujo local con simulador y webhook manual.
-- Para usar Checkout Pro real debes configurar `BACKEND_BASE_URL` y `FRONTEND_BASE_URL` publicos, y poner `MERCADOPAGO_SIMULATED=false`.
+- Para usar Checkout Pro real debes configurar `BACKEND_BASE_URL=https://kepedimos.com`, `FRONTEND_BASE_URL=https://kepedimos.com` y `MERCADOPAGO_SIMULATED=false`.
+- Play Console debe usar `https://kepedimos.com/legal/privacy.html` como politica de privacidad y `https://kepedimos.com/legal/account-deletion.html` como URL de eliminacion de cuenta.
 - Los HTML raíz se conservan como referencia visual, pero el deploy local ya sirve la SPA React.

@@ -10,6 +10,12 @@ El backend es una API FastAPI. El contrato completo tambien se puede consultar e
 
 ## Base URL
 
+En produccion:
+
+```txt
+https://kepedimos.com/api/v1
+```
+
 En desarrollo local con Docker:
 
 ```txt
@@ -31,8 +37,10 @@ http://<IP_DE_TU_PC>:8016/api/v1
 Los archivos estaticos subidos se sirven fuera del prefijo `/api/v1`:
 
 ```txt
-http://<host>:8016/media/...
+https://kepedimos.com/media/...
 ```
+
+En desarrollo local, usar el mismo host local o de emulador del backend, por ejemplo `http://10.0.2.2:8016/media/...`.
 
 ## Convenciones
 
@@ -171,6 +179,17 @@ Body:
   "new_password": "nuevo-password"
 }
 ```
+
+### Eliminar cuenta actual
+
+```http
+DELETE /auth/me
+Authorization: Bearer <access_token>
+```
+
+Response: `204 No Content`.
+
+El backend elimina direcciones, carrito, notificaciones y tokens push; tambien anonimiza datos personales en pedidos/perfiles que deban conservarse por trazabilidad legal o contable.
 
 ## Catalogo publico
 
@@ -1020,10 +1039,10 @@ El token se envia por query string.
 Base:
 
 ```txt
-ws://<host>:8016/api/v1
+wss://kepedimos.com/api/v1
 ```
 
-En HTTPS usar `wss://`.
+En desarrollo local sin TLS, usar `ws://<host>:8016/api/v1`.
 
 ### Notificaciones del usuario
 

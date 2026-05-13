@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
@@ -13,6 +13,7 @@ import { StateMessage } from "../../components/StateMessage";
 import { TextField } from "../../components/TextField";
 import { createAddress, deleteAddress, fetchAddresses, geocodeAddress, lookupPostalCode, reverseGeocodeAddress, updateAddress } from "../../services/api";
 import { MAP_INITIAL_REGION } from "../../config/env";
+import { PRIVACY_POLICY_URL } from "../../config/legal";
 import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useAuth } from "../../state/AuthContext";
 import { colors, radii, spacing } from "../../theme";
@@ -50,7 +51,7 @@ function getGeocodeKey(form: AddressFormState) {
 }
 
 export function ProfileScreen(_props: Props) {
-  const { user, token, logout } = useAuth();
+  const { user, token, logout, deleteAccount } = useAuth();
   const { showDialog, showError } = useAppFeedback();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [form, setForm] = useState<AddressFormState>(emptyAddressForm);
@@ -63,6 +64,7 @@ export function ProfileScreen(_props: Props) {
   const [locating, setLocating] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const lastGeocodeKeyRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
@@ -377,6 +379,29 @@ export function ProfileScreen(_props: Props) {
     });
   }
 
+  async function handleDeleteAccount() {
+    setDeletingAccount(true);
+    try {
+      await deleteAccount();
+    } catch (error) {
+      showError("No pudimos eliminar la cuenta", friendlyErrorMessage(error));
+    } finally {
+      setDeletingAccount(false);
+    }
+  }
+
+  function requestAccountDeletion() {
+    showDialog({
+      title: "Eliminar cuenta",
+      message: "Se cerrara tu sesion y se eliminaran tus datos de perfil, direcciones, notificaciones y tokens push. Los comprobantes transaccionales pueden conservarse anonimizados si la operacion lo exige.",
+      variant: "danger",
+      actions: [
+        { label: "Cancelar", variant: "ghost" },
+        { label: "Eliminar", variant: "danger", onPress: () => void handleDeleteAccount() }
+      ]
+    });
+  }
+
   const mapMarkerLatitude = toCoordinate(form.latitude);
   const mapMarkerLongitude = toCoordinate(form.longitude);
 
@@ -392,6 +417,11 @@ export function ProfileScreen(_props: Props) {
           <Text style={styles.meta}>Cuenta cliente</Text>
         </View>
         <AppButton title="Salir" icon="log-out-outline" onPress={() => void logout()} variant="ghost" />
+      </Card>
+
+      <Card style={styles.accountActions}>
+        <AppButton title="Politica de privacidad" icon="shield-checkmark-outline" onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)} variant="ghost" fullWidth />
+        <AppButton title="Eliminar cuenta" icon="trash-outline" onPress={requestAccountDeletion} loading={deletingAccount} variant="danger" fullWidth />
       </Card>
 
       <View style={styles.sectionTitleRow}>
@@ -592,6 +622,10 @@ const styles = StyleSheet.create({
   accountCopy: {
     flex: 1,
     minWidth: 0
+  },
+  accountActions: {
+    gap: spacing.sm,
+    marginBottom: spacing.lg
   },
   name: {
     color: colors.text,

@@ -4,8 +4,20 @@ services:
   frontend:
     build:
       context: ./frontend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.http.routers.kepedimos.rule=Host(`kepedimos.com`)"
+      - "traefik.http.routers.kepedimos.entrypoints=websecure"
+      - "traefik.http.routers.kepedimos.tls=true"
+      - "traefik.http.routers.kepedimos.middlewares=default-sec-headers@file,gzip-compress@file,cors-headers@file"
+      - "traefik.http.routers.kepedimos.service=kepedimos"
+      - "traefik.http.services.kepedimos.loadbalancer.server.port=8015"
     ports:
       - "8015:8015"
+    networks:
+      - default
+      - traefik_proxy
     depends_on:
       backend:
         condition: service_healthy
@@ -65,3 +77,8 @@ services:
 volumes:
   postgres_data:
   media_data:
+
+networks:
+  default:
+  traefik_proxy:
+    external: true

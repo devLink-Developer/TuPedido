@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
-import { Platform } from "react-native";
+import { Alert, Platform } from "react-native";
 import { colors } from "../theme";
 import { pushDeliveryLocation } from "../services/api";
 import { readStoredSession } from "../state/sessionStorage";
@@ -14,6 +14,20 @@ type LocationTaskData = {
 };
 
 let taskRegistered = false;
+
+function showBackgroundLocationDisclosure(): Promise<boolean> {
+  return new Promise((resolve) => {
+    Alert.alert(
+      "Uso de location en segundo plano",
+      "KePedimos recopila datos de ubicacion (location) para habilitar el seguimiento del reparto, actualizar el estado del pedido y calcular ETA en background, incluso when the app is closed or not in use. La ubicacion se comparte solo con KePedimos, el comercio y el cliente del pedido activo, y no se usa para publicidad.",
+      [
+        { text: "Ahora no", style: "cancel", onPress: () => resolve(false) },
+        { text: "Continuar", onPress: () => resolve(true) }
+      ],
+      { cancelable: true, onDismiss: () => resolve(false) }
+    );
+  });
+}
 
 export function registerDeliveryLocationTask() {
   if (taskRegistered) return;
@@ -44,6 +58,19 @@ export async function requestDeliveryLocationPermissions(): Promise<{ granted: b
   const servicesEnabled = await Location.hasServicesEnabledAsync();
   if (!servicesEnabled) {
     return { granted: false, message: "Activá la ubicación del dispositivo para compartir el seguimiento." };
+  }
+
+  if (Platform.OS === "android") {
+    const [foregroundStatus, backgroundStatus] = await Promise.all([
+      Location.getForegroundPermissionsAsync(),
+      Location.getBackgroundPermissionsAsync()
+    ]);
+    if (foregroundStatus.status !== "granted" || backgroundStatus.status !== "granted") {
+      const canContinue = await showBackgroundLocationDisclosure();
+      if (!canContinue) {
+        return { granted: false, message: "Para activar el seguimiento del reparto, primero revisa el aviso de uso de ubicacion." };
+      }
+    }
   }
 
   const foreground = await Location.requestForegroundPermissionsAsync();

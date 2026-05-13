@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from "react";
-import { changePassword as changePasswordRequest, fetchMe, login as loginRequest, register as registerRequest } from "../services/api";
+import { changePassword as changePasswordRequest, deleteAccount as deleteAccountRequest, fetchMe, login as loginRequest, register as registerRequest } from "../services/api";
 import type { AuthResponse, AuthUser } from "../types/api";
 import { readStoredSession, writeStoredSession } from "./sessionStorage";
 
@@ -12,6 +12,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (fullName: string, email: string, password: string) => Promise<AuthUser>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<AuthUser>;
+  deleteAccount: () => Promise<void>;
   refresh: () => Promise<AuthUser | null>;
   logout: () => Promise<void>;
 };
@@ -115,6 +116,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [persistSession, token]
   );
 
+  const deleteAccount = useCallback(async () => {
+    if (!token) throw new Error("Sesion no disponible");
+    setLoading(true);
+    try {
+      await deleteAccountRequest(token);
+      await persistSession(null);
+    } finally {
+      setLoading(false);
+      setHydrated(true);
+    }
+  }, [persistSession, token]);
+
   const logout = useCallback(async () => {
     await persistSession(null);
     setHydrated(true);
@@ -131,10 +144,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       login,
       register,
       changePassword,
+      deleteAccount,
       refresh,
       logout
     }),
-    [changePassword, hydrated, loading, login, logout, refresh, register, token, user]
+    [changePassword, deleteAccount, hydrated, loading, login, logout, refresh, register, token, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

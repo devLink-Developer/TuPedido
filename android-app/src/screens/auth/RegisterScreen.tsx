@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Linking, Platform, StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AppButton } from "../../components/AppButton";
 import { BrandWordmark } from "../../components/BrandWordmark";
@@ -7,7 +7,8 @@ import { Card } from "../../components/Card";
 import { Screen } from "../../components/Screen";
 import { SectionHeader } from "../../components/SectionHeader";
 import { TextField } from "../../components/TextField";
-import { radii, spacing } from "../../theme";
+import { colors, radii, spacing } from "../../theme";
+import { PRIVACY_POLICY_URL } from "../../config/legal";
 import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useAuth } from "../../state/AuthContext";
 import type { AuthStackParamList } from "../../navigation/types";
@@ -54,6 +55,8 @@ export function RegisterScreen({ navigation }: Props) {
           <TextField label="Email" leftIcon="mail-outline" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" textContentType="emailAddress" />
           <TextField label="Contraseña" leftIcon="lock-closed-outline" value={password} onChangeText={setPassword} secureTextEntry textContentType="newPassword" />
           <AppButton title="Registrarme" icon="person-add-outline" onPress={handleRegister} loading={loading} fullWidth />
+          <Text style={styles.legalText}>Al crear tu cuenta aceptas el tratamiento de datos indicado en la politica de privacidad.</Text>
+          <AppButton title="Politica de privacidad" icon="shield-checkmark-outline" onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)} variant="ghost" fullWidth />
           <AppButton title="Ya tengo cuenta" icon="arrow-back-outline" onPress={() => navigation.goBack()} variant="ghost" fullWidth />
         </Card>
       </Screen>
@@ -72,5 +75,11 @@ const styles = StyleSheet.create({
   form: {
     gap: spacing.md,
     borderRadius: radii.lg
+  },
+  legalText: {
+    color: colors.mutedText,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center"
   }
 });

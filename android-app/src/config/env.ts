@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 
-export const DEFAULT_BACKEND_ROOT_URL = "http://200.58.107.187:8016";
+export const DEFAULT_BACKEND_ROOT_URL = "https://kepedimos.com";
 export const DEFAULT_API_BASE_URL = `${DEFAULT_BACKEND_ROOT_URL}/api/v1`;
 
 type ExpoExtra = {
