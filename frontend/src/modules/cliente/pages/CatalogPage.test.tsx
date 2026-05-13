@@ -1,7 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useCategoryStore, useClienteStore } from "../../../shared/stores";
+import { useAuthStore, useCategoryStore, useClienteStore } from "../../../shared/stores";
 import { CATALOG_STORES_CHANGED_EVENT } from "../../../shared/utils/catalogStores";
 import { CatalogPage } from "./CatalogPage";
 
@@ -10,6 +11,13 @@ const fetchStoresMock = vi.fn();
 const fetchCategoriesMock = vi.fn();
 const fetchAddressesMock = vi.fn();
 const TEST_LOCATION = { latitude: -31.63, longitude: -60.7, source: "gps" as const };
+const CUSTOMER_USER = {
+  id: 1,
+  full_name: "Cliente Test",
+  email: "cliente@test.com",
+  role: "customer" as const,
+  is_active: true
+};
 
 vi.mock("../../../shared/services/api", () => ({
   fetchAddresses: (...args: unknown[]) => fetchAddressesMock(...args),
@@ -37,8 +45,11 @@ describe("CatalogPage", () => {
     fetchStoresMock.mockReset();
     fetchCategoriesMock.mockReset();
     fetchAddressesMock.mockReset();
+    useAuthStore.getState().resetForTest();
     useCategoryStore.getState().resetForTest();
+    useCategoryStore.getState().setCategories([]);
     useClienteStore.getState().resetCatalog();
+    useClienteStore.getState().resetCheckout();
     useClienteStore.getState().setCustomerLocation(TEST_LOCATION);
     document.documentElement.style.removeProperty("--catalog-accent");
     document.documentElement.style.removeProperty("--catalog-accent-light");
@@ -94,6 +105,112 @@ describe("CatalogPage", () => {
     expect(screen.getByRole("combobox")).toHaveValue("pickup");
   });
 
+  it("usa la direccion guardada para filtrar comercios por alcance", async () => {
+    useAuthStore.getState().setSession({
+      access_token: "token",
+      token_type: "bearer",
+      user: CUSTOMER_USER
+    });
+    useClienteStore.getState().setCustomerLocation(null);
+    fetchAddressesMock.mockResolvedValue([
+      {
+        id: 10,
+        label: "Casa",
+        postal_code: "5000",
+        province: "Cordoba",
+        locality: "Cordoba",
+        street: "San Martin 123",
+        details: "",
+        latitude: -31.42,
+        longitude: -64.18,
+        is_default: true
+      }
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={["/c"]}>
+        <CatalogPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(fetchAddressesMock).toHaveBeenCalledWith("token"));
+    await waitFor(() =>
+      expect(fetchStoresMock).toHaveBeenCalledWith({
+        categorySlug: undefined,
+        search: undefined,
+        deliveryMode: undefined,
+        latitude: -31.42,
+        longitude: -64.18
+      })
+    );
+    expect(screen.getByRole("button", { name: "Cambiar ubicacion de catalogo" })).toHaveTextContent("Casa - San Martin 123");
+  });
+
+  it("recarga comercios al cambiar la direccion del catalogo", async () => {
+    const user = userEvent.setup();
+    useAuthStore.getState().setSession({
+      access_token: "token",
+      token_type: "bearer",
+      user: CUSTOMER_USER
+    });
+    useClienteStore.getState().setCustomerLocation(null);
+    fetchAddressesMock.mockResolvedValue([
+      {
+        id: 10,
+        label: "Casa",
+        postal_code: "5000",
+        province: "Cordoba",
+        locality: "Cordoba",
+        street: "San Martin 123",
+        details: "",
+        latitude: -31.42,
+        longitude: -64.18,
+        is_default: true
+      },
+      {
+        id: 11,
+        label: "Trabajo",
+        postal_code: "5000",
+        province: "Cordoba",
+        locality: "Cordoba",
+        street: "Colon 500",
+        details: "",
+        latitude: -31.41,
+        longitude: -64.19,
+        is_default: false
+      }
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={["/c"]}>
+        <CatalogPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() =>
+      expect(fetchStoresMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          latitude: -31.42,
+          longitude: -64.18
+        })
+      )
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cambiar ubicacion de catalogo" }));
+    await user.click(screen.getByRole("button", { name: "Usar Trabajo para filtrar comercios" }));
+
+    await waitFor(() =>
+      expect(fetchStoresMock).toHaveBeenLastCalledWith({
+        categorySlug: undefined,
+        search: undefined,
+        deliveryMode: undefined,
+        latitude: -31.41,
+        longitude: -64.19
+      })
+    );
+    expect(useClienteStore.getState().selectedAddressId).toBe(11);
+  });
+
   it("aplica el color del rubro seleccionado al contexto del catalogo", async () => {
     useCategoryStore.getState().setCategories([
       {
@@ -116,13 +233,21 @@ describe("CatalogPage", () => {
     );
 
     await waitFor(() => expect(document.documentElement.style.getPropertyValue("--catalog-accent")).toBe("#22C55E"));
+    await waitFor(() =>
+      expect(fetchStoresMock).toHaveBeenCalledWith({
+        categorySlug: "farmacia",
+        search: undefined,
+        deliveryMode: undefined,
+        latitude: TEST_LOCATION.latitude,
+        longitude: TEST_LOCATION.longitude
+      })
+    );
     expect(screen.getByText("Estas viendo Farmacia")).toBeInTheDocument();
   });
 
   it("revalida el listado al cambiar la venta sin mostrar de nuevo el loading", async () => {
     const refreshRequest = createDeferred<Array<{ id: number }>>();
-    fetchStoresMock.mockResolvedValueOnce([{ id: 1 }]);
-    fetchStoresMock.mockImplementationOnce(() => refreshRequest.promise);
+    fetchStoresMock.mockResolvedValue([{ id: 1 }]);
 
     render(
       <MemoryRouter initialEntries={["/c"]}>
@@ -132,9 +257,11 @@ describe("CatalogPage", () => {
 
     await waitFor(() => expect(screen.getByText("1 comercios")).toBeInTheDocument());
 
+    const initialCalls = fetchStoresMock.mock.calls.length;
+    fetchStoresMock.mockImplementationOnce(() => refreshRequest.promise);
     window.dispatchEvent(new Event(CATALOG_STORES_CHANGED_EVENT));
 
-    await waitFor(() => expect(fetchStoresMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(fetchStoresMock).toHaveBeenCalledTimes(initialCalls + 1));
     expect(screen.queryByText("Cargando...")).not.toBeInTheDocument();
     expect(screen.getByText("1 comercios")).toBeInTheDocument();
 
@@ -157,8 +284,7 @@ describe("CatalogPage", () => {
       configurable: true,
       value: "visible"
     });
-    fetchStoresMock.mockResolvedValueOnce([{ id: 1 }]);
-    fetchStoresMock.mockImplementationOnce(() => refreshRequest.promise);
+    fetchStoresMock.mockResolvedValue([{ id: 1 }]);
 
     render(
       <MemoryRouter initialEntries={["/c"]}>
@@ -173,9 +299,11 @@ describe("CatalogPage", () => {
     if (!callback) {
       throw new Error("No se registro el polling del catalogo");
     }
+    const initialCalls = fetchStoresMock.mock.calls.length;
+    fetchStoresMock.mockImplementationOnce(() => refreshRequest.promise);
     (callback as VoidFunction)();
 
-    await waitFor(() => expect(fetchStoresMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(fetchStoresMock).toHaveBeenCalledTimes(initialCalls + 1));
     expect(screen.queryByText("Cargando...")).not.toBeInTheDocument();
     expect(screen.getByText("1 comercios")).toBeInTheDocument();
 

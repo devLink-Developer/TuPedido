@@ -6,6 +6,7 @@ export type CustomerLocation = {
   latitude: number;
   longitude: number;
   source: "address" | "gps";
+  addressId?: number;
 };
 
 type ClienteState = {

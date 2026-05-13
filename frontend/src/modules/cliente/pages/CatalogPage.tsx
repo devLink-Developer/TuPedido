@@ -1,15 +1,57 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle, ChevronDown, MapPin, Navigation } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { CatalogBanner, EmptyState, LoadingCard, RubroChip } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import { fetchAddresses, fetchCatalogBanner, fetchStores } from "../../../shared/services/api";
 import { useCategoryStore, useClienteStore } from "../../../shared/stores";
-import type { CatalogBanner as CatalogBannerData, StoreSummary } from "../../../shared/types";
+import type { Address, CatalogBanner as CatalogBannerData, StoreSummary } from "../../../shared/types";
 import { subscribeCatalogStoresChanged } from "../../../shared/utils/catalogStores";
 import { StoreList } from "../components/StoreList";
 import { buildCatalogTheme } from "../utils/catalogTheme";
 
 const LIVE_REFRESH_INTERVAL_MS = 5000;
+type PinnedAddress = Address & { latitude: number; longitude: number };
+
+function hasAddressPin(address: Address): address is PinnedAddress {
+  return (
+    typeof address.latitude === "number" &&
+    Number.isFinite(address.latitude) &&
+    typeof address.longitude === "number" &&
+    Number.isFinite(address.longitude)
+  );
+}
+
+function pickAddressForCatalog(addresses: Address[], selectedAddressId: number | "") {
+  const pinnedAddresses = addresses.filter(hasAddressPin);
+  return (
+    pinnedAddresses.find((address) => address.id === selectedAddressId) ??
+    pinnedAddresses.find((address) => address.is_default) ??
+    pinnedAddresses[0] ??
+    null
+  );
+}
+
+function locationFromAddress(address: PinnedAddress) {
+  return {
+    latitude: address.latitude,
+    longitude: address.longitude,
+    source: "address" as const,
+    addressId: address.id
+  };
+}
+
+function sameCustomerLocation(
+  current: ReturnType<typeof useClienteStore.getState>["customerLocation"],
+  next: ReturnType<typeof locationFromAddress>
+) {
+  return (
+    current?.latitude === next.latitude &&
+    current.longitude === next.longitude &&
+    current.source === next.source &&
+    current.addressId === next.addressId
+  );
+}
 
 export function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -17,15 +59,19 @@ export function CatalogPage() {
   const search = useClienteStore((state) => state.search);
   const deliveryMode = useClienteStore((state) => state.deliveryMode);
   const customerLocation = useClienteStore((state) => state.customerLocation);
+  const selectedAddressId = useClienteStore((state) => state.selectedAddressId);
   const setCategorySlug = useClienteStore((state) => state.setCategorySlug);
   const setSearch = useClienteStore((state) => state.setSearch);
   const setDeliveryMode = useClienteStore((state) => state.setDeliveryMode);
+  const setSelectedAddressId = useClienteStore((state) => state.setSelectedAddressId);
   const setCustomerLocation = useClienteStore((state) => state.setCustomerLocation);
   const { token, isAuthenticated } = useAuthSession();
   const categories = useCategoryStore((state) => state.categories);
   const categoryLoading = useCategoryStore((state) => state.loading);
   const loadCategories = useCategoryStore((state) => state.loadCategories);
   const [stores, setStores] = useState<StoreSummary[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [addressSelectorOpen, setAddressSelectorOpen] = useState(false);
   const [catalogBanner, setCatalogBanner] = useState<CatalogBannerData | null>(null);
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(true);
@@ -34,34 +80,51 @@ export function CatalogPage() {
   const filtersRef = useRef({ categorySlug: "", search: "", deliveryMode: "" as "" | "delivery" | "pickup" });
   const locationRef = useRef(customerLocation);
   const requestIdRef = useRef(0);
+  const activeLoadingRequestIdRef = useRef<number | null>(null);
+  const inFlightStoresKeyRef = useRef<string | null>(null);
+  const loadedStoresKeyRef = useRef<string | null>(null);
   const hasLoadedStoresRef = useRef(false);
   const selectedCategory = useMemo(
     () => categories.find((category) => category.slug === categorySlug) ?? null,
     [categories, categorySlug]
   );
   const catalogTheme = useMemo(() => buildCatalogTheme(selectedCategory), [selectedCategory]);
+  const pinnedAddresses = useMemo(() => addresses.filter(hasAddressPin), [addresses]);
+  const selectedAddress = useMemo(
+    () => pinnedAddresses.find((address) => address.id === selectedAddressId) ?? null,
+    [pinnedAddresses, selectedAddressId]
+  );
+  const selectedLocationLabel =
+    customerLocation?.source === "gps"
+      ? "Ubicacion actual"
+      : selectedAddress
+        ? `${selectedAddress.label || "Direccion"} - ${selectedAddress.street}`
+        : customerLocation?.source === "address"
+          ? "Direccion guardada"
+          : "Sin ubicacion";
+  const hasConfiguredAddress = pinnedAddresses.length > 0;
 
   filtersRef.current = { categorySlug, search, deliveryMode };
   locationRef.current = customerLocation;
 
   useEffect(() => {
-    setCategorySlug(searchParams.get("category") ?? "");
-    setSearch(searchParams.get("search") ?? "");
+    const nextCategorySlug = searchParams.get("category") ?? "";
+    const nextSearch = searchParams.get("search") ?? "";
     const delivery = searchParams.get("delivery");
-    setDeliveryMode(delivery === "pickup" || delivery === "delivery" ? delivery : "");
-  }, [searchParams, setCategorySlug, setDeliveryMode, setSearch]);
+    const nextDeliveryMode = delivery === "pickup" || delivery === "delivery" ? delivery : "";
+
+    if (categorySlug !== nextCategorySlug) setCategorySlug(nextCategorySlug);
+    if (search !== nextSearch) setSearch(nextSearch);
+    if (deliveryMode !== nextDeliveryMode) setDeliveryMode(nextDeliveryMode);
+  }, [categorySlug, deliveryMode, search, searchParams, setCategorySlug, setDeliveryMode, setSearch]);
 
   useEffect(() => {
     void loadCategories().catch(() => {});
   }, [loadCategories]);
 
   useEffect(() => {
-    if (customerLocation) {
-      setLocationLoading(false);
-      setLocationError(null);
-      return;
-    }
     if (!isAuthenticated || !token) {
+      setAddresses([]);
       setLocationLoading(false);
       return;
     }
@@ -71,16 +134,25 @@ export function CatalogPage() {
     fetchAddresses(token)
       .then((addressList) => {
         if (cancelled) return;
-        const geolocatedAddresses = addressList.filter(
-          (address) => address.latitude !== null && address.longitude !== null
-        );
-        const selectedAddress = geolocatedAddresses.find((address) => address.is_default) ?? geolocatedAddresses[0];
-        if (selectedAddress?.latitude !== null && selectedAddress?.longitude !== null) {
-          setCustomerLocation({
-            latitude: selectedAddress.latitude,
-            longitude: selectedAddress.longitude,
-            source: "address"
-          });
+        setAddresses(addressList);
+        const addressForCatalog = pickAddressForCatalog(addressList, selectedAddressId);
+
+        if (!addressForCatalog) {
+          if (!customerLocation || customerLocation.source === "address") {
+            setCustomerLocation(null);
+            setSelectedAddressId("");
+          }
+          return;
+        }
+
+        if (customerLocation?.source === "gps") {
+          return;
+        }
+
+        const nextLocation = locationFromAddress(addressForCatalog);
+        setSelectedAddressId(addressForCatalog.id);
+        if (!sameCustomerLocation(customerLocation, nextLocation)) {
+          setCustomerLocation(nextLocation);
           setLocationError(null);
         }
       })
@@ -98,7 +170,7 @@ export function CatalogPage() {
     return () => {
       cancelled = true;
     };
-  }, [customerLocation, isAuthenticated, setCustomerLocation, token]);
+  }, [customerLocation, isAuthenticated, selectedAddressId, setCustomerLocation, setSelectedAddressId, token]);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,11 +191,11 @@ export function CatalogPage() {
   }, []);
 
   async function loadStores(options?: { silent?: boolean }) {
-    const requestId = ++requestIdRef.current;
     const { categorySlug: nextCategorySlug, search: nextSearch, deliveryMode: nextDeliveryMode } = filtersRef.current;
     const nextLocation = locationRef.current;
 
     if (!nextLocation) {
+      loadedStoresKeyRef.current = null;
       if (!options?.silent) {
         setLoading(false);
         setError(null);
@@ -132,7 +204,25 @@ export function CatalogPage() {
       return;
     }
 
+    const requestKey = JSON.stringify({
+      categorySlug: nextCategorySlug,
+      search: nextSearch,
+      deliveryMode: nextDeliveryMode,
+      latitude: nextLocation.latitude,
+      longitude: nextLocation.longitude
+    });
+    if (inFlightStoresKeyRef.current === requestKey) {
+      return;
+    }
+    if (!options?.silent && loadedStoresKeyRef.current === requestKey) {
+      return;
+    }
+
+    const requestId = ++requestIdRef.current;
+    inFlightStoresKeyRef.current = requestKey;
+
     if (!options?.silent) {
+      activeLoadingRequestIdRef.current = requestId;
       setLoading(true);
       setError(null);
     }
@@ -151,6 +241,7 @@ export function CatalogPage() {
       }
 
       hasLoadedStoresRef.current = true;
+      loadedStoresKeyRef.current = requestKey;
       setStores(items);
       setError(null);
     } catch (requestError) {
@@ -163,15 +254,20 @@ export function CatalogPage() {
         setStores([]);
       }
     } finally {
-      if (!options?.silent && requestId === requestIdRef.current) {
+      if (inFlightStoresKeyRef.current === requestKey) {
+        inFlightStoresKeyRef.current = null;
+      }
+      if (!options?.silent && activeLoadingRequestIdRef.current === requestId) {
+        activeLoadingRequestIdRef.current = null;
         setLoading(false);
       }
     }
   }
 
   useEffect(() => {
+    if (locationLoading) return;
     void loadStores();
-  }, [categorySlug, customerLocation, deliveryMode, search]);
+  }, [categorySlug, customerLocation, deliveryMode, locationLoading, search]);
 
   function requestGpsLocation() {
     if (!navigator.geolocation) {
@@ -182,6 +278,8 @@ export function CatalogPage() {
     setLocationError(null);
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        setSelectedAddressId("");
+        setAddressSelectorOpen(false);
         setCustomerLocation({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
@@ -195,6 +293,13 @@ export function CatalogPage() {
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 }
     );
+  }
+
+  function selectAddress(address: PinnedAddress) {
+    setSelectedAddressId(address.id);
+    setCustomerLocation(locationFromAddress(address));
+    setLocationError(null);
+    setAddressSelectorOpen(false);
   }
 
   useEffect(() => {
@@ -285,42 +390,92 @@ export function CatalogPage() {
       </section>
 
       <div
-        className="app-panel grid gap-4 rounded p-5 transition-[border-color,box-shadow,background] duration-300 md:grid-cols-[1.3fr_0.7fr]"
+        className="app-panel space-y-4 rounded p-5 transition-[border-color,box-shadow,background] duration-300"
         style={{
           borderColor: catalogTheme.accentBorder,
           backgroundImage: catalogTheme.filterPanel,
           boxShadow: `0 20px 44px -34px ${catalogTheme.accentShadow}`
         }}
       >
-        <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Buscar</span>
-          <input
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              updateQuery({ search: event.target.value });
-            }}
-            placeholder="Despensa, farmacia, parrilla..."
-            className="app-input"
-            style={{ borderColor: catalogTheme.accentBorder }}
-          />
-        </label>
-        <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Entrega</span>
-          <select
-            value={deliveryMode}
-            onChange={(event) => {
-              setDeliveryMode(event.target.value as "" | "delivery" | "pickup");
-              updateQuery({ deliveryMode: event.target.value });
-            }}
-            className="app-input"
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <button
+            type="button"
+            aria-label="Cambiar ubicacion de catalogo"
+            aria-expanded={addressSelectorOpen}
+            disabled={!hasConfiguredAddress}
+            onClick={() => setAddressSelectorOpen((current) => !current)}
+            className="inline-flex min-h-[44px] min-w-0 items-center gap-2 rounded border bg-white/86 px-3 py-2 text-left text-sm font-semibold text-ink transition hover:bg-white disabled:cursor-default disabled:opacity-80"
             style={{ borderColor: catalogTheme.accentBorder }}
           >
-            <option value="">Todos</option>
-            <option value="delivery">Envio</option>
-            <option value="pickup">Retiro</option>
-          </select>
-        </label>
+            {customerLocation?.source === "gps" ? <Navigation className="h-4 w-4 shrink-0 text-brand-600" /> : <MapPin className="h-4 w-4 shrink-0 text-brand-600" />}
+            <span className="truncate">{selectedLocationLabel}</span>
+            {hasConfiguredAddress ? <ChevronDown className={`h-4 w-4 shrink-0 text-zinc-400 transition ${addressSelectorOpen ? "rotate-180" : ""}`} /> : null}
+          </button>
+          <button type="button" onClick={requestGpsLocation} className="kp-soft-action min-h-[44px] px-4 py-2 text-sm">
+            Usar GPS
+          </button>
+        </div>
+
+        {addressSelectorOpen && hasConfiguredAddress ? (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {pinnedAddresses.map((address) => {
+              const active = selectedAddressId === address.id;
+              return (
+                <button
+                  key={address.id}
+                  type="button"
+                  aria-label={`Usar ${address.label || address.street} para filtrar comercios`}
+                  aria-pressed={active}
+                  onClick={() => selectAddress(address)}
+                  className={`min-h-[62px] rounded border px-3 py-2 text-left text-sm transition ${
+                    active ? "bg-white text-ink shadow-sm" : "bg-white/64 text-zinc-600 hover:bg-white"
+                  }`}
+                  style={{ borderColor: active ? catalogTheme.accentBorderStrong : catalogTheme.accentBorder }}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="truncate font-bold">{address.label || "Direccion"}</span>
+                    {active ? <CheckCircle className="h-4 w-4 shrink-0 text-brand-600" /> : null}
+                  </span>
+                  <span className="mt-1 block truncate text-xs text-zinc-500">
+                    {[address.street, address.locality].filter(Boolean).join(" - ")}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        <div className="grid gap-4 md:grid-cols-[1.3fr_0.7fr]">
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Buscar</span>
+            <input
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                updateQuery({ search: event.target.value });
+              }}
+              placeholder="Despensa, farmacia, parrilla..."
+              className="app-input"
+              style={{ borderColor: catalogTheme.accentBorder }}
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Entrega</span>
+            <select
+              value={deliveryMode}
+              onChange={(event) => {
+                setDeliveryMode(event.target.value as "" | "delivery" | "pickup");
+                updateQuery({ deliveryMode: event.target.value });
+              }}
+              className="app-input"
+              style={{ borderColor: catalogTheme.accentBorder }}
+            >
+              <option value="">Todos</option>
+              <option value="delivery">Envio</option>
+              <option value="pickup">Retiro</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       <section

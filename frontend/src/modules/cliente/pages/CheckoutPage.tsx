@@ -115,7 +115,11 @@ export function CheckoutPage() {
         if (cancelled) return;
         setAddresses(addressList);
         const geolocatedAddresses = addressList.filter((address) => address.latitude !== null && address.longitude !== null);
-        const defaultAddress = geolocatedAddresses.find((address) => address.is_default) ?? geolocatedAddresses[0];
+        const selectedCatalogAddress =
+          typeof selectedAddressId === "number"
+            ? geolocatedAddresses.find((address) => address.id === selectedAddressId)
+            : null;
+        const defaultAddress = selectedCatalogAddress ?? geolocatedAddresses.find((address) => address.is_default) ?? geolocatedAddresses[0];
         const checkoutLocation =
           cartDeliveryMode === "delivery"
             ? defaultAddress
@@ -166,7 +170,7 @@ export function CheckoutPage() {
     return () => {
       cancelled = true;
     };
-  }, [cart?.delivery_mode, cart?.store_id, customerLocation, setCustomerLocation, setSelectedAddressId, setSelectedPaymentMethod, token]);
+  }, [cart?.delivery_mode, cart?.store_id, customerLocation, selectedAddressId, setCustomerLocation, setSelectedAddressId, setSelectedPaymentMethod, token]);
 
   const paymentOptions = useMemo(() => {
     if (!store) {
