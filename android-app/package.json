@@ -1,6 +1,6 @@
 {
   "name": "kepedimos-android",
-  "version": "1.0.27",
+  "version": "1.0.29",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
@@ -11,6 +11,7 @@
     "prebuild:android:release": "node scripts/sync-android-version.cjs",
     "build:android:debug": "cd android && gradlew.bat assembleDebug",
     "build:android:release": "cd android && gradlew.bat assembleRelease",
+    "build:android:standalone": "node scripts/build-release-standalone.cjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -30,6 +31,7 @@
     "expo-status-bar": "~3.0.9",
     "expo-system-ui": "~6.0.9",
     "expo-task-manager": "~14.0.9",
+    "expo-web-browser": "~15.0.11",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",

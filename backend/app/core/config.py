@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     mercadopago_webhook_signature_tolerance_seconds: int = 300
     mercadopago_redirect_uri: str | None = None
     mercadopago_checkout_pro_fallback_enabled: bool = False
+    mercadopago_card_payment_enabled: bool = False
     mercadopago_payment_session_expire_minutes: int = 30
     mercadopago_card_payment_base_url: str | None = None
     osrm_base_url: str = "https://router.project-osrm.org"

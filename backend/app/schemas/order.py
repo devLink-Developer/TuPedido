@@ -15,6 +15,7 @@ class CheckoutRequest(BaseModel):
     idempotency_key: str | None = Field(default=None, max_length=160)
     customer_latitude: float | None = None
     customer_longitude: float | None = None
+    client_return_url: str | None = Field(default=None, max_length=512)
 
 
 class CheckoutResponse(BaseModel):

@@ -25,10 +25,6 @@ vi.mock("../../../shared/components", () => ({
   )
 }));
 
-vi.mock("../components/CheckoutSummary", () => ({
-  CheckoutSummary: () => <div>Resumen</div>
-}));
-
 const baseCart = {
   id: 1,
   store_id: 10,
@@ -86,24 +82,7 @@ describe("CartPage", () => {
     });
   });
 
-  it("oculta envio cuando el comercio solo permite retiro", () => {
-    useCartMock.mockReturnValue({
-      cart: {
-        ...baseCart,
-        delivery_mode: "pickup",
-        delivery_settings: {
-          ...baseCart.delivery_settings,
-          delivery_enabled: false
-        }
-      },
-      loading: false,
-      error: null,
-      updateItem: vi.fn(),
-      removeItem: vi.fn(),
-      setDeliveryMode: vi.fn(),
-      clear: vi.fn()
-    });
-
+  it("no muestra selector de entrega ni servicio en el carrito", () => {
     render(
       <MemoryRouter>
         <CartPage />
@@ -111,18 +90,16 @@ describe("CartPage", () => {
     );
 
     expect(screen.queryByRole("button", { name: "Envio" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Retiro" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retiro" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Servicio")).not.toBeInTheDocument();
+    expect(screen.getByText("Total productos")).toBeInTheDocument();
   });
 
-  it("oculta retiro cuando el comercio solo permite envio", () => {
+  it("mantiene la accion para continuar al checkout", () => {
     useCartMock.mockReturnValue({
       cart: {
         ...baseCart,
-        delivery_mode: "delivery",
-        delivery_settings: {
-          ...baseCart.delivery_settings,
-          pickup_enabled: false
-        }
+        delivery_mode: "delivery"
       },
       loading: false,
       error: null,
@@ -138,7 +115,6 @@ describe("CartPage", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("button", { name: "Envio" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Retiro" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continuar al checkout" })).toBeInTheDocument();
   });
 });

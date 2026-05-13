@@ -1,4 +1,4 @@
-import type { StoreDeliverySettings } from "./catalog";
+import type { StoreDeliverySettings, StorePaymentSettings } from "./catalog";
 import type { PricingSummary } from "./pricing";
 import type { AppliedPromotionSummary } from "./promotion";
 
@@ -20,6 +20,7 @@ export type Cart = {
   store_slug: string | null;
   delivery_mode: "delivery" | "pickup";
   delivery_settings: StoreDeliverySettings;
+  payment_settings?: StorePaymentSettings | null;
   subtotal: number;
   commercial_discount_total: number;
   financial_discount_total: number;

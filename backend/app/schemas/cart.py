@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.schemas.catalog import StoreDeliverySettingsRead
+from app.schemas.catalog import StoreDeliverySettingsRead, StorePaymentSettingsRead
 from app.schemas.pricing import PricingSummaryRead
 from app.schemas.promotion import AppliedPromotionSummaryRead
 
@@ -45,6 +45,7 @@ class CartRead(BaseModel):
     store_slug: str | None = None
     delivery_mode: str
     delivery_settings: StoreDeliverySettingsRead
+    payment_settings: StorePaymentSettingsRead
     subtotal: float
     delivery_fee: float
     service_fee: float

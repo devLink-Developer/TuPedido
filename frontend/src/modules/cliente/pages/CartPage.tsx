@@ -1,22 +1,15 @@
 import { Link, useNavigate } from "react-router-dom";
 import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
 import { useCart } from "../../../shared/hooks";
-import { useClienteStore } from "../../../shared/stores";
 import { formatCurrency } from "../../../shared/utils/format";
-import { CheckoutSummary } from "../components/CheckoutSummary";
 
-const DELIVERY_MODES = [
-  { key: "delivery", label: "Envio" },
-  { key: "pickup", label: "Retiro" }
-] as const;
+function numberOrZero(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
 
 export function CartPage() {
-  const { cart, loading, error, updateItem, removeItem, setDeliveryMode, clear } = useCart();
-  const customerLocation = useClienteStore((state) => state.customerLocation);
+  const { cart, loading, error, updateItem, removeItem, clear } = useCart();
   const navigate = useNavigate();
-  const availableDeliveryModes = DELIVERY_MODES.filter(({ key }) =>
-    key === "delivery" ? cart?.delivery_settings.delivery_enabled : cart?.delivery_settings.pickup_enabled
-  );
 
   if (loading && !cart) return <LoadingCard />;
   if (error) return <EmptyState title="No se pudo cargar el carrito" description={error} />;
@@ -33,6 +26,10 @@ export function CartPage() {
       />
     );
   }
+
+  const commercialDiscount = numberOrZero(cart.pricing.commercialDiscountTotal);
+  const financialDiscount = numberOrZero(cart.pricing.financialDiscountTotal);
+  const productsTotal = Math.max(0, numberOrZero(cart.pricing.subtotal) - commercialDiscount - financialDiscount);
 
   return (
     <div className="space-y-6">
@@ -51,31 +48,6 @@ export function CartPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
-          <div className="app-panel p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Entrega</p>
-            <div className="mt-3 flex gap-2">
-              {availableDeliveryModes.length ? (
-                availableDeliveryModes.map((mode) => (
-                  <button
-                    key={mode.key}
-                    type="button"
-                    onClick={() => void setDeliveryMode(mode.key, customerLocation)}
-                    className={`kp-category-pill ${cart.delivery_mode === mode.key ? "kp-category-pill-active" : ""}`}
-                  >
-                    {mode.label}
-                  </button>
-                ))
-              ) : (
-                <p className="text-sm text-zinc-500">Este comercio no tiene modalidades de entrega disponibles.</p>
-              )}
-            </div>
-            {!customerLocation ? (
-              <p className="mt-3 text-sm text-amber-700">
-                Define tu ubicacion desde el catalogo antes de cambiar la modalidad.
-              </p>
-            ) : null}
-          </div>
-
           {cart.items.map((item) => (
             <article key={item.id} className="app-panel p-5">
               <div className="flex items-start justify-between gap-4">
@@ -115,9 +87,27 @@ export function CartPage() {
         </div>
 
         <aside className="space-y-4">
-          <CheckoutSummary pricing={cart.pricing} title="Resumen" discountMode="combined" />
+          <div className="app-panel p-5">
+            <h3 className="text-lg font-bold">Resumen</h3>
+            <div className="mt-4 space-y-3 text-sm text-zinc-600">
+              <div className="flex items-center justify-between">
+                <span>Subtotal</span>
+                <span>{formatCurrency(numberOrZero(cart.pricing.subtotal))}</span>
+              </div>
+              {commercialDiscount + financialDiscount > 0 ? (
+                <div className="flex items-center justify-between text-emerald-700">
+                  <span>Descuentos</span>
+                  <span>-{formatCurrency(commercialDiscount + financialDiscount)}</span>
+                </div>
+              ) : null}
+              <div className="flex items-center justify-between border-t border-black/5 pt-3 text-base font-bold text-ink">
+                <span>Total productos</span>
+                <span>{formatCurrency(productsTotal)}</span>
+              </div>
+            </div>
+          </div>
           <button type="button" onClick={() => navigate("/c/checkout")} className="app-button w-full px-4 py-3.5 text-sm">
-            Ir a pagar
+            Continuar al checkout
           </button>
         </aside>
       </div>

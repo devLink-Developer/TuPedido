@@ -8,9 +8,9 @@ import { useClienteStore } from "../../../shared/stores";
 import type { Address, StoreDetail } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
 import { notifyCustomerAddressesChanged } from "../../../shared/utils/customerAddresses";
+import { formatCurrency } from "../../../shared/utils/format";
 import { deriveMercadoPagoState } from "../../../shared/utils/mercadopago";
 import { normalizePath } from "../../../shared/utils/routing";
-import { CheckoutSummary } from "../components/CheckoutSummary";
 import {
   AddressFormCard,
   emptyAddressForm,
@@ -78,8 +78,12 @@ function formatMissingAddressFields(fields: string[]) {
   return `${fields.slice(0, -1).join(", ")} y ${fields[fields.length - 1]}`;
 }
 
+function numberOrZero(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
 export function CheckoutPage() {
-  const { cart, resetCart } = useCart();
+  const { cart, resetCart, setDeliveryMode } = useCart();
   const { token } = useAuthSession();
   const navigate = useNavigate();
   const selectedAddressId = useClienteStore((state) => state.selectedAddressId);
@@ -197,6 +201,13 @@ export function CheckoutPage() {
     () => paymentOptions.filter((option) => option.available).map((option) => option.method),
     [paymentOptions]
   );
+  const availableDeliveryModes = useMemo(() => {
+    if (!cart) return [];
+    return [
+      cart.delivery_settings?.delivery_enabled ? ("delivery" as const) : null,
+      cart.delivery_settings?.pickup_enabled ? ("pickup" as const) : null
+    ].filter(Boolean) as Array<"delivery" | "pickup">;
+  }, [cart]);
 
   useEffect(() => {
     if (!store || availableMethods.includes(selectedPaymentMethod)) return;
@@ -207,6 +218,38 @@ export function CheckoutPage() {
     () => addresses.find((address) => address.id === selectedAddressId) ?? null,
     [addresses, selectedAddressId]
   );
+
+  async function handleDeliveryModeChange(nextMode: "delivery" | "pickup") {
+    if (!cart || cart.delivery_mode === nextMode) return;
+    setError(null);
+
+    const selectedAddressForMode = addresses.find((address) => address.id === selectedAddressId) ?? null;
+    const location =
+      nextMode === "delivery"
+        ? selectedAddressForMode?.latitude != null && selectedAddressForMode.longitude != null
+          ? { latitude: selectedAddressForMode.latitude, longitude: selectedAddressForMode.longitude }
+          : null
+        : customerLocation ??
+          (selectedAddressForMode?.latitude != null && selectedAddressForMode.longitude != null
+            ? { latitude: selectedAddressForMode.latitude, longitude: selectedAddressForMode.longitude }
+            : null);
+
+    if (!location) {
+      setError(nextMode === "delivery" ? "Selecciona una direccion con pin." : "Define tu ubicacion para validar la zona de retiro.");
+      return;
+    }
+
+    await setDeliveryMode(nextMode, location);
+  }
+
+  async function handleAddressSelect(address: Address) {
+    setSelectedAddressId(address.id);
+    if (address.latitude == null || address.longitude == null) return;
+    setCustomerLocation({ latitude: address.latitude, longitude: address.longitude, source: "address" });
+    if (cart?.delivery_mode === "delivery") {
+      await setDeliveryMode("delivery", { latitude: address.latitude, longitude: address.longitude });
+    }
+  }
 
   if (!cart || !cart.items.length) {
     return (
@@ -266,11 +309,15 @@ export function CheckoutPage() {
     setError(null);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setCustomerLocation({
+        const nextLocation = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           source: "gps"
-        });
+        } as const;
+        setCustomerLocation(nextLocation);
+        if (cart?.delivery_mode === "pickup") {
+          void setDeliveryMode("pickup", nextLocation);
+        }
         setLoading(false);
       },
       () => {
@@ -372,24 +419,58 @@ export function CheckoutPage() {
 
   if (loading) return <LoadingCard />;
 
+  const commercialDiscount = numberOrZero(cart.pricing.commercialDiscountTotal);
+  const financialDiscount = numberOrZero(cart.pricing.financialDiscountTotal);
+  const deliveryFee = cart.delivery_mode === "delivery" ? numberOrZero(cart.pricing.deliveryFee) : 0;
+  const serviceFee = numberOrZero(cart.pricing.serviceFee);
+  const productsTotal = Math.max(0, numberOrZero(cart.pricing.subtotal) - commercialDiscount - financialDiscount);
+  const checkoutTotal = productsTotal + deliveryFee + serviceFee;
+  const selectedPaymentLabel = selectedPaymentMethod === "cash" ? "Efectivo" : "Mercado Pago";
+
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Checkout" title="Confirmar pedido" description="Revisa tu direccion, tu metodo de pago y confirma tu pedido." />
+      <PageHeader eyebrow="Checkout" title="Confirmar pedido" />
 
       <form onSubmit={(event) => void handleSubmit(event)} className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
           <div className="app-panel p-5">
             <h3 className="text-lg font-bold">Entrega</h3>
-            <p className="mt-1 text-sm text-zinc-500">{cart.delivery_mode === "delivery" ? "Envio a domicilio" : "Retiro en local"}</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {(["delivery", "pickup"] as const).map((mode) => {
+                const available = availableDeliveryModes.includes(mode);
+                const active = cart.delivery_mode === mode;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    disabled={!available || submitting || redirectingToPayment}
+                    onClick={() => void handleDeliveryModeChange(mode)}
+                    className={`min-h-14 border px-4 py-3 text-left text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
+                      active
+                        ? "border-brand-500 bg-brand-50 text-brand-900"
+                        : available
+                          ? "border-black/10 bg-zinc-50 text-zinc-700 hover:border-brand-200"
+                          : "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"
+                    }`}
+                    style={{ borderRadius: 18 }}
+                  >
+                    {mode === "delivery" ? "Envio" : "Retiro"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-            {cart.delivery_mode === "delivery" ? (
+          {cart.delivery_mode === "delivery" ? (
+            <div className="app-panel p-5">
+              <h3 className="text-lg font-bold">Direccion</h3>
               <div className="mt-4 space-y-3">
                 {addresses.map((address) => (
                   <button
                     key={address.id}
                     type="button"
                     disabled={address.latitude === null || address.longitude === null}
-                    onClick={() => setSelectedAddressId(address.id)}
+                    onClick={() => void handleAddressSelect(address)}
                     className={`block w-full border px-4 py-3 text-left text-sm ${
                       address.latitude === null || address.longitude === null
                         ? "cursor-not-allowed border-amber-200 bg-amber-50 text-amber-900"
@@ -443,21 +524,18 @@ export function CheckoutPage() {
 
                 {!addresses.length && !showAddressForm ? <p className="text-sm text-zinc-500">Aun no tienes direcciones guardadas.</p> : null}
               </div>
-            ) : (
-              <div className="mt-4 space-y-3">
-                <p className="border border-[var(--kp-stroke)] bg-[#fffaf5] px-4 py-4 text-sm text-zinc-600" style={{ borderRadius: 18 }}>
-                  El pedido se retirara en {store?.name ?? cart.store_name}.
-                </p>
-                {customerLocation ? (
-                  <p className="text-sm text-emerald-700">Zona de retiro validada con tu ubicacion actual.</p>
-                ) : (
-                  <button type="button" onClick={requestGpsLocation} className="kp-soft-action min-h-[44px] px-4 py-2 text-sm">
-                    Usar mi ubicacion
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="app-panel p-5">
+              <h3 className="text-lg font-bold">Retiro</h3>
+              <p className="mt-3 text-sm font-semibold text-zinc-700">{store?.name ?? cart.store_name}</p>
+              {!customerLocation ? (
+                <button type="button" onClick={requestGpsLocation} className="kp-soft-action mt-4 min-h-[44px] px-4 py-2 text-sm">
+                  Usar mi ubicacion
+                </button>
+              ) : null}
+            </div>
+          )}
 
           <div className="app-panel p-5">
             <h3 className="text-lg font-bold">Pago</h3>
@@ -502,22 +580,58 @@ export function CheckoutPage() {
             ) : null}
           </div>
 
-          {selectedAddress ? (
-            <div className="app-panel p-5 text-sm text-zinc-600">
-              <h3 className="text-lg font-bold text-ink">Confirmacion</h3>
-              <p className="mt-3">Direccion: {selectedAddress.street}</p>
-              {selectedAddress.locality || selectedAddress.province || selectedAddress.postal_code ? (
-                <p className="mt-1">{[selectedAddress.locality, selectedAddress.province, selectedAddress.postal_code].filter(Boolean).join(" - ")}</p>
-              ) : null}
-              {selectedAddress.details ? <p className="mt-1">Detalle: {selectedAddress.details}</p> : null}
-            </div>
-          ) : null}
-
           {error ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{error}</p> : null}
         </div>
 
         <aside className="space-y-4">
-          <CheckoutSummary pricing={cart.pricing} title="Resumen del pedido" />
+          <div className="app-panel p-5">
+            <h3 className="text-lg font-bold">Resumen</h3>
+            <div className="mt-4 space-y-3 text-sm text-zinc-600">
+              <div className="flex items-center justify-between gap-4">
+                <span>Modalidad</span>
+                <span className="font-semibold text-ink">{cart.delivery_mode === "delivery" ? "Envio" : "Retiro"}</span>
+              </div>
+              {cart.delivery_mode === "delivery" ? (
+                <div className="flex items-center justify-between gap-4">
+                  <span>Direccion</span>
+                  <span className="max-w-[12rem] text-right font-semibold text-ink">{selectedAddress?.street ?? ""}</span>
+                </div>
+              ) : null}
+              <div className="flex items-center justify-between gap-4">
+                <span>Pago</span>
+                <span className="font-semibold text-ink">{selectedPaymentLabel}</span>
+              </div>
+              <div className="border-t border-black/5 pt-3" />
+              <div className="flex items-center justify-between">
+                <span>Subtotal</span>
+                <span>{formatCurrency(numberOrZero(cart.pricing.subtotal))}</span>
+              </div>
+              {commercialDiscount > 0 ? (
+                <div className="flex items-center justify-between text-emerald-700">
+                  <span>Descuentos del comercio</span>
+                  <span>-{formatCurrency(commercialDiscount)}</span>
+                </div>
+              ) : null}
+              {financialDiscount > 0 ? (
+                <div className="flex items-center justify-between text-emerald-700">
+                  <span>Promociones</span>
+                  <span>-{formatCurrency(financialDiscount)}</span>
+                </div>
+              ) : null}
+              <div className="flex items-center justify-between">
+                <span>{cart.delivery_mode === "delivery" ? "Envio" : "Retiro"}</span>
+                <span>{formatCurrency(deliveryFee)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Servicio</span>
+                <span>{formatCurrency(serviceFee)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-black/5 pt-3 text-base font-bold text-ink">
+                <span>Total a pagar</span>
+                <span>{formatCurrency(checkoutTotal)}</span>
+              </div>
+            </div>
+          </div>
           <Button type="submit" className="w-full" disabled={submitting || redirectingToPayment || !availableMethods.length}>
             {redirectingToPayment ? "Redirigiendo a Mercado Pago..." : submitting ? "Confirmando..." : "Confirmar pedido"}
           </Button>

@@ -10,6 +10,7 @@ const checkoutMock = vi.fn();
 const fetchAddressesMock = vi.fn();
 const fetchStoreByIdMock = vi.fn();
 const resetCartMock = vi.fn();
+const setDeliveryModeMock = vi.fn();
 
 function buildStoreDetail(overrides: Partial<Record<string, unknown>> = {}) {
   return {
@@ -142,7 +143,8 @@ vi.mock("../../../shared/hooks", () => ({
         complete: true
       }
     },
-    resetCart: () => resetCartMock()
+    resetCart: () => resetCartMock(),
+    setDeliveryMode: (...args: unknown[]) => setDeliveryModeMock(...args)
   })
 }));
 
@@ -204,6 +206,7 @@ describe("CheckoutPage", () => {
     fetchAddressesMock.mockReset();
     fetchStoreByIdMock.mockReset();
     resetCartMock.mockReset();
+    setDeliveryModeMock.mockReset();
     useClienteStore.getState().resetCheckout();
     useClienteStore.getState().setCustomerLocation({ latitude: -31.63, longitude: -60.7, source: "gps" });
 

@@ -18,6 +18,7 @@ def configure_environment() -> None:
     os.environ["APP_ENV"] = "development"
     os.environ["SEED_DEMO_DATA"] = "true"
     os.environ["MERCADOPAGO_SIMULATED"] = "false"
+    os.environ["MERCADOPAGO_CARD_PAYMENT_ENABLED"] = "true"
     os.environ["MERCADOPAGO_CLIENT_ID"] = "SMOKE-CLIENT-ID"
     os.environ["MERCADOPAGO_CLIENT_SECRET"] = "SMOKE-CLIENT-SECRET"
     os.environ["MERCADOPAGO_PUBLIC_KEY"] = "TEST-SMOKE-PUBLIC-KEY"

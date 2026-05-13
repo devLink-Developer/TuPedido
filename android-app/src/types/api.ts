@@ -224,6 +224,7 @@ export type Cart = {
   store_slug: string | null;
   delivery_mode: "delivery" | "pickup";
   delivery_settings: StoreDeliverySettings | null;
+  payment_settings?: StorePaymentSettings | null;
   subtotal: number;
   commercial_discount_total: number;
   financial_discount_total: number;
@@ -250,6 +251,7 @@ export type CheckoutRequest = {
   idempotency_key?: string | null;
   customer_latitude?: number | null;
   customer_longitude?: number | null;
+  client_return_url?: string | null;
 };
 
 export type CheckoutResponse = {

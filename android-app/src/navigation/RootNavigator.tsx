@@ -156,7 +156,7 @@ export function RootNavigator() {
                     <RootStack.Screen name="CustomerTabs" component={CustomerTabsNavigator} options={{ headerShown: false }} />
                     <RootStack.Screen name="StoreDetail" component={StoreDetailScreen} options={{ title: "Comercio" }} />
                     <RootStack.Screen name="Cart" component={CartScreen} options={{ title: "Carrito" }} />
-                    <RootStack.Screen name="Checkout" component={CheckoutScreen} options={{ title: "Confirmar pedido" }} />
+                    <RootStack.Screen name="Checkout" component={CheckoutScreen} options={{ title: "Checkout" }} />
                     <RootStack.Screen name="OrderDetail" component={OrderDetailScreen} options={{ title: "Pedido" }} />
                     <RootStack.Screen name="PaymentWebView" component={PaymentWebViewScreen} options={{ headerShown: false }} />
                     <RootStack.Screen name="Notifications" component={NotificationsScreen} options={{ title: "Notificaciones" }} />

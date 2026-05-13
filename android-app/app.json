@@ -2,7 +2,8 @@
   "expo": {
     "name": "KePedimos",
     "slug": "kepedimos-android",
-    "version": "1.0.27",
+    "scheme": "kepedimos",
+    "version": "1.0.29",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -17,7 +18,7 @@
     },
     "android": {
       "package": "com.kepedimos.android",
-      "versionCode": 28,
+      "versionCode": 30,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
@@ -43,7 +44,8 @@
       "expo-location",
       "expo-notifications",
       "./plugins/withAndroidNetworkSecurity",
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "extra": {
       "apiBaseUrl": "https://kepedimos.com/api/v1",

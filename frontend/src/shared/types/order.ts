@@ -30,6 +30,7 @@ export type CheckoutRequest = {
   idempotency_key?: string | null;
   customer_latitude?: number | null;
   customer_longitude?: number | null;
+  client_return_url?: string | null;
 };
 
 export type PaymentTransaction = {

@@ -23,6 +23,9 @@ export function CartScreen({ navigation }: Props) {
   const { token } = useAuth();
   const { showDialog, showError } = useAppFeedback();
   const { cart, loading, refreshCart, setCart } = useCartState();
+  const commercialDiscount = cart?.pricing.commercial_discount_total ?? 0;
+  const financialDiscount = cart?.pricing.financial_discount_total ?? 0;
+  const productsTotal = cart ? Math.max(0, cart.pricing.subtotal - commercialDiscount - financialDiscount) : 0;
 
   const changeQuantity = useCallback(
     async (item: CartItem, quantity: number) => {
@@ -91,23 +94,27 @@ export function CartScreen({ navigation }: Props) {
         ListFooterComponent={
           <Card style={styles.summary}>
             <View style={styles.summaryLineWrap}>
-              <Text style={styles.summaryLine}>Subtotal</Text>
+              <Text style={styles.summaryLine}>Subtotal productos</Text>
               <Text style={styles.summaryValue}>{formatCurrency(cart.pricing.subtotal)}</Text>
             </View>
-            <View style={styles.summaryLineWrap}>
-              <Text style={styles.summaryLine}>Envío</Text>
-              <Text style={styles.summaryValue}>{formatCurrency(cart.pricing.delivery_fee)}</Text>
-            </View>
-            <View style={styles.summaryLineWrap}>
-              <Text style={styles.summaryLine}>Servicio</Text>
-              <Text style={styles.summaryValue}>{formatCurrency(cart.pricing.service_fee)}</Text>
-            </View>
+            {commercialDiscount > 0 ? (
+              <View style={styles.summaryLineWrap}>
+                <Text style={styles.summaryLine}>Descuentos del comercio</Text>
+                <Text style={[styles.summaryValue, styles.discountValue]}>-{formatCurrency(commercialDiscount)}</Text>
+              </View>
+            ) : null}
+            {financialDiscount > 0 ? (
+              <View style={styles.summaryLineWrap}>
+                <Text style={styles.summaryLine}>Promociones</Text>
+                <Text style={[styles.summaryValue, styles.discountValue]}>-{formatCurrency(financialDiscount)}</Text>
+              </View>
+            ) : null}
             <View style={styles.divider} />
             <View style={styles.summaryLineWrap}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.total}>{formatCurrency(cart.pricing.total)}</Text>
+              <Text style={styles.totalLabel}>Total productos</Text>
+              <Text style={styles.total}>{formatCurrency(productsTotal)}</Text>
             </View>
-            <AppButton title="Confirmar pedido" icon="card-outline" onPress={() => navigation.navigate("Checkout")} fullWidth />
+            <AppButton title="Continuar al checkout" icon="card-outline" onPress={() => navigation.navigate("Checkout")} fullWidth />
             <AppButton title="Vaciar carrito" icon="trash-outline" onPress={handleClear} variant="ghost" fullWidth />
           </Card>
         }
@@ -192,6 +199,9 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: colors.text,
     fontWeight: "800"
+  },
+  discountValue: {
+    color: colors.success
   },
   divider: {
     height: 1,

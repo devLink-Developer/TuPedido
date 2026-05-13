@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import inspect as sa_inspect
+from sqlalchemy.orm import object_session
 from sqlalchemy.orm.attributes import NO_VALUE
 
 from app.core.config import settings
@@ -43,6 +44,7 @@ from app.services.category_colors import resolve_category_palette
 from app.services.mercadopago import (
     build_oauth_callback_url,
     build_webhook_url,
+    get_or_create_mercadopago_provider,
     get_store_payment_account,
     is_internal_http_url,
     is_provider_operable,
@@ -361,6 +363,8 @@ def serialize_application(application: object) -> MerchantApplicationRead:
 
 
 def serialize_cart(cart: object) -> CartRead:
+    session = object_session(cart)
+    mercadopago_provider = get_or_create_mercadopago_provider(session) if cart.store and session is not None else None
     return CartRead(
         id=cart.id,
         store_id=cart.store_id,
@@ -376,6 +380,16 @@ def serialize_cart(cart: object) -> CartRead:
             free_delivery_min_order=None,
             rider_fee=0,
             min_order=0,
+        ),
+        payment_settings=serialize_store_payment_settings(cart.store, mercadopago_provider=mercadopago_provider)
+        if cart.store
+        else StorePaymentSettingsRead(
+            cash_enabled=False,
+            mercadopago_enabled=False,
+            mercadopago_configured=False,
+            mercadopago_provider_enabled=False,
+            mercadopago_provider_mode="sandbox",
+            mercadopago_public_key_masked=None,
         ),
         subtotal=float(cart.subtotal),
         commercial_discount_total=float(getattr(cart, "commercial_discount_total", 0) or 0),

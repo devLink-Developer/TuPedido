@@ -391,7 +391,10 @@ def checkout(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Checkout already exists for this idempotency key",
             ) from exc
-        if not settings.mercadopago_checkout_pro_fallback_enabled:
+        use_card_payment = settings.mercadopago_card_payment_enabled or (
+            settings.mercadopago_simulated and not settings.mercadopago_checkout_pro_fallback_enabled
+        )
+        if use_card_payment:
             session_token, expires_at = build_card_payment_session_token(payment_transaction)
             checkout_url = build_card_payment_checkout_url(session_token)
             attach_payment_session(
@@ -419,6 +422,7 @@ def checkout(
                     items=primary_items,
                     marketplace_fee=float(marketplace_fee),
                     fallback_items=fallback_items,
+                    client_return_url=payload.client_return_url,
                 )
             except MercadoPagoAPIError as exc:
                 db.rollback()

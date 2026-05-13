@@ -7,7 +7,7 @@ import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import httpx
 from jose import JWTError, jwt
@@ -733,7 +733,17 @@ def build_webhook_url() -> str:
     return f"{base}{settings.api_prefix}/webhooks/mercadopago"
 
 
-def build_order_return_url(order_id: int) -> str:
+def build_order_return_url(order_id: int, client_return_url: str | None = None) -> str:
+    if client_return_url:
+        candidate = client_return_url.strip()
+        try:
+            parsed = urlsplit(candidate)
+        except ValueError:
+            parsed = None
+        if parsed and parsed.scheme == "kepedimos" and parsed.netloc:
+            query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+            query["order_id"] = str(order_id)
+            return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment))
     return f"{settings.frontend_base_url.rstrip('/')}/c/pedido/{order_id}"
 
 
@@ -746,13 +756,14 @@ def create_checkout_preference(
     items: list[dict[str, Any]],
     marketplace_fee: float,
     fallback_items: list[dict[str, Any]] | None = None,
+    client_return_url: str | None = None,
 ) -> dict[str, Any]:
     session = object_session(store)
     if session is None:
         raise MercadoPagoAPIError("Mercado Pago provider configuration is unavailable")
     provider = ensure_provider_operable(get_or_create_mercadopago_provider(session))
 
-    return_url = build_order_return_url(order_id)
+    return_url = build_order_return_url(order_id, client_return_url=client_return_url)
     payload = {
         "items": items,
         "marketplace_fee": marketplace_fee,

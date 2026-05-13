@@ -3,7 +3,6 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { WebView, type WebViewNavigation } from "react-native-webview";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AppButton } from "../../components/AppButton";
 import { colors, spacing } from "../../theme";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -15,13 +14,17 @@ export function PaymentWebViewScreen({ route, navigation }: Props) {
 
   const shouldReturnToOrder = useCallback(
     (url: string) => {
-      if (url.includes(`/c/pedido/${orderId}`) || url.includes(`/orders/${orderId}`) || url.includes(`order_id=${orderId}`)) {
-        return true;
-      }
       try {
         const parsed = new URL(url);
-        const result = parsed.searchParams.get("payment_result") ?? parsed.searchParams.get("status");
-        return parsed.pathname.includes("/payments/mercadopago/card") && ["paid", "approved", "pending", "processing"].includes(result ?? "");
+        const result =
+          parsed.searchParams.get("payment_result") ??
+          parsed.searchParams.get("status") ??
+          parsed.searchParams.get("collection_status");
+        const paid = ["paid", "approved"].includes((result ?? "").toLowerCase());
+        if (parsed.pathname.includes(`/c/pedido/${orderId}`) || parsed.pathname.includes(`/orders/${orderId}`) || parsed.searchParams.get("order_id") === String(orderId)) {
+          return paid || result === null;
+        }
+        return parsed.pathname.includes("/payments/mercadopago/card") && paid;
       } catch {
         return false;
       }
@@ -47,7 +50,6 @@ export function PaymentWebViewScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.wrap}>
       <View style={styles.toolbar}>
         <Text style={styles.title}>Pago Mercado Pago</Text>
-        <AppButton title="Ver pedido" icon="receipt-outline" onPress={() => navigation.replace("OrderDetail", { orderId })} variant="ghost" />
       </View>
       {loading ? <ActivityIndicator style={styles.loader} color={colors.primary} /> : null}
       <WebView
