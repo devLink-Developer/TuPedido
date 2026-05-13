@@ -767,6 +767,7 @@ def create_checkout_preference(
     marketplace_fee: float,
     fallback_items: list[dict[str, Any]] | None = None,
     client_return_url: str | None = None,
+    payment_concept: str | None = None,
 ) -> dict[str, Any]:
     session = object_session(store)
     if session is None:
@@ -792,6 +793,8 @@ def create_checkout_preference(
             "platform": "kepedimos",
         },
     }
+    if payment_concept:
+        payload["additional_info"] = payment_concept
     allow_promotions_retry = fallback_items is not None and any(
         float(item.get("unit_price") or 0) < 0 for item in items
     )

@@ -17,6 +17,7 @@ type ApplicationDraftRecord = {
 type Toast = {
   id: string;
   title: string;
+  durationMs: number;
 };
 
 type UiState = {
@@ -29,7 +30,7 @@ type UiState = {
   saveApplicationDraft: (kind: ApplicationDraftKind, draft: unknown, redirectTo: string, pendingSubmit?: boolean) => void;
   getApplicationDraft: (kind: ApplicationDraftKind) => ApplicationDraftRecord | null;
   clearApplicationDraft: (kind: ApplicationDraftKind) => void;
-  enqueueToast: (title: string) => void;
+  enqueueToast: (title: string, options?: { durationMs?: number }) => void;
   dismissToast: (id: string) => void;
   resetForTest: () => void;
 };
@@ -87,10 +88,10 @@ export const useUiStore = create<UiState>((set, get) => ({
       }
     }));
   },
-  enqueueToast(title) {
+  enqueueToast(title, options) {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     set((state) => ({
-      toasts: [...state.toasts, { id, title }]
+      toasts: [...state.toasts, { id, title, durationMs: options?.durationMs ?? 3000 }]
     }));
   },
   dismissToast(id) {

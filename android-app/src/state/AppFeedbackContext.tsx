@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps, ReactNode } from "react";
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, radii, shadow, spacing, typography } from "../theme";
 
 type FeedbackVariant = "success" | "danger" | "warning" | "info";
@@ -21,8 +22,16 @@ export type AppFeedbackDialog = {
   actions?: AppFeedbackAction[];
 };
 
+type AppFeedbackToast = {
+  id: string;
+  title: string;
+  variant: FeedbackVariant;
+  durationMs: number;
+};
+
 type AppFeedbackContextValue = {
   showDialog: (dialog: AppFeedbackDialog) => void;
+  showToast: (title: string, options?: { durationMs?: number; variant?: FeedbackVariant }) => void;
   showSuccess: (title: string, message?: string) => void;
   showError: (title: string, message?: string) => void;
   hideDialog: () => void;
@@ -46,29 +55,60 @@ const colorByVariant: Record<FeedbackVariant, { icon: string; surface: string }>
 
 export function AppFeedbackProvider({ children }: { children: ReactNode }) {
   const [dialog, setDialog] = useState<AppFeedbackDialog | null>(null);
+  const [toast, setToast] = useState<AppFeedbackToast | null>(null);
   const hideDialog = useCallback(() => setDialog(null), []);
 
   const showDialog = useCallback((nextDialog: AppFeedbackDialog) => {
     setDialog(nextDialog);
   }, []);
 
+  const showToast = useCallback((title: string, options?: { durationMs?: number; variant?: FeedbackVariant }) => {
+    setToast({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title,
+      variant: options?.variant ?? "success",
+      durationMs: options?.durationMs ?? 3000
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast((current) => (current?.id === toast.id ? null : current));
+    }, toast.durationMs);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   const value = useMemo<AppFeedbackContextValue>(
     () => ({
       showDialog,
+      showToast,
       showSuccess: (title, message) => showDialog({ title, message, variant: "success" }),
       showError: (title, message) => showDialog({ title, message, variant: "danger" }),
       hideDialog
     }),
-    [hideDialog, showDialog]
+    [hideDialog, showDialog, showToast]
   );
 
   const variant = dialog?.variant ?? "info";
   const variantColors = colorByVariant[variant];
+  const toastVariant = toast?.variant ?? "success";
+  const toastColors = colorByVariant[toastVariant];
   const actions = dialog?.actions?.length ? dialog.actions : [{ label: "Entendido", variant: "primary" as const }];
 
   return (
     <AppFeedbackContext.Provider value={value}>
       {children}
+      {toast ? (
+        <SafeAreaView pointerEvents="none" style={styles.toastHost}>
+          <View accessibilityRole="alert" style={styles.toast}>
+            <Ionicons name={iconByVariant[toastVariant]} size={18} color={toastColors.icon} />
+            <Text numberOfLines={1} style={styles.toastText}>
+              {toast.title}
+            </Text>
+          </View>
+        </SafeAreaView>
+      ) : null}
       <Modal animationType="fade" transparent visible={Boolean(dialog)} statusBarTranslucent onRequestClose={hideDialog}>
         <View style={styles.overlay}>
           <View accessibilityRole="alert" accessibilityViewIsModal style={styles.dialog}>
@@ -112,6 +152,36 @@ export function useAppFeedback() {
 }
 
 const styles = StyleSheet.create({
+  toastHost: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    elevation: 20,
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm
+  },
+  toast: {
+    maxWidth: 320,
+    minHeight: 40,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: "rgba(255, 255, 255, 0.96)",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    ...shadow.soft
+  },
+  toastText: {
+    ...typography.button,
+    color: colors.text,
+    flexShrink: 1
+  },
   overlay: {
     flex: 1,
     alignItems: "center",
@@ -195,4 +265,3 @@ const styles = StyleSheet.create({
     opacity: 0.78
   }
 });
-

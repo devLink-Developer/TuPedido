@@ -220,6 +220,9 @@ def update_mercadopago_payment_provider(
     provider.commission_mode = payload.commission_mode
     provider.commission_value = payload.commission_value
     provider.enabled = payload.enabled
+    if provider.commission_mode == "fixed" and provider.commission_value is not None:
+        platform_settings = get_or_create_platform_settings(db)
+        platform_settings.service_fee_amount = provider.commission_value
     if "client_secret" in payload.model_fields_set and (payload.client_secret or "").strip():
         provider.client_secret_encrypted = encrypt_sensitive_value(payload.client_secret.strip())
     if "webhook_secret" in payload.model_fields_set and (payload.webhook_secret or "").strip():

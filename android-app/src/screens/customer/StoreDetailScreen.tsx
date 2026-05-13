@@ -30,7 +30,7 @@ function hasAddressPin(address: Address): address is Address & { latitude: numbe
 export function StoreDetailScreen({ route, navigation }: Props) {
   const { slug, latitude, longitude } = route.params;
   const { token } = useAuth();
-  const { showDialog, showError, showSuccess } = useAppFeedback();
+  const { showDialog, showError, showToast } = useAppFeedback();
   const { itemCount, setCart } = useCartState();
   const [customerLocation, setCustomerLocation] = useState<CustomerLocation | null>(
     typeof latitude === "number" && typeof longitude === "number" ? { latitude, longitude, source: "route" } : null
@@ -133,12 +133,12 @@ export function StoreDetailScreen({ route, navigation }: Props) {
           customer_longitude: customerLocation?.longitude ?? null
         });
         setCart(nextCart);
-        showSuccess("Agregado al carrito", `${product.name} se sumó al pedido.`);
+        showToast("Articulo agregado", { durationMs: 1500 });
       } catch (addError) {
         showError("No se pudo agregar", friendlyErrorMessage(addError));
       }
     },
-    [customerLocation, hasConfiguredAddress, navigation, setCart, showDialog, showError, showSuccess, store, token]
+    [customerLocation, hasConfiguredAddress, navigation, setCart, showDialog, showError, showToast, store, token]
   );
 
   const requestGpsLocation = useCallback(async () => {

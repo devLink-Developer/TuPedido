@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal, ROUND_HALF_UP
 from types import SimpleNamespace
 
 import sqlalchemy as sa
@@ -14,6 +15,8 @@ DEFAULT_CATALOG_BANNER_WIDTH = 1600
 DEFAULT_CATALOG_BANNER_HEIGHT = 520
 DEFAULT_PLATFORM_USE_LOGO_AS_FAVICON = False
 PLATFORM_SETTINGS_SINGLETON_ID = 1
+MERCADOPAGO_PROVIDER = "mercadopago"
+MONEY_QUANTIZER = Decimal("0.01")
 
 PLATFORM_SETTINGS_COLUMNS = (
     "id",
@@ -86,8 +89,46 @@ def get_or_create_platform_settings(db: Session) -> PlatformSettings:
     return settings
 
 
-def get_service_fee_amount(db: Session | None) -> float:
+def _money(value: object) -> Decimal:
+    return Decimal(str(value or 0)).quantize(MONEY_QUANTIZER, rounding=ROUND_HALF_UP)
+
+
+def get_mercadopago_commission_snapshot(db: Session) -> object | None:
+    columns = get_table_columns(db, "payment_providers")
+    required_columns = {"provider", "commission_mode", "commission_value"}
+    if not required_columns.issubset(columns):
+        return None
+
+    row = db.execute(
+        sa.text(
+            "SELECT commission_mode, commission_value "
+            "FROM payment_providers "
+            "WHERE provider = :provider"
+        ),
+        {"provider": MERCADOPAGO_PROVIDER},
+    ).mappings().first()
+    if row is None:
+        return None
+    return SimpleNamespace(**dict(row))
+
+
+def get_service_fee_amount(db: Session | None, *, fee_base_amount: object | None = None) -> float:
     if db is None:
         return DEFAULT_SERVICE_FEE_AMOUNT
+
+    commission = get_mercadopago_commission_snapshot(db)
+    if commission is not None and getattr(commission, "commission_value", None) is not None:
+        mode = str(getattr(commission, "commission_mode", "fixed") or "fixed").lower()
+        value = _money(getattr(commission, "commission_value", 0))
+        if mode == "percentage":
+            if fee_base_amount is not None:
+                fee = (_money(fee_base_amount) * value / Decimal("100")).quantize(
+                    MONEY_QUANTIZER,
+                    rounding=ROUND_HALF_UP,
+                )
+                return float(fee)
+        else:
+            return float(value)
+
     settings = get_platform_settings_snapshot(db)
     return float(getattr(settings, "service_fee_amount", DEFAULT_SERVICE_FEE_AMOUNT))

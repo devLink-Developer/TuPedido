@@ -209,6 +209,7 @@ export function StoreDetailPage() {
       });
       setNotes((current) => ({ ...current, [product.id]: "" }));
       setNoteInputsOpen((current) => ({ ...current, [product.id]: false }));
+      enqueueToast("Articulo agregado", { durationMs: 1500 });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudo agregar al carrito");
     } finally {

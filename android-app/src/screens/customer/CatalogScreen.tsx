@@ -395,7 +395,7 @@ export function CatalogScreen(_props: Props) {
           />
         )}
       />
-      <FloatingCartButton itemCount={user ? itemCount : 0} bottomOffset={92} onPress={() => navigation.navigate("Cart")} />
+      <FloatingCartButton itemCount={user ? itemCount : 0} onPress={() => navigation.navigate("Cart")} />
     </Screen>
   );
 }

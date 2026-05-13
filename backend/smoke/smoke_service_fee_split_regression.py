@@ -56,13 +56,58 @@ def _service_fee_charge_count(order_id: int) -> int:
         db.close()
 
 
-def _create_pickup_order(client, *, customer_headers: dict[str, str], payment_method: str) -> dict[str, object]:
-    store = client.get("/api/v1/catalog/stores").json()[0]
-    client.post(
+def _configure_fixed_service_fee(client, *, admin_headers: dict[str, str], service_fee: float) -> None:
+    provider = client.get("/api/v1/admin/payment-providers/mercadopago", headers=admin_headers)
+    provider.raise_for_status()
+    provider_payload = provider.json()
+    update = client.post(
+        "/api/v1/admin/payment-providers/mercadopago",
+        headers=admin_headers,
+        json={
+            "client_id": provider_payload["client_id"],
+            "public_key": provider_payload["public_key"],
+            "redirect_uri": provider_payload["redirect_uri"],
+            "enabled": provider_payload["enabled"],
+            "mode": provider_payload["mode"],
+            "commission_mode": "fixed",
+            "commission_value": service_fee,
+        },
+    )
+    update.raise_for_status()
+
+
+def _customer_location(client, customer_headers: dict[str, str]) -> tuple[float, float]:
+    address = client.get("/api/v1/addresses", headers=customer_headers).json()[0]
+    return float(address["latitude"]), float(address["longitude"])
+
+
+def _first_store(client, *, latitude: float, longitude: float) -> dict[str, object]:
+    stores = client.get(
+        "/api/v1/catalog/stores",
+        params={"latitude": latitude, "longitude": longitude, "delivery_mode": "pickup"},
+    )
+    stores.raise_for_status()
+    return stores.json()[0]
+
+
+def _create_pickup_order(
+    client, *, customer_headers: dict[str, str], payment_method: str, expected_service_fee: float
+) -> dict[str, object]:
+    latitude, longitude = _customer_location(client, customer_headers)
+    store = _first_store(client, latitude=latitude, longitude=longitude)
+    cart = client.post(
         "/api/v1/cart/items",
         headers=customer_headers,
-        json={"store_id": store["id"], "product_id": 1, "quantity": 1},
-    ).raise_for_status()
+        json={
+            "store_id": store["id"],
+            "product_id": 1,
+            "quantity": 1,
+            "customer_latitude": latitude,
+            "customer_longitude": longitude,
+        },
+    )
+    cart.raise_for_status()
+    assert cart.json()["service_fee"] == expected_service_fee
     checkout = client.post(
         "/api/v1/checkout",
         headers=customer_headers,
@@ -71,10 +116,16 @@ def _create_pickup_order(client, *, customer_headers: dict[str, str], payment_me
             "address_id": None,
             "delivery_mode": "pickup",
             "payment_method": payment_method,
+            "customer_latitude": latitude,
+            "customer_longitude": longitude,
         },
     )
-    checkout.raise_for_status()
-    return checkout.json()
+    assert checkout.status_code < 400, checkout.text
+    checkout_payload = checkout.json()
+    order = client.get(f"/api/v1/orders/{checkout_payload['order_id']}", headers=customer_headers)
+    order.raise_for_status()
+    assert order.json()["service_fee"] == expected_service_fee
+    return checkout_payload
 
 
 def _move_pickup_order_to_delivered(client, *, merchant_headers: dict[str, str], order_id: int) -> None:
@@ -141,10 +192,22 @@ def main() -> None:
     mp.httpx.request = fake_request
     try:
         with TestClient(app) as client:
+            admin_headers = _login(client, "admin@kepedimos.com", "admin1234")
             customer_headers = _login(client, "cliente@kepedimos.example.com", "cliente123")
             merchant_headers = _login(client, "merchant@kepedimos.example.com", "merchant123")
+            configured_service_fee = 725.0
+            _configure_fixed_service_fee(
+                client,
+                admin_headers=admin_headers,
+                service_fee=configured_service_fee,
+            )
 
-            cash_checkout = _create_pickup_order(client, customer_headers=customer_headers, payment_method="cash")
+            cash_checkout = _create_pickup_order(
+                client,
+                customer_headers=customer_headers,
+                payment_method="cash",
+                expected_service_fee=configured_service_fee,
+            )
             _move_pickup_order_to_delivered(client, merchant_headers=merchant_headers, order_id=cash_checkout["order_id"])
             assert _service_fee_charge_count(cash_checkout["order_id"]) == 1
 
@@ -152,6 +215,7 @@ def main() -> None:
                 client,
                 customer_headers=customer_headers,
                 payment_method="mercadopago",
+                expected_service_fee=configured_service_fee,
             )
             captured_reference["value"] = str(mercadopago_checkout["payment_reference"])
             payment_order = client.get(
@@ -160,7 +224,8 @@ def main() -> None:
             )
             payment_order.raise_for_status()
             captured_payment.update(payment_order.json())
-            store = client.get("/api/v1/catalog/stores").json()[0]
+            latitude, longitude = _customer_location(client, customer_headers)
+            store = _first_store(client, latitude=latitude, longitude=longitude)
             _approve_mercadopago_order(
                 client,
                 store_id=store["id"],

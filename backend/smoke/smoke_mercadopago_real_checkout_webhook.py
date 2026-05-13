@@ -16,6 +16,11 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
+from app.modules.payments.mercadopago.payment_concept import (
+    MERCADOPAGO_PAYMENT_CONCEPT_MAX_LENGTH,
+    build_payment_concept,
+)
+
 
 class FakeResponse:
     def __init__(self, status_code: int, payload: dict[str, object]) -> None:
@@ -77,12 +82,16 @@ def _assert_split_payload(payload: dict[str, object], order: dict[str, object]) 
     marketplace_fee = _money(payload["marketplace_fee"])
     order_total = _money(order["total"])
     service_fee = _money(order["service_fee"])
+    expected_concept = build_payment_concept(order["store_name"])
 
     assert _sum_items(items) == order_total
     assert marketplace_fee == service_fee
     assert _sum_items(items) - marketplace_fee == order_total - service_fee
-    assert sum(1 for item in items if item["title"] == "Envio") == 1
-    assert sum(1 for item in items if item["title"] == "Servicio") == 1
+    assert len(items) == 1
+    assert items[0]["title"] == expected_concept
+    assert items[0]["description"] == expected_concept
+    assert payload["additional_info"] == expected_concept
+    assert len(expected_concept) <= MERCADOPAGO_PAYMENT_CONCEPT_MAX_LENGTH
 
 
 def _payment_payload(
@@ -327,17 +336,15 @@ def _run_promotions_fallback_scenario(client, mp) -> None:
         checkout_payload = checkout.json()
         captured["reference"] = checkout_payload["payment_reference"]
         assert checkout_payload["checkout_url"] is not None
-        assert len(captured["payloads"]) == 2
-        assert any(float(item["unit_price"]) < 0 for item in captured["payloads"][0]["items"])
-        assert all(float(item["unit_price"]) >= 0 for item in captured["payloads"][1]["items"])
+        assert len(captured["payloads"]) == 1
+        assert all(float(item["unit_price"]) >= 0 for item in captured["payloads"][0]["items"])
         assert captured["requests"][0]["authorization"] == "Bearer TEST-ACCESS-TOKEN-1234"
-        assert captured["requests"][1]["authorization"] == "Bearer TEST-ACCESS-TOKEN-1234"
 
         order = client.get(f"/api/v1/orders/{checkout_payload['order_id']}", headers=customer_headers)
         order.raise_for_status()
         order_payload = order.json()
         captured["order"] = order_payload
-        _assert_split_payload(captured["payloads"][1], order_payload)
+        _assert_split_payload(captured["payloads"][0], order_payload)
 
         _approve_checkout_order(
             client,
@@ -357,6 +364,10 @@ def main() -> None:
     from app.services import mercadopago as mp
 
     DB_PATH.unlink(missing_ok=True)
+    long_concept = build_payment_concept("Comercio " * 80)
+    assert len(long_concept) <= MERCADOPAGO_PAYMENT_CONCEPT_MAX_LENGTH
+    assert build_payment_concept("Mi Comercio") == "PAGOMi Comercio"
+    assert long_concept.startswith("PAGO")
 
     with TestClient(app) as client:
         _run_delivery_split_scenario(client, mp)

@@ -25,6 +25,7 @@ from app.services.mercadopago import (
     get_or_create_mercadopago_provider,
     normalize_payment_status,
 )
+from app.modules.payments.mercadopago.payment_concept import build_payment_concept
 from app.services.cart_ops import clear_cart_if_matches_order
 from app.services.order_visibility import payment_status_allows_fulfillment, payment_status_revealed_order_to_merchant
 from app.services.payment_transactions import (
@@ -154,12 +155,14 @@ def _payer_payload(payload: MercadoPagoCardPaymentRequest, order: StoreOrder) ->
 
 
 def _create_simulated_payment(transaction: PaymentTransaction, payload: MercadoPagoCardPaymentRequest) -> dict[str, Any]:
+    description = build_payment_concept(getattr(transaction.order, "store_name_snapshot", None))
     return {
         "id": f"simulated_{transaction.id}",
         "status": "approved",
         "status_detail": "accredited",
         "transaction_amount": _money_float(transaction.gross_amount),
         "currency_id": transaction.currency,
+        "description": description,
         "external_reference": transaction.external_reference,
         "application_fee": _money_float(transaction.marketplace_fee),
         "collector_id": transaction.mp_user_id,
@@ -170,10 +173,11 @@ def _create_simulated_payment(transaction: PaymentTransaction, payload: MercadoP
 
 def _build_payment_payload(transaction: PaymentTransaction, payload: MercadoPagoCardPaymentRequest) -> dict[str, Any]:
     order = transaction.order
+    description = build_payment_concept(getattr(order, "store_name_snapshot", None))
     request_payload: dict[str, Any] = {
         "transaction_amount": _money_float(transaction.gross_amount),
         "token": payload.token,
-        "description": f"Pedido #{transaction.order_id}",
+        "description": description,
         "installments": payload.installments,
         "payment_method_id": payload.payment_method_id,
         "payer": _payer_payload(payload, order),

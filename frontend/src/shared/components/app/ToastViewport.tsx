@@ -4,21 +4,27 @@ import { useUiStore } from "../../stores";
 export function ToastViewport() {
   const toasts = useUiStore((state) => state.toasts);
   const dismissToast = useUiStore((state) => state.dismissToast);
+  const activeToast = toasts[0];
 
   useEffect(() => {
-    if (!toasts.length) return;
+    if (!activeToast) return;
     const timer = window.setTimeout(() => {
-      dismissToast(toasts[0].id);
-    }, 3000);
+      dismissToast(activeToast.id);
+    }, activeToast.durationMs);
     return () => window.clearTimeout(timer);
-  }, [dismissToast, toasts]);
+  }, [activeToast, dismissToast]);
 
   if (!toasts.length) return null;
 
   return (
-    <div className="fixed right-4 top-4 z-50 space-y-2">
+    <div className="pointer-events-none fixed right-4 top-4 z-50 max-w-[calc(100vw-2rem)] space-y-2 sm:right-5 sm:top-5">
       {toasts.map((toast) => (
-        <div key={toast.id} className="kp-toast px-4 py-3 text-sm font-semibold text-[var(--kp-ink-strong)]">
+        <div
+          key={toast.id}
+          role="status"
+          aria-live="polite"
+          className="kp-toast max-w-xs truncate px-4 py-3 text-sm font-semibold text-[var(--kp-ink-strong)]"
+        >
           {toast.title}
         </div>
       ))}

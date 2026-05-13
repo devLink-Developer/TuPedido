@@ -96,7 +96,8 @@ def compute_cart_totals(cart: ShoppingCart) -> None:
         if settings and store_delivery_is_enabled(cart.store):
             delivery_fee = customer_delivery_fee_for_store(cart.store, discounted_subtotal=discounted_subtotal)
     if final_items_total > 0:
-        service_fee = get_service_fee_amount(object_session(cart))
+        service_fee_base = discounted_subtotal + delivery_fee
+        service_fee = get_service_fee_amount(object_session(cart), fee_base_amount=service_fee_base)
     cart.delivery_fee = delivery_fee
     cart.service_fee = service_fee
     cart.total = max(0.0, final_items_total - float(cart.financial_discount_total or 0)) + delivery_fee + service_fee

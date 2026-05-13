@@ -27,7 +27,7 @@ from app.services.cart_ops import (
 )
 from app.services.delivery import bootstrap_delivery_order, publish_order_snapshot, snapshot_delivery_quote
 from app.services.mercadopago import MercadoPagoAPIError, create_checkout_preference
-from app.modules.payments.mercadopago.commission_service import calculate_marketplace_fee
+from app.modules.payments.mercadopago.payment_concept import build_payment_concept
 from app.modules.payments.mercadopago.payment_service import (
     build_card_payment_checkout_url,
     build_card_payment_session_token,
@@ -96,13 +96,22 @@ def _money_to_float(value: Decimal) -> float:
     return float(value.quantize(MONEY_QUANTIZER, rounding=ROUND_HALF_UP))
 
 
-def _serialize_payment_item(title: str, quantity: int, unit_price: Decimal) -> dict[str, object]:
-    return {
+def _serialize_payment_item(
+    title: str,
+    quantity: int,
+    unit_price: Decimal,
+    *,
+    description: str | None = None,
+) -> dict[str, object]:
+    item = {
         "title": title,
         "quantity": quantity,
         "unit_price": _money_to_float(unit_price),
         "currency_id": "ARS",
     }
+    if description:
+        item["description"] = description
+    return item
 
 
 def _sum_payment_items(items: list[dict[str, object]]) -> Decimal:
@@ -179,8 +188,18 @@ def _prorate_discount_across_products(
 
 
 def build_payment_items(
-    order: StoreOrder, *, allow_negative_promotion_item: bool = True
+    order: StoreOrder, *, allow_negative_promotion_item: bool = True, payment_concept: str | None = None
 ) -> list[dict[str, object]]:
+    if payment_concept:
+        return [
+            _serialize_payment_item(
+                payment_concept,
+                1,
+                _money(order.total),
+                description=payment_concept,
+            )
+        ]
+
     items = _build_product_payment_items(order)
     financial_discount_total = _money(getattr(order, "financial_discount_total", 0) or 0)
     if financial_discount_total > 0 and not allow_negative_promotion_item:
@@ -205,24 +224,13 @@ def validate_checkout_split_payload(
     items_total = _sum_payment_items(items)
     service_fee = _money(order.service_fee)
     actual_marketplace_fee = _money(marketplace_fee)
-    expected_delivery_fee = _money(getattr(order, "delivery_fee_customer", order.delivery_fee) or 0)
-    actual_delivery_fee = sum(
-        (_money(item["unit_price"]) * Decimal(int(item["quantity"])) for item in items if item["title"] == "Envio"),
-        Decimal("0.00"),
-    ).quantize(MONEY_QUANTIZER, rounding=ROUND_HALF_UP)
-    actual_service_item_total = sum(
-        (_money(item["unit_price"]) * Decimal(int(item["quantity"])) for item in items if item["title"] == "Servicio"),
-        Decimal("0.00"),
-    ).quantize(MONEY_QUANTIZER, rounding=ROUND_HALF_UP)
 
     if actual_marketplace_fee < 0 or actual_marketplace_fee > order_total:
         raise MercadoPagoAPIError("Marketplace fee must be between zero and the order total")
     if items_total != order_total:
         raise MercadoPagoAPIError("Mercado Pago preference items total must match the order total")
-    if actual_delivery_fee != expected_delivery_fee:
-        raise MercadoPagoAPIError("Delivery fee must remain on the merchant side of the split")
-    if actual_service_item_total != service_fee:
-        raise MercadoPagoAPIError("Service fee must remain charged to the buyer and mapped to marketplace_fee")
+    if actual_marketplace_fee != service_fee:
+        raise MercadoPagoAPIError("Marketplace fee must match the service fee charged to the buyer")
     if items_total - actual_marketplace_fee < 0:
         raise MercadoPagoAPIError("Seller settlement amount cannot be negative")
 
@@ -360,11 +368,7 @@ def checkout(
         payment_reference = f"mp_{uuid.uuid4().hex[:18]}"
         order.payment_reference = payment_reference
         try:
-            marketplace_fee = calculate_marketplace_fee(
-                db,
-                gross_amount=order.total,
-                fallback_fixed_fee=order.service_fee,
-            )
+            marketplace_fee = _money(order.service_fee)
             payment_transaction = create_payment_transaction(
                 db,
                 order=order,
@@ -405,15 +409,14 @@ def checkout(
                 expires_at=expires_at,
             )
         else:
-            primary_items = build_payment_items(order, allow_negative_promotion_item=True)
-            fallback_items = (
-                build_payment_items(order, allow_negative_promotion_item=False)
-                if _money(order.financial_discount_total) > 0
-                else None
+            payment_concept = build_payment_concept(order.store_name_snapshot)
+            primary_items = build_payment_items(
+                order,
+                allow_negative_promotion_item=True,
+                payment_concept=payment_concept,
             )
+            fallback_items = None
             validate_checkout_split_payload(order, items=primary_items, marketplace_fee=float(marketplace_fee))
-            if fallback_items is not None:
-                validate_checkout_split_payload(order, items=fallback_items, marketplace_fee=float(marketplace_fee))
             try:
                 preference = create_checkout_preference(
                     store=store,
@@ -424,6 +427,7 @@ def checkout(
                     marketplace_fee=float(marketplace_fee),
                     fallback_items=fallback_items,
                     client_return_url=payload.client_return_url,
+                    payment_concept=payment_concept,
                 )
             except MercadoPagoAPIError as exc:
                 db.rollback()
