@@ -256,8 +256,9 @@ export function LeafletMapView({
         cacheEnabled
         domStorageEnabled={false}
         javaScriptEnabled
+        mixedContentMode="never"
         nestedScrollEnabled
-        originWhitelist={["*"]}
+        originWhitelist={["https://*"]}
         overScrollMode="never"
         renderLoading={() => (
           <View style={styles.loader}>
@@ -270,7 +271,7 @@ export function LeafletMapView({
         showsHorizontalScrollIndicator={false}
         showsVerticalScrollIndicator={false}
         onMessage={handleMessage}
-        source={{ html }}
+        source={{ html, baseUrl: "https://kepedimos.com" }}
         startInLoadingState
         style={styles.webview}
       />

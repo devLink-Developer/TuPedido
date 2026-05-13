@@ -84,4 +84,10 @@ def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get(settings.api_prefix, tags=["health"], include_in_schema=False)
+@app.get(f"{settings.api_prefix}/", tags=["health"])
+def api_root() -> dict[str, str]:
+    return {"name": settings.app_name, "status": "ok", "version": app.version}
+
+
 app.include_router(api_router, prefix=settings.api_prefix)

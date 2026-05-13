@@ -66,12 +66,12 @@ export function PaymentWebViewScreen({ route, navigation }: Props) {
       {loading ? <ActivityIndicator style={styles.loader} color={colors.primary} /> : null}
       <WebView
         source={{ uri: checkoutUrl }}
-        originWhitelist={["http://*", "https://*", "mercadopago://*"]}
+        originWhitelist={["https://*", "mercadopago://*"]}
         javaScriptEnabled
         domStorageEnabled
         thirdPartyCookiesEnabled
         sharedCookiesEnabled
-        mixedContentMode="compatibility"
+        mixedContentMode="never"
         onLoadEnd={() => setLoading(false)}
         onNavigationStateChange={maybeReturnToOrder}
         onShouldStartLoadWithRequest={handleShouldStartLoad}

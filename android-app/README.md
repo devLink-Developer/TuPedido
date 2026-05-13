@@ -13,9 +13,21 @@ npm install
 npm run android
 npm run typecheck
 npm test
+npm run build:android:release
 ```
 
 `npm run android` usa el proyecto nativo generado en `android/`; requiere JDK (`JAVA_HOME`) y Android SDK/Android Studio configurados.
+
+`npm run build:android:release` genera el App Bundle para Play (`.aab`) y exige upload key configurada con:
+
+```bash
+KEPEDIMOS_UPLOAD_STORE_FILE=/ruta/upload-keystore.jks
+KEPEDIMOS_UPLOAD_STORE_PASSWORD=...
+KEPEDIMOS_UPLOAD_KEY_ALIAS=...
+KEPEDIMOS_UPLOAD_KEY_PASSWORD=...
+```
+
+No publicar en Play los APK standalone ni builds firmados con debug keystore.
 
 ## Configuracion
 
@@ -41,6 +53,7 @@ La app consume `/api/v1/routing/directions` con token para ruta y ETA.
 - Politica de privacidad publica: `https://kepedimos.com/legal/privacy.html`.
 - Eliminacion de cuenta publica: `https://kepedimos.com/legal/account-deletion.html`.
 - La app incluye eliminacion de cuenta desde Perfil y disclosure antes del permiso de ubicacion en segundo plano para repartidores.
+- La build bloquea permisos Android no usados por la app nativa: almacenamiento externo, overlay y biometric/fingerprint.
 - Checklist de consola y datos: `../docs/google-play-compliance.md`.
 
 ## Alcance v1

@@ -10,7 +10,8 @@
     "postinstall": "patch-package",
     "prebuild:android:release": "node scripts/sync-android-version.cjs",
     "build:android:debug": "cd android && gradlew.bat assembleDebug",
-    "build:android:release": "cd android && gradlew.bat assembleRelease",
+    "build:android:release": "node scripts/build-release-bundle.cjs",
+    "build:android:bundle": "node scripts/build-release-bundle.cjs",
     "build:android:standalone": "node scripts/build-release-standalone.cjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
