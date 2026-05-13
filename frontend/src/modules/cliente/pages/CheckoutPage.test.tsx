@@ -9,6 +9,7 @@ const navigateMock = vi.fn();
 const checkoutMock = vi.fn();
 const fetchAddressesMock = vi.fn();
 const fetchStoreByIdMock = vi.fn();
+const refreshCartMock = vi.fn();
 const resetCartMock = vi.fn();
 const setDeliveryModeMock = vi.fn();
 
@@ -143,6 +144,7 @@ vi.mock("../../../shared/hooks", () => ({
         complete: true
       }
     },
+    refreshCart: () => refreshCartMock(),
     resetCart: () => resetCartMock(),
     setDeliveryMode: (...args: unknown[]) => setDeliveryModeMock(...args)
   })
@@ -205,6 +207,7 @@ describe("CheckoutPage", () => {
     checkoutMock.mockReset();
     fetchAddressesMock.mockReset();
     fetchStoreByIdMock.mockReset();
+    refreshCartMock.mockReset();
     resetCartMock.mockReset();
     setDeliveryModeMock.mockReset();
     useClienteStore.getState().resetCheckout();
@@ -212,6 +215,7 @@ describe("CheckoutPage", () => {
 
     fetchAddressesMock.mockResolvedValue([]);
     fetchStoreByIdMock.mockResolvedValue(buildStoreDetail());
+    refreshCartMock.mockResolvedValue(undefined);
     checkoutMock.mockResolvedValue({
       order_id: 99,
       status: "created",
@@ -240,7 +244,8 @@ describe("CheckoutPage", () => {
         store_id: 15,
         address_id: null,
         delivery_mode: "pickup",
-        payment_method: "cash"
+        payment_method: "cash",
+        client_return_url: null
       }))
     );
     expect(resetCartMock).toHaveBeenCalledTimes(1);
@@ -294,17 +299,19 @@ describe("CheckoutPage", () => {
     );
 
     await waitFor(() => expect(useClienteStore.getState().selectedPaymentMethod).toBe("mercadopago"));
-    await user.click(screen.getByRole("button", { name: "Confirmar pedido" }));
+    await user.click(screen.getByRole("button", { name: "Ir a pagar" }));
 
     await waitFor(() =>
       expect(checkoutMock).toHaveBeenCalledWith("token", expect.objectContaining({
         store_id: 15,
         address_id: null,
         delivery_mode: "pickup",
-        payment_method: "mercadopago"
+        payment_method: "mercadopago",
+        client_return_url: "/c/checkout?mp_return=mercadopago"
       }))
     );
     expect(assignMock).toHaveBeenCalledWith("https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=123");
+    expect(resetCartMock).not.toHaveBeenCalled();
     expect(navigateMock).not.toHaveBeenCalled();
 
     vi.unstubAllGlobals();

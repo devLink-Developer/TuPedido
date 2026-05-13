@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
+import { useCart } from "../../../shared/hooks";
 import { createMercadoPagoCardPayment, fetchMercadoPagoPaymentSession } from "../../../shared/services/api";
+import { useClienteStore } from "../../../shared/stores";
 import type { MercadoPagoPaymentSession } from "../../../shared/types";
 import { formatCurrency } from "../../../shared/utils/format";
 import { Button } from "../../../shared/ui/Button";
@@ -47,9 +49,22 @@ function isApprovedPaymentStatus(status: string | null | undefined) {
   return ["approved", "paid"].includes((status ?? "").toLowerCase());
 }
 
+function clearCheckoutIdempotencyKeysForStore(storeId: number) {
+  const valuePrefix = `checkout_${storeId}_`;
+  for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
+    const key = window.sessionStorage.key(index);
+    if (!key?.startsWith("checkout_idempotency_")) continue;
+    if (window.sessionStorage.getItem(key)?.startsWith(valuePrefix)) {
+      window.sessionStorage.removeItem(key);
+    }
+  }
+}
+
 export function MercadoPagoCardPaymentPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { resetCart } = useCart();
+  const resetCheckout = useClienteStore((state) => state.resetCheckout);
   const sessionToken = searchParams.get("session") ?? "";
   const [session, setSession] = useState<MercadoPagoPaymentSession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,6 +144,9 @@ export function MercadoPagoCardPaymentPage() {
                 }
               });
               if (isApprovedPaymentStatus(result.status)) {
+                clearCheckoutIdempotencyKeysForStore(session.store_id);
+                resetCart();
+                resetCheckout();
                 navigate(`/c/pedido/${result.order_id}?payment_result=${encodeURIComponent(result.status)}`, { replace: true });
               } else {
                 setError("Pago no aprobado.");
@@ -152,7 +170,7 @@ export function MercadoPagoCardPaymentPage() {
       brickController.current?.unmount?.();
       brickController.current = null;
     };
-  }, [navigate, session, sessionToken]);
+  }, [navigate, resetCart, resetCheckout, session, sessionToken]);
 
   async function handleSimulatedPayment() {
     if (!session) return;
@@ -168,6 +186,9 @@ export function MercadoPagoCardPaymentPage() {
         payer: { email: "cliente@simulado.local" }
       });
       if (isApprovedPaymentStatus(result.status)) {
+        clearCheckoutIdempotencyKeysForStore(session.store_id);
+        resetCart();
+        resetCheckout();
         navigate(`/c/pedido/${result.order_id}?payment_result=${encodeURIComponent(result.status)}`, { replace: true });
       } else {
         setError("Pago no aprobado.");

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, object_session, selectinload
 from fastapi import HTTPException, status
 
 from app.core.utils import is_store_open
-from app.models.order import ShoppingCart, ShoppingCartItem
+from app.models.order import ShoppingCart, ShoppingCartItem, StoreOrder
 from app.models.store import Product, Store, StoreCategoryLink
 from app.services.delivery import customer_delivery_fee_for_store
 from app.services.platform import get_service_fee_amount
@@ -101,6 +101,53 @@ def compute_cart_totals(cart: ShoppingCart) -> None:
     cart.service_fee = service_fee
     cart.total = max(0.0, final_items_total - float(cart.financial_discount_total or 0)) + delivery_fee + service_fee
     setattr(cart, "applied_promotions", applied_promotions)
+
+
+def clear_cart(db: Session, cart: ShoppingCart) -> None:
+    for item in list(cart.items):
+        db.delete(item)
+    cart.store_id = None
+    cart.store = None
+    cart.delivery_mode = "delivery"
+    cart.subtotal = 0
+    cart.commercial_discount_total = 0
+    cart.financial_discount_total = 0
+    cart.delivery_fee = 0
+    cart.service_fee = 0
+    cart.total = 0
+
+
+def clear_cart_if_matches_order(db: Session, order: StoreOrder) -> bool:
+    cart = db.scalar(
+        select(ShoppingCart)
+        .options(selectinload(ShoppingCart.items))
+        .where(ShoppingCart.user_id == order.user_id)
+    )
+    if cart is None or cart.store_id != order.store_id or cart.delivery_mode != order.delivery_mode:
+        return False
+
+    cart_items = sorted(
+        (
+            int(item.product_id),
+            int(item.quantity),
+            (item.note or "").strip(),
+        )
+        for item in cart.items
+    )
+    order_items = sorted(
+        (
+            int(item.product_id),
+            int(item.quantity),
+            (item.note or "").strip(),
+        )
+        for item in order.items
+        if item.product_id is not None
+    )
+    if not cart_items or cart_items != order_items:
+        return False
+
+    clear_cart(db, cart)
+    return True
 
 
 def build_product_pricing_snapshot(product: Product) -> dict[str, float]:

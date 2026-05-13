@@ -18,6 +18,7 @@ from app.models.payment import PaymentTransaction
 from app.models.user import Address, User
 from app.schemas.order import CheckoutRequest, CheckoutResponse
 from app.services.cart_ops import (
+    clear_cart,
     compute_cart_totals,
     ensure_delivery_mode_supported,
     ensure_payment_method_supported,
@@ -433,17 +434,8 @@ def checkout(
             checkout_url = preference["checkout_url"]
             attach_preference(payment_transaction, preference)
 
-    for item in list(cart.items):
-        db.delete(item)
-    cart.store_id = None
-    cart.store = None
-    cart.delivery_mode = "delivery"
-    cart.subtotal = 0
-    cart.commercial_discount_total = 0
-    cart.financial_discount_total = 0
-    cart.delivery_fee = 0
-    cart.service_fee = 0
-    cart.total = 0
+    if payload.payment_method != "mercadopago":
+        clear_cart(db, cart)
 
     bootstrap_delivery_order(db, order)
     db.commit()

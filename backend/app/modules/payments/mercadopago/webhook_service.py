@@ -22,7 +22,8 @@ from app.services.mercadopago import (
     normalize_payment_status,
 )
 from app.services.order_runtime import build_order_options
-from app.services.order_visibility import payment_status_revealed_order_to_merchant
+from app.services.cart_ops import clear_cart_if_matches_order
+from app.services.order_visibility import payment_status_allows_fulfillment, payment_status_revealed_order_to_merchant
 from app.services.payment_transactions import (
     PaymentValidationError,
     create_payment_transaction,
@@ -145,6 +146,8 @@ async def process_mercadopago_webhook(request: Request, db: Session) -> dict[str
             transaction.status = status_value
             transaction.provider_status = str(simulated_status)
             transaction.status_detail = "simulated"
+        if payment_status_allows_fulfillment(order.payment_status):
+            clear_cart_if_matches_order(db, order)
         db.commit()
         db.refresh(order)
         event_type = (
@@ -277,6 +280,8 @@ async def process_mercadopago_webhook(request: Request, db: Session) -> dict[str
     event.external_reference = effective_reference
     event.processed_at = datetime.now(UTC)
     apply_payment_status(order, status_value)
+    if payment_status_allows_fulfillment(order.payment_status):
+        clear_cart_if_matches_order(db, order)
     db.commit()
     db.refresh(order)
     event_type = (

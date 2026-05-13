@@ -25,7 +25,8 @@ from app.services.mercadopago import (
     get_or_create_mercadopago_provider,
     normalize_payment_status,
 )
-from app.services.order_visibility import payment_status_revealed_order_to_merchant
+from app.services.cart_ops import clear_cart_if_matches_order
+from app.services.order_visibility import payment_status_allows_fulfillment, payment_status_revealed_order_to_merchant
 from app.services.payment_transactions import (
     PaymentValidationError,
     record_payment_result,
@@ -269,6 +270,8 @@ def create_card_payment(db: Session, payload: MercadoPagoCardPaymentRequest) -> 
     order.payment_status = status_value
     if status_value in {"cancelled", "rejected", "refunded", "chargeback"}:
         order.status = "cancelled"
+    if payment_status_allows_fulfillment(order.payment_status):
+        clear_cart_if_matches_order(db, order)
     return (
         MercadoPagoCardPaymentResponse(
             order_id=transaction.order_id,
@@ -301,4 +304,6 @@ def sync_transaction_from_provider(db: Session, transaction: PaymentTransaction)
     transaction.order.payment_status = status_value
     if status_value in {"cancelled", "rejected", "refunded", "chargeback"}:
         transaction.order.status = "cancelled"
+    if payment_status_allows_fulfillment(transaction.order.payment_status):
+        clear_cart_if_matches_order(db, transaction.order)
     return True

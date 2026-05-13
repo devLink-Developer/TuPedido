@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { EmptyState, LoadingCard, PageHeader } from "../../../shared/components";
 import { useAuthSession, useCart } from "../../../shared/hooks";
 import { checkout, createAddress, fetchAddresses, fetchStoreById } from "../../../shared/services/api";
@@ -66,6 +66,17 @@ function clearCheckoutIdempotencyKey(signature: string) {
   window.sessionStorage.removeItem(`checkout_idempotency_${signature}`);
 }
 
+function clearCheckoutIdempotencyKeysForStore(storeId: number) {
+  const valuePrefix = `checkout_${storeId}_`;
+  for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
+    const key = window.sessionStorage.key(index);
+    if (!key?.startsWith("checkout_idempotency_")) continue;
+    if (window.sessionStorage.getItem(key)?.startsWith(valuePrefix)) {
+      window.sessionStorage.removeItem(key);
+    }
+  }
+}
+
 function formatMissingAddressFields(fields: string[]) {
   if (!fields.length) {
     return "";
@@ -82,9 +93,14 @@ function numberOrZero(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
+function isApprovedPaymentStatus(value: string | null | undefined) {
+  return ["approved", "paid"].includes((value ?? "").toLowerCase());
+}
+
 export function CheckoutPage() {
-  const { cart, resetCart, setDeliveryMode } = useCart();
+  const { cart, refreshCart, resetCart, setDeliveryMode } = useCart();
   const { token } = useAuthSession();
+  const location = useLocation();
   const navigate = useNavigate();
   const selectedAddressId = useClienteStore((state) => state.selectedAddressId);
   const selectedPaymentMethod = useClienteStore((state) => state.selectedPaymentMethod);
@@ -102,6 +118,47 @@ export function CheckoutPage() {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [addressForm, setAddressForm] = useState<AddressFormState>(emptyAddressForm);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("mp_return") !== "mercadopago") return;
+
+    setSubmitting(false);
+    setRedirectingToPayment(false);
+    setPaymentRedirectUrl(null);
+    void refreshCart();
+
+    const paymentResult =
+      params.get("payment_result") ?? params.get("status") ?? params.get("collection_status");
+    const orderId = Number(params.get("order_id"));
+    if (Number.isFinite(orderId) && orderId > 0 && isApprovedPaymentStatus(paymentResult)) {
+      if (cart?.store_id) {
+        clearCheckoutIdempotencyKeysForStore(cart.store_id);
+      }
+      resetCart();
+      resetCheckout();
+      navigate(`/c/pedido/${orderId}?payment_result=${encodeURIComponent(paymentResult ?? "approved")}`, {
+        replace: true
+      });
+    }
+  }, [cart?.store_id, location.search, navigate, refreshCart, resetCart, resetCheckout]);
+
+  useEffect(() => {
+    function releasePaymentRedirect() {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      setRedirectingToPayment(false);
+      void refreshCart();
+    }
+
+    window.addEventListener("focus", releasePaymentRedirect);
+    window.addEventListener("pageshow", releasePaymentRedirect);
+    document.addEventListener("visibilitychange", releasePaymentRedirect);
+    return () => {
+      window.removeEventListener("focus", releasePaymentRedirect);
+      window.removeEventListener("pageshow", releasePaymentRedirect);
+      document.removeEventListener("visibilitychange", releasePaymentRedirect);
+    };
+  }, [refreshCart]);
 
   useEffect(() => {
     if (!token || !cart?.store_id) {
@@ -242,7 +299,14 @@ export function CheckoutPage() {
       return;
     }
 
-    await setDeliveryMode(nextMode, location);
+    setLoading(true);
+    try {
+      await setDeliveryMode(nextMode, location);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "No se pudo cambiar la modalidad");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleAddressSelect(address: Address) {
@@ -251,7 +315,14 @@ export function CheckoutPage() {
     if (address.latitude == null || address.longitude == null) return;
     setCustomerLocation({ latitude: address.latitude, longitude: address.longitude, source: "address" });
     if (cart?.delivery_mode === "delivery") {
-      await setDeliveryMode("delivery", { latitude: address.latitude, longitude: address.longitude });
+      setLoading(true);
+      try {
+        await setDeliveryMode("delivery", { latitude: address.latitude, longitude: address.longitude });
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "No se pudo actualizar la direccion");
+      } finally {
+        setLoading(false);
+      }
     }
   }
 
@@ -312,17 +383,22 @@ export function CheckoutPage() {
     setLoading(true);
     setError(null);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const nextLocation = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           source: "gps"
         } as const;
         setCustomerLocation(nextLocation);
-        if (cart?.delivery_mode === "pickup") {
-          void setDeliveryMode("pickup", nextLocation);
+        try {
+          if (cart?.delivery_mode === "pickup") {
+            await setDeliveryMode("pickup", nextLocation);
+          }
+        } catch (requestError) {
+          setError(requestError instanceof Error ? requestError.message : "No se pudo validar la zona de retiro.");
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
       },
       () => {
         setError("No pudimos obtener tu ubicacion. Revisa permisos o carga una direccion.");
@@ -402,15 +478,18 @@ export function CheckoutPage() {
         customer_latitude:
           currentCart.delivery_mode === "delivery" ? selectedAddress?.latitude ?? null : customerLocation?.latitude ?? null,
         customer_longitude:
-          currentCart.delivery_mode === "delivery" ? selectedAddress?.longitude ?? null : customerLocation?.longitude ?? null
+          currentCart.delivery_mode === "delivery" ? selectedAddress?.longitude ?? null : customerLocation?.longitude ?? null,
+        client_return_url: selectedPaymentMethod === "mercadopago" ? "/c/checkout?mp_return=mercadopago" : null
       });
 
       if (result.checkout_url) {
         const path = normalizePath(result.checkout_url);
         if (path.startsWith("/")) {
-          clearCheckoutIdempotencyKey(checkoutAttemptSignature);
-          resetCart();
-          resetCheckout();
+          if (selectedPaymentMethod !== "mercadopago") {
+            clearCheckoutIdempotencyKey(checkoutAttemptSignature);
+            resetCart();
+            resetCheckout();
+          }
           navigate(path);
         } else {
           setPaymentRedirectUrl(result.checkout_url);
@@ -452,6 +531,7 @@ export function CheckoutPage() {
   const productsTotal = Math.max(0, numberOrZero(cart.pricing.subtotal) - commercialDiscount - financialDiscount);
   const checkoutTotal = productsTotal + deliveryFee + serviceFee;
   const selectedPaymentLabel = selectedPaymentMethod === "cash" ? "Efectivo" : "Mercado Pago";
+  const primaryActionLabel = selectedPaymentMethod === "mercadopago" ? "Ir a pagar" : "Confirmar pedido";
 
   return (
     <div className="space-y-6">
@@ -668,10 +748,12 @@ export function CheckoutPage() {
             {redirectingToPayment
               ? "Abriendo Mercado Pago..."
               : paymentRedirectUrl
-                ? "Abrir Mercado Pago"
+                ? "Ir a pagar"
                 : submitting
-                  ? "Confirmando..."
-                  : "Confirmar pedido"}
+                  ? selectedPaymentMethod === "mercadopago"
+                    ? "Preparando pago..."
+                    : "Confirmando..."
+                  : primaryActionLabel}
           </Button>
         </aside>
       </form>

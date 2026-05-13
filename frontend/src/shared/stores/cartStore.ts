@@ -141,6 +141,7 @@ export const useCartStore = create<CartState>((set) => ({
       set({ cart, error: null });
     } catch (error) {
       set({ error: getErrorMessage(error, "No se pudo actualizar el modo de entrega") });
+      throw error;
     }
   },
   async addItem(payload) {

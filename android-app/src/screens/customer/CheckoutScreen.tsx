@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
@@ -14,7 +14,7 @@ import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useAuth } from "../../state/AuthContext";
 import { useCartState } from "../../state/CartContext";
 import { colors, opacity, radii, spacing } from "../../theme";
-import type { Address, StorePaymentSettings } from "../../types/api";
+import type { Address, Cart, StorePaymentSettings } from "../../types/api";
 import type { RootStackParamList } from "../../navigation/types";
 import { friendlyErrorMessage } from "../../utils/apiMessages";
 import { formatCurrency, makeIdempotencyKey } from "../../utils/format";
@@ -89,18 +89,71 @@ function isMercadoPagoHostedCheckout(url: string) {
   }
 }
 
+function isApprovedPaymentStatus(value: string | null | undefined) {
+  return ["approved", "paid"].includes((value ?? "").toLowerCase());
+}
+
+function paymentStatusFromReturnUrl(url: string | null | undefined) {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.searchParams.get("payment_result") ?? parsed.searchParams.get("status") ?? parsed.searchParams.get("collection_status");
+  } catch {
+    return null;
+  }
+}
+
 async function openHostedMercadoPagoCheckout(checkoutUrl: string) {
   try {
-    await WebBrowser.openAuthSessionAsync(checkoutUrl, MERCADOPAGO_RETURN_URL);
-    return true;
+    const result = (await WebBrowser.openAuthSessionAsync(checkoutUrl, MERCADOPAGO_RETURN_URL)) as {
+      type?: string;
+      url?: string;
+    };
+    return {
+      opened: true,
+      approved: result.type === "success" && isApprovedPaymentStatus(paymentStatusFromReturnUrl(result.url))
+    };
   } catch {
     try {
       await Linking.openURL(checkoutUrl);
-      return true;
+      return { opened: true, approved: false };
     } catch {
-      return false;
+      return { opened: false, approved: false };
     }
   }
+}
+
+function hashCheckoutSignature(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) | 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+function buildCheckoutAttemptSignature(cart: Cart, deliveryMode: DeliveryMode, paymentMethod: PaymentMethod, addressId: number | null) {
+  const items = cart.items.map((item) => [item.product_id, item.quantity, item.note ?? ""].join(":")).join("|");
+  return hashCheckoutSignature(
+    JSON.stringify({
+      store_id: cart.store_id,
+      delivery_mode: deliveryMode,
+      address_id: deliveryMode === "delivery" ? addressId : null,
+      payment_method: paymentMethod,
+      items
+    })
+  );
+}
+
+function readCheckoutIdempotencyKey(keys: Map<string, string>, signature: string, storeId: number) {
+  const existing = keys.get(signature);
+  if (existing) return existing;
+  const next = `checkout_${storeId}_${makeIdempotencyKey()}`;
+  keys.set(signature, next);
+  return next;
+}
+
+function clearCheckoutIdempotencyKey(keys: Map<string, string>, signature: string) {
+  keys.delete(signature);
 }
 
 export function CheckoutScreen({ navigation }: Props) {
@@ -115,6 +168,7 @@ export function CheckoutScreen({ navigation }: Props) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [paymentTouched, setPaymentTouched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const checkoutKeysRef = useRef(new Map<string, string>());
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -327,6 +381,8 @@ export function CheckoutScreen({ navigation }: Props) {
     }
 
     setLoading(true);
+    const checkoutAttemptSignature = buildCheckoutAttemptSignature(cart, deliveryMode, paymentMethod, addressId);
+    const idempotencyKey = readCheckoutIdempotencyKey(checkoutKeysRef.current, checkoutAttemptSignature, cart.store_id);
     try {
       const coverageLocation =
         deliveryMode === "delivery" && hasAddressPin(selectedAddressForCheckout)
@@ -337,7 +393,7 @@ export function CheckoutScreen({ navigation }: Props) {
         address_id: deliveryMode === "delivery" ? addressId : null,
         delivery_mode: deliveryMode,
         payment_method: paymentMethod,
-        idempotency_key: makeIdempotencyKey(),
+        idempotency_key: idempotencyKey,
         customer_latitude: coverageLocation?.latitude ?? null,
         customer_longitude: coverageLocation?.longitude ?? null,
         client_return_url: paymentMethod === "mercadopago" ? MERCADOPAGO_RETURN_URL : null
@@ -345,14 +401,21 @@ export function CheckoutScreen({ navigation }: Props) {
       await refreshCart({ silent: true }).catch(() => null);
       if (result.checkout_url) {
         if (isMercadoPagoHostedCheckout(result.checkout_url)) {
-          const opened = await openHostedMercadoPagoCheckout(result.checkout_url);
-          if (opened) {
-            navigation.replace("OrderDetail", { orderId: result.order_id });
+          const hostedResult = await openHostedMercadoPagoCheckout(result.checkout_url);
+          await refreshCart({ silent: true }).catch(() => null);
+          if (!hostedResult.opened) {
+            showError("No se pudo abrir Mercado Pago", "Toca Ir a pagar para volver a intentarlo.");
             return;
           }
+          if (hostedResult.approved) {
+            clearCheckoutIdempotencyKey(checkoutKeysRef.current, checkoutAttemptSignature);
+            navigation.replace("OrderDetail", { orderId: result.order_id });
+          }
+          return;
         }
-        navigation.replace("PaymentWebView", { checkoutUrl: result.checkout_url, orderId: result.order_id });
+        navigation.navigate("PaymentWebView", { checkoutUrl: result.checkout_url, orderId: result.order_id });
       } else {
+        clearCheckoutIdempotencyKey(checkoutKeysRef.current, checkoutAttemptSignature);
         navigation.replace("OrderDetail", { orderId: result.order_id });
       }
     } catch (error) {
@@ -378,6 +441,7 @@ export function CheckoutScreen({ navigation }: Props) {
   const checkoutTotal = productsTotal + deliveryFee + serviceFee;
   const selectedPaymentOption = paymentOptions.find((option) => option.method === paymentMethod);
   const canSubmit = availablePaymentMethods.length > 0;
+  const checkoutActionTitle = paymentMethod === "mercadopago" ? "Ir a pagar" : "Confirmar pedido";
 
   return (
     <Screen refreshing={loading} onRefresh={() => void load()}>
@@ -496,7 +560,14 @@ export function CheckoutScreen({ navigation }: Props) {
             <Text style={styles.totalLabel}>Total a pagar</Text>
             <Text style={styles.total}>{formatCurrency(checkoutTotal)}</Text>
           </View>
-          <AppButton title="Confirmar pedido" icon="checkmark-circle-outline" onPress={() => void handleCheckout()} loading={loading} disabled={!canSubmit} fullWidth />
+          <AppButton
+            title={checkoutActionTitle}
+            icon={paymentMethod === "mercadopago" ? "wallet-outline" : "checkmark-circle-outline"}
+            onPress={() => void handleCheckout()}
+            loading={loading}
+            disabled={!canSubmit}
+            fullWidth
+          />
         </View>
       </Card>
     </Screen>

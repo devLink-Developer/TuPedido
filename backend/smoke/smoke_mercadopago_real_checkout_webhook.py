@@ -194,6 +194,9 @@ def _run_delivery_split_scenario(client, mp) -> None:
         checkout_payload = checkout.json()
         captured["reference"] = checkout_payload["payment_reference"]
         assert checkout_payload["checkout_url"] is not None
+        pending_cart = client.get("/api/v1/cart", headers=customer_headers)
+        pending_cart.raise_for_status()
+        assert pending_cart.json()["items"], "Mercado Pago pending checkout must keep the cart"
         merchant_orders = client.get("/api/v1/merchant/orders", headers=merchant_headers)
         merchant_orders.raise_for_status()
         assert checkout_payload["order_id"] not in {item["id"] for item in merchant_orders.json()}
@@ -210,6 +213,9 @@ def _run_delivery_split_scenario(client, mp) -> None:
         approved_order = client.get(f"/api/v1/orders/{checkout_payload['order_id']}", headers=customer_headers)
         approved_order.raise_for_status()
         assert approved_order.json()["payment_status"] == "paid"
+        paid_cart = client.get("/api/v1/cart", headers=customer_headers)
+        paid_cart.raise_for_status()
+        assert paid_cart.json()["items"] == []
         merchant_orders = client.get("/api/v1/merchant/orders", headers=merchant_headers)
         merchant_orders.raise_for_status()
         assert checkout_payload["order_id"] in {item["id"] for item in merchant_orders.json()}

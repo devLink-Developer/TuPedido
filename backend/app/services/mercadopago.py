@@ -744,6 +744,16 @@ def build_order_return_url(order_id: int, client_return_url: str | None = None) 
             query = dict(parse_qsl(parsed.query, keep_blank_values=True))
             query["order_id"] = str(order_id)
             return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment))
+        if parsed and parsed.path.startswith("/c/checkout"):
+            query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+            query["order_id"] = str(order_id)
+            if parsed.scheme and parsed.netloc:
+                frontend = urlsplit(settings.frontend_base_url)
+                if parsed.scheme in {"http", "https"} and parsed.netloc == frontend.netloc:
+                    return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment))
+            elif not parsed.scheme and not parsed.netloc:
+                frontend = urlsplit(settings.frontend_base_url.rstrip("/"))
+                return urlunsplit((frontend.scheme, frontend.netloc, parsed.path, urlencode(query), parsed.fragment))
     return f"{settings.frontend_base_url.rstrip('/')}/c/pedido/{order_id}"
 
 
