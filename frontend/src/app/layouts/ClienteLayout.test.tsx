@@ -167,7 +167,7 @@ describe("ClienteLayout", () => {
     renderLayout("/c/pedido/41");
 
     expect(screen.getByText("tracking page")).toBeInTheDocument();
-    expect(screen.queryByText("Pedido en proceso")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pedido en curso")).not.toBeInTheDocument();
     expect(fetchOrdersMock).not.toHaveBeenCalled();
   });
 
@@ -186,9 +186,9 @@ describe("ClienteLayout", () => {
 
     renderLayout();
 
-    expect(screen.getAllByRole("link", { name: "Abrir carrito con 3 productos" })).toHaveLength(2);
-    expect(screen.getAllByText(/carrito activo/i).length).toBeGreaterThan(0);
-    expect(screen.getByText("3 productos en Despensa Norte")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Abrir carrito con 3 productos" })).toHaveLength(1);
+    expect(screen.queryByText(/carrito activo/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("3 productos en Despensa Norte")).not.toBeInTheDocument();
   });
 
   it("no muestra la barra cuando solo hay pedidos terminales", async () => {
@@ -203,7 +203,7 @@ describe("ClienteLayout", () => {
     renderLayout();
 
     await waitFor(() => expect(fetchOrdersMock).toHaveBeenCalled());
-    expect(screen.queryByText("Pedido en proceso")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pedido en curso")).not.toBeInTheDocument();
   });
 
   it("muestra la calificacion pendiente y permite enviar sin resena", async () => {

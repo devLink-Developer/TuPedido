@@ -75,6 +75,7 @@ from app.services.mercadopago import (
 )
 from app.services.media import normalize_media_url
 from app.services.order_runtime import build_order_options
+from app.services.order_visibility import order_visible_to_merchant
 from app.services.promotions import get_store_promotion, get_store_promotions
 from app.services.settlements import create_cash_service_fee_charge
 from app.services.settlements import (
@@ -815,7 +816,7 @@ def assign_rider_to_order(
     order = db.scalar(
         select(StoreOrder).options(*_order_options(db)).where(StoreOrder.id == order_id, StoreOrder.store_id == store.id)
     )
-    if order is None:
+    if order is None or not order_visible_to_merchant(order):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     rider_user = db.scalar(
@@ -1166,7 +1167,7 @@ def list_orders(user: User = Depends(require_merchant), db: Session = Depends(ge
         .where(StoreOrder.store_id == store.id)
         .order_by(StoreOrder.id.desc())
     ).all()
-    return [serialize_order(order).model_dump() for order in orders]
+    return [serialize_order(order).model_dump() for order in orders if order_visible_to_merchant(order)]
 
 
 @router.put("/orders/{order_id}/status")
@@ -1182,7 +1183,7 @@ def update_order_status(
         .options(*_order_options(db))
         .where(StoreOrder.id == order_id, StoreOrder.store_id == store.id)
     )
-    if order is None:
+    if order is None or not order_visible_to_merchant(order):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     previous_status = order.status
     allowed_statuses = (

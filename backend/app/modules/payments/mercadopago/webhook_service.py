@@ -22,6 +22,7 @@ from app.services.mercadopago import (
     normalize_payment_status,
 )
 from app.services.order_runtime import build_order_options
+from app.services.order_visibility import payment_status_revealed_order_to_merchant
 from app.services.payment_transactions import (
     PaymentValidationError,
     create_payment_transaction,
@@ -136,6 +137,7 @@ async def process_mercadopago_webhook(request: Request, db: Session) -> dict[str
         order = _load_order(db, str(simulated_reference))
         if order is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+        previous_payment_status = order.payment_status
         status_value = normalize_payment_status(str(simulated_status))
         apply_payment_status(order, status_value)
         transaction = find_transaction_by_reference(db, str(simulated_reference))
@@ -145,7 +147,15 @@ async def process_mercadopago_webhook(request: Request, db: Session) -> dict[str
             transaction.status_detail = "simulated"
         db.commit()
         db.refresh(order)
-        publish_order_snapshot(order, event_type="payment.updated")
+        event_type = (
+            "order.created"
+            if payment_status_revealed_order_to_merchant(order, previous_payment_status)
+            else "payment.updated"
+        )
+        publish_order_snapshot(
+            order,
+            event_type=event_type,
+        )
         return serialize_order(order).model_dump()
 
     event_type = _extract_event_type(query_params, payload)
@@ -262,11 +272,20 @@ async def process_mercadopago_webhook(request: Request, db: Session) -> dict[str
         transaction.last_error = str(exc)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
+    previous_payment_status = order.payment_status
     record_payment_result(transaction, payment=payment, status_value=status_value)
     event.external_reference = effective_reference
     event.processed_at = datetime.now(UTC)
     apply_payment_status(order, status_value)
     db.commit()
     db.refresh(order)
-    publish_order_snapshot(order, event_type="payment.updated")
+    event_type = (
+        "order.created"
+        if payment_status_revealed_order_to_merchant(order, previous_payment_status)
+        else "payment.updated"
+    )
+    publish_order_snapshot(
+        order,
+        event_type=event_type,
+    )
     return serialize_order(order).model_dump()

@@ -12,6 +12,7 @@ from app.models.delivery import NotificationEvent
 from app.models.order import StoreOrder
 from app.models.user import User
 from app.services.order_runtime import build_order_options
+from app.services.order_visibility import order_visible_to_merchant
 from app.services.realtime import realtime_hub
 from app.services.user_compat import find_user_by_email
 
@@ -45,7 +46,7 @@ def _can_access_order(user: User, order: StoreOrder) -> bool:
     if user.role == "customer":
         return order.user_id == user.id
     if user.role == "merchant":
-        return order.store is not None and order.store.owner_user_id == user.id
+        return order.store is not None and order.store.owner_user_id == user.id and order_visible_to_merchant(order)
     if user.role == "delivery":
         return order.assigned_rider_id == user.id or (
             order.delivery_assignment is not None and order.delivery_assignment.rider_user_id == user.id

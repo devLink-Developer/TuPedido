@@ -62,8 +62,13 @@ def _login(client, email: str, password: str) -> dict[str, str]:
 
 def _prepare_customer_checkout(client) -> tuple[dict[str, str], dict[str, object], int]:
     customer_headers = _login(client, "cliente@kepedimos.example.com", "cliente123")
-    store = client.get("/api/v1/catalog/stores").json()[0]
-    address_id = client.get("/api/v1/addresses", headers=customer_headers).json()[0]["id"]
+    address = client.get("/api/v1/addresses", headers=customer_headers).json()[0]
+    stores = client.get(
+        "/api/v1/catalog/stores",
+        params={"latitude": address["latitude"], "longitude": address["longitude"]},
+    ).json()
+    store = stores[0]
+    address_id = address["id"]
     return customer_headers, store, address_id
 
 
@@ -152,12 +157,28 @@ def _run_delivery_split_scenario(client, mp) -> None:
 
     mp.httpx.request = fake_request
     try:
+        merchant_headers = _login(client, "merchant@kepedimos.example.com", "merchant123")
         customer_headers, store, address_id = _prepare_customer_checkout(client)
-        client.post(
+        address = client.get("/api/v1/addresses", headers=customer_headers).json()[0]
+        store_detail = client.get(
+            f"/api/v1/catalog/stores/{store['slug']}",
+            params={"latitude": address["latitude"], "longitude": address["longitude"], "delivery_mode": "delivery"},
+        )
+        store_detail.raise_for_status()
+        products = [item for item in store_detail.json()["products"] if item.get("is_available")]
+        product_id = products[0]["id"]
+        cart_response = client.post(
             "/api/v1/cart/items",
             headers=customer_headers,
-            json={"store_id": store["id"], "product_id": 1, "quantity": 2},
-        ).raise_for_status()
+            json={
+                "store_id": store["id"],
+                "product_id": product_id,
+                "quantity": 2,
+                "customer_latitude": address["latitude"],
+                "customer_longitude": address["longitude"],
+            },
+        )
+        assert cart_response.status_code < 400, cart_response.text
 
         checkout = client.post(
             "/api/v1/checkout",
@@ -173,6 +194,9 @@ def _run_delivery_split_scenario(client, mp) -> None:
         checkout_payload = checkout.json()
         captured["reference"] = checkout_payload["payment_reference"]
         assert checkout_payload["checkout_url"] is not None
+        merchant_orders = client.get("/api/v1/merchant/orders", headers=merchant_headers)
+        merchant_orders.raise_for_status()
+        assert checkout_payload["order_id"] not in {item["id"] for item in merchant_orders.json()}
 
         order = client.get(f"/api/v1/orders/{checkout_payload['order_id']}", headers=customer_headers)
         order.raise_for_status()
@@ -186,6 +210,9 @@ def _run_delivery_split_scenario(client, mp) -> None:
         approved_order = client.get(f"/api/v1/orders/{checkout_payload['order_id']}", headers=customer_headers)
         approved_order.raise_for_status()
         assert approved_order.json()["payment_status"] == "paid"
+        merchant_orders = client.get("/api/v1/merchant/orders", headers=merchant_headers)
+        merchant_orders.raise_for_status()
+        assert checkout_payload["order_id"] in {item["id"] for item in merchant_orders.json()}
     finally:
         mp.httpx.request = original_request
 
@@ -249,6 +276,7 @@ def _run_promotions_fallback_scenario(client, mp) -> None:
     mp.httpx.request = fake_request
     try:
         customer_headers, store, address_id = _prepare_customer_checkout(client)
+        address = client.get("/api/v1/addresses", headers=customer_headers).json()[0]
         merchant_headers = _login(client, "merchant@kepedimos.example.com", "merchant123")
         _create_smoke_promotion(client, merchant_headers)
 
@@ -259,12 +287,24 @@ def _run_promotions_fallback_scenario(client, mp) -> None:
         client.post(
             "/api/v1/cart/items",
             headers=customer_headers,
-            json={"store_id": store["id"], "product_id": products["Yerba Premium 1kg"]["id"], "quantity": 1},
+            json={
+                "store_id": store["id"],
+                "product_id": products["Yerba Premium 1kg"]["id"],
+                "quantity": 1,
+                "customer_latitude": address["latitude"],
+                "customer_longitude": address["longitude"],
+            },
         ).raise_for_status()
         client.post(
             "/api/v1/cart/items",
             headers=customer_headers,
-            json={"store_id": store["id"], "product_id": products["Gaseosa Cola 1.5L"]["id"], "quantity": 1},
+            json={
+                "store_id": store["id"],
+                "product_id": products["Gaseosa Cola 1.5L"]["id"],
+                "quantity": 1,
+                "customer_latitude": address["latitude"],
+                "customer_longitude": address["longitude"],
+            },
         ).raise_for_status()
 
         checkout = client.post(

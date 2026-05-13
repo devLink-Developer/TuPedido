@@ -17,7 +17,7 @@ type OrderGroup = {
 };
 
 function requiresPaymentApproval(order: Order) {
-  return order.payment_method === "mercadopago" && order.payment_status !== "approved";
+  return order.payment_method === "mercadopago" && !["approved", "paid"].includes(order.payment_status);
 }
 
 function canCancelOrder(order: Order) {

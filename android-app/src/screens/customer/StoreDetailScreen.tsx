@@ -3,8 +3,8 @@ import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native
 import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
-import { AppButton } from "../../components/AppButton";
 import { Card } from "../../components/Card";
+import { FloatingCartButton } from "../../components/FloatingCartButton";
 import { Screen } from "../../components/Screen";
 import { SectionHeader } from "../../components/SectionHeader";
 import { StateMessage } from "../../components/StateMessage";
@@ -31,7 +31,7 @@ export function StoreDetailScreen({ route, navigation }: Props) {
   const { slug, latitude, longitude } = route.params;
   const { token } = useAuth();
   const { showDialog, showError, showSuccess } = useAppFeedback();
-  const { setCart } = useCartState();
+  const { itemCount, setCart } = useCartState();
   const [customerLocation, setCustomerLocation] = useState<CustomerLocation | null>(
     typeof latitude === "number" && typeof longitude === "number" ? { latitude, longitude, source: "route" } : null
   );
@@ -181,8 +181,6 @@ export function StoreDetailScreen({ route, navigation }: Props) {
     return <StateMessage title="No se pudo abrir el comercio" description={error ?? undefined} actionLabel="Reintentar" onAction={() => void reload()} />;
   }
 
-  const isOpen = store.is_open && store.accepting_orders;
-
   return (
     <Screen noScroll>
       <FlatList
@@ -193,12 +191,6 @@ export function StoreDetailScreen({ route, navigation }: Props) {
           <View style={styles.header}>
             {store.cover_image_url ? <Image source={{ uri: store.cover_image_url }} style={styles.cover} accessibilityLabel={`Portada de ${store.name}`} /> : null}
             <SectionHeader size="regular" title={store.name} description={`${store.address} - ${store.min_delivery_minutes}-${store.max_delivery_minutes} min`} />
-            <View style={styles.actions}>
-              {token ? <AppButton title="Ver carrito" icon="bag-handle-outline" onPress={() => navigation.navigate("Cart")} variant="ghost" /> : <AppButton title="Ingresar para pedir" icon="log-in-outline" onPress={() => navigation.navigate("Auth", { screen: "Login" })} variant="ghost" />}
-              <Text style={[styles.status, isOpen ? styles.statusOpen : styles.statusClosed]}>
-                {isOpen ? "Acepta pedidos" : "No disponible"}
-              </Text>
-            </View>
             <FlatList
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -254,6 +246,7 @@ export function StoreDetailScreen({ route, navigation }: Props) {
           </Card>
         )}
       />
+      <FloatingCartButton itemCount={token ? itemCount : 0} onPress={() => navigation.navigate("Cart")} />
     </Screen>
   );
 }
@@ -262,7 +255,7 @@ const styles = StyleSheet.create({
   list: {
     gap: spacing.sm,
     padding: spacing.md,
-    paddingBottom: spacing.xl
+    paddingBottom: spacing.xl + 88
   },
   header: {
     gap: spacing.md
@@ -272,27 +265,6 @@ const styles = StyleSheet.create({
     height: 158,
     borderRadius: radii.lg,
     backgroundColor: colors.surfaceAlt
-  },
-  actions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: spacing.md
-  },
-  status: {
-    overflow: "hidden",
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontWeight: "900"
-  },
-  statusOpen: {
-    backgroundColor: colors.successSoft,
-    color: colors.success
-  },
-  statusClosed: {
-    backgroundColor: colors.dangerSoft,
-    color: colors.danger
   },
   categories: {
     gap: spacing.sm

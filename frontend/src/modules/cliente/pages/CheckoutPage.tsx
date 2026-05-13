@@ -98,6 +98,7 @@ export function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [redirectingToPayment, setRedirectingToPayment] = useState(false);
+  const [paymentRedirectUrl, setPaymentRedirectUrl] = useState<string | null>(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [addressForm, setAddressForm] = useState<AddressFormState>(emptyAddressForm);
   const [error, setError] = useState<string | null>(null);
@@ -211,6 +212,7 @@ export function CheckoutPage() {
 
   useEffect(() => {
     if (!store || availableMethods.includes(selectedPaymentMethod)) return;
+    setPaymentRedirectUrl(null);
     setSelectedPaymentMethod(availableMethods[0] ?? "cash");
   }, [availableMethods, selectedPaymentMethod, setSelectedPaymentMethod, store]);
 
@@ -222,6 +224,7 @@ export function CheckoutPage() {
   async function handleDeliveryModeChange(nextMode: "delivery" | "pickup") {
     if (!cart || cart.delivery_mode === nextMode) return;
     setError(null);
+    setPaymentRedirectUrl(null);
 
     const selectedAddressForMode = addresses.find((address) => address.id === selectedAddressId) ?? null;
     const location =
@@ -244,6 +247,7 @@ export function CheckoutPage() {
 
   async function handleAddressSelect(address: Address) {
     setSelectedAddressId(address.id);
+    setPaymentRedirectUrl(null);
     if (address.latitude == null || address.longitude == null) return;
     setCustomerLocation({ latitude: address.latitude, longitude: address.longitude, source: "address" });
     if (cart?.delivery_mode === "delivery") {
@@ -328,9 +332,28 @@ export function CheckoutPage() {
     );
   }
 
+  function openExternalPayment(url: string) {
+    setRedirectingToPayment(true);
+    setError(null);
+    try {
+      window.location.assign(url);
+      window.setTimeout(() => {
+        setRedirectingToPayment(false);
+        setError("No pudimos abrir Mercado Pago automaticamente. Toca Abrir Mercado Pago para continuar.");
+      }, 2500);
+    } catch {
+      setRedirectingToPayment(false);
+      setError("No pudimos abrir Mercado Pago automaticamente. Toca Abrir Mercado Pago para continuar.");
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!token || !cart?.store_id) return;
+    if (paymentRedirectUrl) {
+      openExternalPayment(paymentRedirectUrl);
+      return;
+    }
 
     const currentCart = cart;
     const storeId = currentCart.store_id;
@@ -359,6 +382,7 @@ export function CheckoutPage() {
 
     setSubmitting(true);
     setRedirectingToPayment(false);
+    setPaymentRedirectUrl(null);
     setError(null);
 
     const checkoutAttemptSignature = buildCheckoutAttemptSignature(
@@ -382,15 +406,15 @@ export function CheckoutPage() {
       });
 
       if (result.checkout_url) {
-        setRedirectingToPayment(true);
-        clearCheckoutIdempotencyKey(checkoutAttemptSignature);
-        resetCart();
-        resetCheckout();
         const path = normalizePath(result.checkout_url);
         if (path.startsWith("/")) {
+          clearCheckoutIdempotencyKey(checkoutAttemptSignature);
+          resetCart();
+          resetCheckout();
           navigate(path);
         } else {
-          window.location.assign(result.checkout_url);
+          setPaymentRedirectUrl(result.checkout_url);
+          openExternalPayment(result.checkout_url);
         }
         return;
       }
@@ -400,6 +424,7 @@ export function CheckoutPage() {
       resetCheckout();
       navigate(`/c/pedido/${result.order_id}`, { replace: true });
     } catch (requestError) {
+      setPaymentRedirectUrl(null);
       if (requestError instanceof ApiError && selectedPaymentMethod === "mercadopago") {
         const fallback = availableMethods.includes("cash") ? " Puedes elegir efectivo y volver a confirmar." : "";
         if (requestError.status === 409) {
@@ -412,6 +437,7 @@ export function CheckoutPage() {
       } else {
         setError(requestError instanceof Error ? requestError.message : "No se pudo completar el checkout");
       }
+      setRedirectingToPayment(false);
     } finally {
       setSubmitting(false);
     }
@@ -561,6 +587,7 @@ export function CheckoutPage() {
                     disabled={!available}
                     onChange={() => {
                       setSelectedPaymentMethod(method);
+                      setPaymentRedirectUrl(null);
                       setError(null);
                     }}
                     className="sr-only"
@@ -632,8 +659,19 @@ export function CheckoutPage() {
               </div>
             </div>
           </div>
-          <Button type="submit" className="w-full" disabled={submitting || redirectingToPayment || !availableMethods.length}>
-            {redirectingToPayment ? "Redirigiendo a Mercado Pago..." : submitting ? "Confirmando..." : "Confirmar pedido"}
+          <Button
+            type={paymentRedirectUrl ? "button" : "submit"}
+            className="w-full"
+            disabled={submitting || redirectingToPayment || !availableMethods.length}
+            onClick={paymentRedirectUrl ? () => openExternalPayment(paymentRedirectUrl) : undefined}
+          >
+            {redirectingToPayment
+              ? "Abriendo Mercado Pago..."
+              : paymentRedirectUrl
+                ? "Abrir Mercado Pago"
+                : submitting
+                  ? "Confirmando..."
+                  : "Confirmar pedido"}
           </Button>
         </aside>
       </form>

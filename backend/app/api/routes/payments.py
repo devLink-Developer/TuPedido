@@ -30,7 +30,7 @@ def mercadopago_card_payment(
     db: Session = Depends(get_db),
 ) -> MercadoPagoCardPaymentResponse:
     try:
-        response = create_card_payment(db, payload)
+        response, merchant_visible_now = create_card_payment(db, payload)
         db.commit()
         publish_order_snapshot_id = response.order_id
     except MercadoPagoAPIError as exc:
@@ -44,7 +44,7 @@ def mercadopago_card_payment(
 
         order = db.scalar(select(StoreOrder).where(StoreOrder.id == publish_order_snapshot_id))
         if order is not None:
-            publish_order_snapshot(order, event_type="payment.updated")
+            publish_order_snapshot(order, event_type="order.created" if merchant_visible_now else "payment.updated")
     return response
 
 

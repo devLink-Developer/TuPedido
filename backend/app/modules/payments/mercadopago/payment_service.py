@@ -25,6 +25,7 @@ from app.services.mercadopago import (
     get_or_create_mercadopago_provider,
     normalize_payment_status,
 )
+from app.services.order_visibility import payment_status_revealed_order_to_merchant
 from app.services.payment_transactions import (
     PaymentValidationError,
     record_payment_result,
@@ -189,20 +190,23 @@ def _build_payment_payload(transaction: PaymentTransaction, payload: MercadoPago
     return request_payload
 
 
-def create_card_payment(db: Session, payload: MercadoPagoCardPaymentRequest) -> MercadoPagoCardPaymentResponse:
+def create_card_payment(db: Session, payload: MercadoPagoCardPaymentRequest) -> tuple[MercadoPagoCardPaymentResponse, bool]:
     transaction = load_payment_session_transaction(db, payload.session_token)
     order = transaction.order
     store = transaction.store
     if order is None or store is None:
         raise MercadoPagoAPIError("Payment session is incomplete")
     if transaction.status in {"paid", "processing"} and transaction.payment_id:
-        return MercadoPagoCardPaymentResponse(
-            order_id=transaction.order_id,
-            payment_id=transaction.payment_id,
-            status=transaction.status,
-            provider_status=transaction.provider_status,
-            status_detail=transaction.status_detail,
-            external_reference=transaction.external_reference,
+        return (
+            MercadoPagoCardPaymentResponse(
+                order_id=transaction.order_id,
+                payment_id=transaction.payment_id,
+                status=transaction.status,
+                provider_status=transaction.provider_status,
+                status_detail=transaction.status_detail,
+                external_reference=transaction.external_reference,
+            ),
+            False,
         )
 
     if _money(payload.transaction_amount) != _money(transaction.gross_amount):
@@ -260,17 +264,21 @@ def create_card_payment(db: Session, payload: MercadoPagoCardPaymentRequest) -> 
         transaction.last_error = str(exc)
         raise MercadoPagoAPIError(str(exc)) from exc
 
+    previous_payment_status = order.payment_status
     record_payment_result(transaction, payment=payment, status_value=status_value)
     order.payment_status = status_value
     if status_value in {"cancelled", "rejected", "refunded", "chargeback"}:
         order.status = "cancelled"
-    return MercadoPagoCardPaymentResponse(
-        order_id=transaction.order_id,
-        payment_id=transaction.payment_id,
-        status=transaction.status,
-        provider_status=transaction.provider_status,
-        status_detail=transaction.status_detail,
-        external_reference=transaction.external_reference,
+    return (
+        MercadoPagoCardPaymentResponse(
+            order_id=transaction.order_id,
+            payment_id=transaction.payment_id,
+            status=transaction.status,
+            provider_status=transaction.provider_status,
+            status_detail=transaction.status_detail,
+            external_reference=transaction.external_reference,
+        ),
+        payment_status_revealed_order_to_merchant(order, previous_payment_status),
     )
 
 

@@ -88,7 +88,7 @@ export function ActiveOrderBar() {
       <div className="app-panel rounded border-brand-100 bg-[linear-gradient(135deg,#fff7f2_0%,#fffdfb_100%)] p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-600">Pedido en proceso</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-600">Pedido en curso</p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <h2 className="truncate text-lg font-bold text-ink">{featuredOrder.store_name}</h2>
               <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">#{featuredOrder.id}</span>

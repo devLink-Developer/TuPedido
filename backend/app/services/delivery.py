@@ -23,6 +23,7 @@ from app.models.delivery import (
 from app.models.order import StoreOrder
 from app.models.store import Store
 from app.models.user import Address, User
+from app.services.order_visibility import order_visible_to_merchant
 from app.services.realtime import realtime_hub
 from app.services.settlements import create_cash_service_fee_charge
 from app.services.store_address import store_delivery_is_enabled
@@ -90,7 +91,7 @@ def rider_fee_for_store(store: Store) -> float:
 
 def _user_ids_for_order(order: StoreOrder) -> list[int]:
     user_ids = [order.user_id]
-    if getattr(order.store, "owner_user_id", None):
+    if order_visible_to_merchant(order) and getattr(order.store, "owner_user_id", None):
         user_ids.append(order.store.owner_user_id)
     if order.assigned_rider_id:
         user_ids.append(order.assigned_rider_id)

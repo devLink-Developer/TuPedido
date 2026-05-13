@@ -9,7 +9,6 @@ import { usePlatformBranding } from "../../shared/providers/PlatformBrandingProv
 import { createOrderReview, fetchAddresses, fetchPendingOrderReview } from "../../shared/services/api";
 import { useClienteStore } from "../../shared/stores";
 import type { Address, CreateOrderReviewPayload, PendingOrderReview } from "../../shared/types";
-import { formatCurrency } from "../../shared/utils/format";
 import {
   ORDER_REVIEW_PROMPT_REFRESH_EVENT,
   dismissOrderReviewPrompt,
@@ -25,7 +24,7 @@ export function ClienteLayout({ children }: PropsWithChildren) {
   const lastScrollYRef = useRef(0);
   const { user, token, isAuthenticated, logout } = useAuthSession();
   const { brandName } = usePlatformBranding();
-  const { itemCount, storeName, total } = useCart();
+  const { itemCount } = useCart();
   const selectedAddressId = useClienteStore((state) => state.selectedAddressId);
   const setSelectedAddressId = useClienteStore((state) => state.setSelectedAddressId);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -343,51 +342,20 @@ export function ClienteLayout({ children }: PropsWithChildren) {
       </main>
 
       {showFloatingCart ? (
-        <>
-          <Link
-            to="/c/carrito"
-            aria-label={`Abrir carrito con ${itemCount} productos`}
-            className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 w-16 items-center justify-center border border-[rgba(255,106,26,0.24)] bg-[linear-gradient(180deg,#ff7b23,#ff6414)] text-sm font-semibold text-white transition hover:-translate-y-0.5 md:hidden"
-            style={{
-              borderRadius: 24,
-              boxShadow: "0 18px 40px -18px var(--catalog-accent-shadow)"
-            }}
-          >
-            <ShoppingBag className="h-5 w-5" aria-hidden="true" />
-            <span className="absolute -right-1 -top-1 inline-flex min-w-6 items-center justify-center border border-white/40 bg-white px-2 py-1 text-xs font-bold text-[var(--kp-accent)] shadow-sm" style={{ borderRadius: 999 }}>
-              {itemCount}
-            </span>
-          </Link>
-          <Link
-            to="/c/carrito"
-            aria-label={`Abrir carrito con ${itemCount} productos`}
-            className="app-panel fixed bottom-6 right-6 z-40 hidden min-w-[320px] max-w-[360px] items-center justify-between gap-4 px-5 py-4 text-ink transition hover:-translate-y-0.5 md:flex"
-            style={{
-              borderColor: "var(--catalog-accent-border)",
-              boxShadow: "0 22px 44px -24px var(--catalog-accent-shadow)"
-            }}
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <span
-                className="kp-install-icon flex h-11 w-11 shrink-0 items-center justify-center border border-[rgba(255,106,26,0.24)] bg-[var(--kp-accent-soft)] text-[var(--kp-accent)]"
-              >
-                <ShoppingBag className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-400">Carrito activo</p>
-                <p className="mt-1 truncate text-sm font-semibold text-ink">
-                  {itemCount} productos en {storeName ?? "tu pedido"}
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-lg font-black text-ink">{formatCurrency(total)}</p>
-              <p className="text-xs font-semibold" style={{ color: "var(--catalog-accent)" }}>
-                Ver carrito
-              </p>
-            </div>
-          </Link>
-        </>
+        <Link
+          to="/c/carrito"
+          aria-label={`Abrir carrito con ${itemCount} productos`}
+          className="fixed bottom-[calc(1rem+var(--safe-bottom))] right-4 z-40 inline-flex h-16 w-16 items-center justify-center border border-[rgba(255,106,26,0.24)] bg-[linear-gradient(180deg,#ff7b23,#ff6414)] text-white shadow-lg transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--kp-accent)] md:bottom-6 md:right-6"
+          style={{
+            borderRadius: 24,
+            boxShadow: "0 18px 40px -18px var(--catalog-accent-shadow)"
+          }}
+        >
+          <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+          <span className="absolute -right-1 -top-1 inline-flex min-w-6 items-center justify-center border border-white/40 bg-white px-2 py-1 text-xs font-bold text-[var(--kp-accent)] shadow-sm" style={{ borderRadius: 999 }}>
+            {itemCount}
+          </span>
+        </Link>
       ) : null}
 
       {pendingReview ? (

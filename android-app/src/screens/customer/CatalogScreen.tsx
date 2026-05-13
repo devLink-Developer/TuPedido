@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { brandAssets } from "../../assets/brand";
 import { AppButton } from "../../components/AppButton";
 import { BrandWordmark } from "../../components/BrandWordmark";
+import { FloatingCartButton } from "../../components/FloatingCartButton";
 import { IconButton } from "../../components/IconButton";
 import { Screen } from "../../components/Screen";
 import { SectionHeader } from "../../components/SectionHeader";
@@ -15,20 +16,22 @@ import { StateMessage } from "../../components/StateMessage";
 import { StoreCard } from "../../components/StoreCard";
 import { TextField } from "../../components/TextField";
 import { useCatalogRealtime } from "../../hooks/useCatalogRealtime";
-import { fetchAddresses, fetchCatalogBanner, fetchCategories, fetchPlatformBranding, fetchStores } from "../../services/api";
+import { fetchAddresses, fetchCatalogBanner, fetchCategories, fetchOrders, fetchPlatformBranding, fetchStores } from "../../services/api";
 import { useAuth } from "../../state/AuthContext";
 import { useCartState } from "../../state/CartContext";
 import { useNotificationsState } from "../../state/NotificationsContext";
 import { colors, radii, shadow, spacing } from "../../theme";
-import type { Address, CatalogBanner, Category, PlatformBranding, StoreSummary } from "../../types/api";
+import type { Address, CatalogBanner, Category, Order, PlatformBranding, StoreSummary } from "../../types/api";
 import type { CustomerTabsParamList, RootStackParamList } from "../../navigation/types";
 import { friendlyErrorMessage } from "../../utils/apiMessages";
 import { formatCurrency } from "../../utils/format";
+import { labelForStatus } from "../../utils/labels";
 
 type Props = BottomTabScreenProps<CustomerTabsParamList, "Catalog">;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type DeliveryFilter = "all" | "delivery" | "pickup";
 type CustomerLocation = { latitude: number; longitude: number; source: "address" | "gps"; addressId?: number };
+const terminalOrderStatuses = new Set(["delivered", "cancelled", "delivery_failed"]);
 
 const deliveryFilters: Array<{ key: DeliveryFilter; label: string }> = [
   { key: "all", label: "Todos" },
@@ -59,11 +62,17 @@ function locationFromAddress(address: Address & { latitude: number; longitude: n
   };
 }
 
+function pickActiveOrder(orders: Order[]) {
+  return [...orders]
+    .filter((order) => !terminalOrderStatuses.has(order.status))
+    .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at) || right.id - left.id)[0] ?? null;
+}
+
 export function CatalogScreen(_props: Props) {
   const navigation = useNavigation<RootNav>();
   const { user, token } = useAuth();
   const { unreadCount } = useNotificationsState();
-  const { cart, itemCount, refreshCart } = useCartState();
+  const { itemCount, refreshCart } = useCartState();
   const [categories, setCategories] = useState<Category[]>([]);
   const [branding, setBranding] = useState<PlatformBranding | null>(null);
   const [banner, setBanner] = useState<CatalogBanner | null>(null);
@@ -77,6 +86,7 @@ export function CatalogScreen(_props: Props) {
   const [customerLocation, setCustomerLocation] = useState<CustomerLocation | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,7 +110,14 @@ export function CatalogScreen(_props: Props) {
       longitude: customerLocation.longitude
     });
     setStores(nextStores);
-    if (token) await refreshCart({ silent: true }).catch(() => null);
+    if (token) {
+      await Promise.all([
+        refreshCart({ silent: true }).catch(() => null),
+        fetchOrders(token).then((orders) => setActiveOrder(pickActiveOrder(orders))).catch(() => null)
+      ]);
+    } else {
+      setActiveOrder(null);
+    }
   }, [customerLocation, refreshCart, storeQueryParams, token]);
 
   const resolveAddressLocation = useCallback((nextAddresses: Address[]): CustomerLocation | null => {
@@ -112,16 +129,18 @@ export function CatalogScreen(_props: Props) {
     setLoading(true);
     setError(null);
     try {
-      const [nextCategories, nextBranding, nextBanner, nextAddresses] = await Promise.all([
+      const [nextCategories, nextBranding, nextBanner, nextAddresses, nextOrders] = await Promise.all([
         fetchCategories(),
         fetchPlatformBranding().catch(() => null),
         fetchCatalogBanner().catch(() => null),
-        token ? fetchAddresses(token).catch(() => []) : Promise.resolve([])
+        token ? fetchAddresses(token).catch(() => []) : Promise.resolve([]),
+        token ? fetchOrders(token).catch(() => []) : Promise.resolve([])
       ]);
       setCategories(nextCategories);
       setBranding(nextBranding);
       setBanner(nextBanner);
       setAddresses(nextAddresses);
+      setActiveOrder(pickActiveOrder(nextOrders));
       const addressLocation = resolveAddressLocation(nextAddresses);
       const nextLocation = customerLocation?.source === "gps" ? customerLocation : addressLocation;
       if (addressLocation && nextLocation?.source === "address") {
@@ -203,7 +222,6 @@ export function CatalogScreen(_props: Props) {
 
   const firstName = useMemo(() => user?.full_name?.split(" ")[0] || "cliente", [user?.full_name]);
   const bannerSource: ImageSourcePropType = banner?.catalog_banner_image_url ? { uri: banner.catalog_banner_image_url } : brandAssets.catalogBanner;
-  const canShowCart = Boolean(user && cart && itemCount > 0);
   const pinnedAddresses = useMemo(() => addresses.filter(hasAddressPin), [addresses]);
   const selectedAddress = useMemo(
     () => pinnedAddresses.find((address) => address.id === selectedAddressId) ?? null,
@@ -235,7 +253,6 @@ export function CatalogScreen(_props: Props) {
                 {user ? (
                   <View style={styles.headerActions}>
                     <IconButton icon="notifications-outline" label="Abrir notificaciones" badge={unreadCount} onPress={() => navigation.navigate("Notifications")} />
-                    <IconButton icon="bag-handle-outline" label="Abrir carrito" badge={itemCount} tone="primary" onPress={() => navigation.navigate("Cart")} />
                   </View>
                 ) : (
                   <AppButton title="Ingresar" icon="log-in-outline" variant="ghost" onPress={() => navigation.navigate("Auth", { screen: "Login" })} />
@@ -335,16 +352,17 @@ export function CatalogScreen(_props: Props) {
               }}
             />
 
-            {canShowCart && cart ? (
-              <Pressable accessibilityRole="button" accessibilityLabel="Abrir pedido en curso" onPress={() => navigation.navigate("Cart")} style={({ pressed }) => [styles.activeCart, pressed && styles.pressed]}>
-                <View style={styles.activeCartIcon}>
-                  <Ionicons name="bag-handle" size={21} color="#FFFFFF" />
+            {activeOrder ? (
+              <Pressable accessibilityRole="button" accessibilityLabel={`Seguir pedido ${activeOrder.id}`} onPress={() => navigation.navigate("OrderDetail", { orderId: activeOrder.id })} style={({ pressed }) => [styles.activeOrder, pressed && styles.pressed]}>
+                <View style={styles.activeOrderIcon}>
+                  <Ionicons name="receipt-outline" size={21} color="#FFFFFF" />
                 </View>
-                <View style={styles.activeCartMain}>
-                  <Text style={styles.activeCartEyebrow}>Pedido en curso</Text>
-                  <Text style={styles.activeCartText} numberOfLines={1}>{itemCount} productos en {cart.store_name}</Text>
+                <View style={styles.activeOrderMain}>
+                  <Text style={styles.activeOrderEyebrow}>Pedido en curso</Text>
+                  <Text style={styles.activeOrderText} numberOfLines={1}>{activeOrder.store_name}</Text>
+                  <Text style={styles.activeOrderMeta} numberOfLines={1}>{labelForStatus(activeOrder.status)}</Text>
                 </View>
-                <Text style={styles.activeCartTotal}>{formatCurrency(cart.total)}</Text>
+                <Text style={styles.activeOrderTotal}>{formatCurrency(activeOrder.total)}</Text>
                 <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
               </Pressable>
             ) : null}
@@ -377,6 +395,7 @@ export function CatalogScreen(_props: Props) {
           />
         )}
       />
+      <FloatingCartButton itemCount={user ? itemCount : 0} bottomOffset={92} onPress={() => navigation.navigate("Cart")} />
     </Screen>
   );
 }
@@ -542,7 +561,7 @@ const styles = StyleSheet.create({
   categoryTextActive: {
     color: "#FFFFFF"
   },
-  activeCart: {
+  activeOrder: {
     minHeight: 72,
     borderRadius: radii.lg,
     padding: spacing.md,
@@ -555,7 +574,7 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.86
   },
-  activeCartIcon: {
+  activeOrderIcon: {
     width: 44,
     height: 44,
     borderRadius: radii.md,
@@ -563,22 +582,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center"
   },
-  activeCartMain: {
+  activeOrderMain: {
     flex: 1,
     minWidth: 0
   },
-  activeCartEyebrow: {
+  activeOrderEyebrow: {
     color: "#FDBA74",
     fontSize: 12,
     fontWeight: "900",
     textTransform: "uppercase"
   },
-  activeCartText: {
+  activeOrderText: {
     color: "#FFFFFF",
     marginTop: 2,
     fontWeight: "800"
   },
-  activeCartTotal: {
+  activeOrderMeta: {
+    color: "#CBD5E1",
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  activeOrderTotal: {
     color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "900"
