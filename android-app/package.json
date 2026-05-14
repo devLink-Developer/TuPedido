@@ -1,6 +1,6 @@
 {
   "name": "kepedimos-android",
-  "version": "1.0.32",
+  "version": "1.0.35",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",

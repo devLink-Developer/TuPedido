@@ -174,6 +174,11 @@ export function OrderDetailScreen({ route, navigation }: Props) {
           },
           { id: "address", label: "Destino", latitude: order.address_latitude, longitude: order.address_longitude, color: colors.success }
         ]}
+        pointMeta={{
+          store: order.store_name,
+          rider: tracking?.assigned_rider_name ?? order.assigned_rider_name ?? "Repartidor asignado",
+          address: order.address_full ?? order.address_label
+        }}
       />
 
       <Card style={styles.card}>

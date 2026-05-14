@@ -10,6 +10,7 @@ import { LeafletMapView, type LeafletMapMarker } from "./LeafletMapView";
 export type MapPreviewPoint = {
   id: string;
   label: string;
+  meta?: string | null;
   latitude: number | null;
   longitude: number | null;
   color: string;
@@ -21,7 +22,13 @@ export type MapPreviewRoute = {
   durationMinutes?: number | null;
 };
 
-export function MapPreview({ points, route }: { points: MapPreviewPoint[]; route?: MapPreviewRoute | null }) {
+type MapPreviewProps = {
+  points: MapPreviewPoint[];
+  route?: MapPreviewRoute | null;
+  pointMeta?: Record<string, string | null | undefined>;
+};
+
+export function MapPreview({ points, route, pointMeta }: MapPreviewProps) {
   const validPoints = points.filter(hasValidLeafletCoordinate);
   const hasRoute = Boolean(route?.geometry?.length);
   const markers: LeafletMapMarker[] = points.map((point) => ({
@@ -43,31 +50,32 @@ export function MapPreview({ points, route }: { points: MapPreviewPoint[]; route
           <Ionicons name="navigate-outline" size={22} color={colors.primary} />
         </View>
         <View style={styles.headerText}>
-          <Text style={styles.title}>Recorrido del pedido</Text>
-          <Text style={styles.subtitle}>
+          <Text maxFontSizeMultiplier={1.15} style={styles.title}>Recorrido del pedido</Text>
+          <Text maxFontSizeMultiplier={1.2} style={styles.subtitle}>
             {hasRoute
               ? "Ruta estimada con actualizaciones en vivo."
               : validPoints.length
                 ? "Ubicaciones disponibles para seguimiento."
-                : "Aún no hay ubicaciones disponibles."}
+                : "Aun no hay ubicaciones disponibles."}
           </Text>
         </View>
       </View>
 
       {validPoints.length ? (
-        <LeafletMapView markers={markers} path={route?.geometry} center={center} height={220} zoom={14} accessibilityLabel="Mapa del recorrido del pedido" />
+        <LeafletMapView markers={markers} path={route?.geometry} center={center} height={190} zoom={14} accessibilityLabel="Mapa del recorrido del pedido" />
       ) : null}
 
       {hasRoute ? (
         <View style={styles.routeMeta}>
-          {typeof route?.distanceMeters === "number" ? <Text style={styles.routeMetaText}>{formatDistance(route.distanceMeters)}</Text> : null}
-          {typeof route?.durationMinutes === "number" ? <Text style={styles.routeMetaText}>{formatMinutes(route.durationMinutes)}</Text> : null}
+          {typeof route?.distanceMeters === "number" ? <Text maxFontSizeMultiplier={1.1} style={styles.routeMetaText}>{formatDistance(route.distanceMeters)}</Text> : null}
+          {typeof route?.durationMinutes === "number" ? <Text maxFontSizeMultiplier={1.1} style={styles.routeMetaText}>{formatMinutes(route.durationMinutes)}</Text> : null}
         </View>
       ) : null}
 
       <View style={styles.timeline}>
         {points.map((point, index) => {
           const hasLocation = hasValidLeafletCoordinate(point);
+          const meta = point.meta ?? pointMeta?.[point.id] ?? (hasLocation ? "Ubicacion registrada" : "Sin ubicacion");
           return (
             <View key={point.id} style={styles.pointRow}>
               <View style={styles.pointRail}>
@@ -75,9 +83,9 @@ export function MapPreview({ points, route }: { points: MapPreviewPoint[]; route
                 {index < points.length - 1 ? <View style={styles.pointLine} /> : null}
               </View>
               <View style={styles.pointCopy}>
-                <Text style={styles.pointLabel}>{point.label}</Text>
-                <Text style={styles.pointMeta}>
-                  {hasLocation ? `${Number(point.latitude).toFixed(5)}, ${Number(point.longitude).toFixed(5)}` : "Sin ubicación"}
+                <Text maxFontSizeMultiplier={1.15} style={styles.pointLabel}>{point.label}</Text>
+                <Text maxFontSizeMultiplier={1.1} style={styles.pointMeta} numberOfLines={2}>
+                  {meta}
                 </Text>
               </View>
             </View>

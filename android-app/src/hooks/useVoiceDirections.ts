@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Speech from "expo-speech";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RouteInstruction } from "../types/api";
+import { normalizeRiderInstructionText } from "../utils/deliveryRoute";
 
 const VOICE_ENABLED_KEY = "delivery.route.voice.enabled";
 const VOICE_VOLUME_KEY = "delivery.route.voice.volume";
@@ -44,12 +45,13 @@ function spokenDuration(minutes: number): string | null {
 }
 
 function buildInstructionSentence(instruction: RouteInstruction): string {
+  const instructionText = normalizeRiderInstructionText(instruction.instruction);
   const details = [
     spokenDistance(instruction.distance_meters),
     spokenDuration(instruction.duration_minutes)
   ].filter(Boolean);
-  if (!details.length) return instruction.instruction;
-  return `${instruction.instruction}. Tramo de ${details.join(", ")}.`;
+  if (!details.length) return instructionText;
+  return `${instructionText}. Tramo de ${details.join(", ")}.`;
 }
 
 function limitSpeechText(value: string): string {

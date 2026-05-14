@@ -32,6 +32,20 @@ export function routeProfileForVehicle(vehicle: string | null | undefined): Rout
   return "driving-car";
 }
 
+function preserveInitialCase(match: string, replacement: string): string {
+  return match[0] === match[0].toUpperCase()
+    ? `${replacement[0].toUpperCase()}${replacement.slice(1)}`
+    : replacement;
+}
+
+export function normalizeRiderInstructionText(instruction: string): string {
+  return instruction
+    .replace(/\bcamina\b/gi, (match) => preserveInitialCase(match, "avanza"))
+    .replace(/\bcamine\b/gi, (match) => preserveInitialCase(match, "avance"))
+    .replace(/\bcaminar\b/gi, (match) => preserveInitialCase(match, "avanzar"))
+    .replace(/\bcaminando\b/gi, (match) => preserveInitialCase(match, "avanzando"));
+}
+
 export function toRouteCoordinate(latitude: number | null | undefined, longitude: number | null | undefined): RouteCoordinate | null {
   if (typeof latitude !== "number" || typeof longitude !== "number") return null;
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;

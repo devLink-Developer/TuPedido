@@ -23,6 +23,8 @@ type LeafletMapViewProps = {
   markers?: LeafletMapMarker[];
   path?: LeafletMapCenterInput[] | null;
   center?: LeafletMapCenterInput | null;
+  focusCenter?: LeafletMapCenterInput | null;
+  focusZoom?: number;
   zoom?: number;
   accessibilityLabel?: string;
   emptyMessage?: string;
@@ -45,12 +47,16 @@ function buildInteractiveLeafletHtml({
   points,
   path,
   center,
+  focusCenter,
+  focusZoom,
   zoom,
   interactive
 }: {
   points: LeafletMapMarker[];
   path?: LeafletMapCenterInput[] | null;
   center?: LeafletMapCenterInput | null;
+  focusCenter?: LeafletMapCenterInput | null;
+  focusZoom?: number;
   zoom?: number;
   interactive: boolean;
 }) {
@@ -77,7 +83,11 @@ function buildInteractiveLeafletHtml({
       : routePath[0]
         ? { latitude: routePath[0].latitude, longitude: routePath[0].longitude }
         : null;
+  const preferredFocus = focusCenter && hasValidLeafletCoordinate(focusCenter)
+    ? { latitude: Number(focusCenter.latitude), longitude: Number(focusCenter.longitude) }
+    : null;
   const preferredZoom = typeof zoom === "number" && Number.isFinite(zoom) ? zoom : 13;
+  const preferredFocusZoom = typeof focusZoom === "number" && Number.isFinite(focusZoom) ? focusZoom : 16;
 
   return `<!doctype html>
 <html lang="es">
@@ -105,7 +115,9 @@ function buildInteractiveLeafletHtml({
       var points = ${jsonForInlineScript(validPoints)};
       var routePath = ${jsonForInlineScript(routePath)};
       var preferredCenter = ${jsonForInlineScript(preferredCenter)};
+      var preferredFocus = ${jsonForInlineScript(preferredFocus)};
       var preferredZoom = ${jsonForInlineScript(preferredZoom)};
+      var preferredFocusZoom = ${jsonForInlineScript(preferredFocusZoom)};
       var interactive = ${interactive ? "true" : "false"};
       var mapElement = document.getElementById("map");
       var RNW = window.ReactNativeWebView;
@@ -139,7 +151,6 @@ function buildInteractiveLeafletHtml({
         doubleClickZoom: interactive
       });
 
-      L.control.zoom({ position: "bottomright" }).addTo(map);
       map.touchZoom.enable();
       map.dragging.enable();
       if (interactive) {
@@ -185,6 +196,10 @@ function buildInteractiveLeafletHtml({
         map.setView(latLngs[0] || [preferredCenter.latitude, preferredCenter.longitude], preferredZoom);
       }
 
+      if (preferredFocus) {
+        map.setView([preferredFocus.latitude, preferredFocus.longitude], preferredFocusZoom);
+      }
+
       if (interactive) {
         map.on("click", function (event) {
           RNW && RNW.postMessage(JSON.stringify({ type: "coordinate", latitude: event.latlng.lat, longitude: event.latlng.lng }));
@@ -203,6 +218,8 @@ export function LeafletMapView({
   markers,
   path,
   center,
+  focusCenter,
+  focusZoom,
   zoom,
   accessibilityLabel = "Mapa",
   emptyMessage = "Sin ubicaciones para mostrar.",
@@ -215,8 +232,8 @@ export function LeafletMapView({
   const validPoints = useMemo(() => normalizeLeafletMapPoints(mapPoints), [mapPoints]);
   const hasPath = Boolean(path?.some(hasValidLeafletCoordinate));
   const html = useMemo(
-    () => buildInteractiveLeafletHtml({ points: mapPoints, path, center, zoom, interactive }),
-    [center, interactive, mapPoints, path, zoom]
+    () => buildInteractiveLeafletHtml({ points: mapPoints, path, center, focusCenter, focusZoom, zoom, interactive }),
+    [center, focusCenter, focusZoom, interactive, mapPoints, path, zoom]
   );
 
   function handleMessage(event: WebViewMessageEvent) {
