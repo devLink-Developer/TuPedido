@@ -5,10 +5,7 @@ import {
   LoaderCircle,
   LockKeyhole,
   Mail,
-  MapPin,
-  PackageCheck,
   ShieldCheck,
-  Smartphone,
   User
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -52,24 +49,6 @@ const authMarketingContent = {
     secondaryActionTo: "/login"
   }
 } as const;
-
-const loginBenefits = [
-  {
-    Icon: MapPin,
-    title: "Direccion lista",
-    description: "Tus datos quedan guardados para pedir sin volver a cargarlos."
-  },
-  {
-    Icon: PackageCheck,
-    title: "Pedidos a mano",
-    description: "Encuentra compras recientes y repite favoritos en menos pasos."
-  },
-  {
-    Icon: Smartphone,
-    title: "PWA instalada",
-    description: "Accede desde el inicio del celular con la experiencia completa."
-  }
-] as const;
 
 export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   const { login, register, loading } = useAuthSession();
@@ -218,66 +197,31 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
 
   if (isLogin) {
     return (
-      <section className="mx-auto grid w-full max-w-6xl items-stretch gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(390px,0.74fr)]">
-        <aside className="auth-login-hero order-2 hidden min-h-[560px] lg:order-1 lg:flex" aria-label="Beneficios de KePedimos">
-          <div className="auth-login-hero-content">
-            <div>
-              <span className="auth-brand-badge">
-                <BrandWordmark
-                  brandName={brandName}
-                  wordmarkUrl={wordmarkUrl}
-                  size="title"
-                  fit="contain"
-                  frameClassName="h-10 w-[11.25rem]"
-                />
-              </span>
-              <p className="mt-7 text-xs font-semibold uppercase tracking-[0.28em] text-orange-200/90">PWA de pedidos</p>
-              <h2 className="mt-3 max-w-xl font-display text-[2.8rem] font-bold leading-[1.02] text-white">
-                Tu proximo pedido queda listo en menos pasos.
-              </h2>
-              <p className="mt-4 max-w-lg text-[15px] leading-7 text-white/72">{content.description}</p>
+      <section className="app-panel auth-form-panel mx-auto w-full max-w-lg overflow-hidden" aria-labelledby={titleId}>
+        <div className="auth-form-header">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="auth-kicker">{content.eyebrow}</p>
+              <h1 id={titleId} className="mt-3 font-display text-[1.85rem] font-bold leading-[1.02] text-ink sm:text-[2.15rem]">
+                {content.formTitle}
+              </h1>
+              <p className="mt-3 max-w-md text-sm leading-6 text-zinc-600">{content.formDescription}</p>
             </div>
-
-            <div className="auth-benefit-grid">
-              {loginBenefits.map(({ Icon, title, description }) => (
-                <article className="auth-benefit-card" key={title}>
-                  <Icon aria-hidden="true" className="h-5 w-5" />
-                  <div>
-                    <strong>{title}</strong>
-                    <p>{description}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
+            <BrandWordmark
+              brandName={brandName}
+              wordmarkUrl={wordmarkUrl}
+              size="inline"
+              fit="contain"
+              className="hidden min-w-0 shrink-0 sm:inline-flex"
+              frameClassName="h-8 w-[9.5rem] sm:h-9 sm:w-[10.5rem]"
+            />
           </div>
-        </aside>
+        </div>
 
-        <section className="app-panel auth-form-panel order-1 mx-auto w-full max-w-lg overflow-hidden lg:order-2 lg:max-w-none" aria-labelledby={titleId}>
-          <div className="auth-form-header">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="auth-kicker">{content.eyebrow}</p>
-                <h1 id={titleId} className="mt-3 font-display text-[1.85rem] font-bold leading-[1.02] text-ink sm:text-[2.15rem]">
-                  {content.formTitle}
-                </h1>
-                <p className="mt-3 max-w-md text-sm leading-6 text-zinc-600">{content.formDescription}</p>
-              </div>
-              <BrandWordmark
-                brandName={brandName}
-                wordmarkUrl={wordmarkUrl}
-                size="inline"
-                fit="contain"
-                className="hidden min-w-0 shrink-0 sm:inline-flex"
-                frameClassName="h-8 w-[9.5rem] sm:h-9 sm:w-[10.5rem]"
-              />
-            </div>
-          </div>
-
-          <form onSubmit={(event) => void handleSubmit(event)} className="auth-form-body">
-            {formFields}
-            {formActions}
-          </form>
-        </section>
+        <form onSubmit={(event) => void handleSubmit(event)} className="auth-form-body">
+          {formFields}
+          {formActions}
+        </form>
       </section>
     );
   }
