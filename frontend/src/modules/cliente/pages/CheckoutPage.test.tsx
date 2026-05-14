@@ -80,6 +80,22 @@ function buildStoreDetail(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
+function buildAddress(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    id: 22,
+    label: "Casa",
+    postal_code: "3000",
+    province: "Santa Fe",
+    locality: "Santa Fe",
+    street: "1 de mayo 2168",
+    details: "",
+    latitude: -31.63,
+    longitude: -60.7,
+    is_default: true,
+    ...overrides
+  };
+}
+
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
   return {
@@ -315,6 +331,30 @@ describe("CheckoutPage", () => {
     expect(navigateMock).not.toHaveBeenCalled();
 
     vi.unstubAllGlobals();
+  });
+
+  it("no borra la direccion global mientras prepara checkout de retiro", async () => {
+    useClienteStore.getState().setSelectedAddressId(22);
+    useClienteStore.getState().setCustomerLocation(null);
+    fetchAddressesMock.mockResolvedValue([buildAddress()]);
+
+    render(
+      <MemoryRouter>
+        <CheckoutPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Confirmar pedido" })).toBeInTheDocument());
+
+    expect(useClienteStore.getState().selectedAddressId).toBe(22);
+    expect(fetchStoreByIdMock).toHaveBeenCalledWith(
+      15,
+      expect.objectContaining({
+        deliveryMode: "pickup",
+        latitude: -31.63,
+        longitude: -60.7
+      })
+    );
   });
 
   it("muestra Mercado Pago deshabilitado con motivo cuando el comercio no esta conectado", async () => {

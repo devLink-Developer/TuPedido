@@ -34,8 +34,9 @@ postgres_data/
 .claude/skills/ui-ux-pro-max/data/stacks/react.csv
 .claude/skills/ui-ux-pro-max/data/stacks/shadcn.csv
 .claude/skills/ui-ux-pro-max/data/stacks/svelte.csv
-.claude/skills/ui-ux-pro-max/data/stacks/swiftui.csv
+.claude/skills/ui-ux-pro-max/data/sstacks/swiftui.csv
 .claude/skills/ui-ux-pro-max/data/stacks/vue.csv
 android-app/KePedimos-release-standalone.apk
 android-app/KePedimos-release.aab
-android-app/KePedimos-1.0.*
+KePedimos-1.0.*
+android-apk/KePedimos-1.0.32-release-standalone.apk

@@ -191,7 +191,9 @@ export function CheckoutPage() {
               (defaultAddress
                 ? { latitude: defaultAddress.latitude, longitude: defaultAddress.longitude, source: "address" as const }
                 : null);
-        setSelectedAddressId(cartDeliveryMode === "delivery" ? defaultAddress?.id ?? "" : "");
+        if (cartDeliveryMode === "delivery") {
+          setSelectedAddressId(defaultAddress?.id ?? "");
+        }
         if (checkoutLocation && checkoutLocation.latitude !== null && checkoutLocation.longitude !== null && !customerLocation) {
           setCustomerLocation({
             latitude: checkoutLocation.latitude,
