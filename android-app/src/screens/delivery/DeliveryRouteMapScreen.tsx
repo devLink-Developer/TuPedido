@@ -338,45 +338,55 @@ export function DeliveryRouteMapScreen({ route, navigation }: Props) {
       </SafeAreaView>
 
       <Modal animationType="slide" transparent visible={deliveryCodeVisible} onRequestClose={() => setDeliveryCodeVisible(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 16}
+          style={styles.modalOverlay}
+        >
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setDeliveryCodeVisible(false)} />
-          <View style={styles.codeSheet}>
+          <ScrollView
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            style={styles.codeScroller}
+            contentContainerStyle={styles.codeSheet}
+          >
             <View style={styles.codeHeader}>
-              <View style={styles.codeIcon}>
-                <Ionicons name="keypad-outline" size={22} color={colors.primary} />
+                <View style={styles.codeIcon}>
+                  <Ionicons name="keypad-outline" size={22} color={colors.primary} />
+                </View>
+                <View style={styles.codeCopy}>
+                  <Text maxFontSizeMultiplier={1.15} style={styles.codeTitle}>Codigo de entrega</Text>
+                  <Text maxFontSizeMultiplier={1.2} style={styles.codeMeta}>
+                    {destinationText}
+                  </Text>
+                </View>
+                <IconButton icon="close" label="Cerrar codigo de entrega" onPress={() => setDeliveryCodeVisible(false)} />
               </View>
-              <View style={styles.codeCopy}>
-                <Text maxFontSizeMultiplier={1.15} style={styles.codeTitle}>Codigo de entrega</Text>
-                <Text maxFontSizeMultiplier={1.2} style={styles.codeMeta}>
-                  {destinationText}
-                </Text>
-              </View>
-              <IconButton icon="close" label="Cerrar codigo de entrega" onPress={() => setDeliveryCodeVisible(false)} />
-            </View>
-            <Text maxFontSizeMultiplier={1.2} style={styles.codeHelp}>
-              Pedile al cliente el codigo y confirmalo sin salir del mapa.
-            </Text>
-            <TextField
-              label="Codigo"
-              value={otp}
-              onChangeText={(value) => {
-                setOtp(value);
-                setOtpFeedback(null);
-              }}
-              error={otpFeedback}
-              keyboardType="number-pad"
-              inputMode="numeric"
-              maxLength={12}
-              autoFocus
-            />
-            <AppButton
-              title="Marcar entregado"
-              icon="checkmark-done-outline"
-              loading={deliverySubmitting}
-              onPress={() => void handleDeliver()}
-              fullWidth
-            />
-          </View>
+              <Text maxFontSizeMultiplier={1.2} style={styles.codeHelp}>
+                Pedile al cliente el codigo y confirmalo sin salir del mapa.
+              </Text>
+              <TextField
+                label="Codigo"
+                value={otp}
+                onChangeText={(value) => {
+                  setOtp(value);
+                  setOtpFeedback(null);
+                }}
+                error={otpFeedback}
+                keyboardType="number-pad"
+                inputMode="numeric"
+                maxLength={12}
+                autoFocus
+              />
+              <AppButton
+                title="Marcar entregado"
+                icon="checkmark-done-outline"
+                loading={deliverySubmitting}
+                onPress={() => void handleDeliver()}
+                fullWidth
+              />
+          </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
     </View>
@@ -665,8 +675,13 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radii.xl,
     backgroundColor: colors.surface,
     padding: spacing.md,
+    paddingBottom: spacing.xl,
     gap: spacing.md,
     ...shadow.medium
+  },
+  codeScroller: {
+    flexGrow: 0,
+    maxHeight: "88%"
   },
   codeHeader: {
     flexDirection: "row",

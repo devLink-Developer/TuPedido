@@ -31,8 +31,12 @@ export function LoginScreen({ navigation }: Props) {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Screen contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+    >
+      <Screen contentContainerStyle={styles.content} keyboardDismissMode="on-drag">
         <View style={styles.hero}>
           <View style={styles.logoFrame}>
             <Image source={brandAssets.logo} style={styles.logo} resizeMode="cover" accessibilityLabel="Logo de KePedimos" />
@@ -61,7 +65,8 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     justifyContent: "center",
-    gap: spacing.lg
+    gap: spacing.lg,
+    paddingBottom: 144
   },
   hero: {
     alignItems: "center",

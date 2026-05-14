@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AppButton } from "../../components/AppButton";
 import { Card } from "../../components/Card";
@@ -141,12 +141,17 @@ export function DeliveryOrderDetailScreen({ route, navigation }: Props) {
   const canDeliver = isDropoff && !isTerminal;
 
   return (
-    <Screen refreshing={loading} onRefresh={() => void reload()} contentContainerStyle={styles.screenContent}>
-      <View style={styles.hero}>
-        <Text maxFontSizeMultiplier={1.15} style={styles.heroEyebrow}>Entrega #{order.id}</Text>
-        <Text maxFontSizeMultiplier={1.2} style={styles.heroTitle} numberOfLines={2}>{destination}</Text>
-        <Text maxFontSizeMultiplier={1.15} style={styles.heroMeta} numberOfLines={1}>{order.store_name}</Text>
-      </View>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+    >
+      <Screen refreshing={loading} onRefresh={() => void reload()} contentContainerStyle={styles.screenContent} keyboardDismissMode="on-drag">
+        <View style={styles.hero}>
+          <Text maxFontSizeMultiplier={1.15} style={styles.heroEyebrow}>Entrega #{order.id}</Text>
+          <Text maxFontSizeMultiplier={1.2} style={styles.heroTitle} numberOfLines={2}>{destination}</Text>
+          <Text maxFontSizeMultiplier={1.15} style={styles.heroMeta} numberOfLines={1}>{order.store_name}</Text>
+        </View>
 
       {liveError ? <Text maxFontSizeMultiplier={1.15} style={styles.warning}>{liveError}</Text> : null}
 
@@ -231,13 +236,18 @@ export function DeliveryOrderDetailScreen({ route, navigation }: Props) {
           </View>
         ))}
       </Card>
-    </Screen>
+      </Screen>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1
+  },
   screenContent: {
-    gap: spacing.md
+    gap: spacing.md,
+    paddingBottom: 144
   },
   hero: {
     gap: spacing.xs

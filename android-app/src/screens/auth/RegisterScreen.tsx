@@ -40,8 +40,12 @@ export function RegisterScreen({ navigation }: Props) {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Screen>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+    >
+      <Screen contentContainerStyle={styles.content} keyboardDismissMode="on-drag">
         <View style={styles.brandRow}>
           <BrandWordmark height={38} width={166} />
         </View>
@@ -67,6 +71,9 @@ export function RegisterScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   flex: {
     flex: 1
+  },
+  content: {
+    paddingBottom: 144
   },
   brandRow: {
     paddingTop: spacing.lg,

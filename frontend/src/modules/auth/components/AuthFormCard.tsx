@@ -1,4 +1,16 @@
 import { useState, type FormEvent } from "react";
+import {
+  Eye,
+  EyeOff,
+  LoaderCircle,
+  LockKeyhole,
+  Mail,
+  MapPin,
+  PackageCheck,
+  ShieldCheck,
+  Smartphone,
+  User
+} from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BrandWordmark } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
@@ -41,6 +53,24 @@ const authMarketingContent = {
   }
 } as const;
 
+const loginBenefits = [
+  {
+    Icon: MapPin,
+    title: "Direccion lista",
+    description: "Tus datos quedan guardados para pedir sin volver a cargarlos."
+  },
+  {
+    Icon: PackageCheck,
+    title: "Pedidos a mano",
+    description: "Encuentra compras recientes y repite favoritos en menos pasos."
+  },
+  {
+    Icon: Smartphone,
+    title: "PWA instalada",
+    description: "Accede desde el inicio del celular con la experiencia completa."
+  }
+] as const;
+
 export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   const { login, register, loading } = useAuthSession();
   const { brandName, wordmarkUrl } = usePlatformBranding();
@@ -55,6 +85,12 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   const [submitting, setSubmitting] = useState(false);
   const content = authMarketingContent[mode];
   const isLogin = mode === "login";
+  const titleId = `${mode}-auth-title`;
+  const fullNameId = `${mode}-full-name`;
+  const emailId = `${mode}-email`;
+  const passwordId = `${mode}-password`;
+  const isBusy = submitting || loading;
+  const passwordToggleLabel = showPassword ? "Ocultar clave" : "Mostrar clave";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,63 +115,99 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   const formFields = (
     <div className="mt-6 space-y-4">
       {mode === "register" ? (
-        <label className="block space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Nombre completo</span>
-          <input
-            value={fullName}
-            onChange={(event) => setFullName(event.target.value)}
-            required
-            className="app-input"
-          />
-        </label>
+        <div className="auth-field">
+          <label className="auth-field-label" htmlFor={fullNameId}>
+            Nombre completo
+          </label>
+          <div className="auth-input-shell">
+            <User aria-hidden="true" className="auth-input-icon" />
+            <input
+              id={fullNameId}
+              value={fullName}
+              onChange={(event) => setFullName(event.target.value)}
+              required
+              autoComplete="name"
+              className="auth-input-control"
+            />
+          </div>
+        </div>
       ) : null}
 
-      <label className="block space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Email</span>
-        <input
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          required
-          className="app-input"
-        />
-      </label>
-
-      <label className="block space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Contrasena</span>
-        <div className="app-input flex items-center gap-2 px-4 py-1.5">
+      <div className="auth-field">
+        <label className="auth-field-label" htmlFor={emailId}>
+          Email
+        </label>
+        <div className="auth-input-shell">
+          <Mail aria-hidden="true" className="auth-input-icon" />
           <input
+            id={emailId}
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            autoComplete="email"
+            inputMode="email"
+            className="auth-input-control"
+          />
+        </div>
+      </div>
+
+      <div className="auth-field">
+        <label className="auth-field-label" htmlFor={passwordId}>
+          Contrasena
+        </label>
+        <div className="auth-input-shell">
+          <LockKeyhole aria-hidden="true" className="auth-input-icon" />
+          <input
+            id={passwordId}
             type={showPassword ? "text" : "password"}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
             minLength={6}
-            className="min-w-0 flex-1 bg-transparent py-3 outline-none"
+            autoComplete={isLogin ? "current-password" : "new-password"}
+            className="auth-input-control"
           />
           <button
             type="button"
             onClick={() => setShowPassword((current) => !current)}
-            className="kp-soft-action min-h-[36px] px-3 py-1.5 text-xs uppercase tracking-[0.18em]"
+            className="auth-password-toggle"
+            aria-label={passwordToggleLabel}
+            aria-pressed={showPassword}
+            title={passwordToggleLabel}
           >
-            {showPassword ? "Ocultar" : "Mostrar"}
+            {showPassword ? (
+              <EyeOff aria-hidden="true" className="h-5 w-5" />
+            ) : (
+              <Eye aria-hidden="true" className="h-5 w-5" />
+            )}
           </button>
         </div>
-      </label>
+      </div>
     </div>
   );
 
   const formActions = (
     <>
-      {error ? <p className="mt-4 border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+      {error ? (
+        <p className="auth-error-message mt-4" role="alert" aria-live="polite">
+          {error}
+        </p>
+      ) : null}
 
-      <Button type="submit" className="mt-5 w-full" disabled={submitting || loading}>
-        {submitting || loading ? "Procesando..." : mode === "login" ? "Ingresar" : "Crear cuenta"}
+      <Button type="submit" className="auth-primary-button mt-5 w-full" disabled={isBusy}>
+        {isBusy ? (
+          <LoaderCircle aria-hidden="true" className="h-5 w-5 animate-spin" />
+        ) : (
+          <ShieldCheck aria-hidden="true" className="h-5 w-5" />
+        )}
+        <span>{isBusy ? "Procesando..." : mode === "login" ? "Ingresar" : "Crear cuenta"}</span>
       </Button>
 
-      <div className="mt-5 border-t border-black/6 pt-5 text-center">
+      <div className="auth-secondary-block mt-5 text-center">
         <p className="text-sm text-zinc-500">{content.secondaryPrompt}</p>
         <Link
-          className="kp-soft-action mt-3 inline-flex min-h-[44px] px-5 py-2.5 text-sm uppercase tracking-[0.16em]"
+          className="auth-secondary-action mt-3 inline-flex"
           to={content.secondaryActionTo}
         >
           {content.secondaryActionLabel}
@@ -146,32 +218,66 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
 
   if (isLogin) {
     return (
-      <section className="app-panel mx-auto w-full max-w-lg overflow-hidden">
-        <div className="border-b border-[var(--color-border-default)] px-5 py-4 sm:px-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">{content.eyebrow}</p>
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="font-display text-[1.72rem] font-bold leading-[1.02] tracking-tight text-ink sm:text-[1.95rem]">
-                Iniciar sesion
-              </h1>
-              <p className="mt-2 max-w-md text-sm leading-6 text-zinc-600">{content.formDescription}</p>
+      <section className="mx-auto grid w-full max-w-6xl items-stretch gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(390px,0.74fr)]">
+        <aside className="auth-login-hero order-2 hidden min-h-[560px] lg:order-1 lg:flex" aria-label="Beneficios de KePedimos">
+          <div className="auth-login-hero-content">
+            <div>
+              <span className="auth-brand-badge">
+                <BrandWordmark
+                  brandName={brandName}
+                  wordmarkUrl={wordmarkUrl}
+                  size="title"
+                  fit="contain"
+                  frameClassName="h-10 w-[11.25rem]"
+                />
+              </span>
+              <p className="mt-7 text-xs font-semibold uppercase tracking-[0.28em] text-orange-200/90">PWA de pedidos</p>
+              <h2 className="mt-3 max-w-xl font-display text-[2.8rem] font-bold leading-[1.02] text-white">
+                Tu proximo pedido queda listo en menos pasos.
+              </h2>
+              <p className="mt-4 max-w-lg text-[15px] leading-7 text-white/72">{content.description}</p>
             </div>
-            <BrandWordmark
-              brandName={brandName}
-              wordmarkUrl={wordmarkUrl}
-              size="inline"
-              fit="contain"
-              className="inline-flex min-w-0"
-              frameClassName="h-8 w-[9.5rem] sm:h-9 sm:w-[10.5rem]"
-              textClassName="text-lg"
-            />
-          </div>
-        </div>
 
-        <form onSubmit={(event) => void handleSubmit(event)} className="p-5 sm:p-6">
-          {formFields}
-          {formActions}
-        </form>
+            <div className="auth-benefit-grid">
+              {loginBenefits.map(({ Icon, title, description }) => (
+                <article className="auth-benefit-card" key={title}>
+                  <Icon aria-hidden="true" className="h-5 w-5" />
+                  <div>
+                    <strong>{title}</strong>
+                    <p>{description}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        <section className="app-panel auth-form-panel order-1 mx-auto w-full max-w-lg overflow-hidden lg:order-2 lg:max-w-none" aria-labelledby={titleId}>
+          <div className="auth-form-header">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="auth-kicker">{content.eyebrow}</p>
+                <h1 id={titleId} className="mt-3 font-display text-[1.85rem] font-bold leading-[1.02] text-ink sm:text-[2.15rem]">
+                  {content.formTitle}
+                </h1>
+                <p className="mt-3 max-w-md text-sm leading-6 text-zinc-600">{content.formDescription}</p>
+              </div>
+              <BrandWordmark
+                brandName={brandName}
+                wordmarkUrl={wordmarkUrl}
+                size="inline"
+                fit="contain"
+                className="hidden min-w-0 shrink-0 sm:inline-flex"
+                frameClassName="h-8 w-[9.5rem] sm:h-9 sm:w-[10.5rem]"
+              />
+            </div>
+          </div>
+
+          <form onSubmit={(event) => void handleSubmit(event)} className="auth-form-body">
+            {formFields}
+            {formActions}
+          </form>
+        </section>
       </section>
     );
   }
@@ -181,7 +287,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
       <form onSubmit={(event) => void handleSubmit(event)} className="app-panel order-1 p-5 sm:p-6">
         <div className="relative min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{content.formEyebrow}</p>
-          <h2 className="mt-2 font-display text-[1.85rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-3xl">
+          <h2 id={titleId} className="mt-2 font-display text-[1.85rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-3xl">
             {content.formTitle}
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-7 text-zinc-500">{content.formDescription}</p>
