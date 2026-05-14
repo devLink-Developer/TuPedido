@@ -37,7 +37,6 @@ export function StoreDetailScreen({ route, navigation }: Props) {
   );
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [hasConfiguredAddress, setHasConfiguredAddress] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const { data: store, loading, error, reload } = useAsyncLoad(
     () =>
@@ -51,10 +50,7 @@ export function StoreDetailScreen({ route, navigation }: Props) {
   );
 
   useEffect(() => {
-    if (!token) {
-      setHasConfiguredAddress(false);
-      return;
-    }
+    if (!token) return;
     let cancelled = false;
     const shouldResolveLocation = !customerLocation;
     if (shouldResolveLocation) setLocationLoading(true);
@@ -62,7 +58,6 @@ export function StoreDetailScreen({ route, navigation }: Props) {
       .then((addresses) => {
         if (cancelled) return;
         const geolocated = addresses.filter(hasAddressPin);
-        setHasConfiguredAddress(geolocated.length > 0);
         const selected = geolocated.find((address) => address.is_default) ?? geolocated[0];
         if (shouldResolveLocation && selected && typeof selected.latitude === "number" && typeof selected.longitude === "number") {
           setCustomerLocation({ latitude: selected.latitude, longitude: selected.longitude, source: "address" });
@@ -70,7 +65,6 @@ export function StoreDetailScreen({ route, navigation }: Props) {
       })
       .catch((loadError) => {
         if (!cancelled) {
-          setHasConfiguredAddress(false);
           if (shouldResolveLocation) setLocationError(friendlyErrorMessage(loadError, "No pudimos leer tu direccion."));
         }
       })
@@ -112,18 +106,6 @@ export function StoreDetailScreen({ route, navigation }: Props) {
         });
         return;
       }
-      if (!hasConfiguredAddress) {
-        showDialog({
-          title: "Dirección requerida",
-          message: "Agregá una dirección con pin desde Perfil antes de pedir.",
-          variant: "warning",
-          actions: [
-            { label: "Cancelar", variant: "ghost" },
-            { label: "Ir a perfil", onPress: () => navigation.navigate("CustomerTabs", { screen: "Profile" }) }
-          ]
-        });
-        return;
-      }
       try {
         const nextCart = await addCartItem(token, {
           store_id: store.id,
@@ -138,7 +120,7 @@ export function StoreDetailScreen({ route, navigation }: Props) {
         showError("No se pudo agregar", friendlyErrorMessage(addError));
       }
     },
-    [customerLocation, hasConfiguredAddress, navigation, setCart, showDialog, showError, showToast, store, token]
+    [customerLocation, navigation, setCart, showDialog, showError, showToast, store, token]
   );
 
   const requestGpsLocation = useCallback(async () => {

@@ -39,20 +39,10 @@ function toNumber(value: string, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function isValidHttpUrl(value: string) {
+function isValidHttpsUrl(value: string) {
   try {
     const parsed = new URL(value);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-function isPublicHttpUrl(value: string) {
-  try {
-    const parsed = new URL(value);
-    const hostname = parsed.hostname.toLowerCase();
-    return parsed.protocol === "http:" && hostname !== "localhost" && hostname !== "127.0.0.1";
+    return parsed.protocol === "https:" && parsed.hostname.toLowerCase() === "kepedimos.com";
   } catch {
     return false;
   }
@@ -142,11 +132,8 @@ export function MercadoPagoPage() {
       if (!paymentProvider.simulated && !mercadoPagoForm.webhook_secret.trim() && !paymentProvider.webhook_secret_masked) {
         nextErrors.webhook_secret = "El Webhook Secret es obligatorio para pagos reales.";
       }
-      if (!mercadoPagoForm.redirect_uri.trim() || !isValidHttpUrl(mercadoPagoForm.redirect_uri.trim())) {
-        nextErrors.redirect_uri = "Ingresa una URL http/https valida.";
-      }
-      if (!paymentProvider.simulated && isPublicHttpUrl(mercadoPagoForm.redirect_uri)) {
-        nextErrors.redirect_uri = "Mercado Pago requiere HTTPS para callbacks OAuth publicos.";
+      if (!mercadoPagoForm.redirect_uri.trim() || !isValidHttpsUrl(mercadoPagoForm.redirect_uri.trim())) {
+        nextErrors.redirect_uri = "Ingresa una URL de https://kepedimos.com valida.";
       }
       if (!mercadoPagoForm.commission_value.trim()) {
         nextErrors.commission_value = "Define la comision que retendra la plataforma.";
@@ -348,14 +335,14 @@ export function MercadoPagoPage() {
                 Callback OAuth detectado: <span className="break-all font-mono">{paymentProvider.oauth_callback_url}</span>
               </p>
             ) : null}
-            {paymentProvider.redirect_uri_internal && paymentProvider.oauth_callback_url && !paymentProvider.oauth_callback_url.includes("localhost") ? (
+            {paymentProvider.redirect_uri_internal && paymentProvider.oauth_callback_url?.includes("https://kepedimos.com") ? (
               <p className="rounded bg-amber-50 px-3 py-2 text-xs font-normal text-amber-800" role="alert">
-                El Redirect URI actual usa localhost. Para conectar comercios desde una URL publica, guarda el callback detectado aqui y registralo igual en la app de Mercado Pago.
+                El Redirect URI actual no usa https://kepedimos.com. Guarda el callback detectado aqui y registralo igual en la app de Mercado Pago.
               </p>
             ) : null}
-            {!paymentProvider.simulated && isPublicHttpUrl(mercadoPagoForm.redirect_uri) ? (
+            {mercadoPagoForm.redirect_uri.trim() && !isValidHttpsUrl(mercadoPagoForm.redirect_uri) ? (
               <p className="rounded bg-rose-50 px-3 py-2 text-xs font-normal text-rose-800" role="alert">
-                Mercado Pago no acepta callbacks OAuth publicos con HTTP. Configura un dominio con HTTPS y registra exactamente esa URL en la app.
+                Configura el callback OAuth bajo https://kepedimos.com y registra exactamente esa URL en la app.
               </p>
             ) : null}
             {providerFieldErrors.redirect_uri ? <p className="text-xs font-normal text-rose-700">{providerFieldErrors.redirect_uri}</p> : null}

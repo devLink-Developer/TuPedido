@@ -247,6 +247,19 @@ export function CheckoutScreen({ navigation }: Props) {
     if (nextMode === "pickup" && !pickupEnabled) return;
 
     const previousMode = deliveryMode;
+    if (nextMode === "delivery" && !hasAddressPin(selectedAddress)) {
+      showDialog({
+        title: "Direccion requerida",
+        message: "Agrega una direccion con pin desde Perfil para pedir con envio.",
+        variant: "warning",
+        actions: [
+          { label: "Cancelar", variant: "ghost" },
+          { label: "Ir a perfil", onPress: () => navigation.navigate("CustomerTabs", { screen: "Profile" }) }
+        ]
+      });
+      return;
+    }
+
     setDeliveryMode(nextMode);
 
     const nextLocation =

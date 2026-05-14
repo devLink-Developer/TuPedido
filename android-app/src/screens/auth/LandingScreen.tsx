@@ -1,4 +1,4 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import type { ComponentProps } from "react";
 import type { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,6 +6,7 @@ import { AppButton } from "../../components/AppButton";
 import { BrandWordmark } from "../../components/BrandWordmark";
 import { Screen } from "../../components/Screen";
 import { brandAssets } from "../../assets/brand";
+import { BACKEND_ROOT_URL } from "../../config/env";
 import { colors, opacity, radii, shadow, spacing, touchTarget } from "../../theme";
 import type { AuthStackParamList, RootStackParamList } from "../../navigation/types";
 
@@ -22,16 +23,22 @@ const categories: Array<{ label: string; icon: IconName }> = [
 ];
 
 const valueItems: Array<{ title: string; text: string; icon: IconName }> = [
-  { title: "Comercios cercanos", text: "Opciones reales cerca de vos.", icon: "location-outline" },
-  { title: "Envío o retiro", text: "Elegí cómo lo recibís.", icon: "bag-handle-outline" },
-  { title: "Compará mejor", text: "Menos vueltas para decidir.", icon: "search-outline" }
+  { title: "Comercios cercanos", text: "Opciones disponibles según tu zona.", icon: "location-outline" },
+  { title: "Envío o retiro", text: "Elegís cómo recibir tu pedido.", icon: "bag-handle-outline" },
+  { title: "Seguimiento", text: "Estado del pedido desde la app.", icon: "receipt-outline" }
 ];
+
+const MERCHANT_REGISTRATION_URL = `${BACKEND_ROOT_URL}/registro-comercio`;
 
 export function LandingScreen({ navigation }: Props) {
   const rootNavigation = navigation.getParent<RootNav>();
 
   function openCatalog() {
     rootNavigation?.navigate("PublicCatalog");
+  }
+
+  function openMerchantRegistration() {
+    void Linking.openURL(MERCHANT_REGISTRATION_URL);
   }
 
   return (
@@ -50,58 +57,77 @@ export function LandingScreen({ navigation }: Props) {
         </Pressable>
       </View>
 
-      <View style={styles.heroCopy}>
-        <View style={styles.eyebrowRow}>
-          <View style={styles.eyebrowDot} />
-          <Text style={styles.eyebrow}>HECHO PARA TU DÍA A DÍA</Text>
+      <View style={styles.hero}>
+        <View style={styles.heroCopy}>
+          <View style={styles.eyebrowRow}>
+            <View style={styles.eyebrowDot} />
+            <Text style={styles.eyebrow}>COMERCIOS CERCA TUYO</Text>
+          </View>
+          <Text style={styles.title}>
+            Busca, pedí y seguí tu compra <Text style={styles.titleAccent}>desde la app.</Text>
+          </Text>
+          <Text style={styles.description}>Encontrá locales disponibles, compará opciones y elegí envío o retiro sin perder tiempo.</Text>
         </View>
-        <Text style={styles.title}>
-          Pedí cerca.{"\n"}
-          Resolvé rápido.{"\n"}
-          <Text style={styles.titleAccent}>Sin vueltas.</Text>
-        </Text>
-        <Text style={styles.description}>
-          Encontrá comercios en tu zona, compará opciones y elegí envío o retiro en minutos.
-        </Text>
-      </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Buscar comercios o productos"
-        accessibilityHint="Abre el catálogo de comercios"
-        android_ripple={{ color: colors.borderStrong }}
-        style={({ pressed }) => [styles.searchBar, pressed && styles.pressed]}
-        onPress={openCatalog}
-      >
-        <View style={styles.searchCopy}>
-          <Ionicons name="search-outline" size={20} color={colors.mutedText} />
-          <Text style={styles.searchPlaceholder}>¿Qué necesitás hoy?</Text>
-        </View>
-        <View style={styles.searchAction}>
-          <Text style={styles.searchActionText}>Buscar</Text>
-        </View>
-      </Pressable>
+        <View style={styles.primaryPanel}>
+          <View style={styles.panelHeader}>
+            <Text style={styles.panelTitle}>¿Qué necesitás hoy?</Text>
+            <Text style={styles.panelDescription}>Abrí el catálogo y encontrá comercios que atienden tu zona.</Text>
+          </View>
 
-      <View style={styles.categoryRow} accessibilityLabel="Rubros destacados">
-        {categories.map((category) => (
           <Pressable
-            key={category.label}
             accessibilityRole="button"
-            accessibilityLabel={`Ver ${category.label}`}
-            hitSlop={4}
+            accessibilityLabel="Buscar comercios o productos"
+            accessibilityHint="Abre el catálogo de comercios"
             android_ripple={{ color: colors.borderStrong }}
-            style={({ pressed }) => [styles.categoryPill, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.searchBar, pressed && styles.pressed]}
             onPress={openCatalog}
           >
-            <Ionicons name={category.icon} size={16} color={colors.text} />
-            <Text style={styles.categoryLabel}>{category.label}</Text>
+            <View style={styles.searchCopy}>
+              <Ionicons name="search-outline" size={20} color={colors.mutedText} />
+              <Text style={styles.searchPlaceholder}>Buscar comercios o productos</Text>
+            </View>
+            <View style={styles.searchAction}>
+              <Text style={styles.searchActionText}>Buscar</Text>
+            </View>
           </Pressable>
-        ))}
+
+          <View style={styles.categoryRow} accessibilityLabel="Rubros destacados">
+            {categories.map((category) => (
+              <Pressable
+                key={category.label}
+                accessibilityRole="button"
+                accessibilityLabel={`Ver ${category.label}`}
+                hitSlop={4}
+                android_ripple={{ color: colors.borderStrong }}
+                style={({ pressed }) => [styles.categoryPill, pressed && styles.pressed]}
+                onPress={openCatalog}
+              >
+                <Ionicons name={category.icon} size={16} color={colors.text} />
+                <Text style={styles.categoryLabel}>{category.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <View style={styles.actions}>
+            <AppButton title="Buscar comercios" icon="storefront-outline" fullWidth onPress={openCatalog} />
+            <AppButton title="Crear cuenta" icon="person-add-outline" variant="ghost" fullWidth onPress={() => navigation.navigate("Register")} />
+            <AppButton
+              title="Alta de comercio"
+              icon="business-outline"
+              variant="ghost"
+              fullWidth
+              accessibilityHint="Abre el registro de comercios en la web"
+              onPress={openMerchantRegistration}
+            />
+          </View>
+        </View>
       </View>
 
-      <View style={styles.actions}>
-        <AppButton title="Buscar comercios" icon="storefront-outline" fullWidth onPress={openCatalog} />
-        <AppButton title="Crear cuenta" icon="person-add-outline" variant="ghost" fullWidth onPress={() => navigation.navigate("Register")} />
+      <View style={styles.valueStrip}>
+        {valueItems.map((item) => (
+          <ValueItem key={item.title} icon={item.icon} title={item.title} text={item.text} />
+        ))}
       </View>
 
       <View style={styles.posterPanel}>
@@ -110,13 +136,8 @@ export function LandingScreen({ navigation }: Props) {
           resizeMode="cover"
           style={styles.posterImage}
           accessibilityLabel="Vista de KePedimos con búsqueda, mapa y comercios cercanos"
+          accessibilityIgnoresInvertColors
         />
-      </View>
-
-      <View style={styles.valueStrip}>
-        {valueItems.map((item) => (
-          <ValueItem key={item.title} icon={item.icon} title={item.title} text={item.text} />
-        ))}
       </View>
 
       <View style={styles.deliveryHint}>
@@ -152,7 +173,7 @@ function ValueItem({ icon, title, text }: { icon: IconName; title: string; text:
 const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
-    gap: spacing.md,
+    gap: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xl
   },
@@ -180,6 +201,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: "800"
   },
+  hero: {
+    gap: spacing.md
+  },
   heroCopy: {
     gap: spacing.sm,
     paddingTop: spacing.xs
@@ -205,8 +229,8 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontSize: 34,
-    lineHeight: 38,
+    fontSize: 32,
+    lineHeight: 37,
     fontWeight: "900",
     letterSpacing: 0
   },
@@ -214,10 +238,33 @@ const styles = StyleSheet.create({
     color: colors.primary
   },
   description: {
-    maxWidth: 340,
     color: colors.mutedText,
     fontSize: 15,
     lineHeight: 22,
+    fontWeight: "600"
+  },
+  primaryPanel: {
+    gap: spacing.md,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    padding: spacing.md,
+    ...shadow.medium
+  },
+  panelHeader: {
+    gap: 4
+  },
+  panelTitle: {
+    color: colors.text,
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: "900"
+  },
+  panelDescription: {
+    color: colors.mutedText,
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: "600"
   },
   searchBar: {
@@ -226,10 +273,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: spacing.sm,
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceAlt,
     paddingLeft: spacing.md,
     paddingRight: spacing.sm,
     ...shadow.soft
@@ -267,7 +314,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm
   },
   categoryPill: {
-    minHeight: 42,
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -287,27 +334,16 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing.sm
   },
-  posterPanel: {
-    height: 164,
-    overflow: "hidden",
-    borderRadius: radii.xl,
-    backgroundColor: colors.surface,
-    ...shadow.medium
-  },
-  posterImage: {
-    width: "100%",
-    height: "100%"
-  },
   valueStrip: {
-    gap: spacing.sm,
-    borderRadius: radii.xl,
+    gap: spacing.xs,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
     padding: spacing.sm
   },
   valueItem: {
-    minHeight: 64,
+    minHeight: 60,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
@@ -340,8 +376,19 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: "600"
   },
+  posterPanel: {
+    height: 172,
+    overflow: "hidden",
+    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
+    ...shadow.medium
+  },
+  posterImage: {
+    width: "100%",
+    height: "100%"
+  },
   deliveryHint: {
-    minHeight: 150,
+    minHeight: 140,
     overflow: "hidden",
     borderRadius: radii.xl,
     backgroundColor: "#090909"

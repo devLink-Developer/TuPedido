@@ -547,7 +547,7 @@ def build_oauth_connect_url(
     callback_url = build_oauth_callback_url(base_url=base_url)
     if is_internal_http_url(provider.redirect_uri) and not is_internal_http_url(callback_url):
         raise MercadoPagoAPIError(
-            "Mercado Pago Redirect URI is configured as localhost/internal. "
+            "Mercado Pago Redirect URI is not configured with the public backend URL. "
             f"Configure {callback_url} in Admin and in the Mercado Pago application Redirect URL."
         )
 

@@ -76,7 +76,7 @@ def delete_me(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Response:
-    deleted_email = f"deleted-user-{user.id}@deleted.kepedimos.local"
+    deleted_email = f"deleted-user-{user.id}@deleted.kepedimos.com"
 
     if user.cart is not None:
         db.delete(user.cart)

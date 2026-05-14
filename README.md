@@ -4,9 +4,9 @@ Plataforma multi-comercio tipo delivery, con SPA React como interfaz principal y
 
 ## Servicios
 
-- Frontend SPA: http://localhost:8015
-- Backend API: http://localhost:8016
-- Docs API: http://localhost:8016/docs
+- Frontend SPA: https://kepedimos.com
+- Backend API: https://kepedimos.com/api/v1
+- Docs API: https://kepedimos.com/docs
 
 ## Arranque con Docker
 

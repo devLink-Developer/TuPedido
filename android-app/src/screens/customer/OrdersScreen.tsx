@@ -14,19 +14,11 @@ import { spacing } from "../../theme";
 import type { CustomerTabsParamList, RootStackParamList } from "../../navigation/types";
 import type { Order } from "../../types/api";
 import { friendlyErrorMessage } from "../../utils/apiMessages";
+import { CUSTOMER_ORDER_STATUS_NOTIFICATION_EVENTS } from "../../utils/orders";
 
 type Props = BottomTabScreenProps<CustomerTabsParamList, "Orders">;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 const LIVE_ORDERS_REFRESH_MS = 10000;
-const ORDER_STATUS_NOTIFICATION_EVENTS = new Set([
-  "order.preparing",
-  "order.ready_for_dispatch",
-  "order.ready_for_pickup",
-  "delivery.assigned",
-  "delivery.picked_up",
-  "order.delivered",
-  "order.cancelled"
-]);
 
 export function OrdersScreen(_props: Props) {
   const navigation = useNavigation<RootNav>();
@@ -71,7 +63,7 @@ export function OrdersScreen(_props: Props) {
 
   useEffect(() => {
     const latestOrderNotification = notifications.find(
-      (notification) => notification.order_id && ORDER_STATUS_NOTIFICATION_EVENTS.has(notification.event_type)
+      (notification) => notification.order_id && CUSTOMER_ORDER_STATUS_NOTIFICATION_EVENTS.has(notification.event_type)
     );
     if (!latestOrderNotification || latestOrderNotification.id === lastHandledNotificationIdRef.current) {
       return;

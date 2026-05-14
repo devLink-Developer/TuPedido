@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View, type ImageSourcePropType } from "react-native";
 import * as Location from "expo-location";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
@@ -26,12 +26,13 @@ import type { CustomerTabsParamList, RootStackParamList } from "../../navigation
 import { friendlyErrorMessage } from "../../utils/apiMessages";
 import { formatCurrency } from "../../utils/format";
 import { labelForStatus } from "../../utils/labels";
+import { CUSTOMER_ORDER_STATUS_NOTIFICATION_EVENTS, pickActiveCustomerOrder } from "../../utils/orders";
 
 type Props = BottomTabScreenProps<CustomerTabsParamList, "Catalog">;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type DeliveryFilter = "all" | "delivery" | "pickup";
 type CustomerLocation = { latitude: number; longitude: number; source: "address" | "gps"; addressId?: number };
-const terminalOrderStatuses = new Set(["delivered", "cancelled", "delivery_failed"]);
+const ACTIVE_ORDER_REFRESH_MS = 15000;
 
 const deliveryFilters: Array<{ key: DeliveryFilter; label: string }> = [
   { key: "all", label: "Todos" },
@@ -62,17 +63,12 @@ function locationFromAddress(address: Address & { latitude: number; longitude: n
   };
 }
 
-function pickActiveOrder(orders: Order[]) {
-  return [...orders]
-    .filter((order) => !terminalOrderStatuses.has(order.status))
-    .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at) || right.id - left.id)[0] ?? null;
-}
-
 export function CatalogScreen(_props: Props) {
   const navigation = useNavigation<RootNav>();
   const { user, token } = useAuth();
-  const { unreadCount } = useNotificationsState();
+  const { notifications, unreadCount } = useNotificationsState();
   const { itemCount, refreshCart } = useCartState();
+  const lastHandledOrderNotificationIdRef = useRef<number | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [branding, setBranding] = useState<PlatformBranding | null>(null);
   const [banner, setBanner] = useState<CatalogBanner | null>(null);
@@ -99,9 +95,19 @@ export function CatalogScreen(_props: Props) {
     [deliveryFilter, search, selectedCategory]
   );
 
+  const loadActiveOrder = useCallback(async () => {
+    if (!token) {
+      setActiveOrder(null);
+      return;
+    }
+    const orders = await fetchOrders(token);
+    setActiveOrder(pickActiveCustomerOrder(orders));
+  }, [token]);
+
   const refreshStores = useCallback(async () => {
     if (!customerLocation) {
       setStores([]);
+      await loadActiveOrder().catch(() => undefined);
       return;
     }
     const nextStores = await fetchStores({
@@ -113,12 +119,12 @@ export function CatalogScreen(_props: Props) {
     if (token) {
       await Promise.all([
         refreshCart({ silent: true }).catch(() => null),
-        fetchOrders(token).then((orders) => setActiveOrder(pickActiveOrder(orders))).catch(() => null)
+        loadActiveOrder().catch(() => null)
       ]);
     } else {
       setActiveOrder(null);
     }
-  }, [customerLocation, refreshCart, storeQueryParams, token]);
+  }, [customerLocation, loadActiveOrder, refreshCart, storeQueryParams, token]);
 
   const resolveAddressLocation = useCallback((nextAddresses: Address[]): CustomerLocation | null => {
     const selected = pickAddressForCatalog(nextAddresses, selectedAddressId);
@@ -140,7 +146,7 @@ export function CatalogScreen(_props: Props) {
       setBranding(nextBranding);
       setBanner(nextBanner);
       setAddresses(nextAddresses);
-      setActiveOrder(pickActiveOrder(nextOrders));
+      setActiveOrder(pickActiveCustomerOrder(nextOrders));
       const addressLocation = resolveAddressLocation(nextAddresses);
       const nextLocation = customerLocation?.source === "gps" ? customerLocation : addressLocation;
       if (addressLocation && nextLocation?.source === "address") {
@@ -213,8 +219,27 @@ export function CatalogScreen(_props: Props) {
   useFocusEffect(
     useCallback(() => {
       void refreshStores().catch(() => undefined);
-    }, [refreshStores])
+      const timer = setInterval(() => {
+        void loadActiveOrder().catch(() => undefined);
+      }, ACTIVE_ORDER_REFRESH_MS);
+
+      return () => {
+        clearInterval(timer);
+      };
+    }, [loadActiveOrder, refreshStores])
   );
+
+  useEffect(() => {
+    const latestOrderNotification = notifications.find(
+      (notification) => notification.order_id && CUSTOMER_ORDER_STATUS_NOTIFICATION_EVENTS.has(notification.event_type)
+    );
+    if (!latestOrderNotification || latestOrderNotification.id === lastHandledOrderNotificationIdRef.current) {
+      return;
+    }
+
+    lastHandledOrderNotificationIdRef.current = latestOrderNotification.id;
+    void loadActiveOrder().catch(() => undefined);
+  }, [loadActiveOrder, notifications]);
 
   useCatalogRealtime({
     onCatalogChange: refreshStores

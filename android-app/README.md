@@ -31,14 +31,7 @@ No publicar en Play los APK standalone ni builds firmados con debug keystore.
 
 ## Configuracion
 
-La URL puede cambiarse por build con:
-
-```bash
-EXPO_PUBLIC_API_BASE_URL=https://kepedimos.com/api/v1
-EXPO_PUBLIC_BACKEND_ROOT_URL=https://kepedimos.com
-```
-
-Para desarrollo local o emulador se pueden sobreescribir estas variables, por ejemplo con `http://10.0.2.2:8016/api/v1`. La configuracion Android de produccion mantiene `android:usesCleartextTraffic="false"` y no incluye excepciones HTTP.
+La app apunta siempre al backend publico `https://kepedimos.com/api/v1`. La configuracion Android mantiene `android:usesCleartextTraffic="false"` y no incluye excepciones HTTP.
 
 La API key de OpenRouteService va en el `.env` del backend, no en Android:
 

@@ -4,7 +4,7 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig(function (_a) {
     var mode = _a.mode;
     var env = loadEnv(mode, ".", "");
-    var proxyTarget = env.VITE_PROXY_TARGET || "http://localhost:8016";
+    var proxyTarget = "https://kepedimos.com";
     return {
         plugins: [
             react(),
@@ -59,12 +59,12 @@ export default defineConfig(function (_a) {
             proxy: {
                 "/api/v1": {
                     target: proxyTarget,
-                    changeOrigin: false,
+                    changeOrigin: true,
                     ws: true
                 },
                 "/media": {
                     target: proxyTarget,
-                    changeOrigin: false
+                    changeOrigin: true
                 }
             }
         }

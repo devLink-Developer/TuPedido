@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 DEMO_ADMIN_LEGACY_EMAILS = (
     "admin@kepedimos.example.com",
     "admin@tupedido.example.com",
-    "admin@tupedido.local",
 )
 
 LEGACY_SEED_EMAILS: dict[str, tuple[str, ...]] = {

@@ -11,12 +11,10 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     database_url: str = "postgresql+psycopg://postgres:postgres@db:5432/tupedido"
     cors_origins: list[str] = [
-        "http://localhost:8015",
-        "http://127.0.0.1:8015",
         "https://kepedimos.com",
     ]
-    frontend_base_url: str = "http://localhost:8015"
-    backend_base_url: str = "http://localhost:8016"
+    frontend_base_url: str = "https://kepedimos.com"
+    backend_base_url: str = "https://kepedimos.com"
     jwt_secret: str = "kepedimos-dev-secret"
     jwt_algorithm: str = "HS256"
     sensitive_data_keys: str | None = None
@@ -48,7 +46,7 @@ class Settings(BaseSettings):
     map_style_url: str = "https://demotiles.maplibre.org/style.json"
     address_lookup_base_url: str = "https://api.zippopotam.us"
     geocoding_base_url: str = "https://nominatim.openstreetmap.org"
-    geocoding_user_agent: str = "Kepedimos/0.1 (+https://kepedimos.local)"
+    geocoding_user_agent: str = "Kepedimos/0.1 (+https://kepedimos.com)"
     address_lookup_timeout_seconds: float = 10.0
     openrouteservice_api_key: str | None = None
     openrouteservice_base_url: str = "https://api.openrouteservice.org"

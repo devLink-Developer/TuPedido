@@ -1,6 +1,20 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, BadgePlus, Bike, Clock, Grid2X2, MapPin, Package, Search, ShoppingBag, Star, Store, UtensilsCrossed } from "lucide-react";
+import {
+  ArrowRight,
+  BadgePlus,
+  Bike,
+  Clock,
+  CreditCard,
+  Grid2X2,
+  MapPin,
+  Package,
+  Search,
+  ShoppingBag,
+  Star,
+  Store,
+  UtensilsCrossed
+} from "lucide-react";
 import { BrandMark, PlatformWordmark } from "../../../shared/components";
 import { KE_LANDING_POSTER_URL } from "../../../shared/config/brand";
 
@@ -13,16 +27,22 @@ const categories = [
 ];
 
 const detailItems = [
-  ["1", "PARA EL DIA A DIA", "Desde resolver la cena hasta una compra de ultimo momento, encontras opciones cercanas en un solo lugar.", ShoppingBag],
-  ["2", "MENOS FRICCION", "Buscas, comparas y decidis sin perder tiempo entre pestanas, chats o publicaciones sueltas.", Search],
-  ["3", "A TU RITMO", "Elegi envio o retiro segun tu tiempo, tu urgencia y la forma en que prefieras resolverlo hoy.", Clock],
-  ["4", "MAS CLARIDAD", "La experiencia esta pensada para ayudarte a decidir rapido, incluso cuando vas con prisa.", Star],
+  ["1", "BUSCA POR ANTOJO O RUBRO", "Arranca por comida, farmacia, almacen o lo que necesites resolver hoy.", Search],
+  ["2", "COMPARA ANTES DE ENTRAR", "Mira estado, tiempos, envio, retiro y medios de pago sin abrir muchas pestanas.", Star],
+  ["3", "ARMA EL PEDIDO EN LA TIENDA", "Entra al catalogo del comercio elegido y suma productos al carrito.", ShoppingBag],
+  ["4", "ELIGE COMO RECIBIRLO", "Confirma delivery o retiro segun tu tiempo y la disponibilidad del local.", Clock],
 ] as const;
 
 const valueItems = [
-  ["Comercios cercanos", "Descubri opciones reales cerca tuyo, sin moverte de casa.", MapPin],
-  ["Envio o retiro", "Elegi la opcion que mejor se adapte a tu tiempo y tu dia.", Bike],
-  ["Compara y elegi mejor", "Menos vueltas, mas claridad para decidir rapido.", Search],
+  ["Comercios cercanos", "Encuentra opciones reales para comer, comprar o resolver un pendiente.", MapPin],
+  ["Envio o retiro", "Filtra locales con reparto activo o pedidos listos para pasar a buscar.", Bike],
+  ["Pago claro", "Revisa efectivo, Mercado Pago y costo de envio antes de avanzar.", CreditCard],
+] as const;
+
+const orderModes = [
+  ["Pedir comida", "Busca restaurantes y locales abiertos para resolver almuerzo, cena o algo rapido.", "Comida", UtensilsCrossed],
+  ["Compras del dia", "Encuentra almacenes, bebidas, kioscos y comercios cercanos sin saltar entre chats.", "Almacen", Store],
+  ["Retiro rapido", "Ve directo a locales que permiten preparar el pedido para pasar a buscar.", "", Package],
 ] as const;
 
 export function LandingPage() {
@@ -130,16 +150,16 @@ export function LandingPage() {
             <PlatformWordmark size="hero" frameClassName="kp-mobile-wordmark" />
             <div className="kp-eyebrow">
               <span />
-              HECHO PARA TU DIA A DIA
+              PEDIDOS CERCA TUYO
             </div>
             <h1>
-              Pedi cerca.
+              Encuentra que pedir.
               <br />
-              Resolve rapido.
+              Elige comercio.
               <br />
-              <span>Sin vueltas.</span>
+              <span>Avanza rapido.</span>
             </h1>
-            <p>Encontra comercios de tu zona, compara opciones y elegi envio o retiro en minutos.</p>
+            <p>Busca comida, farmacia, almacen o bebidas cerca tuyo, compara tiempos y decide entre delivery o retiro.</p>
 
             <form className="kp-mobile-search" role="search" onSubmit={submitMobileSearch}>
               <label>
@@ -211,13 +231,48 @@ export function LandingPage() {
         </div>
       </section>
 
+      <section className="kp-section kp-order-flow" id="pedir">
+        <div className="kp-shell kp-order-shell">
+          <div className="kp-order-panel">
+            <div>
+              <span className="kp-section-kicker kp-section-kicker-accent">PARA PEDIR HOY</span>
+              <h2>Empieza por lo que necesitas, no por el nombre del local.</h2>
+              <p>
+                La portada lleva a clientes directo al catalogo, con busqueda, categorias y filtros pensados para
+                elegir comercios que ya pueden tomar pedidos.
+              </p>
+            </div>
+            <Link to="/c" className="kp-button kp-button-primary">
+              Ver comercios
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </div>
+
+          <div className="kp-order-mode-grid" aria-label="Formas rapidas de empezar un pedido">
+            {orderModes.map(([title, description, query, Icon]) => (
+              <button key={title} type="button" onClick={() => openCategory(query)} className="kp-order-mode-card">
+                <span className="kp-order-mode-icon">
+                  <Icon aria-hidden="true" />
+                </span>
+                <strong>{title}</strong>
+                <p>{description}</p>
+                <span className="kp-order-mode-link">
+                  Explorar
+                  <ArrowRight aria-hidden="true" />
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="kp-section kp-clarity" id="como-funciona">
         <div className="kp-shell">
           <div className="kp-section-header">
             <div>
-              <span className="kp-section-kicker">UNA EXPERIENCIA MAS SERIA</span>
-              <h2>Menos artificio visual. Mas claridad para decidir y avanzar.</h2>
-              <p>La interfaz prioriza lectura, orden y contraste para encontrar rapido lo que necesitas.</p>
+              <span className="kp-section-kicker">COMO SE RESUELVE</span>
+              <h2>Del antojo al pedido con menos pasos intermedios.</h2>
+              <p>La landing prioriza busqueda, disponibilidad y decision: primero encontrar, despues comparar y por ultimo pedir.</p>
             </div>
             <Link to="/c" className="kp-button kp-button-outline kp-button-accent-outline">
               Explorar comercios
@@ -245,12 +300,12 @@ export function LandingPage() {
         <div className="kp-shell">
           <div className="kp-today-card">
             <div className="kp-today-copy">
-              <span className="kp-section-kicker kp-section-kicker-accent">PARA HOY</span>
-              <h2>Busca cerca, elegi tranquilo y resolve en minutos con</h2>
+              <span className="kp-section-kicker kp-section-kicker-accent">COMERCIOS Y PEDIDOS</span>
+              <h2>Busca cerca, revisa condiciones y pide en minutos con</h2>
               <BrandMark imageClassName="kp-inline-brand" />
               <p>
-                Ya sea para comer, reponer algo de casa o salir de un apuro, la idea es la misma:
-                encontrar opciones reales cerca de ti y avanzar rapido.
+                Ya sea para comer, reponer algo de casa o salir de un apuro, la experiencia pone delante
+                los datos que importan: estado del comercio, envio, retiro, pago y acceso al catalogo.
               </p>
               <div className="kp-today-pills">
                 <span className="kp-pill"><MapPin aria-hidden="true" /> Comercios cercanos</span>

@@ -10,29 +10,11 @@ El backend es una API FastAPI. El contrato completo tambien se puede consultar e
 
 ## Base URL
 
-En produccion:
-
 ```txt
 https://kepedimos.com/api/v1
 ```
 
-En desarrollo local con Docker:
-
-```txt
-http://localhost:8016/api/v1
-```
-
-En Android Emulator:
-
-```txt
-http://10.0.2.2:8016/api/v1
-```
-
-En un celular fisico conectado a la misma red que la PC:
-
-```txt
-http://<IP_DE_TU_PC>:8016/api/v1
-```
+La app movil debe usar siempre el dominio publico HTTPS.
 
 Los archivos estaticos subidos se sirven fuera del prefijo `/api/v1`:
 
@@ -40,7 +22,7 @@ Los archivos estaticos subidos se sirven fuera del prefijo `/api/v1`:
 https://kepedimos.com/media/...
 ```
 
-En desarrollo local, usar el mismo host local o de emulador del backend, por ejemplo `http://10.0.2.2:8016/media/...`.
+La app movil debe resolver media desde `https://kepedimos.com/media/...`.
 
 ## Convenciones
 
@@ -1042,7 +1024,7 @@ Base:
 wss://kepedimos.com/api/v1
 ```
 
-En desarrollo local sin TLS, usar `ws://<host>:8016/api/v1`.
+La app movil debe usar siempre WebSocket seguro sobre `wss://kepedimos.com/api/v1`.
 
 ### Notificaciones del usuario
 

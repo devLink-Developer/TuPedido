@@ -11,7 +11,7 @@ function currentOrigin() {
   if (typeof window !== "undefined" && window.location.origin) {
     return window.location.origin;
   }
-  return "http://localhost";
+  return "https://kepedimos.com";
 }
 
 export function normalizePath(url: string) {

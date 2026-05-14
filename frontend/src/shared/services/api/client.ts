@@ -1,23 +1,13 @@
-const DEFAULT_API_BASE_URL = "http://localhost:8016/api/v1";
-
-function isLocalHostname(hostname: string): boolean {
-  return ["localhost", "127.0.0.1"].includes(hostname);
-}
+const DEFAULT_API_BASE_URL = "https://kepedimos.com/api/v1";
 
 function resolveApiBaseUrl(): string {
-  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
-  if (configuredBaseUrl) {
-    return configuredBaseUrl;
-  }
-
   if (typeof window !== "undefined") {
-    const hostname = window.location.hostname;
-    if (hostname && !isLocalHostname(hostname)) {
+    if (window.location.hostname === "kepedimos.com") {
       return "/api/v1";
     }
   }
 
-  return configuredBaseUrl || DEFAULT_API_BASE_URL;
+  return DEFAULT_API_BASE_URL;
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
@@ -32,7 +22,7 @@ function resolveRealtimeEnabled(): boolean {
   }
 
   if (typeof window !== "undefined") {
-    return isLocalHostname(window.location.hostname);
+    return true;
   }
 
   return true;
@@ -47,7 +37,7 @@ function resolveUrl(value: string): URL {
     if (typeof window !== "undefined") {
       return new URL(value, window.location.origin);
     }
-    return new URL(value, "http://localhost:8015");
+    return new URL(value, "https://kepedimos.com");
   }
 }
 

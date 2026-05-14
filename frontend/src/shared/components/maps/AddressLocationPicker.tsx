@@ -111,7 +111,7 @@ export function AddressLocationPicker({
 
   function handleUseCurrentLocation() {
     if (typeof window !== "undefined" && !window.isSecureContext) {
-      setError("Tu navegador solo permite usar la ubicacion actual desde HTTPS o localhost. Usa el mapa o geolocaliza por direccion.");
+      setError("Tu navegador solo permite usar la ubicacion actual desde HTTPS. Usa el mapa o geolocaliza por direccion.");
       return;
     }
 
@@ -164,7 +164,7 @@ export function AddressLocationPicker({
 
       {!canUseCurrentLocation ? (
         <p className="rounded bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          La ubicacion actual requiere HTTPS o localhost. Mientras tanto usa el CP, la localidad, calle y altura para ubicar la direccion.
+          La ubicacion actual requiere HTTPS. Mientras tanto usa el CP, la localidad, calle y altura para ubicar la direccion.
         </p>
       ) : null}
 
