@@ -24,6 +24,8 @@ import { colors, radii, shadow, spacing } from "../../theme";
 import type { Address, CatalogBanner, Category, Order, PlatformBranding, StoreSummary } from "../../types/api";
 import type { CustomerTabsParamList, RootStackParamList } from "../../navigation/types";
 import { friendlyErrorMessage } from "../../utils/apiMessages";
+import { hasAddressPin, locationFromAddress, pickPinnedCustomerAddress } from "../../utils/customerAddressSelection";
+import { readStoredSelectedDeliveryAddressId, writeStoredSelectedDeliveryAddressId } from "../../utils/customerAddressStorage";
 import { formatCurrency } from "../../utils/format";
 import { labelForStatus } from "../../utils/labels";
 import { CUSTOMER_ORDER_STATUS_NOTIFICATION_EVENTS, pickActiveCustomerOrder } from "../../utils/orders";
@@ -39,29 +41,6 @@ const deliveryFilters: Array<{ key: DeliveryFilter; label: string }> = [
   { key: "delivery", label: "Envío" },
   { key: "pickup", label: "Retiro" }
 ];
-
-function hasAddressPin(address: Address): address is Address & { latitude: number; longitude: number } {
-  return typeof address.latitude === "number" && typeof address.longitude === "number";
-}
-
-function pickAddressForCatalog(addresses: Address[], selectedAddressId: number | null) {
-  const pinnedAddresses = addresses.filter(hasAddressPin);
-  return (
-    pinnedAddresses.find((address) => address.id === selectedAddressId) ??
-    pinnedAddresses.find((address) => address.is_default) ??
-    pinnedAddresses[0] ??
-    null
-  );
-}
-
-function locationFromAddress(address: Address & { latitude: number; longitude: number }): CustomerLocation {
-  return {
-    latitude: address.latitude,
-    longitude: address.longitude,
-    source: "address",
-    addressId: address.id
-  };
-}
 
 export function CatalogScreen(_props: Props) {
   const navigation = useNavigation<RootNav>();
@@ -126,28 +105,29 @@ export function CatalogScreen(_props: Props) {
     }
   }, [customerLocation, loadActiveOrder, refreshCart, storeQueryParams, token]);
 
-  const resolveAddressLocation = useCallback((nextAddresses: Address[]): CustomerLocation | null => {
-    const selected = pickAddressForCatalog(nextAddresses, selectedAddressId);
+  const resolveAddressLocation = useCallback((nextAddresses: Address[], preferredAddressId: number | null): CustomerLocation | null => {
+    const selected = pickPinnedCustomerAddress(nextAddresses, preferredAddressId);
     return selected ? locationFromAddress(selected) : null;
-  }, [selectedAddressId]);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [nextCategories, nextBranding, nextBanner, nextAddresses, nextOrders] = await Promise.all([
+      const [nextCategories, nextBranding, nextBanner, nextAddresses, nextOrders, storedAddressId] = await Promise.all([
         fetchCategories(),
         fetchPlatformBranding().catch(() => null),
         fetchCatalogBanner().catch(() => null),
         token ? fetchAddresses(token).catch(() => []) : Promise.resolve([]),
-        token ? fetchOrders(token).catch(() => []) : Promise.resolve([])
+        token ? fetchOrders(token).catch(() => []) : Promise.resolve([]),
+        token ? readStoredSelectedDeliveryAddressId(user?.id).catch(() => null) : Promise.resolve(null)
       ]);
       setCategories(nextCategories);
       setBranding(nextBranding);
       setBanner(nextBanner);
       setAddresses(nextAddresses);
       setActiveOrder(pickActiveCustomerOrder(nextOrders));
-      const addressLocation = resolveAddressLocation(nextAddresses);
+      const addressLocation = resolveAddressLocation(nextAddresses, selectedAddressId ?? storedAddressId);
       const nextLocation = customerLocation?.source === "gps" ? customerLocation : addressLocation;
       if (addressLocation && nextLocation?.source === "address") {
         setSelectedAddressId(addressLocation.addressId ?? null);
@@ -177,7 +157,7 @@ export function CatalogScreen(_props: Props) {
     } finally {
       setLoading(false);
     }
-  }, [customerLocation, refreshCart, resolveAddressLocation, storeQueryParams, token]);
+  }, [customerLocation, refreshCart, resolveAddressLocation, selectedAddressId, storeQueryParams, token, user?.id]);
 
   const requestGpsLocation = useCallback(async () => {
     setLocationLoading(true);
@@ -209,7 +189,8 @@ export function CatalogScreen(_props: Props) {
     setCustomerLocation(locationFromAddress(address));
     setLocationError(null);
     setAddressSelectorOpen(false);
-  }, []);
+    void writeStoredSelectedDeliveryAddressId(user?.id, address.id);
+  }, [user?.id]);
 
   useEffect(() => {
     const timer = setTimeout(() => void load(), 250);

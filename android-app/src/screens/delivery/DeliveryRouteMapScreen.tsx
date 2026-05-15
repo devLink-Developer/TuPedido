@@ -189,16 +189,10 @@ export function DeliveryRouteMapScreen({ route, navigation }: Props) {
               </Text>
             </View>
             <IconButton
-              icon={showDeliveryCodePanel ? "keypad-outline" : "document-text-outline"}
-              label={showDeliveryCodePanel ? "Ingresar codigo de entrega" : "Ver detalle"}
+              icon="document-text-outline"
+              label="Ver detalle"
               tone="dark"
-              onPress={() => {
-                if (showDeliveryCodePanel) {
-                  setDeliveryCodeVisible(true);
-                } else {
-                  navigation.navigate("DeliveryOrderDetail", { orderId: order.id });
-                }
-              }}
+              onPress={() => navigation.navigate("DeliveryOrderDetail", { orderId: order.id })}
             />
           </View>
 

@@ -17,14 +17,15 @@ import { colors, opacity, radii, spacing } from "../../theme";
 import type { Address, Cart, StorePaymentSettings } from "../../types/api";
 import type { RootStackParamList } from "../../navigation/types";
 import { friendlyErrorMessage } from "../../utils/apiMessages";
+import { hasAddressPin, locationFromAddress, pickPinnedCustomerAddress } from "../../utils/customerAddressSelection";
+import { readStoredSelectedDeliveryAddressId, writeStoredSelectedDeliveryAddressId } from "../../utils/customerAddressStorage";
 import { formatCurrency, makeIdempotencyKey } from "../../utils/format";
 import { paymentMethodLabels } from "../../utils/labels";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Checkout">;
 type DeliveryMode = "delivery" | "pickup";
 type PaymentMethod = "cash" | "mercadopago";
-type CustomerLocation = { latitude: number; longitude: number; source: "address" | "gps" };
-type PinnedAddress = Address & { latitude: number; longitude: number };
+type CustomerLocation = { latitude: number; longitude: number; source: "address" | "gps"; addressId?: number };
 type IconName = ComponentProps<typeof Ionicons>["name"];
 const MERCADOPAGO_RETURN_URL = "kepedimos://checkout/mercadopago-return";
 
@@ -53,10 +54,6 @@ function mercadoPagoUnavailableReason(settings: StorePaymentSettings | null | un
   }
   if (!settings.mercadopago_configured) return "El comercio todavia no conecto Mercado Pago.";
   return null;
-}
-
-function hasAddressPin(address: Address | null | undefined): address is PinnedAddress {
-  return typeof address?.latitude === "number" && typeof address.longitude === "number" && Number.isFinite(address.latitude) && Number.isFinite(address.longitude);
 }
 
 function buildPaymentOptions(settings: StorePaymentSettings | null | undefined): PaymentOption[] {
@@ -157,13 +154,14 @@ function clearCheckoutIdempotencyKey(keys: Map<string, string>, signature: strin
 }
 
 export function CheckoutScreen({ navigation }: Props) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { showDialog, showError } = useAppFeedback();
   const { cart, refreshCart, setCart } = useCartState();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [paymentSettings, setPaymentSettings] = useState<StorePaymentSettings | null>(cart?.payment_settings ?? null);
   const [addressId, setAddressId] = useState<number | null>(null);
   const [customerLocation, setCustomerLocation] = useState<CustomerLocation | null>(null);
+  const [addressSelectorOpen, setAddressSelectorOpen] = useState(false);
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(cart?.delivery_mode ?? "delivery");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [paymentTouched, setPaymentTouched] = useState(false);
@@ -174,22 +172,36 @@ export function CheckoutScreen({ navigation }: Props) {
     if (!token) return;
     setLoading(true);
     try {
-      const [nextCart, nextAddresses] = await Promise.all([refreshCart({ silent: true }), fetchAddresses(token)]);
+      const [nextCart, nextAddresses, storedAddressId] = await Promise.all([
+        refreshCart({ silent: true }),
+        fetchAddresses(token),
+        readStoredSelectedDeliveryAddressId(user?.id).catch(() => null)
+      ]);
       setAddresses(nextAddresses);
 
-      const pinned = nextAddresses.filter(hasAddressPin);
-      const defaultAddress = pinned.find((item) => item.is_default) ?? pinned[0] ?? null;
+      const preferredAddress = pickPinnedCustomerAddress(nextAddresses, addressId ?? storedAddressId);
       const nextMode = (nextCart?.delivery_mode ?? "delivery") as DeliveryMode;
-      const nextLocation =
-        customerLocation ??
-        (defaultAddress ? { latitude: defaultAddress.latitude, longitude: defaultAddress.longitude, source: "address" as const } : null);
+      const preferredAddressLocation = preferredAddress ? locationFromAddress(preferredAddress) : null;
+      const nextLocation = nextMode === "delivery" ? preferredAddressLocation : customerLocation ?? preferredAddressLocation;
 
       setAddressId((current) => {
         const currentStillUsable = nextAddresses.some((item) => item.id === current && hasAddressPin(item));
-        return currentStillUsable ? current : defaultAddress?.id ?? null;
+        return currentStillUsable ? current : preferredAddress?.id ?? null;
       });
       setDeliveryMode(nextMode);
-      if (nextLocation && !customerLocation) setCustomerLocation(nextLocation);
+      if (
+        nextLocation &&
+        (
+          !customerLocation ||
+          customerLocation.latitude !== nextLocation.latitude ||
+          customerLocation.longitude !== nextLocation.longitude ||
+          customerLocation.source !== nextLocation.source ||
+          customerLocation.addressId !== nextLocation.addressId
+        )
+      ) {
+        setCustomerLocation(nextLocation);
+      }
+      if (!nextLocation && customerLocation) setCustomerLocation(null);
       setPaymentSettings(nextCart?.payment_settings ?? null);
 
       if (nextCart?.store_slug && nextLocation) {
@@ -203,7 +215,7 @@ export function CheckoutScreen({ navigation }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [customerLocation, refreshCart, token]);
+  }, [addressId, customerLocation, refreshCart, token, user?.id]);
 
   useEffect(() => {
     void load();
@@ -213,6 +225,10 @@ export function CheckoutScreen({ navigation }: Props) {
   const pickupEnabled = cart?.delivery_settings?.pickup_enabled ?? true;
   const pinnedAddresses = useMemo(() => addresses.filter(hasAddressPin), [addresses]);
   const selectedAddress = useMemo(() => addresses.find((address) => address.id === addressId) ?? null, [addresses, addressId]);
+  const addressOptions = useMemo(
+    () => addresses.filter((address) => address.id !== addressId),
+    [addresses, addressId]
+  );
 
   const paymentOptions = useMemo(() => buildPaymentOptions(paymentSettings), [paymentSettings]);
   const availablePaymentMethods = useMemo(
@@ -232,13 +248,27 @@ export function CheckoutScreen({ navigation }: Props) {
   }, [availablePaymentMethods, paymentMethod, paymentTouched]);
 
   async function persistDeliveryMode(nextMode: DeliveryMode, location: CustomerLocation | { latitude: number; longitude: number }) {
-    if (!token) return;
-    setCart(
-      await updateCart(token, nextMode, {
-        customer_latitude: location.latitude,
-        customer_longitude: location.longitude
-      })
-    );
+    if (!token) return null;
+    const nextCart = await updateCart(token, nextMode, {
+      customer_latitude: location.latitude,
+      customer_longitude: location.longitude
+    });
+    setCart(nextCart);
+    return nextCart;
+  }
+
+  async function refreshPaymentSettingsForLocation(
+    nextCart: Cart | null,
+    nextMode: DeliveryMode,
+    location: CustomerLocation | { latitude: number; longitude: number } | null
+  ) {
+    if (!nextCart?.store_slug || !location) return;
+    const store = await fetchStore(nextCart.store_slug, {
+      latitude: location.latitude,
+      longitude: location.longitude,
+      deliveryMode: nextMode
+    }).catch(() => null);
+    if (store?.payment_settings) setPaymentSettings(store.payment_settings);
   }
 
   async function selectDeliveryMode(nextMode: DeliveryMode) {
@@ -271,7 +301,14 @@ export function CheckoutScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      await persistDeliveryMode(nextMode, nextLocation);
+      const nextCart = await persistDeliveryMode(nextMode, nextLocation);
+      if (nextMode === "delivery" && hasAddressPin(selectedAddress)) {
+        const selectedLocation = locationFromAddress(selectedAddress);
+        setAddressId(selectedAddress.id);
+        setCustomerLocation(selectedLocation);
+        void writeStoredSelectedDeliveryAddressId(user?.id, selectedAddress.id);
+      }
+      await refreshPaymentSettingsForLocation(nextCart, nextMode, nextLocation);
     } catch (error) {
       setDeliveryMode(previousMode);
       showError("Modalidad no disponible", friendlyErrorMessage(error, "El comercio no permite esa modalidad en tu zona."));
@@ -281,15 +318,17 @@ export function CheckoutScreen({ navigation }: Props) {
   }
 
   async function handleAddressSelect(address: Address) {
-    if (!hasAddressPin(address)) return;
-    setAddressId(address.id);
-    const nextLocation = { latitude: address.latitude, longitude: address.longitude, source: "address" as const };
-    setCustomerLocation(nextLocation);
-    if (deliveryMode !== "delivery" || !token) return;
+    if (!hasAddressPin(address) || loading) return;
+    const nextLocation = locationFromAddress(address);
 
     setLoading(true);
     try {
-      await persistDeliveryMode("delivery", nextLocation);
+      const nextCart = deliveryMode === "delivery" ? await persistDeliveryMode("delivery", nextLocation) : null;
+      setAddressId(address.id);
+      setCustomerLocation(nextLocation);
+      setAddressSelectorOpen(false);
+      void writeStoredSelectedDeliveryAddressId(user?.id, address.id);
+      await refreshPaymentSettingsForLocation(nextCart, deliveryMode, nextLocation);
     } catch (error) {
       showError("Direccion fuera de cobertura", friendlyErrorMessage(error, "El comercio no llega a esa direccion."));
     } finally {
@@ -492,21 +531,48 @@ export function CheckoutScreen({ navigation }: Props) {
 
           {addresses.length ? (
             <View style={styles.stack}>
-              {addresses.map((address) => {
-                const active = addressId === address.id;
-                const hasPin = hasAddressPin(address);
-                return (
-                  <ChoiceButton
-                    key={address.id}
-                    icon={hasPin ? "location-outline" : "alert-circle-outline"}
-                    title={address.label}
-                    description={`${address.street}${hasPin ? "" : " - falta pin de mapa"}`}
-                    active={active}
-                    disabled={!hasPin || loading}
-                    onPress={() => void handleAddressSelect(address)}
-                  />
-                );
-              })}
+              {selectedAddress && hasAddressPin(selectedAddress) ? (
+                <ChoiceButton
+                  icon="location-outline"
+                  title={selectedAddress.label || "Direccion"}
+                  description={`${selectedAddress.street} - ${selectedAddress.locality}`}
+                  active
+                  disabled={loading}
+                  onPress={() => setAddressSelectorOpen((current) => !current)}
+                />
+              ) : null}
+              {pinnedAddresses.length ? (
+                <AppButton
+                  title={addressSelectorOpen ? "Ocultar direcciones" : "Cambiar direccion"}
+                  icon={addressSelectorOpen ? "chevron-up-outline" : "swap-horizontal-outline"}
+                  variant="ghost"
+                  disabled={loading}
+                  fullWidth
+                  onPress={() => setAddressSelectorOpen((current) => !current)}
+                />
+              ) : null}
+              {addressSelectorOpen ? (
+                <View style={styles.addressOptions}>
+                  {addressOptions.length ? (
+                    addressOptions.map((address) => {
+                      const hasPin = hasAddressPin(address);
+                      return (
+                        <ChoiceButton
+                          key={address.id}
+                          icon={hasPin ? "location-outline" : "alert-circle-outline"}
+                          title={address.label || "Direccion"}
+                          description={`${address.street}${hasPin ? ` - ${address.locality}` : " - falta pin de mapa"}`}
+                          active={false}
+                          disabled={!hasPin || loading}
+                          onPress={() => void handleAddressSelect(address)}
+                        />
+                      );
+                    })
+                  ) : (
+                    <Text style={styles.hint}>No hay otras direcciones cargadas.</Text>
+                  )}
+                </View>
+              ) : null}
               {!pinnedAddresses.length ? (
                 <StateMessage title="Ubicacion pendiente" description="Para pedir con envio, agrega el pin en el mapa desde Perfil." actionLabel="Ir a perfil" onAction={() => navigation.navigate("CustomerTabs", { screen: "Profile" })} />
               ) : null}
@@ -664,6 +730,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm
   },
   stack: {
+    gap: spacing.sm
+  },
+  addressOptions: {
     gap: spacing.sm
   },
   choice: {

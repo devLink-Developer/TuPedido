@@ -8,6 +8,7 @@ const KNOWN_MESSAGES: Array<[RegExp, string]> = [
   [/invalid delivery otp|invalid otp|otp/i, "El código de entrega no es correcto. Revisalo con el cliente e intentá nuevamente."],
   [/order review is not available yet/i, "La calificación se habilita 10 minutos después de recibir el pedido."],
   [/store is closed|not accepting orders/i, "El comercio no está recibiendo pedidos en este momento."],
+  [/outside this store coverage area|fuera de cobertura|no llega/i, "El comercio no llega a esa direccion."],
   [/product.*not.*available|unavailable/i, "Ese producto no está disponible en este momento."],
   [/unauthorized|invalid token|missing bearer|not authenticated/i, "Tu sesión venció. Iniciá sesión nuevamente para continuar."],
   [/forbidden|not authorized|permission denied/i, "No tenés permiso para realizar esta acción."],

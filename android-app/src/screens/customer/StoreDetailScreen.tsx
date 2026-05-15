@@ -15,21 +15,19 @@ import { useAuth } from "../../state/AuthContext";
 import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useCartState } from "../../state/CartContext";
 import { colors, radii, spacing } from "../../theme";
-import type { Address, Product } from "../../types/api";
+import type { Product } from "../../types/api";
 import type { RootStackParamList } from "../../navigation/types";
 import { friendlyErrorMessage } from "../../utils/apiMessages";
+import { hasAddressPin, pickPinnedCustomerAddress } from "../../utils/customerAddressSelection";
+import { readStoredSelectedDeliveryAddressId } from "../../utils/customerAddressStorage";
 import { formatCurrency } from "../../utils/format";
 
 type Props = NativeStackScreenProps<RootStackParamList, "StoreDetail">;
 type CustomerLocation = { latitude: number; longitude: number; source: "address" | "gps" | "route" };
 
-function hasAddressPin(address: Address): address is Address & { latitude: number; longitude: number } {
-  return typeof address.latitude === "number" && typeof address.longitude === "number";
-}
-
 export function StoreDetailScreen({ route, navigation }: Props) {
   const { slug, latitude, longitude } = route.params;
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { showDialog, showError, showToast } = useAppFeedback();
   const { itemCount, setCart } = useCartState();
   const [customerLocation, setCustomerLocation] = useState<CustomerLocation | null>(
@@ -54,12 +52,11 @@ export function StoreDetailScreen({ route, navigation }: Props) {
     let cancelled = false;
     const shouldResolveLocation = !customerLocation;
     if (shouldResolveLocation) setLocationLoading(true);
-    fetchAddresses(token)
-      .then((addresses) => {
+    Promise.all([fetchAddresses(token), readStoredSelectedDeliveryAddressId(user?.id).catch(() => null)])
+      .then(([addresses, storedAddressId]) => {
         if (cancelled) return;
-        const geolocated = addresses.filter(hasAddressPin);
-        const selected = geolocated.find((address) => address.is_default) ?? geolocated[0];
-        if (shouldResolveLocation && selected && typeof selected.latitude === "number" && typeof selected.longitude === "number") {
+        const selected = pickPinnedCustomerAddress(addresses, storedAddressId);
+        if (shouldResolveLocation && selected && hasAddressPin(selected)) {
           setCustomerLocation({ latitude: selected.latitude, longitude: selected.longitude, source: "address" });
         }
       })
@@ -74,7 +71,7 @@ export function StoreDetailScreen({ route, navigation }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [customerLocation, token]);
+  }, [customerLocation, token, user?.id]);
 
   const refreshStore = useCallback(async () => {
     await reload();
