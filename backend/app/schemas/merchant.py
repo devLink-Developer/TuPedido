@@ -17,6 +17,13 @@ class MerchantApplicationCreate(BaseModel):
     logo_url: str | None = None
     cover_image_url: str | None = None
     requested_category_ids: list[int] = Field(min_length=1)
+    accepted_terms: bool = False
+
+    @model_validator(mode="after")
+    def validate_terms(self) -> "MerchantApplicationCreate":
+        if not self.accepted_terms:
+            raise ValueError("Terms and privacy policy must be accepted")
+        return self
 
 
 class MerchantApplicationRegister(BaseModel):
@@ -28,6 +35,13 @@ class MerchantApplicationRegister(BaseModel):
     address: str
     phone: str
     requested_category_ids: list[int] = Field(min_length=1)
+    accepted_terms: bool = False
+
+    @model_validator(mode="after")
+    def validate_terms(self) -> "MerchantApplicationRegister":
+        if not self.accepted_terms:
+            raise ValueError("Terms and privacy policy must be accepted")
+        return self
 
 
 class MerchantApplicationReviewUpdate(BaseModel):

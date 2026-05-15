@@ -341,7 +341,7 @@ export function HomePage() {
     setSubmitSuccess(null);
 
     try {
-      await register(fullName, email, password);
+      await register(fullName, email, password, true);
       setFullName("");
       setEmail("");
       setPassword("");

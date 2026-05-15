@@ -15,6 +15,9 @@ import { usePlatformBranding } from "../../../shared/providers/PlatformBrandingP
 import { Button } from "../../../shared/ui/Button";
 import { roleToHomePath } from "../../../shared/utils/routing";
 
+const TERMS_URL = "/legal/terms.html";
+const PRIVACY_URL = "/legal/privacy.html";
+
 const authMarketingContent = {
   login: {
     eyebrow: "Acceso",
@@ -60,6 +63,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const content = authMarketingContent[mode];
@@ -76,8 +80,14 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
     setSubmitting(true);
     setError(null);
 
+    if (!isLogin && !acceptedTerms) {
+      setError("Para crear tu cuenta debes aceptar los terminos y la politica de privacidad.");
+      setSubmitting(false);
+      return;
+    }
+
     try {
-      const profile = mode === "login" ? await login(email, password) : await register(fullName, email, password);
+      const profile = mode === "login" ? await login(email, password) : await register(fullName, email, password, acceptedTerms);
       if (profile.must_change_password) {
         const next = redirectTo ? `/cambiar-contrasena?redirectTo=${encodeURIComponent(redirectTo)}` : "/cambiar-contrasena";
         navigate(next, { replace: true });
@@ -168,13 +178,35 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
 
   const formActions = (
     <>
+      {!isLogin ? (
+        <label className="auth-legal-consent mt-5">
+          <input
+            type="checkbox"
+            checked={acceptedTerms}
+            onChange={(event) => setAcceptedTerms(event.target.checked)}
+            required
+          />
+          <span>
+            Acepto los{" "}
+            <a href={TERMS_URL} target="_blank" rel="noreferrer">
+              Terminos y condiciones
+            </a>{" "}
+            y la{" "}
+            <a href={PRIVACY_URL} target="_blank" rel="noreferrer">
+              Politica de privacidad
+            </a>
+            .
+          </span>
+        </label>
+      ) : null}
+
       {error ? (
         <p className="auth-error-message mt-4" role="alert" aria-live="polite">
           {error}
         </p>
       ) : null}
 
-      <Button type="submit" className="auth-primary-button mt-5 w-full" disabled={isBusy}>
+      <Button type="submit" className="auth-primary-button mt-5 w-full" disabled={isBusy || (!isLogin && !acceptedTerms)}>
         {isBusy ? (
           <LoaderCircle aria-hidden="true" className="h-5 w-5 animate-spin" />
         ) : (

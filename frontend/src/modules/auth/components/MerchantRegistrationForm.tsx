@@ -9,6 +9,8 @@ import { Button } from "../../../shared/ui/Button";
 import { roleToHomePath } from "../../../shared/utils/routing";
 
 type MerchantRegistrationState = MerchantApplicationRegister;
+const TERMS_URL = "/legal/terms.html";
+const PRIVACY_URL = "/legal/privacy.html";
 
 const emptyForm: MerchantRegistrationState = {
   full_name: "",
@@ -18,7 +20,8 @@ const emptyForm: MerchantRegistrationState = {
   description: "",
   address: "",
   phone: "",
-  requested_category_ids: []
+  requested_category_ids: [],
+  accepted_terms: false
 };
 
 function toApplicationDraft(form: MerchantRegistrationState): MerchantApplicationCreate {
@@ -27,7 +30,8 @@ function toApplicationDraft(form: MerchantRegistrationState): MerchantApplicatio
     description: form.description,
     address: form.address,
     phone: form.phone,
-    requested_category_ids: form.requested_category_ids
+    requested_category_ids: form.requested_category_ids,
+    accepted_terms: form.accepted_terms
   };
 }
 
@@ -84,6 +88,10 @@ export function MerchantRegistrationForm() {
     setError(null);
     if (!form.requested_category_ids.length) {
       setError("Selecciona al menos un rubro para crear la solicitud.");
+      return;
+    }
+    if (!form.accepted_terms) {
+      setError("Para solicitar el alta del comercio debes aceptar los terminos y la politica de privacidad.");
       return;
     }
     setSaving(true);
@@ -219,8 +227,28 @@ export function MerchantRegistrationForm() {
             </div>
           </div>
 
+          <label className="auth-legal-consent md:col-span-2">
+            <input
+              type="checkbox"
+              checked={form.accepted_terms}
+              onChange={(event) => setForm((current) => ({ ...current, accepted_terms: event.target.checked }))}
+              required
+            />
+            <span>
+              Acepto los{" "}
+              <a href={TERMS_URL} target="_blank" rel="noreferrer">
+                Terminos y condiciones
+              </a>{" "}
+              y la{" "}
+              <a href={PRIVACY_URL} target="_blank" rel="noreferrer">
+                Politica de privacidad
+              </a>
+              . Declaro que entiendo que KePedimos es una plataforma intermediaria y que cada comercio gestiona su operacion y sus envios.
+            </span>
+          </label>
+
           {error ? <p className="border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700 md:col-span-2">{error}</p> : null}
-          <Button type="submit" disabled={saving} className="md:col-span-2">
+          <Button type="submit" disabled={saving || !form.accepted_terms} className="md:col-span-2">
             {saving
               ? "Guardando..."
               : isAuthenticated && user?.role === "customer"

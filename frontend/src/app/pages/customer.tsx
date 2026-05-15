@@ -752,7 +752,7 @@ export function MerchantApplyPage() {
     try {
       const profile =
         authMode === "register"
-          ? await register(authForm.full_name, authForm.email, authForm.password)
+          ? await register(authForm.full_name, authForm.email, authForm.password, true)
           : await login(authForm.email, authForm.password);
       setAuthForm({ full_name: "", email: "", password: "" });
       if (profile.role !== "customer") {
@@ -780,7 +780,8 @@ export function MerchantApplyPage() {
         phone: form.phone,
         logo_url: form.logo_url || null,
         cover_image_url: form.cover_image_url || null,
-        requested_category_ids: selectedCategoryIds
+        requested_category_ids: selectedCategoryIds,
+        accepted_terms: true
       });
       setForm({ business_name: "", description: "", address: "", phone: "", logo_url: "", cover_image_url: "" });
       setSelectedCategoryIds([]);

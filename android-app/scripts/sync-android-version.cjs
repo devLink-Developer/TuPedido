@@ -31,34 +31,56 @@ function syncBuildGradle() {
   .replace(/versionName\s+"[^"]+"/, `versionName "${versionName}"`);
 
   const releaseSigningVariables = `
+def releaseSigningPropertiesFile = rootProject.file("keystores/release-signing.properties")
+def releaseSigningProperties = new Properties()
+if (releaseSigningPropertiesFile.exists()) {
+    releaseSigningPropertiesFile.withInputStream { releaseSigningProperties.load(it) }
+}
+
 def releaseSigningValue = { name ->
     def value = findProperty(name)
     if (value == null || value.toString().trim().isEmpty()) {
         value = System.getenv(name)
     }
+    if (value == null || value.toString().trim().isEmpty()) {
+        value = releaseSigningProperties.getProperty(name)
+    }
     return value == null ? null : value.toString()
 }
 
-def releaseStoreFile = releaseSigningValue('KEPEDIMOS_UPLOAD_STORE_FILE')
+def releaseStoreFilePath = releaseSigningValue('KEPEDIMOS_UPLOAD_STORE_FILE')
+def releaseStoreFile = releaseStoreFilePath == null ? null : rootProject.file(releaseStoreFilePath)
 def releaseStorePassword = releaseSigningValue('KEPEDIMOS_UPLOAD_STORE_PASSWORD')
 def releaseKeyAlias = releaseSigningValue('KEPEDIMOS_UPLOAD_KEY_ALIAS')
 def releaseKeyPassword = releaseSigningValue('KEPEDIMOS_UPLOAD_KEY_PASSWORD')
-def hasReleaseSigning = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every {
+def hasReleaseSigning = [releaseStoreFilePath, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every {
     it != null && !it.trim().isEmpty()
 }
 `;
 
-  if (!next.includes("def releaseSigningValue = { name ->")) {
+  const releaseSigningBlockRegex = /(?:def releaseSigningPropertiesFile = rootProject\.file\("keystores\/release-signing\.properties"\)\r?\ndef releaseSigningProperties = new Properties\(\)\r?\nif \(releaseSigningPropertiesFile\.exists\(\)\) \{\r?\n    releaseSigningPropertiesFile\.withInputStream \{ releaseSigningProperties\.load\(it\) \}\r?\n\}\r?\n\r?\n)?def releaseSigningValue = \{ name ->[\s\S]*?def hasReleaseSigning = \[[^\]]+\]\.every \{\r?\n    it != null && !it\.trim\(\)\.isEmpty\(\)\r?\n\}\r?\n/;
+
+  if (releaseSigningBlockRegex.test(next)) {
+    next = next.replace(releaseSigningBlockRegex, releaseSigningVariables.trimStart());
+  } else {
     next = next.replace(
       /def enableMinifyInReleaseBuilds = \([^\n]+\)\.toBoolean\(\)\r?\n/,
       (match) => `${match}${releaseSigningVariables}`
     );
   }
 
+  next = next
+    .replace(/storeFile file\(releaseStoreFile\)/g, "storeFile releaseStoreFile")
+    .replace(/file\(releaseStoreFile\)\.exists\(\)/g, "releaseStoreFile.exists()")
+    .replace(
+      "Play release signing is not configured. Set KEPEDIMOS_UPLOAD_STORE_FILE, KEPEDIMOS_UPLOAD_STORE_PASSWORD, KEPEDIMOS_UPLOAD_KEY_ALIAS, and KEPEDIMOS_UPLOAD_KEY_PASSWORD as environment variables or Gradle properties.",
+      "Play release signing is not configured. Fill android/keystores/release-signing.properties or set KEPEDIMOS_UPLOAD_STORE_FILE, KEPEDIMOS_UPLOAD_STORE_PASSWORD, KEPEDIMOS_UPLOAD_KEY_ALIAS, and KEPEDIMOS_UPLOAD_KEY_PASSWORD."
+    );
+
   if (!next.includes("KEPEDIMOS_UPLOAD_STORE_FILE") || !next.includes("signingConfigs.release")) {
     next = next.replace(
       /        debug \{\r?\n            storeFile file\('debug\.keystore'\)\r?\n            storePassword 'android'\r?\n            keyAlias 'androiddebugkey'\r?\n            keyPassword 'android'\r?\n        \}/,
-      `$&\n        release {\n            if (hasReleaseSigning) {\n                storeFile file(releaseStoreFile)\n                storePassword releaseStorePassword\n                keyAlias releaseKeyAlias\n                keyPassword releaseKeyPassword\n            }\n        }`
+      `$&\n        release {\n            if (hasReleaseSigning) {\n                storeFile releaseStoreFile\n                storePassword releaseStorePassword\n                keyAlias releaseKeyAlias\n                keyPassword releaseKeyPassword\n            }\n        }`
     );
   }
 
@@ -71,9 +93,9 @@ def hasReleaseSigning = [releaseStoreFile, releaseStorePassword, releaseKeyAlias
 tasks.register("validatePlayReleaseSigning") {
     doLast {
         if (!hasReleaseSigning) {
-            throw new GradleException("Play release signing is not configured. Set KEPEDIMOS_UPLOAD_STORE_FILE, KEPEDIMOS_UPLOAD_STORE_PASSWORD, KEPEDIMOS_UPLOAD_KEY_ALIAS, and KEPEDIMOS_UPLOAD_KEY_PASSWORD as environment variables or Gradle properties.")
+            throw new GradleException("Play release signing is not configured. Fill android/keystores/release-signing.properties or set KEPEDIMOS_UPLOAD_STORE_FILE, KEPEDIMOS_UPLOAD_STORE_PASSWORD, KEPEDIMOS_UPLOAD_KEY_ALIAS, and KEPEDIMOS_UPLOAD_KEY_PASSWORD.")
         }
-        if (!file(releaseStoreFile).exists()) {
+        if (!releaseStoreFile.exists()) {
             throw new GradleException("Play release keystore not found: \${releaseStoreFile}")
         }
     }

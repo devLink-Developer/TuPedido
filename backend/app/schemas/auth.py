@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 class LoginRequest(BaseModel):
@@ -10,6 +10,13 @@ class RegisterRequest(BaseModel):
     full_name: str
     email: EmailStr
     password: str
+    accepted_terms: bool = False
+
+    @model_validator(mode="after")
+    def validate_terms(self) -> "RegisterRequest":
+        if not self.accepted_terms:
+            raise ValueError("Terms and privacy policy must be accepted")
+        return self
 
 
 class ChangePasswordRequest(BaseModel):

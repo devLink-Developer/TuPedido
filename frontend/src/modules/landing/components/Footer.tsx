@@ -25,6 +25,20 @@ export function Footer({ theme }: { theme: LandingTheme }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <a
+            className="min-h-[44px] border bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-[var(--landing-accent)]"
+            style={{ borderColor: theme.accentBorder }}
+            href="/legal/terms.html"
+          >
+            Terminos
+          </a>
+          <a
+            className="min-h-[44px] border bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-[var(--landing-accent)]"
+            style={{ borderColor: theme.accentBorder }}
+            href="/legal/privacy.html"
+          >
+            Privacidad
+          </a>
           <Link
             className="min-h-[44px] border bg-[#fffaf6] px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-[var(--landing-accent)]"
             style={{ borderColor: theme.accentBorderStrong }}

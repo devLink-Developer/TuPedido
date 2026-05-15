@@ -286,6 +286,7 @@ export type MerchantApplicationCreate = {
   logo_url?: string | null;
   cover_image_url?: string | null;
   requested_category_ids: number[];
+  accepted_terms: boolean;
 };
 
 export type StoreUpdate = {

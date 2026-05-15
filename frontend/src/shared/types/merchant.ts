@@ -89,6 +89,7 @@ export type MerchantApplicationCreate = {
   logo_url?: string | null;
   cover_image_url?: string | null;
   requested_category_ids: number[];
+  accepted_terms: boolean;
 };
 
 export type MerchantApplicationRegister = {
@@ -100,6 +101,7 @@ export type MerchantApplicationRegister = {
   address: string;
   phone: string;
   requested_category_ids: number[];
+  accepted_terms: boolean;
 };
 
 export type AdminMerchantCreate = {

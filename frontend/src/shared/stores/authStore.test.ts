@@ -41,7 +41,7 @@ describe("authStore order review prompt cleanup", () => {
     fetchMock.mockResolvedValueOnce(createJsonResponse(createAuthResponse()));
     window.sessionStorage.setItem("kepedimos.order-review.dismissed", "42");
 
-    await useAuthStore.getState().register("Cliente Demo", "cliente@example.com", "secret123");
+    await useAuthStore.getState().register("Cliente Demo", "cliente@example.com", "secret123", true);
 
     expect(window.sessionStorage.getItem("kepedimos.order-review.dismissed")).toBeNull();
   });

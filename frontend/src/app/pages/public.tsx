@@ -539,7 +539,7 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
       const profile =
         mode === "login"
           ? await login(email, password)
-          : await register(fullName, email, password);
+          : await register(fullName, email, password, true);
       navigate(from ?? roleHome[profile.role], { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo completar el acceso");

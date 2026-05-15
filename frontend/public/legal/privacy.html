@@ -6,130 +6,195 @@
     <title>Politica de privacidad - KePedimos</title>
     <style>
       :root {
-        color: #1f2933;
-        background: #fffaf5;
+        color: #0f172a;
+        background: #f8fafc;
         font-family: Arial, Helvetica, sans-serif;
       }
 
       body {
         margin: 0;
-        line-height: 1.6;
+        line-height: 1.65;
       }
 
       main {
-        max-width: 880px;
+        width: min(920px, calc(100% - 32px));
         margin: 0 auto;
-        padding: 40px 20px 64px;
+        padding: 40px 0 72px;
+      }
+
+      header,
+      section {
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 18px 42px rgba(15, 23, 42, 0.06);
+      }
+
+      header {
+        padding: 28px;
+      }
+
+      section {
+        margin-top: 16px;
+        padding: 24px;
       }
 
       h1,
       h2 {
-        color: #111827;
+        margin: 0;
         line-height: 1.2;
       }
 
       h1 {
-        font-size: 32px;
-        margin: 0 0 8px;
+        font-size: clamp(2rem, 5vw, 3rem);
       }
 
       h2 {
-        font-size: 20px;
-        margin-top: 32px;
+        font-size: 1.25rem;
       }
 
-      a {
-        color: #c2410c;
-        font-weight: 700;
-      }
-
-      .updated {
-        color: #6b7280;
-        margin-top: 0;
-      }
-
-      .panel {
-        background: #ffffff;
-        border: 1px solid #fed7aa;
-        border-radius: 10px;
-        padding: 20px;
+      p,
+      ul {
+        margin: 14px 0 0;
       }
 
       li {
-        margin-bottom: 8px;
+        margin: 8px 0;
+      }
+
+      a {
+        color: #b45309;
+        font-weight: 700;
+      }
+
+      .updated,
+      .note {
+        color: #64748b;
+      }
+
+      .nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 22px;
+      }
+
+      .nav a {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 0 14px;
+        background: #f8fafc;
+        color: #0f172a;
+        text-decoration: none;
       }
     </style>
   </head>
   <body>
     <main>
-      <h1>Politica de privacidad de KePedimos</h1>
-      <p class="updated">Ultima actualizacion: 13 de mayo de 2026</p>
-
-      <section class="panel">
+      <header>
+        <p class="updated">Ultima actualizacion: 15 de mayo de 2026</p>
+        <h1>Politica de privacidad de KePedimos</h1>
         <p>
-          Esta politica explica como KePedimos accede, recopila, usa, comparte, protege y conserva datos de usuarios de la app
-          KePedimos, el sitio web y la API asociada. Para consultas de privacidad, escribi a
+          Esta politica explica como KePedimos recopila, usa, conserva y comparte datos personales cuando usas la
+          plataforma, la PWA, la app Android y los servicios asociados. Para consultas de privacidad, escribi a
           <a href="mailto:admin@kepedimos.com">admin@kepedimos.com</a>.
+        </p>
+        <nav class="nav" aria-label="Documentos legales">
+          <a href="/legal/terms.html">Terminos y condiciones</a>
+          <a href="/legal/account-deletion.html">Eliminacion de cuenta</a>
+        </nav>
+      </header>
+
+      <section>
+        <h2>Rol de KePedimos</h2>
+        <p>
+          KePedimos opera como plataforma tecnologica que conecta clientes con comercios. Los comercios son responsables
+          de su oferta, precios, stock, preparacion, facturacion, atencion comercial y gestion de envios. KePedimos no
+          administra cadetes ni personal de reparto propio; cada comercio define y gestiona su modalidad de entrega,
+          sus repartidores o sus proveedores logisticos.
         </p>
       </section>
 
-      <h2>Datos que recopilamos</h2>
-      <ul>
-        <li>Datos de cuenta: nombre, email, rol de usuario, estado de cuenta y credenciales protegidas.</li>
-        <li>Datos de contacto y direccion: domicilios de entrega, referencias, localidad, provincia, codigo postal y coordenadas del pin de entrega.</li>
-        <li>Datos de pedidos: carrito, productos, comercio, importes, estado del pedido, metodo y estado de pago.</li>
-        <li>Datos de ubicacion: ubicacion aproximada o precisa para validar cobertura, completar direcciones y, en cuentas de repartidor, compartir el avance de una entrega activa.</li>
-        <li>Datos de repartidor o comercio, cuando correspondan: telefono, vehiculo, documentacion cargada, datos operativos y liquidaciones.</li>
-        <li>Tokens de notificaciones push y datos tecnicos necesarios para entregar mensajes sobre pedidos, cuenta y operaciones.</li>
-        <li>Archivos que subas voluntariamente, como imagenes de productos, comprobantes o documentacion operativa.</li>
-      </ul>
+      <section>
+        <h2>Datos que recopilamos</h2>
+        <ul>
+          <li>Datos de cuenta: nombre, email, rol, estado de cuenta y credenciales protegidas.</li>
+          <li>Datos de contacto y direccion: domicilios, referencias, localidad, provincia, codigo postal y coordenadas.</li>
+          <li>Datos de pedidos: comercio, productos, importes, descuentos, cargos, estado del pedido y medio de pago.</li>
+          <li>Datos de pago: identificadores, estado y referencias de Mercado Pago o del medio habilitado por el comercio.</li>
+          <li>Datos tecnicos: IP, dispositivo, sesion, tokens push, eventos de seguridad y diagnostico.</li>
+          <li>Datos de comercios: responsable, negocio, domicilio comercial, telefono, rubros, medios de pago y configuraciones.</li>
+          <li>Datos de repartidores cuando el comercio los cargue: identificacion operativa, contacto, vehiculo y ubicacion de entregas activas.</li>
+          <li>Archivos que subas voluntariamente, como imagenes, comprobantes o documentacion operativa.</li>
+        </ul>
+      </section>
 
-      <h2>Ubicacion en segundo plano</h2>
-      <p>
-        KePedimos recopila datos de ubicacion (location) para habilitar seguimiento del reparto, actualizacion del pedido y ETA
-        en background, incluso when the app is closed or not in use. Esta funcion se usa solo para repartidores durante entregas
-        activas. La ubicacion no se usa para publicidad.
-      </p>
+      <section>
+        <h2>Ubicacion</h2>
+        <p>
+          KePedimos puede usar ubicacion aproximada o precisa para validar cobertura, completar direcciones, calcular
+          rutas y mostrar seguimiento. En cuentas de repartidor, la ubicacion en segundo plano se usa solo durante
+          entregas activas para actualizar estado, ruta y ETA. No usamos ubicacion para publicidad comportamental.
+        </p>
+      </section>
 
-      <h2>Como usamos los datos</h2>
-      <ul>
-        <li>Crear y proteger cuentas, autenticar usuarios y mantener sesiones.</li>
-        <li>Procesar pedidos, pagos, entregas, notificaciones, reclamos y soporte.</li>
-        <li>Mostrar comercios disponibles segun cobertura, direccion o ubicacion indicada.</li>
-        <li>Permitir a clientes, comercios y repartidores ver estados necesarios para completar el pedido.</li>
-        <li>Cumplir obligaciones legales, contables, antifraude y de seguridad.</li>
-      </ul>
+      <section>
+        <h2>Como usamos los datos</h2>
+        <ul>
+          <li>Crear cuentas, autenticar usuarios y proteger sesiones.</li>
+          <li>Permitir pedidos, pagos, preparacion, retiro, envio, soporte y notificaciones.</li>
+          <li>Mostrar comercios disponibles segun domicilio, zona de cobertura o filtros.</li>
+          <li>Gestionar solicitudes de alta de comercio y configuracion de panel comercial.</li>
+          <li>Prevenir fraude, abusos, errores operativos y usos no autorizados.</li>
+          <li>Cumplir obligaciones legales, contables, regulatorias y de seguridad.</li>
+        </ul>
+      </section>
 
-      <h2>Con quien compartimos datos</h2>
-      <p>
-        Compartimos solo los datos necesarios para prestar el servicio: comercios reciben datos del pedido; repartidores reciben
-        datos necesarios para entregar; clientes ven informacion de seguimiento; proveedores de pago como Mercado Pago procesan
-        pagos; proveedores de mapas, geocodificacion, rutas, hosting y notificaciones procesan datos tecnicos necesarios. No vendemos
-        datos personales ni los usamos para publicidad comportamental.
-      </p>
+      <section>
+        <h2>Pagos y Mercado Pago</h2>
+        <p>
+          Cuando el comercio habilita Mercado Pago, el pago puede procesarse mediante split de pagos. El comercio recibe
+          el importe de la venta y el monto de envio configurado por el comercio, segun corresponda. KePedimos solo
+          percibe el fee fijo de uso de plataforma que paga el cliente. KePedimos no retiene dinero de la venta del
+          comercio fuera del fee informado y procesado por la integracion de pago.
+        </p>
+      </section>
 
-      <h2>Seguridad</h2>
-      <p>
-        Usamos HTTPS, tokens de sesion, almacenamiento seguro en la app para credenciales de sesion y controles de acceso por rol.
-        Las credenciales sensibles de proveedores se almacenan cifradas en backend cuando corresponde.
-      </p>
+      <section>
+        <h2>Con quien compartimos datos</h2>
+        <p>
+          Compartimos datos solo cuando es necesario para operar el servicio: con comercios para preparar pedidos, con
+          repartidores gestionados por el comercio para completar entregas, con Mercado Pago para procesar pagos, con
+          proveedores de hosting, mapas, rutas, geocodificacion, notificaciones y herramientas tecnicas. No vendemos
+          datos personales.
+        </p>
+      </section>
 
-      <h2>Retencion y eliminacion</h2>
-      <p>
-        Conservamos datos mientras la cuenta este activa o mientras sean necesarios para prestar el servicio, resolver reclamos,
-        cumplir obligaciones legales, contables o de seguridad. Podes solicitar o iniciar la eliminacion desde la app o desde
-        <a href="/legal/account-deletion.html">la pagina de eliminacion de cuenta</a>. Al eliminar una cuenta, borramos datos de perfil,
-        direcciones, tokens push y otros datos personales asociados; algunos registros transaccionales pueden conservarse anonimizados
-        cuando sea necesario por obligaciones legales o contables.
-      </p>
+      <section>
+        <h2>Conservacion, seguridad y eliminacion</h2>
+        <p>
+          Conservamos datos mientras la cuenta este activa o mientras sean necesarios para operar pedidos, resolver
+          reclamos, prevenir fraude o cumplir obligaciones legales y contables. Aplicamos HTTPS, control de acceso por
+          rol, tokens de sesion y almacenamiento seguro donde corresponde. Podes solicitar o iniciar la eliminacion de
+          cuenta desde la app o en <a href="/legal/account-deletion.html">esta pagina</a>.
+        </p>
+      </section>
 
-      <h2>Tus controles</h2>
-      <ul>
-        <li>Podes editar o eliminar direcciones desde la app.</li>
-        <li>Podes cerrar sesion y revocar permisos de ubicacion o notificaciones desde los ajustes del dispositivo.</li>
-        <li>Podes eliminar tu cuenta desde la pantalla de perfil de la app.</li>
-        <li>Podes contactarnos en <a href="mailto:admin@kepedimos.com">admin@kepedimos.com</a> para consultas o solicitudes de privacidad.</li>
-      </ul>
+      <section>
+        <h2>Tus derechos</h2>
+        <p>
+          Podes solicitar acceso, rectificacion, actualizacion o supresion de tus datos personales escribiendo a
+          <a href="mailto:admin@kepedimos.com">admin@kepedimos.com</a>. Tambien podes revocar permisos de ubicacion o
+          notificaciones desde la configuracion del dispositivo.
+        </p>
+        <p class="note">
+          Esta politica se basa, entre otras normas aplicables, en la Ley 25.326 de Proteccion de Datos Personales y la
+          normativa argentina de defensa del consumidor cuando corresponda.
+        </p>
+      </section>
     </main>
   </body>
 </html>

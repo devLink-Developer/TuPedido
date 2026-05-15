@@ -13,7 +13,7 @@ type AuthState = {
   loading: boolean;
   hydrate: () => Promise<void>;
   login: (email: string, password: string) => Promise<AuthUser>;
-  register: (fullName: string, email: string, password: string) => Promise<AuthUser>;
+  register: (fullName: string, email: string, password: string, acceptedTerms: boolean) => Promise<AuthUser>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<AuthUser>;
   refresh: () => Promise<AuthUser | null>;
   logout: () => void;
@@ -83,10 +83,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       throw error;
     }
   },
-  async register(fullName, email, password) {
+  async register(fullName, email, password, acceptedTerms) {
     set({ loading: true });
     try {
-      const auth = await registerRequest(fullName, email, password);
+      const auth = await registerRequest(fullName, email, password, acceptedTerms);
       clearDismissedOrderReviewPrompt();
       persistSession(auth);
       set({

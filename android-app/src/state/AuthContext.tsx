@@ -10,7 +10,7 @@ type AuthContextValue = {
   loading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
-  register: (fullName: string, email: string, password: string) => Promise<AuthUser>;
+  register: (fullName: string, email: string, password: string, acceptedTerms: boolean) => Promise<AuthUser>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<AuthUser>;
   deleteAccount: () => Promise<void>;
   refresh: () => Promise<AuthUser | null>;
@@ -87,10 +87,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   const register = useCallback(
-    async (fullName: string, email: string, password: string) => {
+    async (fullName: string, email: string, password: string, acceptedTerms: boolean) => {
       setLoading(true);
       try {
-        const auth = await registerRequest(fullName, email, password);
+        const auth = await registerRequest(fullName, email, password, acceptedTerms);
         await persistSession(auth);
         return auth.user;
       } finally {

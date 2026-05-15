@@ -211,6 +211,7 @@ def register_merchant_application(
             address=payload.address,
             phone=payload.phone,
             requested_category_ids=payload.requested_category_ids,
+            accepted_terms=payload.accepted_terms,
         ),
         categories=categories,
     )

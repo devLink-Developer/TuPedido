@@ -17,22 +17,27 @@ const sourceApk = path.join(androidDir, "app", "build", "outputs", "apk", "relea
 const versionedApk = path.join(projectRoot, `KePedimos-${versionName}-release-standalone.apk`);
 const latestApk = path.join(projectRoot, "KePedimos-release-standalone.apk");
 
+function runGradle(args) {
+  if (process.platform === "win32") {
+    execFileSync("cmd.exe", ["/d", "/s", "/c", `.\\gradlew.bat ${args.join(" ")}`], {
+      cwd: androidDir,
+      stdio: "inherit"
+    });
+    return;
+  }
+
+  execFileSync("./gradlew", args, {
+    cwd: androidDir,
+    stdio: "inherit"
+  });
+}
+
 if (!copyOnly) {
   execFileSync("node", [path.join(projectRoot, "scripts", "sync-android-version.cjs")], {
     cwd: projectRoot,
     stdio: "inherit"
   });
-  if (process.platform === "win32") {
-    execFileSync("cmd.exe", ["/d", "/s", "/c", ".\\gradlew.bat assembleRelease"], {
-      cwd: androidDir,
-      stdio: "inherit"
-    });
-  } else {
-    execFileSync("./gradlew", ["assembleRelease"], {
-      cwd: androidDir,
-      stdio: "inherit"
-    });
-  }
+  runGradle([":app:validatePlayReleaseSigning", ":app:assembleRelease"]);
 }
 
 if (!fs.existsSync(sourceApk)) {

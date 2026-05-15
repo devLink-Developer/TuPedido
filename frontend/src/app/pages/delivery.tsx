@@ -177,7 +177,7 @@ export function DeliveryApplyPage() {
     setAuthError(null);
     try {
       if (authMode === "register") {
-        await register(authForm.full_name, authForm.email, authForm.password);
+        await register(authForm.full_name, authForm.email, authForm.password, true);
       } else {
         await login(authForm.email, authForm.password);
       }
