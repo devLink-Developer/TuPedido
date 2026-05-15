@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { PwaInstallBanner, ToastViewport } from "../../shared/components";
+import { PwaInstallBanner, ToastViewport, WebPushNotificationBanner } from "../../shared/components";
 import { usePwaInstallPrompt } from "../../shared/hooks";
 import { useAuthStore, useCartStore, useCategoryStore } from "../../shared/stores";
 import { normalizePath, roleToHomePath } from "../../shared/utils/routing";
@@ -60,6 +60,7 @@ export function AppShell() {
     <>
       <Outlet />
       <ToastViewport />
+      <WebPushNotificationBanner token={token} userId={user?.id ?? null} />
       <PwaInstallBanner />
     </>
   );

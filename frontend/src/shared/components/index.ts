@@ -1,5 +1,6 @@
 export * from "./app/PwaInstallBanner";
 export * from "./app/ToastViewport";
+export * from "./app/WebPushNotificationBanner";
 export * from "./app/BrandMark";
 export * from "./app/BrandWordmark";
 export * from "./app/PlatformWordmark";

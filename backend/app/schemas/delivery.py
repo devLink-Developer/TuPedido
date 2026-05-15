@@ -190,6 +190,10 @@ class PushSubscriptionWrite(BaseModel):
     platform: str | None = None
 
 
+class PushSubscriptionDelete(BaseModel):
+    endpoint: str
+
+
 class RiderSettlementNotice(BaseModel):
     rider_user_id: int
     transfer_date: date

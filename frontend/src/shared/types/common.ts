@@ -19,7 +19,22 @@ export type PushSubscriptionPayload = {
     p256dh: string;
     auth: string;
   };
+  push_provider?: "web" | "expo" | string;
+  platform?: string | null;
   user_agent?: string | null;
+};
+
+export type WebPushPublicKeyResponse = {
+  public_key?: string;
+  publicKey?: string;
+  vapid_public_key?: string;
+  enabled?: boolean;
+};
+
+export type PushSubscriptionResponse = {
+  id: number;
+  endpoint: string;
+  created_at?: string | null;
 };
 
 export type ImageUploadResponse = {

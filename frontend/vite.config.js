@@ -9,7 +9,10 @@ export default defineConfig(function (_a) {
         plugins: [
             react(),
             VitePWA({
+                strategies: "injectManifest",
                 registerType: "autoUpdate",
+                srcDir: "src",
+                filename: "sw.ts",
                 includeAssets: ["icons/icon-192.svg", "icons/icon-512.svg"],
                 manifest: {
                     name: "Kepedimos",
@@ -37,19 +40,9 @@ export default defineConfig(function (_a) {
                         }
                     ]
                 },
-                workbox: {
-                    cleanupOutdatedCaches: true,
-                    clientsClaim: true,
+                injectManifest: {
                     globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
-                    navigateFallback: "/index.html",
-                    skipWaiting: true,
-                    runtimeCaching: [
-                        {
-                            urlPattern: /\/api\/v1\//,
-                            handler: "NetworkOnly"
-                        }
-                    ],
-                    navigateFallbackDenylist: [/^\/api\//]
+                    maximumFileSizeToCacheInBytes: 3 * 1024 * 1024
                 }
             })
         ],
