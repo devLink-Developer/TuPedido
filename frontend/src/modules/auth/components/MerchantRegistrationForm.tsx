@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Map, Percent, Settings2, ShieldCheck, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthSession } from "../../../shared/hooks";
 import { createMerchantApplication, fetchMerchantApplications, registerMerchantApplication } from "../../../shared/services/api";
@@ -11,6 +12,34 @@ import { roleToHomePath } from "../../../shared/utils/routing";
 type MerchantRegistrationState = MerchantApplicationRegister;
 const TERMS_URL = "/legal/terms.html";
 const PRIVACY_URL = "/legal/privacy.html";
+
+const businessModelItems = [
+  {
+    title: "0% comisiones",
+    description: "Vende sin perder margen. En KePedimos, lo que cobras por tus productos es tuyo; el fee fijo de uso lo paga el cliente.",
+    icon: Percent
+  },
+  {
+    title: "Tus repartidores, tu operacion",
+    description: "Administra tus propios cadetes y manten el control total de tus entregas.",
+    icon: Truck
+  },
+  {
+    title: "Defini tu zona de cobertura",
+    description: "Marca tu poligono en el mapa y elige exactamente hasta donde quieres vender y entregar.",
+    icon: Map
+  },
+  {
+    title: "Mas control, mas independencia",
+    description: "Configura horarios, productos, pagos y logistica desde un solo panel simple y rapido.",
+    icon: Settings2
+  },
+  {
+    title: "Disenado para comercios reales",
+    description: "Sin costos ocultos, sin intermediarios en tus pedidos y con libertad para crecer.",
+    icon: ShieldCheck
+  }
+];
 
 const emptyForm: MerchantRegistrationState = {
   full_name: "",
@@ -259,13 +288,25 @@ export function MerchantRegistrationForm() {
 
         <div className="space-y-4">
           <div className="kp-install-banner p-5 sm:p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--kp-accent)]">Tu comercio</p>
-            <h3 className="mt-3 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight text-ink sm:text-3xl">Configura primero, activa despues</h3>
-            <div className="mt-4 grid gap-3 text-sm leading-6 text-zinc-600 sm:leading-7">
-              <div className="border border-[var(--kp-stroke)] bg-white/72 px-4 py-4" style={{ borderRadius: 18 }}>Creas tu acceso y entras al panel en el mismo paso.</div>
-              <div className="border border-[var(--kp-stroke)] bg-white/72 px-4 py-4" style={{ borderRadius: 18 }}>Tu rubro define imagenes iniciales para el comercio y luego puedes personalizarlas desde configuracion.</div>
-              <div className="border border-[var(--kp-stroke)] bg-white/72 px-4 py-4" style={{ borderRadius: 18 }}>Podras cargar productos, medios de pago y datos del negocio mientras se revisa la solicitud.</div>
-              <div className="border border-[var(--kp-stroke)] bg-white/72 px-4 py-4" style={{ borderRadius: 18 }}>Tu local no podra recibir pedidos hasta que el equipo apruebe el alta.</div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--kp-accent)]">Tu comercio, tus reglas</p>
+            <h3 className="mt-3 font-display text-[1.85rem] font-bold leading-[1.08] tracking-tight text-ink sm:text-3xl">
+              Un modelo pensado para que mantengas el control
+            </h3>
+            <div className="mt-5 divide-y divide-[var(--kp-stroke)] text-sm leading-6 text-zinc-600">
+              {businessModelItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.title} className="flex gap-3 py-3 first:pt-0 last:pb-0">
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded border border-[var(--kp-stroke)] bg-white text-[var(--kp-accent)]">
+                      <Icon size={18} strokeWidth={2.2} aria-hidden="true" />
+                    </span>
+                    <span>
+                      <strong className="block text-[15px] font-bold text-ink">{item.title}</strong>
+                      <span className="mt-0.5 block">{item.description}</span>
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
