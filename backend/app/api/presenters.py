@@ -55,7 +55,13 @@ from app.services.mercadopago import (
 from app.services.promotions import deserialize_items_snapshot
 from app.services.platform import DEFAULT_CATALOG_BANNER_HEIGHT, DEFAULT_CATALOG_BANNER_WIDTH
 from app.services.product_pricing import serialize_product_pricing
-from app.services.store_address import store_delivery_is_enabled, store_pickup_is_enabled
+from app.services.store_address import (
+    store_active_delivery_riders_count,
+    store_configured_delivery_riders_count,
+    store_delivery_is_enabled,
+    store_delivery_unavailable_reason,
+    store_pickup_is_enabled,
+)
 from app.services.store_coverage import effective_coverage_polygon, safe_coverage_polygon
 from app.services.settlements import (
     charge_outstanding_amount,
@@ -122,6 +128,9 @@ def serialize_store_delivery_settings(
         pickup_area_uses_delivery_area=bool(
             getattr(settings, "pickup_area_uses_delivery_area", False)
         ) if settings else False,
+        configured_riders_count=store_configured_delivery_riders_count(store),
+        active_riders_count=store_active_delivery_riders_count(store),
+        delivery_unavailable_reason=store_delivery_unavailable_reason(store),
     )
 
 
@@ -380,6 +389,9 @@ def serialize_cart(cart: object) -> CartRead:
             free_delivery_min_order=None,
             rider_fee=0,
             min_order=0,
+            configured_riders_count=0,
+            active_riders_count=0,
+            delivery_unavailable_reason="El carrito no tiene comercio seleccionado.",
         ),
         payment_settings=serialize_store_payment_settings(cart.store, mercadopago_provider=mercadopago_provider)
         if cart.store

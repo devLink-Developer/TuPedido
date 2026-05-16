@@ -34,6 +34,7 @@ const LIVE_REFRESH_INTERVAL_MS = 15000;
 const SOCKET_RECONNECT_DELAY_MS = 3000;
 const LEGACY_ADDRESS_COPY = "Configura la direccion del comercio antes de habilitar la venta.";
 const COVERAGE_COPY = "Configura al menos una zona de alcance para envio o retiro antes de habilitar la venta.";
+const PRODUCTS_COPY = "Carga y habilita al menos un producto en el catalogo antes de recibir pedidos.";
 
 type MerchantOrderAction = Extract<
   OrderStatusUpdate["status"],
@@ -207,12 +208,16 @@ export function OrdersPage() {
   const acceptingOrders = isApproved ? store?.accepting_orders ?? false : false;
   const hasConfiguredAddress = store ? hasStoreAddressConfiguration(toStoreAddressFormState(store)) : false;
   const hasConfiguredCoverage = store ? hasAnyCoverageArea(store.delivery_settings) : false;
-  const canEnableOrders = isApproved && hasConfiguredAddress && hasConfiguredCoverage;
-  const canToggleOrders = isApproved && (acceptingOrders || (hasConfiguredAddress && hasConfiguredCoverage));
+  const enabledProductsCount = store ? store.products.filter((product) => product.is_available).length : 0;
+  const hasEnabledProducts = enabledProductsCount > 0;
+  const canEnableOrders = isApproved && hasEnabledProducts && hasConfiguredAddress && hasConfiguredCoverage;
+  const canToggleOrders = isApproved && (acceptingOrders || (hasEnabledProducts && hasConfiguredAddress && hasConfiguredCoverage));
   const toggleDescription = !store
     ? ""
     : !isApproved
       ? "Disponible cuando el comercio quede aprobado."
+      : !acceptingOrders && !hasEnabledProducts
+        ? PRODUCTS_COPY
       : !acceptingOrders && !hasConfiguredAddress
         ? LEGACY_ADDRESS_COPY
         : !acceptingOrders && !hasConfiguredCoverage
@@ -479,6 +484,10 @@ export function OrdersPage() {
 
   async function handleToggleAcceptingOrders() {
     if (!token || !store || !isApproved || savingToggle) return;
+    if (!store.accepting_orders && !hasEnabledProducts) {
+      setToggleError(PRODUCTS_COPY);
+      return;
+    }
     if (!store.accepting_orders && !hasConfiguredAddress) {
       setToggleError(
         "Configura CP, provincia, localidad, calle, altura y geolocalización del local antes de habilitar la venta."
@@ -491,7 +500,7 @@ export function OrdersPage() {
       return;
     }
     if (!store.accepting_orders && !canEnableOrders) {
-      setToggleError(COVERAGE_COPY);
+      setToggleError(PRODUCTS_COPY);
       return;
     }
 

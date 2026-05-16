@@ -85,8 +85,13 @@ from app.services.settlements import (
     get_store_payments,
     get_store_rider_payments,
 )
-from app.services.store_address import store_has_configured_delivery_address
-from app.services.store_address import store_can_receive_orders_by_configuration
+from app.services.store_address import (
+    store_active_delivery_riders_count,
+    store_can_receive_orders_by_configuration,
+    store_configured_delivery_riders_count,
+    store_enabled_catalog_products_count,
+    store_has_configured_delivery_address,
+)
 from app.services.store_coverage import CoveragePolygonError, coverage_polygon_to_json
 
 router = APIRouter()
@@ -95,6 +100,7 @@ STORE_OPTIONS = (
     selectinload(Store.category_links).selectinload(StoreCategoryLink.category),
     selectinload(Store.hours),
     selectinload(Store.delivery_settings),
+    selectinload(Store.delivery_riders).selectinload(DeliveryProfile.user),
     selectinload(Store.payment_settings),
     selectinload(Store.payment_accounts),
     selectinload(Store.product_categories).selectinload(ProductCategory.subcategories),
@@ -189,6 +195,24 @@ def _products_for_promotion(db: Session, *, store_id: int, product_ids: list[int
     if len(products) != len(unique_product_ids):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid product ids in promotion")
     return {product.id: product for product in products}
+
+
+def _store_enabled_products_count(db: Session, store_id: int) -> int:
+    return int(
+        db.scalar(
+            select(func.count()).select_from(Product).where(Product.store_id == store_id, Product.is_available.is_(True))
+        )
+        or 0
+    )
+
+
+def _pause_store_if_without_enabled_products(db: Session, store: Store) -> bool:
+    if not store.accepting_orders:
+        return False
+    if _store_enabled_products_count(db, store.id) > 0:
+        return False
+    store.accepting_orders = False
+    return True
 
 
 def _apply_promotion_payload(promotion: StorePromotion, payload: PromotionWrite) -> None:
@@ -335,6 +359,11 @@ def update_store(
     store.max_delivery_minutes = payload.max_delivery_minutes
     if store.delivery_settings and not store_has_configured_delivery_address(store):
         store.delivery_settings.delivery_enabled = False
+    if store.accepting_orders and store_enabled_catalog_products_count(store) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Carga y habilita al menos un producto en el catalogo antes de recibir pedidos.",
+        )
     if store.accepting_orders and not store_can_receive_orders_by_configuration(store):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -418,19 +447,36 @@ def update_delivery_settings(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Configura la direccion exacta del comercio con CP, localidad y geolocalizacion antes de habilitar delivery.",
         )
+    if payload.delivery_enabled and store_configured_delivery_riders_count(store) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Configura al menos un repartidor antes de habilitar delivery.",
+        )
+    if payload.delivery_enabled and store_active_delivery_riders_count(store) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Activa al menos un repartidor antes de habilitar delivery.",
+        )
     settings = store.delivery_settings
     if settings is None:
         settings = StoreDeliverySettings(store_id=store.id)
         db.add(settings)
     try:
-        settings.delivery_area_polygon_json = coverage_polygon_to_json(
+        delivery_area_polygon_json = coverage_polygon_to_json(
             [point.model_dump() for point in payload.delivery_area_polygon]
         )
-        settings.pickup_area_polygon_json = coverage_polygon_to_json(
+        pickup_area_polygon_json = coverage_polygon_to_json(
             [point.model_dump() for point in payload.pickup_area_polygon]
         )
     except CoveragePolygonError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    if payload.delivery_enabled and not delivery_area_polygon_json:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Configura el alcance de delivery antes de habilitar envios.",
+        )
+    settings.delivery_area_polygon_json = delivery_area_polygon_json
+    settings.pickup_area_polygon_json = pickup_area_polygon_json
 
     settings.delivery_enabled = payload.delivery_enabled
     settings.pickup_enabled = payload.pickup_enabled
@@ -635,6 +681,7 @@ def create_rider(
     )
     assert created_profile is not None
     publish_rider_snapshot(created_profile, event_type="delivery.rider.created")
+    publish_catalog_store_changed(store)
     return serialize_delivery_profile(created_profile).model_dump()
 
 
@@ -781,6 +828,10 @@ def update_rider(
     profile.is_active = payload.is_active
     if not payload.is_active:
         profile.availability = "offline"
+        if store_active_delivery_riders_count(store) == 0 and store.delivery_settings is not None:
+            store.delivery_settings.delivery_enabled = False
+            if store.accepting_orders and not store_can_receive_orders_by_configuration(store):
+                store.accepting_orders = False
 
     application = db.scalar(select(DeliveryApplication).where(DeliveryApplication.id == profile.application_id))
     if application is not None:
@@ -802,6 +853,7 @@ def update_rider(
     )
     assert refreshed is not None
     publish_rider_snapshot(refreshed, event_type="delivery.rider.updated")
+    publish_catalog_store_changed(store)
     return serialize_delivery_profile(refreshed).model_dump()
 
 
@@ -1087,6 +1139,7 @@ def create_product(
     db.add(product)
     db.commit()
     db.refresh(product)
+    publish_catalog_store_changed(store)
     return serialize_product(product).model_dump()
 
 
@@ -1138,8 +1191,11 @@ def update_product(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Fixed discount cannot exceed product price")
     for field, value in payload.model_dump().items():
         setattr(product, field, value)
+    db.flush()
+    _pause_store_if_without_enabled_products(db, store)
     db.commit()
     db.refresh(product)
+    publish_catalog_store_changed(store)
     return serialize_product(product).model_dump()
 
 
@@ -1154,7 +1210,10 @@ def delete_product(
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
     db.delete(product)
+    db.flush()
+    _pause_store_if_without_enabled_products(db, store)
     db.commit()
+    publish_catalog_store_changed(store)
     return {"status": "deleted"}
 
 

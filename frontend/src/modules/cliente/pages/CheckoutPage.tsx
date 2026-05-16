@@ -547,6 +547,8 @@ export function CheckoutPage() {
               {(["delivery", "pickup"] as const).map((mode) => {
                 const available = availableDeliveryModes.includes(mode);
                 const active = cart.delivery_mode === mode;
+                const unavailableReason =
+                  mode === "delivery" && !available ? cart.delivery_settings?.delivery_unavailable_reason : null;
                 return (
                   <button
                     key={mode}
@@ -562,7 +564,8 @@ export function CheckoutPage() {
                     }`}
                     style={{ borderRadius: 18 }}
                   >
-                    {mode === "delivery" ? "Envio" : "Retiro"}
+                    <span>{mode === "delivery" ? "Envio" : "Retiro"}</span>
+                    {unavailableReason ? <span className="mt-1 block text-xs font-medium">{unavailableReason}</span> : null}
                   </button>
                 );
               })}

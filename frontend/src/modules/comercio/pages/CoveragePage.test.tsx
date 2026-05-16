@@ -122,6 +122,7 @@ vi.mock("../components/StoreAddressSection", () => ({
 
 vi.mock("../components/StoreCoverageSection", () => ({
   StoreCoverageSection: () => <div>Formulario zonas</div>,
+  hasCoveragePolygon: (points?: unknown[]) => Boolean(points && points.length >= 3),
   hasAnyCoverageArea: (settings: { delivery_area_polygon?: unknown[]; pickup_area_polygon?: unknown[] }) =>
     Boolean(settings.delivery_area_polygon?.length || settings.pickup_area_polygon?.length)
 }));
@@ -171,7 +172,10 @@ function buildStore(overrides: Partial<Record<string, unknown>> = {}) {
         { latitude: -31.64, longitude: -60.69 },
         { latitude: -31.62, longitude: -60.69 }
       ],
-      pickup_area_uses_delivery_area: true
+      pickup_area_uses_delivery_area: true,
+      configured_riders_count: 1,
+      active_riders_count: 1,
+      delivery_unavailable_reason: null
     },
     payment_settings: {
       cash_enabled: true,
@@ -226,7 +230,10 @@ describe("CoveragePage", () => {
           min_order: 0,
           delivery_area_polygon: [],
           pickup_area_polygon: [],
-          pickup_area_uses_delivery_area: false
+          pickup_area_uses_delivery_area: false,
+          configured_riders_count: 0,
+          active_riders_count: 0,
+          delivery_unavailable_reason: "Falta configurar al menos un repartidor."
         }
       })
     );
@@ -245,6 +252,47 @@ describe("CoveragePage", () => {
 
     expect(screen.getByText("Formulario direccion")).toBeInTheDocument();
     expect(screen.getByText("Formulario zonas")).toBeInTheDocument();
+  });
+
+  it("bloquea delivery cuando no hay repartidores activos", async () => {
+    fetchMerchantStoreMock.mockResolvedValue(
+      buildStore({
+        delivery_settings: {
+          delivery_enabled: true,
+          pickup_enabled: true,
+          delivery_fee: 0,
+          free_delivery_min_order: null,
+          rider_fee: 0,
+          min_order: 0,
+          delivery_area_polygon: [
+            { latitude: -31.64, longitude: -60.71 },
+            { latitude: -31.64, longitude: -60.69 },
+            { latitude: -31.62, longitude: -60.69 }
+          ],
+          pickup_area_polygon: [
+            { latitude: -31.64, longitude: -60.71 },
+            { latitude: -31.64, longitude: -60.69 },
+            { latitude: -31.62, longitude: -60.69 }
+          ],
+          pickup_area_uses_delivery_area: true,
+          configured_riders_count: 2,
+          active_riders_count: 0,
+          delivery_unavailable_reason: "No hay repartidores activos para este comercio."
+        }
+      })
+    );
+
+    render(
+      <MemoryRouter>
+        <CoveragePage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByText("Direccion y alcance")).toBeInTheDocument());
+
+    expect(screen.getByLabelText("Delivery habilitado")).toBeDisabled();
+    expect(screen.getByText("Activa al menos un repartidor antes de habilitar envios.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Gestionar repartidores" })).toHaveAttribute("href", "/m/riders");
   });
 
   it("permite eliminar la direccion y guardarla vacia", async () => {
@@ -270,7 +318,10 @@ describe("CoveragePage", () => {
             min_order: 0,
             delivery_area_polygon: [],
             pickup_area_polygon: [],
-            pickup_area_uses_delivery_area: false
+            pickup_area_uses_delivery_area: false,
+            configured_riders_count: 0,
+            active_riders_count: 0,
+            delivery_unavailable_reason: "Falta configurar al menos un repartidor."
           }
         })
       );

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, object_session, selectinload
 from fastapi import HTTPException, status
 
 from app.core.utils import is_store_open
+from app.models.delivery import DeliveryProfile
 from app.models.order import ShoppingCart, ShoppingCartItem, StoreOrder
 from app.models.store import Product, Store, StoreCategoryLink
 from app.services.delivery import customer_delivery_fee_for_store
@@ -20,16 +21,20 @@ STORE_OPTIONS = (
     selectinload(Store.category_links).selectinload(StoreCategoryLink.category),
     selectinload(Store.hours),
     selectinload(Store.delivery_settings),
+    selectinload(Store.delivery_riders).selectinload(DeliveryProfile.user),
     selectinload(Store.payment_settings),
     selectinload(Store.payment_accounts),
+    selectinload(Store.products),
 )
 
 CART_OPTIONS = (
     selectinload(ShoppingCart.store).selectinload(Store.category_links).selectinload(StoreCategoryLink.category),
     selectinload(ShoppingCart.store).selectinload(Store.hours),
     selectinload(ShoppingCart.store).selectinload(Store.delivery_settings),
+    selectinload(ShoppingCart.store).selectinload(Store.delivery_riders).selectinload(DeliveryProfile.user),
     selectinload(ShoppingCart.store).selectinload(Store.payment_settings),
     selectinload(ShoppingCart.store).selectinload(Store.payment_accounts),
+    selectinload(ShoppingCart.store).selectinload(Store.products),
     selectinload(ShoppingCart.items).selectinload(ShoppingCartItem.product),
 )
 

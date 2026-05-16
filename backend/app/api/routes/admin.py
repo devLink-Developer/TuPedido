@@ -18,6 +18,7 @@ from app.api.presenters import (
 from app.core.security import hash_password
 from app.core.utils import slugify
 from app.db.session import get_db
+from app.models.delivery import DeliveryProfile
 from app.models.order import StoreOrder
 from app.models.store import (
     Category,
@@ -50,6 +51,7 @@ STORE_OPTIONS = (
     selectinload(Store.category_links).selectinload(StoreCategoryLink.category),
     selectinload(Store.hours),
     selectinload(Store.delivery_settings),
+    selectinload(Store.delivery_riders).selectinload(DeliveryProfile.user),
     selectinload(Store.payment_settings),
     selectinload(Store.payment_accounts),
     selectinload(Store.product_categories).selectinload(ProductCategory.subcategories),

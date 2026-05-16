@@ -152,6 +152,34 @@ vi.mock("../components/OrdersTable", () => ({
   )
 }));
 
+const baseProduct = {
+  id: 100,
+  store_id: 1,
+  product_category_id: null,
+  product_category_name: null,
+  product_subcategory_id: null,
+  product_subcategory_name: null,
+  sku: "PRD-100",
+  name: "Producto activo",
+  brand: null,
+  barcode: null,
+  unit_label: null,
+  description: "Producto disponible",
+  price: 1000,
+  compare_at_price: null,
+  final_price: 1000,
+  commercial_discount_type: null,
+  commercial_discount_value: null,
+  commercial_discount_amount: 0,
+  commercial_discount_percentage: 0,
+  has_commercial_discount: false,
+  image_url: null,
+  stock_quantity: null,
+  max_per_order: null,
+  is_available: true,
+  sort_order: 0
+};
+
 const approvedStore = {
   id: 1,
   slug: "mi-local",
@@ -212,7 +240,7 @@ const approvedStore = {
     mercadopago_mp_user_id: null
   },
   product_categories: [],
-  products: [],
+  products: [baseProduct],
   hours: []
 };
 
@@ -371,6 +399,17 @@ describe("OrdersPage", () => {
     await waitFor(() => expect(fetchMerchantStoreMock).toHaveBeenCalledWith("token"));
     expect(screen.getByRole("switch", { name: "Recibir pedidos" })).toBeDisabled();
     expect(screen.getByText("Configura la direccion del comercio antes de habilitar la venta.")).toBeInTheDocument();
+    expect(updateMerchantStoreMock).not.toHaveBeenCalled();
+  });
+
+  it("no permite habilitar la venta si no hay productos activos", async () => {
+    fetchMerchantStoreMock.mockResolvedValueOnce({ ...approvedStoreWithAddress, accepting_orders: false, products: [] });
+
+    renderOrdersPage();
+
+    await waitFor(() => expect(fetchMerchantStoreMock).toHaveBeenCalledWith("token"));
+    expect(screen.getByRole("switch", { name: "Recibir pedidos" })).toBeDisabled();
+    expect(screen.getByText("Carga y habilita al menos un producto en el catalogo antes de recibir pedidos.")).toBeInTheDocument();
     expect(updateMerchantStoreMock).not.toHaveBeenCalled();
   });
 

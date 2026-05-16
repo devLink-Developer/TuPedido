@@ -86,6 +86,9 @@ class StoreDeliverySettingsRead(BaseModel):
     delivery_area_polygon: list[CoveragePointRead] = Field(default_factory=list)
     pickup_area_polygon: list[CoveragePointRead] = Field(default_factory=list)
     pickup_area_uses_delivery_area: bool = False
+    configured_riders_count: int = 0
+    active_riders_count: int = 0
+    delivery_unavailable_reason: str | None = None
 
 
 class StorePaymentSettingsRead(BaseModel):

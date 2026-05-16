@@ -45,7 +45,8 @@ export function useMerchantStoreStatusSync({
                   ...current,
                   status: latestStore.status,
                   accepting_orders: latestStore.accepting_orders,
-                  is_open: latestStore.is_open
+                  is_open: latestStore.is_open,
+                  products: latestStore.products
                 }
               : current
           );

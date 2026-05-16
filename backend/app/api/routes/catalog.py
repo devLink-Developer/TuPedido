@@ -18,6 +18,7 @@ from app.api.presenters import (
 )
 from app.core.utils import next_store_opening_at
 from app.db.session import get_db
+from app.models.delivery import DeliveryProfile
 from app.models.store import Category, Product, ProductCategory, Store, StoreCategoryLink
 from app.schemas.catalog import CatalogBannerRead, PlatformBrandingRead
 from app.services.mercadopago import get_or_create_mercadopago_provider
@@ -32,6 +33,7 @@ STORE_LOAD_OPTIONS = (
     selectinload(Store.category_links).selectinload(StoreCategoryLink.category),
     selectinload(Store.hours),
     selectinload(Store.delivery_settings),
+    selectinload(Store.delivery_riders).selectinload(DeliveryProfile.user),
     selectinload(Store.payment_settings),
     selectinload(Store.payment_accounts),
     selectinload(Store.product_categories).selectinload(ProductCategory.subcategories),
@@ -112,7 +114,11 @@ def list_stores(
     query = (
         select(Store)
         .options(*STORE_LOAD_OPTIONS)
-        .where(Store.status == "approved", Store.accepting_orders.is_(True))
+        .where(
+            Store.status == "approved",
+            Store.accepting_orders.is_(True),
+            Store.products.any(Product.is_available.is_(True)),
+        )
     )
     if search:
         query = query.where(
@@ -182,7 +188,16 @@ def get_store(
     if not has_valid_coordinates(latitude, longitude):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Customer location is required")
 
-    store = db.scalar(select(Store).options(*STORE_LOAD_OPTIONS).where(Store.slug == slug, Store.status == "approved"))
+    store = db.scalar(
+        select(Store)
+        .options(*STORE_LOAD_OPTIONS)
+        .where(
+            Store.slug == slug,
+            Store.status == "approved",
+            Store.accepting_orders.is_(True),
+            Store.products.any(Product.is_available.is_(True)),
+        )
+    )
     if store is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Store not found")
     customer_latitude = float(latitude)

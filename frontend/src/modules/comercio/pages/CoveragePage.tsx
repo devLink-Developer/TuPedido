@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { EmptyState, LoadingCard } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
 import {
@@ -18,7 +19,7 @@ import {
   toStoreAddressPayload,
   type StoreAddressFormState
 } from "../components/StoreAddressSection";
-import { StoreCoverageSection, hasAnyCoverageArea } from "../components/StoreCoverageSection";
+import { StoreCoverageSection, hasAnyCoverageArea, hasCoveragePolygon } from "../components/StoreCoverageSection";
 import { MerchantPageBar } from "../components/MerchantPageBar";
 import { useMerchantStoreStatusSync } from "../hooks/useMerchantStoreStatusSync";
 
@@ -61,6 +62,36 @@ function buildStoreAddressSummary(form: StoreAddressFormState) {
   };
 }
 
+function deliveryBlockReason(store: MerchantStore, options: { addressReady: boolean }) {
+  const { addressReady } = options;
+  if (!addressReady) {
+    return "Configura CP, provincia, localidad, calle, altura y geolocalizacion del local antes de habilitar delivery.";
+  }
+  if (!hasCoveragePolygon(store.delivery_settings.delivery_area_polygon)) {
+    return "Dibuja y guarda el alcance de delivery antes de habilitar envios.";
+  }
+  if ((store.delivery_settings.configured_riders_count ?? 0) === 0) {
+    return "Configura al menos un repartidor antes de habilitar envios.";
+  }
+  if ((store.delivery_settings.active_riders_count ?? 0) === 0) {
+    return "Activa al menos un repartidor antes de habilitar envios.";
+  }
+  return null;
+}
+
+function normalizeDeliveryAvailability(store: MerchantStore, addressReady: boolean): MerchantStore {
+  if (!store.delivery_settings.delivery_enabled || deliveryBlockReason(store, { addressReady }) === null) {
+    return store;
+  }
+  return {
+    ...store,
+    delivery_settings: {
+      ...store.delivery_settings,
+      delivery_enabled: false
+    }
+  };
+}
+
 export function CoveragePage() {
   const { token } = useAuthSession();
   const [store, setStore] = useState<MerchantStore | null>(null);
@@ -73,6 +104,9 @@ export function CoveragePage() {
   const isApproved = store?.status === "approved";
   const deliveryAddressReady = hasStoreAddressConfiguration(storeAddressForm);
   const coverageReady = store ? hasAnyCoverageArea(store.delivery_settings) : false;
+  const deliveryReady = store ? deliveryBlockReason(store, { addressReady: deliveryAddressReady }) === null : false;
+  const deliveryUnavailableMessage = store ? deliveryBlockReason(store, { addressReady: deliveryAddressReady }) : null;
+  const deliveryChecked = Boolean(store?.delivery_settings.delivery_enabled && deliveryReady);
   const hasAddressDraft = hasStoreAddressDraft(storeAddressForm);
   const addressSummary = useMemo(() => buildStoreAddressSummary(storeAddressForm), [storeAddressForm]);
 
@@ -82,8 +116,9 @@ export function CoveragePage() {
     setError(null);
     try {
       const storeResult = await fetchMerchantStore(token);
-      setStore(storeResult);
-      setStoreAddressForm(toStoreAddressFormState(storeResult));
+      const nextAddressForm = toStoreAddressFormState(storeResult);
+      setStore(normalizeDeliveryAvailability(storeResult, hasStoreAddressConfiguration(nextAddressForm)));
+      setStoreAddressForm(nextAddressForm);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudo cargar direccion y alcance");
     } finally {
@@ -153,10 +188,15 @@ export function CoveragePage() {
       }
 
       const nextAddressReady = hasStoreAddressConfiguration(nextStoreAddressForm);
-      if (store.delivery_settings.delivery_enabled && !nextAddressReady) {
-        setError("Configura CP, provincia, localidad, calle, altura y geolocalizacion del local antes de habilitar delivery.");
+      const deliveryReason = deliveryBlockReason(store, { addressReady: nextAddressReady });
+      if (store.delivery_settings.delivery_enabled && deliveryReason) {
+        setError(deliveryReason);
         return;
       }
+      const deliverySettings = {
+        ...store.delivery_settings,
+        delivery_enabled: store.delivery_settings.delivery_enabled && deliveryReason === null
+      };
 
       const addressPayload =
         toStoreAddressPayload(nextStoreAddressForm) ??
@@ -177,7 +217,7 @@ export function CoveragePage() {
               latitude: null,
               longitude: null
             });
-      const nextAcceptingOrders = store.accepting_orders && nextAddressReady && hasAnyCoverageArea(store.delivery_settings);
+      const nextAcceptingOrders = store.accepting_orders && nextAddressReady && hasAnyCoverageArea(deliverySettings);
       await updateMerchantStore(token, {
         ...toStoreUpdatePayload(store, nextAcceptingOrders),
         address: addressPayload.address,
@@ -187,7 +227,7 @@ export function CoveragePage() {
         latitude: addressPayload.latitude,
         longitude: addressPayload.longitude
       });
-      await updateMerchantDeliverySettings(token, store.delivery_settings);
+      await updateMerchantDeliverySettings(token, deliverySettings);
       await load();
       setShowAddressEditor(false);
     } catch (requestError) {
@@ -293,13 +333,19 @@ export function CoveragePage() {
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="flex min-h-[52px] cursor-pointer items-center gap-2 rounded bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+            <label
+              className={`flex min-h-[52px] items-center gap-2 rounded px-4 py-3 text-sm font-semibold ${
+                deliveryReady ? "cursor-pointer bg-zinc-50 text-zinc-700" : "cursor-not-allowed bg-zinc-100 text-zinc-400"
+              }`}
+            >
               <input
                 type="checkbox"
-                checked={store.delivery_settings.delivery_enabled}
+                checked={deliveryChecked}
+                disabled={!deliveryReady}
                 onChange={(event) => {
-                  if (event.target.checked && !deliveryAddressReady) {
-                    setError("Configura CP, provincia, localidad, calle, altura y geolocalizacion del local antes de habilitar delivery.");
+                  const reason = deliveryBlockReason(store, { addressReady: deliveryAddressReady });
+                  if (event.target.checked && reason) {
+                    setError(reason);
                     return;
                   }
                   setError(null);
@@ -337,6 +383,21 @@ export function CoveragePage() {
             <p className="rounded border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
               El delivery permanece bloqueado hasta que la direccion quede configurada con CP, localidad y punto exacto en el mapa.
             </p>
+          ) : null}
+          {deliveryAddressReady && deliveryUnavailableMessage ? (
+            <div className="rounded border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+              <p className="font-semibold">Delivery bloqueado</p>
+              <p className="mt-1">{deliveryUnavailableMessage}</p>
+              {(store.delivery_settings.configured_riders_count ?? 0) === 0 ||
+              (store.delivery_settings.active_riders_count ?? 0) === 0 ? (
+                <Link
+                  to="/m/riders"
+                  className="mt-3 inline-flex min-h-[44px] items-center rounded bg-amber-900 px-4 py-2 text-sm font-semibold text-white"
+                >
+                  Gestionar repartidores
+                </Link>
+              ) : null}
+            </div>
           ) : null}
           {!isApproved ? (
             <p className="rounded border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">

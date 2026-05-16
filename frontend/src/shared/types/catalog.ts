@@ -49,6 +49,9 @@ export type StoreDeliverySettings = {
   delivery_area_polygon: CoveragePoint[];
   pickup_area_polygon: CoveragePoint[];
   pickup_area_uses_delivery_area: boolean;
+  configured_riders_count?: number;
+  active_riders_count?: number;
+  delivery_unavailable_reason?: string | null;
 };
 
 export type MercadoPagoConnectionStatus = "connected" | "disconnected" | "reconnect_required" | "onboarding_pending";
