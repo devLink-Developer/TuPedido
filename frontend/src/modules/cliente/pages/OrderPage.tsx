@@ -96,13 +96,13 @@ function getDeliverySummary(
   if (assignedRiderName) {
     return {
       title: assignedRiderName,
-      description: etaMinutes !== null ? `ETA ${etaMinutes} min - ${deliveryStatusLabel}` : deliveryStatusLabel
+      description: etaMinutes !== null ? `ETA ${etaMinutes} min - ${deliveryStatusLabel}` : `Repartidor asignado - ${deliveryStatusLabel}`
     };
   }
 
   return {
     title: deliveryStatusLabel,
-    description: etaMinutes !== null ? `ETA ${etaMinutes} min` : "Aun sin rider asignado"
+    description: etaMinutes !== null ? `ETA ${etaMinutes} min` : "Aun sin repartidor asignado"
   };
 }
 
@@ -367,7 +367,10 @@ export function OrderPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-4">
+          {liveTracking?.tracking_enabled ? <OrderTracking order={order} tracking={liveTracking} /> : null}
+
           <div className="rounded bg-white p-5 shadow-sm">
+            <h3 className="text-lg font-bold">Datos del pedido</h3>
             <div className="flex flex-wrap gap-2">
               <StatusPill value={order.status} />
               <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
@@ -386,8 +389,6 @@ export function OrderPage() {
               {order.payment_reference ? <p><strong>Referencia:</strong> {order.payment_reference}</p> : null}
             </div>
           </div>
-
-          {liveTracking?.tracking_enabled ? <OrderTracking order={order} tracking={liveTracking} /> : null}
 
           <div className="rounded bg-white p-5 shadow-sm">
             <h3 className="text-lg font-bold">Items</h3>
@@ -412,8 +413,8 @@ export function OrderPage() {
             <h3 className="text-lg font-bold">Entrega y pago</h3>
             <div className="mt-4 space-y-2 text-sm text-zinc-600">
               <p>Pago: {paymentStatusLabel}</p>
-              <p>Delivery: {deliveryStatusLabel}</p>
-              {assignedRiderName ? <p>Rider: {assignedRiderName}</p> : null}
+              <p>Entrega: {deliveryStatusLabel}</p>
+              {assignedRiderName ? <p>Repartidor: {assignedRiderName}</p> : null}
               {etaMinutes !== null ? <p>ETA: {etaMinutes} min</p> : null}
             </div>
           </div>

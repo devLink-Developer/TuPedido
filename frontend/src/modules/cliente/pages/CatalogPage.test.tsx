@@ -1,5 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthStore, useCategoryStore, useClienteStore } from "../../../shared/stores";
@@ -143,11 +142,11 @@ describe("CatalogPage", () => {
         longitude: -64.18
       })
     );
-    expect(screen.getByRole("button", { name: "Cambiar ubicacion de catalogo" })).toHaveTextContent("Casa - San Martin 123");
+    expect(useClienteStore.getState().selectedAddressId).toBe(10);
+    expect(screen.queryByRole("button", { name: "Cambiar ubicacion de catalogo" })).not.toBeInTheDocument();
   });
 
-  it("recarga comercios al cambiar la direccion del catalogo", async () => {
-    const user = userEvent.setup();
+  it("recarga comercios al cambiar la direccion desde el navbar", async () => {
     useAuthStore.getState().setSession({
       access_token: "token",
       token_type: "bearer",
@@ -196,8 +195,9 @@ describe("CatalogPage", () => {
       )
     );
 
-    await user.click(screen.getByRole("button", { name: "Cambiar ubicacion de catalogo" }));
-    await user.click(screen.getByRole("button", { name: "Usar Trabajo para filtrar comercios" }));
+    act(() => {
+      useClienteStore.getState().setSelectedAddressId(11);
+    });
 
     await waitFor(() =>
       expect(fetchStoresMock).toHaveBeenLastCalledWith({

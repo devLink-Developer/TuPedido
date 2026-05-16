@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle, ChevronDown, MapPin, Navigation } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { CatalogBanner, EmptyState, LoadingCard, RubroChip } from "../../../shared/components";
 import { useAuthSession } from "../../../shared/hooks";
@@ -71,7 +70,6 @@ export function CatalogPage() {
   const loadCategories = useCategoryStore((state) => state.loadCategories);
   const [stores, setStores] = useState<StoreSummary[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
-  const [addressSelectorOpen, setAddressSelectorOpen] = useState(false);
   const [catalogBanner, setCatalogBanner] = useState<CatalogBannerData | null>(null);
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(true);
@@ -90,19 +88,6 @@ export function CatalogPage() {
   );
   const catalogTheme = useMemo(() => buildCatalogTheme(selectedCategory), [selectedCategory]);
   const pinnedAddresses = useMemo(() => addresses.filter(hasAddressPin), [addresses]);
-  const selectedAddress = useMemo(
-    () => pinnedAddresses.find((address) => address.id === selectedAddressId) ?? null,
-    [pinnedAddresses, selectedAddressId]
-  );
-  const selectedLocationLabel =
-    customerLocation?.source === "gps"
-      ? "Ubicacion actual"
-      : selectedAddress
-        ? `${selectedAddress.label || "Direccion"} - ${selectedAddress.street}`
-        : customerLocation?.source === "address"
-          ? "Direccion guardada"
-          : "Sin ubicacion";
-  const hasConfiguredAddress = pinnedAddresses.length > 0;
 
   filtersRef.current = { categorySlug, search, deliveryMode };
   locationRef.current = customerLocation;
@@ -279,7 +264,6 @@ export function CatalogPage() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setSelectedAddressId("");
-        setAddressSelectorOpen(false);
         setCustomerLocation({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
@@ -293,13 +277,6 @@ export function CatalogPage() {
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 }
     );
-  }
-
-  function selectAddress(address: PinnedAddress) {
-    setSelectedAddressId(address.id);
-    setCustomerLocation(locationFromAddress(address));
-    setLocationError(null);
-    setAddressSelectorOpen(false);
   }
 
   useEffect(() => {
@@ -397,54 +374,6 @@ export function CatalogPage() {
           boxShadow: `0 20px 44px -34px ${catalogTheme.accentShadow}`
         }}
       >
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <button
-            type="button"
-            aria-label="Cambiar ubicacion de catalogo"
-            aria-expanded={addressSelectorOpen}
-            disabled={!hasConfiguredAddress}
-            onClick={() => setAddressSelectorOpen((current) => !current)}
-            className="inline-flex min-h-[44px] min-w-0 items-center gap-2 rounded border bg-white/86 px-3 py-2 text-left text-sm font-semibold text-ink transition hover:bg-white disabled:cursor-default disabled:opacity-80"
-            style={{ borderColor: catalogTheme.accentBorder }}
-          >
-            {customerLocation?.source === "gps" ? <Navigation className="h-4 w-4 shrink-0 text-brand-600" /> : <MapPin className="h-4 w-4 shrink-0 text-brand-600" />}
-            <span className="truncate">{selectedLocationLabel}</span>
-            {hasConfiguredAddress ? <ChevronDown className={`h-4 w-4 shrink-0 text-zinc-400 transition ${addressSelectorOpen ? "rotate-180" : ""}`} /> : null}
-          </button>
-          <button type="button" onClick={requestGpsLocation} className="kp-soft-action min-h-[44px] px-4 py-2 text-sm">
-            Usar GPS
-          </button>
-        </div>
-
-        {addressSelectorOpen && hasConfiguredAddress ? (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {pinnedAddresses.map((address) => {
-              const active = selectedAddressId === address.id;
-              return (
-                <button
-                  key={address.id}
-                  type="button"
-                  aria-label={`Usar ${address.label || address.street} para filtrar comercios`}
-                  aria-pressed={active}
-                  onClick={() => selectAddress(address)}
-                  className={`min-h-[62px] rounded border px-3 py-2 text-left text-sm transition ${
-                    active ? "bg-white text-ink shadow-sm" : "bg-white/64 text-zinc-600 hover:bg-white"
-                  }`}
-                  style={{ borderColor: active ? catalogTheme.accentBorderStrong : catalogTheme.accentBorder }}
-                >
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="truncate font-bold">{address.label || "Direccion"}</span>
-                    {active ? <CheckCircle className="h-4 w-4 shrink-0 text-brand-600" /> : null}
-                  </span>
-                  <span className="mt-1 block truncate text-xs text-zinc-500">
-                    {[address.street, address.locality].filter(Boolean).join(" - ")}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-
         <div className="grid gap-4 md:grid-cols-[1.3fr_0.7fr]">
           <label className="space-y-2">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Buscar</span>
