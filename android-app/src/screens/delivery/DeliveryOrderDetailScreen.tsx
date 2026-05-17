@@ -21,6 +21,7 @@ import { friendlyErrorMessage } from "../../utils/apiMessages";
 import { deliveryRoutePhase } from "../../utils/deliveryRoute";
 import { formatCurrency } from "../../utils/format";
 import { labelForStatus } from "../../utils/labels";
+import { getRiderCustomerName, getRiderDeliveryAddress } from "../../utils/deliveryOrderDisplay";
 import { stopDeliveryLocationTracking } from "../../tracking/backgroundLocation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "DeliveryOrderDetail">;
@@ -130,7 +131,7 @@ export function DeliveryOrderDetailScreen({ route, navigation }: Props) {
 
   const phase = deliveryRoutePhase(order);
   const isDropoff = phase === "dropoff";
-  const destination = order.address_full?.trim() || order.address_label?.trim() || "Sin destino";
+  const destination = getRiderDeliveryAddress(order);
   const isTerminal = ["delivered", "cancelled", "delivery_failed"].includes(order.status);
   const canAccept = order.delivery_status === "assigned" && !isTerminal;
   const canPickup =
@@ -160,7 +161,7 @@ export function DeliveryOrderDetailScreen({ route, navigation }: Props) {
           <Text maxFontSizeMultiplier={1.1} style={styles.statusPill}>{labelForStatus(order.delivery_status)}</Text>
           <Text maxFontSizeMultiplier={1.1} style={styles.metricPill}>ETA {directions?.duration_minutes ?? order.eta_minutes ?? "-"} min</Text>
         </View>
-        <Text maxFontSizeMultiplier={1.15} style={styles.customerText}>Cliente: {order.customer_name}</Text>
+        <Text maxFontSizeMultiplier={1.15} style={styles.customerText}>Cliente: {getRiderCustomerName(order)}</Text>
         <View style={styles.moneyRow}>
           <Text maxFontSizeMultiplier={1.1} style={styles.moneyPill}>Cobro {formatCurrency(order.total)}</Text>
           <Text maxFontSizeMultiplier={1.1} style={styles.moneyPill}>Comision {formatCurrency(order.rider_fee)}</Text>

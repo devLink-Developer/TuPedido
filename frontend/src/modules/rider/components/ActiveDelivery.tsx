@@ -4,6 +4,7 @@ import type { Order } from "../../../shared/types";
 import { formatCurrency } from "../../../shared/utils/format";
 import { statusLabels } from "../../../shared/utils/labels";
 import { LiveMap } from "../../../shared/components";
+import { getRiderCustomerName, getRiderDeliveryAddress } from "../utils/orderDisplay";
 
 export function ActiveDelivery({
   order,
@@ -53,7 +54,8 @@ export function ActiveDelivery({
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pedido #{order.id}</p>
           <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-ink">{order.store_name}</h3>
-          <p className="mt-2 text-sm text-zinc-600">{order.address_full ?? order.address_label ?? "Retiro en local"}</p>
+          <p className="mt-2 text-sm font-semibold text-ink">Cliente: {getRiderCustomerName(order)}</p>
+          <p className="mt-1 text-sm text-zinc-600">{getRiderDeliveryAddress(order)}</p>
         </div>
         <div className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
           {statusLabels[order.delivery_status] ?? order.delivery_status}

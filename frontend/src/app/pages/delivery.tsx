@@ -39,6 +39,17 @@ const emptyDeliveryForm: DeliveryFormState = {
   notes: ""
 };
 
+function getDeliveryCustomerName(order: Pick<Order, "customer_name">) {
+  return order.customer_name?.trim() || "Sin nombre";
+}
+
+function getDeliveryAddress(order: Pick<Order, "delivery_mode" | "address_full">) {
+  if (order.delivery_mode === "pickup") {
+    return "Retiro en local";
+  }
+  return order.address_full?.trim() || "Direccion pendiente";
+}
+
 function OrderActionCard({
   order,
   onAccept,
@@ -89,7 +100,8 @@ function OrderActionCard({
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Pedido #{order.id}</p>
           <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-ink">{order.store_name}</h3>
-          <p className="mt-2 text-sm text-zinc-600">{order.address_full ?? order.address_label ?? "Retiro en local"}</p>
+          <p className="mt-2 text-sm font-semibold text-ink">Cliente: {getDeliveryCustomerName(order)}</p>
+          <p className="mt-1 text-sm text-zinc-600">{getDeliveryAddress(order)}</p>
         </div>
         <div className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
           {statusLabels[order.delivery_status] ?? order.delivery_status}
@@ -505,14 +517,15 @@ export function DeliveryDashboardPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-bold">{order.store_name}</h3>
-                  <p className="text-sm text-zinc-600">{order.address_full ?? "Retiro en local"}</p>
+                  <p className="text-sm font-semibold text-ink">Cliente: {getDeliveryCustomerName(order)}</p>
+                  <p className="text-sm text-zinc-600">{getDeliveryAddress(order)}</p>
                 </div>
                 <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
                   {statusLabels[order.delivery_status] ?? order.delivery_status}
                 </span>
               </div>
               <div className="mt-3 flex flex-wrap gap-3 text-sm text-zinc-600">
-                <span>Cliente: {formatCurrency(order.total)}</span>
+                <span>Total: {formatCurrency(order.total)}</span>
                 <span>Rider: {formatCurrency(order.rider_fee)}</span>
                 <span>{new Date(order.created_at).toLocaleString("es-AR")}</span>
               </div>

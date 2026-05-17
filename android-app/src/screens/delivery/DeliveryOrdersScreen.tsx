@@ -19,6 +19,7 @@ import type { DeliveryTabsParamList, RootStackParamList } from "../../navigation
 import { friendlyErrorMessage } from "../../utils/apiMessages";
 import { formatCurrency, formatDateTime } from "../../utils/format";
 import { labelForStatus } from "../../utils/labels";
+import { getRiderCustomerName, getRiderDeliveryAddress } from "../../utils/deliveryOrderDisplay";
 
 type Props = BottomTabScreenProps<DeliveryTabsParamList, "DeliveryOrders">;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
@@ -150,7 +151,8 @@ export function DeliveryOrdersScreen(_props: Props) {
                   <View style={styles.activeCopy}>
                     <Text style={styles.activeLabel}>Entrega activa</Text>
                     <Text style={styles.activeTitle} numberOfLines={1}>{activeOrder.store_name}</Text>
-                    <Text style={styles.activeMeta} numberOfLines={1}>{activeOrder.address_full ?? "Dirección pendiente"}</Text>
+                    <Text style={styles.activeMeta} numberOfLines={1}>Cliente: {getRiderCustomerName(activeOrder)}</Text>
+                    <Text style={styles.activeMeta} numberOfLines={1}>{getRiderDeliveryAddress(activeOrder)}</Text>
                   </View>
                 </View>
                 <View style={styles.activeActions}>
@@ -178,8 +180,8 @@ export function DeliveryOrdersScreen(_props: Props) {
               </View>
 
               <View style={styles.detailGrid}>
-                <InfoRow icon="location-outline" label="Destino" value={item.address_full ?? "Sin dirección"} />
-                <InfoRow icon="person-outline" label="Cliente" value={item.customer_name || "Sin nombre"} />
+                <InfoRow icon="location-outline" label="Destino" value={getRiderDeliveryAddress(item)} />
+                <InfoRow icon="person-outline" label="Cliente" value={getRiderCustomerName(item)} />
                 <InfoRow icon="time-outline" label="Último cambio" value={formatDateTime(orderTime(item))} />
                 <InfoRow icon="wallet-outline" label="Tu pago" value={formatCurrency(item.rider_fee)} strong />
               </View>

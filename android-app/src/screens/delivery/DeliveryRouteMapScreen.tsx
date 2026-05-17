@@ -24,6 +24,7 @@ import { friendlyErrorMessage } from "../../utils/apiMessages";
 import { deliveryRoutePhase, getRiderCoordinate, normalizeRiderInstructionText } from "../../utils/deliveryRoute";
 import { formatDistance, formatMinutes } from "../../utils/format";
 import { labelForStatus } from "../../utils/labels";
+import { getRiderCustomerName, getRiderDeliveryAddress } from "../../utils/deliveryOrderDisplay";
 
 type Props = NativeStackScreenProps<RootStackParamList, "DeliveryRouteMap">;
 
@@ -109,9 +110,9 @@ export function DeliveryRouteMapScreen({ route, navigation }: Props) {
   const isDropoff = routePhase === "dropoff";
   const riderLocation = order ? getRiderCoordinate(order, tracking) : null;
   const destinationText = isDropoff
-    ? order?.address_full?.trim() || order?.address_label?.trim() || "Direccion del cliente no disponible"
+    ? (order ? getRiderDeliveryAddress(order) : "Direccion del cliente no disponible")
     : order?.store_name?.trim() || "Comercio";
-  const destinationMeta = isDropoff ? `Cliente: ${order?.customer_name ?? "Sin nombre"}` : "Retiro en comercio";
+  const destinationMeta = isDropoff && order ? `Cliente: ${getRiderCustomerName(order)}` : "Retiro en comercio";
   const currentInstruction = instructions[0] ?? null;
   const canCompleteDelivery = isDropoff && !["delivered", "cancelled", "delivery_failed"].includes(order?.status ?? "");
   const showDeliveryCodePanel = canCompleteDelivery && Boolean(order?.otp_required);

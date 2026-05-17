@@ -20,6 +20,7 @@ import type { DeliveryTabsParamList, RootStackParamList } from "../../navigation
 import { formatCurrency } from "../../utils/format";
 import { friendlyErrorMessage } from "../../utils/apiMessages";
 import { labelForStatus } from "../../utils/labels";
+import { getRiderCustomerName, getRiderDeliveryAddress } from "../../utils/deliveryOrderDisplay";
 
 type Props = BottomTabScreenProps<DeliveryTabsParamList, "DeliveryHome">;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
@@ -65,7 +66,7 @@ export function DeliveryHomeScreen(_props: Props) {
     () => orders.find((order) => !["delivered", "cancelled", "delivery_failed"].includes(order.status)) ?? null,
     [orders]
   );
-  const activeDestination = activeOrder?.address_full?.trim() || activeOrder?.address_label?.trim() || "Sin direccion";
+  const activeDestination = activeOrder ? getRiderDeliveryAddress(activeOrder) : "Sin direccion";
 
   const { status: autoTrackingStatus } = useAutoDeliveryLocationTracking({
     token,
@@ -161,6 +162,9 @@ export function DeliveryHomeScreen(_props: Props) {
             <Text maxFontSizeMultiplier={1.1} style={styles.statusChip}>{labelForStatus(activeOrder.delivery_status)}</Text>
           </View>
           <Text maxFontSizeMultiplier={1.15} style={styles.storeText} numberOfLines={1}>{activeOrder.store_name}</Text>
+          <Text maxFontSizeMultiplier={1.15} style={styles.customerText} numberOfLines={1}>
+            Cliente: {getRiderCustomerName(activeOrder)}
+          </Text>
           <View style={styles.summaryRow}>
             <Text maxFontSizeMultiplier={1.1} style={styles.summaryPill}>{formatCurrency(activeOrder.total)}</Text>
             <Text maxFontSizeMultiplier={1.1} style={styles.summaryPill}>{labelForStatus(activeOrder.status)}</Text>
@@ -341,6 +345,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 19,
     fontWeight: "800"
+  },
+  customerText: {
+    color: colors.text,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: "900"
   },
   summaryRow: {
     flexDirection: "row",
