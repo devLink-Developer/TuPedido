@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
         registerType: "autoUpdate",
         srcDir: "src",
         filename: "sw.ts",
-        includeAssets: ["icons/icon-192.svg", "icons/icon-512.svg"],
+        includeAssets: ["icons/app-icon-192.png", "icons/app-icon-512.png", "icons/app-icon-1024.png"],
         manifest: {
           name: "Kepedimos",
           short_name: "Kepedimos",
@@ -28,15 +28,21 @@ export default defineConfig(({ mode }) => {
           orientation: "portrait-primary",
           icons: [
             {
-              src: "/icons/icon-192.svg",
+              src: "/icons/app-icon-192.png",
               sizes: "192x192",
-              type: "image/svg+xml",
+              type: "image/png",
               purpose: "any"
             },
             {
-              src: "/icons/icon-512.svg",
+              src: "/icons/app-icon-512.png",
               sizes: "512x512",
-              type: "image/svg+xml",
+              type: "image/png",
+              purpose: "any maskable"
+            },
+            {
+              src: "/icons/app-icon-1024.png",
+              sizes: "1024x1024",
+              type: "image/png",
               purpose: "any maskable"
             }
           ]

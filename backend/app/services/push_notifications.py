@@ -113,8 +113,8 @@ def _build_web_push_payload(notification: NotificationEvent, role: str | None) -
     return {
         "title": notification.title or "Novedad de Kepedimos",
         "body": notification.body or "Tenes una actualizacion.",
-        "icon": "/icons/icon-192.svg",
-        "badge": "/icons/icon-192.svg",
+        "icon": "/icons/app-icon-192.png",
+        "badge": "/icons/app-icon-192.png",
         "tag": f"kepedimos-notification-{notification.id}",
         "data": data,
         "url": url,

@@ -72,8 +72,8 @@ sw.addEventListener("push", (event) => {
   event.waitUntil(
     sw.registration.showNotification(title, {
       body: payload.body,
-      icon: payload.icon ?? "/icons/icon-192.svg",
-      badge: payload.badge ?? "/icons/icon-192.svg",
+      icon: payload.icon ?? "/icons/app-icon-192.png",
+      badge: payload.badge ?? "/icons/app-icon-192.png",
       tag: payload.tag,
       data: {
         ...(payload.data ?? {}),

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kepedimos-shell-v1';
+const CACHE_NAME = 'kepedimos-shell-v2';
 const APP_SHELL = [
   '/index.html',
   '/restaurants.html',
@@ -11,7 +11,9 @@ const APP_SHELL = [
   '/login.html',
   '/add_user.html',
   '/manifest.webmanifest',
-  '/icon.svg',
+  '/icons/app-icon-192.png',
+  '/icons/app-icon-512.png',
+  '/icons/app-icon-1024.png',
   '/pwa.js'
 ];
 
