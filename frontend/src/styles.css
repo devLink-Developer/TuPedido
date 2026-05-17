@@ -167,6 +167,195 @@ a {
   outline-offset: 2px;
 }
 
+.coverage-guide-stage {
+  position: relative;
+  min-height: 160px;
+  overflow: hidden;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: var(--radius-ui);
+  background:
+    linear-gradient(rgba(16, 185, 129, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 185, 129, 0.12) 1px, transparent 1px),
+    linear-gradient(180deg, #ffffff 0%, #ecfdf5 100%);
+  background-size: 24px 24px, 24px 24px, auto;
+}
+
+.coverage-guide-point,
+.coverage-guide-line,
+.coverage-guide-shape,
+.coverage-guide-cursor {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.coverage-guide-point {
+  z-index: 4;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 3px solid #ffffff;
+  background: #059669;
+  box-shadow: 0 6px 14px rgba(4, 120, 87, 0.24);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.72);
+  animation: coverage-guide-point 4200ms ease-in-out infinite;
+}
+
+.coverage-guide-point-1 {
+  left: 28%;
+  top: 68%;
+}
+
+.coverage-guide-point-2 {
+  left: 48%;
+  top: 28%;
+  animation-delay: 520ms;
+}
+
+.coverage-guide-point-3 {
+  left: 75%;
+  top: 62%;
+  animation-delay: 1040ms;
+}
+
+.coverage-guide-line {
+  z-index: 2;
+  height: 3px;
+  background: #047857;
+  opacity: 0;
+  transform-origin: left center;
+  animation: coverage-guide-line 4200ms ease-in-out infinite;
+}
+
+.coverage-guide-line-1 {
+  left: 28%;
+  top: 68%;
+  width: 48%;
+  --coverage-guide-line-angle: -59deg;
+  transform: rotate(var(--coverage-guide-line-angle)) scaleX(0);
+  animation-delay: 720ms;
+}
+
+.coverage-guide-line-2 {
+  left: 48%;
+  top: 28%;
+  width: 37%;
+  --coverage-guide-line-angle: 45deg;
+  transform: rotate(var(--coverage-guide-line-angle)) scaleX(0);
+  animation-delay: 1240ms;
+}
+
+.coverage-guide-line-3 {
+  left: 28%;
+  top: 68%;
+  width: 47%;
+  --coverage-guide-line-angle: -5deg;
+  transform: rotate(var(--coverage-guide-line-angle)) scaleX(0);
+  animation-delay: 1700ms;
+}
+
+.coverage-guide-shape {
+  z-index: 1;
+  left: 28%;
+  top: 28%;
+  width: 47%;
+  height: 40%;
+  clip-path: polygon(0 100%, 43% 0, 100% 85%);
+  background: rgba(16, 185, 129, 0.18);
+  opacity: 0;
+  animation: coverage-guide-shape 4200ms ease-in-out infinite;
+  animation-delay: 1900ms;
+}
+
+.coverage-guide-cursor {
+  z-index: 5;
+  left: 18%;
+  top: 78%;
+  width: 18px;
+  height: 24px;
+  clip-path: polygon(0 0, 0 100%, 34% 76%, 52% 100%, 68% 92%, 50% 68%, 88% 68%);
+  background: #151515;
+  transform: rotate(-12deg);
+  animation: coverage-guide-cursor 4200ms ease-in-out infinite;
+}
+
+@keyframes coverage-guide-cursor {
+  0%,
+  8% {
+    left: 18%;
+    top: 78%;
+  }
+  20%,
+  30% {
+    left: 28%;
+    top: 68%;
+  }
+  42%,
+  52% {
+    left: 48%;
+    top: 28%;
+  }
+  64%,
+  74% {
+    left: 75%;
+    top: 62%;
+  }
+  90%,
+  100% {
+    left: 75%;
+    top: 62%;
+  }
+}
+
+@keyframes coverage-guide-point {
+  0%,
+  12% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.72);
+  }
+  20%,
+  86% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.72);
+  }
+}
+
+@keyframes coverage-guide-line {
+  0%,
+  18% {
+    opacity: 0;
+    transform: rotate(var(--coverage-guide-line-angle, 0deg)) scaleX(0);
+  }
+  30%,
+  86% {
+    opacity: 1;
+    transform: rotate(var(--coverage-guide-line-angle, 0deg)) scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--coverage-guide-line-angle, 0deg)) scaleX(1);
+  }
+}
+
+@keyframes coverage-guide-shape {
+  0%,
+  42% {
+    opacity: 0;
+  }
+  54%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -175,6 +364,18 @@ a {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .coverage-guide-point,
+  .coverage-guide-line,
+  .coverage-guide-shape,
+  .coverage-guide-cursor {
+    animation: none !important;
+    opacity: 1;
+  }
+
+  .coverage-guide-line {
+    transform: rotate(var(--coverage-guide-line-angle, 0deg)) scaleX(1) !important;
   }
 }
 

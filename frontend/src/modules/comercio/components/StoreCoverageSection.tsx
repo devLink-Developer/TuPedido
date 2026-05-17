@@ -83,6 +83,27 @@ function resolveInitialCenter(points: CoveragePoint[], fallback: CoveragePoint |
   return fallback && isValidPoint(fallback) ? fallback : DEFAULT_CENTER;
 }
 
+function PolygonDrawingGuide() {
+  return (
+    <div className="coverage-guide rounded border border-emerald-200 bg-emerald-50 p-3">
+      <div className="coverage-guide-stage" aria-hidden="true">
+        <span className="coverage-guide-point coverage-guide-point-1" />
+        <span className="coverage-guide-point coverage-guide-point-2" />
+        <span className="coverage-guide-point coverage-guide-point-3" />
+        <span className="coverage-guide-line coverage-guide-line-1" />
+        <span className="coverage-guide-line coverage-guide-line-2" />
+        <span className="coverage-guide-line coverage-guide-line-3" />
+        <span className="coverage-guide-shape" />
+        <span className="coverage-guide-cursor" />
+      </div>
+      <p className="mt-3 text-sm font-bold text-emerald-950">Guia rapida para dibujar</p>
+      <p className="mt-1 text-sm leading-6 text-emerald-900">
+        Haz clic punto por punto alrededor de la zona. Al tercer vertice aparece el area y puedes arrastrar los puntos para ajustar.
+      </p>
+    </div>
+  );
+}
+
 function CoveragePolygonEditor({
   title,
   description,
@@ -108,6 +129,10 @@ function CoveragePolygonEditor({
   const initialCenterRef = useRef(resolveInitialCenter(points, fallbackCenter));
   const sourceId = useMemo(() => `coverage-${title.toLowerCase().replace(/\W+/g, "-")}`, [title]);
   const normalizedPoints = useMemo(() => normalizePoints(points), [points]);
+  const fallbackCenterKey = useMemo(
+    () => (fallbackCenter && isValidPoint(fallbackCenter) ? `${fallbackCenter.latitude.toFixed(7)}:${fallbackCenter.longitude.toFixed(7)}` : ""),
+    [fallbackCenter]
+  );
 
   pointsRef.current = points;
   onChangeRef.current = onChange;
@@ -173,6 +198,20 @@ function CoveragePolygonEditor({
       mapRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !fallbackCenter || !isValidPoint(fallbackCenter)) return;
+    if (normalizePoints(pointsRef.current).length) return;
+
+    const reduceMotion =
+      typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    map.easeTo({
+      center: [fallbackCenter.longitude, fallbackCenter.latitude],
+      zoom: Math.max(map.getZoom(), 13),
+      duration: reduceMotion ? 0 : 320,
+    });
+  }, [fallbackCenter, fallbackCenterKey]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -273,7 +312,10 @@ function CoveragePolygonEditor({
           </Button>
         </div>
       </div>
-      <div ref={containerRef} className="h-56 overflow-hidden rounded border border-black/10 bg-white lg:h-64" />
+      <div
+        ref={containerRef}
+        className="coverage-map-canvas h-[360px] min-h-[360px] overflow-hidden rounded border border-black/10 bg-white md:h-[460px] xl:h-[520px]"
+      />
       <p className={hasCoveragePolygon(points) ? "text-sm text-emerald-700" : "text-sm text-amber-700"}>
         {hasCoveragePolygon(points)
           ? `${normalizedPoints.length} vertices definidos.`
@@ -285,38 +327,63 @@ function CoveragePolygonEditor({
 
 export function StoreCoverageSection({
   store,
+  fallbackCenter,
+  locationLabel,
   onChange,
 }: {
   store: MerchantStore;
+  fallbackCenter?: CoveragePoint | null;
+  locationLabel?: string | null;
   onChange: (settings: StoreDeliverySettings) => void;
 }) {
   const settings = store.delivery_settings;
-  const fallbackCenter =
+  const storeFallbackCenter =
     store.latitude !== null && store.longitude !== null
       ? { latitude: store.latitude, longitude: store.longitude }
       : null;
+  const effectiveFallbackCenter = fallbackCenter ?? storeFallbackCenter;
 
   function updateSettings(next: Partial<StoreDeliverySettings>) {
     onChange({ ...settings, ...next });
   }
 
   return (
-    <section className="space-y-3 rounded border border-black/5 bg-white p-3 shadow-sm">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Zonas de alcance</p>
-        <h2 className="mt-1.5 text-lg font-bold text-ink">Poligonos de venta</h2>
-        <p className="mt-1.5 text-sm text-zinc-600">
-          Define las zonas donde aceptas pedidos. Sin una zona valida para una modalidad habilitada, el local no podra recibir pedidos.
-        </p>
+    <section className="space-y-4 rounded border border-black/5 bg-white p-4 shadow-sm">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Paso 3 / Zonas de alcance</p>
+          <h2 className="mt-1.5 text-2xl font-bold leading-tight text-ink">Dibuja el alcance real de venta</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">
+            Este es el bloque principal de la pantalla: define en el mapa donde aceptas pedidos. Primero ubica el local con la direccion; despues marca los vertices del poligono.
+          </p>
+        </div>
+        <PolygonDrawingGuide />
       </div>
 
-      <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
-        <p className="font-semibold">Como marcar los poligonos</p>
-        <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-          <p>Haz clic sobre el mapa para agregar vertices alrededor de tu zona.</p>
-          <p>Marca al menos 3 puntos; el area se cierra sola entre el ultimo y el primero.</p>
-          <p>Arrastra cualquier punto numerado para corregir el borde del alcance.</p>
-          <p>Usa deshacer o limpiar si necesitas volver a dibujar, y luego guarda los cambios.</p>
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
+        <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
+          <p className="font-semibold">Como marcar los poligonos</p>
+          <div className="mt-2 grid gap-2 md:grid-cols-2">
+            <p>Haz clic sobre el mapa para agregar vertices alrededor de tu zona.</p>
+            <p>Marca al menos 3 puntos; el area se cierra sola entre el ultimo y el primero.</p>
+            <p>Arrastra cualquier punto numerado para corregir el borde del alcance.</p>
+            <p>Usa deshacer o limpiar si necesitas volver a dibujar, y luego guarda los cambios.</p>
+          </div>
+        </div>
+        <div
+          className={[
+            "rounded border px-4 py-3 text-sm leading-6",
+            effectiveFallbackCenter
+              ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+              : "border-amber-200 bg-amber-50 text-amber-950"
+          ].join(" ")}
+        >
+          <p className="font-semibold">{effectiveFallbackCenter ? "Mapa centrado" : "Falta ubicar la direccion"}</p>
+          <p className="mt-1">
+            {effectiveFallbackCenter
+              ? `Los mapas se ubican automaticamente ${locationLabel ? `en ${locationLabel}` : "sobre la direccion detectada"} antes de guardar.`
+              : "Busca el CP, selecciona localidad y completa calle/altura para centrar los mapas antes de dibujar."}
+          </p>
         </div>
       </div>
 
@@ -324,7 +391,7 @@ export function StoreCoverageSection({
         title="Zona de envio"
         description="Haz clic en el mapa para agregar vertices; arrastra un punto para corregirlo."
         points={settings.delivery_area_polygon}
-        fallbackCenter={fallbackCenter}
+        fallbackCenter={effectiveFallbackCenter}
         onChange={(points) => updateSettings({ delivery_area_polygon: normalizePoints(points) })}
       />
 
@@ -346,7 +413,7 @@ export function StoreCoverageSection({
           title="Zona de retiro"
           description="Define desde donde permites que un cliente genere pedidos para retirar."
           points={settings.pickup_area_polygon}
-          fallbackCenter={fallbackCenter}
+          fallbackCenter={effectiveFallbackCenter}
           onChange={(points) => updateSettings({ pickup_area_polygon: normalizePoints(points) })}
         />
       ) : null}

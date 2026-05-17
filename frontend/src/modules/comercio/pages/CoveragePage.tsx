@@ -8,7 +8,7 @@ import {
   updateMerchantDeliverySettings,
   updateMerchantStore
 } from "../../../shared/services/api";
-import type { MerchantStore, StoreUpdate } from "../../../shared/types";
+import type { CoveragePoint, MerchantStore, StoreUpdate } from "../../../shared/types";
 import { Button } from "../../../shared/ui/Button";
 import { buildAddressGeocodeRequest } from "../../../shared/utils/addressFields";
 import {
@@ -62,6 +62,20 @@ function buildStoreAddressSummary(form: StoreAddressFormState) {
   };
 }
 
+function toFormCoordinate(value: string) {
+  const parsed = Number(value);
+  return value.trim() && Number.isFinite(parsed) ? parsed : null;
+}
+
+function buildCoverageFallbackCenter(form: StoreAddressFormState): CoveragePoint | null {
+  const latitude = toFormCoordinate(form.latitude);
+  const longitude = toFormCoordinate(form.longitude);
+  if (latitude === null || longitude === null) {
+    return null;
+  }
+  return { latitude, longitude };
+}
+
 function deliveryBlockReason(store: MerchantStore, options: { addressReady: boolean }) {
   const { addressReady } = options;
   if (!addressReady) {
@@ -109,6 +123,11 @@ export function CoveragePage() {
   const deliveryChecked = Boolean(store?.delivery_settings.delivery_enabled && deliveryReady);
   const hasAddressDraft = hasStoreAddressDraft(storeAddressForm);
   const addressSummary = useMemo(() => buildStoreAddressSummary(storeAddressForm), [storeAddressForm]);
+  const coverageFallbackCenter = useMemo(() => buildCoverageFallbackCenter(storeAddressForm), [storeAddressForm]);
+  const coverageLocationLabel = useMemo(
+    () => [storeAddressForm.locality.trim(), storeAddressForm.province.trim()].filter(Boolean).join(", "),
+    [storeAddressForm.locality, storeAddressForm.province]
+  );
 
   async function load() {
     if (!token) return;
@@ -256,13 +275,13 @@ export function CoveragePage() {
         ]}
       />
 
-      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-3 rounded bg-white p-3 shadow-sm">
-        <section className="space-y-3">
+      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4 rounded bg-white p-4 shadow-sm">
+        <section className="space-y-3 rounded border border-[var(--kp-stroke)] bg-[#fffdfb] p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Direccion del local</p>
-              <h2 className="mt-1.5 text-lg font-bold text-ink">Ubicacion comercial</h2>
-              <p className="mt-1.5 text-sm leading-6 text-zinc-600">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--kp-accent)]">Paso 1 / Direccion del local</p>
+              <h2 className="mt-1.5 text-2xl font-bold leading-tight text-ink">Ubica el punto exacto del comercio</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">
                 Esta direccion se usa para validar delivery, mostrar el local y calcular si el cliente esta dentro del alcance.
               </p>
             </div>
@@ -284,11 +303,13 @@ export function CoveragePage() {
             </div>
           </div>
 
-          <div className="rounded bg-zinc-50 p-3 text-sm text-zinc-600">
+          <div className="rounded border border-black/5 bg-zinc-50 p-4 text-sm text-zinc-600">
             {hasAddressDraft ? (
-              <div className="space-y-1">
-                <p className="font-semibold text-ink">{addressSummary.streetLine || "Direccion cargada"}</p>
-                {addressSummary.locationLine ? <p>{addressSummary.locationLine}</p> : null}
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+                <div className="space-y-1">
+                  <p className="text-base font-bold text-ink">{addressSummary.streetLine || "Direccion cargada"}</p>
+                  {addressSummary.locationLine ? <p>{addressSummary.locationLine}</p> : null}
+                </div>
                 <p className={deliveryAddressReady ? "text-emerald-700" : "text-amber-700"}>
                   {deliveryAddressReady
                     ? "Direccion completa y geolocalizada."
@@ -324,11 +345,11 @@ export function CoveragePage() {
           ) : null}
         </section>
 
-        <section className="space-y-3">
+        <section className="space-y-3 rounded border border-[var(--kp-stroke)] bg-[#fffdfb] p-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Modalidades</p>
-            <h2 className="mt-1.5 text-lg font-bold text-ink">Delivery y retiro</h2>
-            <p className="mt-1.5 text-sm leading-6 text-zinc-600">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--kp-accent)]">Paso 2 / Modalidades</p>
+            <h2 className="mt-1.5 text-2xl font-bold leading-tight text-ink">Elige como vender</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">
               Cada modalidad habilitada necesita una zona de alcance efectiva. La venta se pausa si no queda ninguna disponible.
             </p>
           </div>
@@ -408,6 +429,8 @@ export function CoveragePage() {
 
         <StoreCoverageSection
           store={store}
+          fallbackCenter={coverageFallbackCenter}
+          locationLabel={coverageLocationLabel || null}
           onChange={(deliverySettings) =>
             setStore((current) => (current ? { ...current, delivery_settings: deliverySettings } : current))
           }
@@ -415,7 +438,7 @@ export function CoveragePage() {
 
         {error ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
 
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="sticky bottom-3 z-10 flex flex-col gap-3 rounded border border-[var(--kp-stroke)] bg-white/95 p-3 shadow-[0_18px_44px_rgba(126,89,41,0.16)] backdrop-blur md:flex-row md:items-center md:justify-between">
           <p className="text-sm text-zinc-500">
             Guarda despues de mover el punto del mapa o editar los poligonos para actualizar el catalogo.
           </p>
