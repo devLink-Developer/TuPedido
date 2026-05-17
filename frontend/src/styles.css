@@ -517,6 +517,16 @@ a {
   box-shadow: 0 0 0 3px rgba(255, 106, 26, 0.13);
 }
 
+.auth-input-shell-error {
+  border-color: #fb7185;
+  background: #fff7f7;
+}
+
+.auth-input-shell-error:focus-within {
+  border-color: #e11d48;
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12);
+}
+
 .auth-input-icon {
   flex: none;
   width: 20px;
@@ -565,6 +575,13 @@ a {
 
 .auth-password-toggle:active {
   transform: scale(0.96);
+}
+
+.auth-field-error {
+  color: #be123c;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .auth-error-message {

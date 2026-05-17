@@ -14,6 +14,7 @@ import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useAuth } from "../../state/AuthContext";
 import type { AuthStackParamList } from "../../navigation/types";
 import { friendlyErrorMessage } from "../../utils/apiMessages";
+import { hasAuthFieldErrors, normalizeEmail, validateRegisterForm, type AuthFieldErrors } from "../../utils/authValidation";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Register">;
 
@@ -23,15 +24,16 @@ export function RegisterScreen({ navigation }: Props) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   async function handleRegister() {
-    if (!fullName.trim() || !email.trim() || password.length < 6) {
-      showDialog({
-        title: "Datos incompletos",
-        message: "Completá nombre, email y una contraseña de al menos 6 caracteres.",
-        variant: "warning"
-      });
+    const nextErrors = validateRegisterForm({ fullName, email, password, confirmPassword });
+    setFieldErrors(nextErrors);
+    if (hasAuthFieldErrors(nextErrors)) {
       return;
     }
     if (!acceptedTerms) {
@@ -43,7 +45,7 @@ export function RegisterScreen({ navigation }: Props) {
       return;
     }
     try {
-      await register(fullName.trim(), email.trim(), password, acceptedTerms);
+      await register(fullName.trim(), normalizeEmail(email), password, acceptedTerms);
     } catch (error) {
       showError("No se pudo registrar", friendlyErrorMessage(error));
     }
@@ -65,9 +67,66 @@ export function RegisterScreen({ navigation }: Props) {
           description="Registrate para pedir, guardar tus direcciones y seguir cada pedido."
         />
         <Card style={styles.form}>
-          <TextField label="Nombre completo" leftIcon="person-outline" value={fullName} onChangeText={setFullName} textContentType="name" />
-          <TextField label="Email" leftIcon="mail-outline" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" textContentType="emailAddress" />
-          <TextField label="Contraseña" leftIcon="lock-closed-outline" value={password} onChangeText={setPassword} secureTextEntry textContentType="newPassword" />
+          <TextField
+            label="Nombre completo"
+            leftIcon="person-outline"
+            value={fullName}
+            onChangeText={(value) => {
+              setFullName(value);
+              setFieldErrors((current) => ({ ...current, fullName: undefined }));
+            }}
+            textContentType="name"
+            autoComplete="name"
+            error={fieldErrors.fullName}
+          />
+          <TextField
+            label="Email"
+            leftIcon="mail-outline"
+            value={email}
+            onChangeText={(value) => {
+              setEmail(value);
+              setFieldErrors((current) => ({ ...current, email: undefined }));
+            }}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            autoComplete="email"
+            error={fieldErrors.email}
+          />
+          <TextField
+            label="Contraseña"
+            leftIcon="lock-closed-outline"
+            value={password}
+            onChangeText={(value) => {
+              setPassword(value);
+              setFieldErrors((current) => ({ ...current, password: undefined, confirmPassword: undefined }));
+            }}
+            secureTextEntry={!showPassword}
+            textContentType="newPassword"
+            autoComplete="password-new"
+            error={fieldErrors.password}
+            rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
+            rightActionLabel={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            rightActionSelected={showPassword}
+            onRightActionPress={() => setShowPassword((current) => !current)}
+          />
+          <TextField
+            label="Repetir contraseña"
+            leftIcon="lock-closed-outline"
+            value={confirmPassword}
+            onChangeText={(value) => {
+              setConfirmPassword(value);
+              setFieldErrors((current) => ({ ...current, confirmPassword: undefined }));
+            }}
+            secureTextEntry={!showConfirmPassword}
+            textContentType="newPassword"
+            autoComplete="password-new"
+            error={fieldErrors.confirmPassword}
+            rightIcon={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+            rightActionLabel={showConfirmPassword ? "Ocultar repeticion de contraseña" : "Mostrar repeticion de contraseña"}
+            rightActionSelected={showConfirmPassword}
+            onRightActionPress={() => setShowConfirmPassword((current) => !current)}
+          />
           <Pressable
             accessibilityRole="checkbox"
             accessibilityState={{ checked: acceptedTerms }}

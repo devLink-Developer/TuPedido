@@ -140,6 +140,9 @@ export function OrderDetailScreen({ route, navigation }: Props) {
     return <StateMessage title="Pedido no disponible" description={error ?? undefined} actionLabel="Reintentar" onAction={() => void reload()} />;
   }
 
+  const deliveryCodeRequired = Boolean(tracking?.otp_required ?? order.otp_required);
+  const deliveryCode = tracking?.otp_code ?? null;
+
   return (
     <Screen refreshing={loading} onRefresh={() => void reload()}>
       <SectionHeader size="large" title={`Pedido #${order.id}`} description={`${order.store_name} - ${formatDateTime(order.created_at)}`} />
@@ -152,6 +155,20 @@ export function OrderDetailScreen({ route, navigation }: Props) {
         <Text style={styles.meta}>Entrega: {labelForStatus(order.delivery_status)}</Text>
         {order.payment_method === "mercadopago" ? <AppButton title="Actualizar pago" icon="refresh-outline" onPress={() => void refreshPayment()} variant="ghost" /> : null}
       </Card>
+
+      {deliveryCodeRequired ? (
+        <Card style={[styles.card, styles.deliveryCodeCard]}>
+          <Text style={styles.deliveryCodeKicker}>Código de entrega</Text>
+          <Text style={styles.deliveryCodeTitle}>Mostráselo al repartidor al recibir el pedido.</Text>
+          {deliveryCode ? (
+            <Text selectable maxFontSizeMultiplier={1.15} style={styles.deliveryCodeValue}>
+              {deliveryCode}
+            </Text>
+          ) : (
+            <Text style={styles.deliveryCodePending}>El código aparecerá cuando el seguimiento esté activo.</Text>
+          )}
+        </Card>
+      ) : null}
 
       <MapPreview
         route={
@@ -186,7 +203,6 @@ export function OrderDetailScreen({ route, navigation }: Props) {
         <Text style={styles.meta}>Repartidor: {tracking?.assigned_rider_name ?? order.assigned_rider_name ?? "Sin asignar"}</Text>
         <Text style={styles.meta}>Teléfono: {tracking?.assigned_rider_phone_masked ?? order.assigned_rider_phone_masked ?? "No disponible"}</Text>
         <Text style={styles.meta}>Tiempo estimado: {tracking?.eta_minutes ?? directions?.duration_minutes ?? order.eta_minutes ?? "-"} min</Text>
-        {tracking?.otp_required && tracking.otp_code ? <Text style={styles.otp}>Código OTP: {tracking.otp_code}</Text> : null}
       </Card>
 
       <Card style={styles.card}>
@@ -246,14 +262,46 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900"
   },
-  otp: {
+  deliveryCodeCard: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft
+  },
+  deliveryCodeKicker: {
     color: colors.primaryDark,
-    backgroundColor: colors.primarySoft,
-    padding: spacing.md,
-    borderRadius: 12,
-    fontSize: 16,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 1.2
+  },
+  deliveryCodeTitle: {
+    color: colors.text,
+    fontSize: 15,
+    lineHeight: 21,
+    fontWeight: "800"
+  },
+  deliveryCodeValue: {
+    color: colors.primaryDark,
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: 6,
     fontWeight: "900",
     textAlign: "center"
+  },
+  deliveryCodePending: {
+    color: colors.warning,
+    backgroundColor: colors.surface,
+    padding: spacing.md,
+    borderRadius: 12,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "800"
   },
   line: {
     flexDirection: "row",

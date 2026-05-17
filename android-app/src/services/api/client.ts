@@ -2,7 +2,12 @@ import { API_BASE_URL, DEFAULT_API_BASE_URL } from "../../config/env";
 
 export type RequestOptions = RequestInit & {
   token?: string | null;
+  timeoutMs?: number;
 };
+
+export const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
+export const API_TIMEOUT_ERROR_MESSAGE = "La conexion tardo mas de lo esperado. Intenta nuevamente.";
+export const API_NETWORK_ERROR_MESSAGE = "No pudimos conectar con KePedimos. Revisa tu conexion e intenta de nuevo.";
 
 export class ApiError extends Error {
   status: number;
@@ -49,19 +54,50 @@ export function normalizeApiPayload<T>(payload: T, apiBaseUrl = API_BASE_URL): T
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { token, timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS, signal: requestSignal, ...fetchOptions } = options;
   const headers = new Headers(options.headers);
   if (!headers.has("Accept")) headers.set("Accept", "application/json");
   if (!headers.has("Content-Type") && options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
-  if (options.token) {
-    headers.set("Authorization", `Bearer ${options.token}`);
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers
-  });
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+  const abortFromRequestSignal = () => controller.abort();
+  if (requestSignal) {
+    if (requestSignal.aborted) {
+      controller.abort();
+    } else {
+      requestSignal.addEventListener("abort", abortFromRequestSignal, { once: true });
+    }
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...fetchOptions,
+      headers,
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (timedOut) {
+      throw new ApiError(API_TIMEOUT_ERROR_MESSAGE, 0, null);
+    }
+    if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError")) {
+      throw new ApiError("Request aborted", 0, null);
+    }
+    throw new ApiError(API_NETWORK_ERROR_MESSAGE, 0, error instanceof Error ? error.message : null);
+  } finally {
+    clearTimeout(timeoutId);
+    requestSignal?.removeEventListener("abort", abortFromRequestSignal);
+  }
 
   const isJson = response.headers.get("content-type")?.includes("application/json");
   const payload = isJson ? await response.json() : null;

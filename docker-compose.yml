@@ -10,9 +10,15 @@ services:
       - "traefik.http.routers.kepedimos.rule=Host(`kepedimos.com`)"
       - "traefik.http.routers.kepedimos.entrypoints=websecure"
       - "traefik.http.routers.kepedimos.tls=true"
-      - "traefik.http.routers.kepedimos.middlewares=default-sec-headers@file,gzip-compress@file,cors-headers@file"
+      - "traefik.http.routers.kepedimos.middlewares=default-sec-headers@file,gzip-compress@file,kepedimos-cors"
       - "traefik.http.routers.kepedimos.service=kepedimos"
       - "traefik.http.services.kepedimos.loadbalancer.server.port=8015"
+      - "traefik.http.middlewares.kepedimos-cors.headers.accesscontrolallowcredentials=true"
+      - "traefik.http.middlewares.kepedimos-cors.headers.accesscontrolallowheaders=Content-Type,Authorization,X-Requested-With,Accept,Origin,Idempotency-Key,X-API-TOKEN,x-locale"
+      - "traefik.http.middlewares.kepedimos-cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
+      - "traefik.http.middlewares.kepedimos-cors.headers.accesscontrolalloworiginlist=https://kepedimos.com,capacitor://localhost,ionic://localhost,http://localhost,http://localhost:8015,http://localhost:5173"
+      - "traefik.http.middlewares.kepedimos-cors.headers.accesscontrolmaxage=86400"
+      - "traefik.http.middlewares.kepedimos-cors.headers.addvaryheader=true"
     ports:
       - "8015:8015"
     networks:
@@ -29,6 +35,10 @@ services:
       - .env
     environment:
       DELIVERY_EMBEDDED_WORKER: "false"
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+      WEB_TIMEOUT: ${WEB_TIMEOUT:-60}
+      WEB_GRACEFUL_TIMEOUT: ${WEB_GRACEFUL_TIMEOUT:-30}
+      WEB_KEEP_ALIVE: ${WEB_KEEP_ALIVE:-5}
     ports:
       - "8016:8016"
     volumes:
@@ -61,10 +71,33 @@ services:
 
   db:
     image: postgres:16-alpine
+    command:
+      [
+        "postgres",
+        "-c",
+        "max_connections=${POSTGRES_MAX_CONNECTIONS:-200}",
+        "-c",
+        "shared_buffers=${POSTGRES_SHARED_BUFFERS:-256MB}",
+        "-c",
+        "effective_cache_size=${POSTGRES_EFFECTIVE_CACHE_SIZE:-768MB}",
+        "-c",
+        "maintenance_work_mem=${POSTGRES_MAINTENANCE_WORK_MEM:-64MB}",
+        "-c",
+        "checkpoint_completion_target=0.9",
+        "-c",
+        "wal_buffers=16MB",
+        "-c",
+        "default_statistics_target=100",
+        "-c",
+        "idle_in_transaction_session_timeout=30000",
+        "-c",
+        "statement_timeout=${POSTGRES_STATEMENT_TIMEOUT:-30000}",
+      ]
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    shm_size: ${POSTGRES_SHM_SIZE:-256mb}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

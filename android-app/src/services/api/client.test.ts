@@ -1,5 +1,17 @@
-import { describe, expect, it } from "vitest";
-import { apiRootFromBaseUrl, buildCatalogSocketUrl, normalizeApiBaseUrl, normalizeApiPayload, resolveApiMediaUrl } from "./client";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  apiRequest,
+  apiRootFromBaseUrl,
+  buildCatalogSocketUrl,
+  normalizeApiBaseUrl,
+  normalizeApiPayload,
+  resolveApiMediaUrl
+} from "./client";
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 describe("api client URL helpers", () => {
   it("keeps default api prefix normalized", () => {
@@ -27,5 +39,28 @@ describe("api client URL helpers", () => {
     );
     expect(payload.logo_url).toBe("https://host/media/stores/logo.png");
     expect(payload.items[0].image_url).toBe("https://host/media/products/a.png");
+  });
+
+  it("converts request timeouts into API errors", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init?: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            const error = new Error("Aborted");
+            error.name = "AbortError";
+            reject(error);
+          });
+        });
+      })
+    );
+
+    const request = expect(apiRequest("/slow", { timeoutMs: 25 })).rejects.toMatchObject({
+      status: 0,
+      message: "La conexion tardo mas de lo esperado. Intenta nuevamente."
+    });
+    await vi.advanceTimersByTimeAsync(25);
+    await request;
   });
 });

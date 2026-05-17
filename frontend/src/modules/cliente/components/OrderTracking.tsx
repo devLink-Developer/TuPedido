@@ -136,6 +136,31 @@ export function OrderTracking({
             </span>
           </div>
 
+          {hasOtp ? (
+            <div className="mt-4 rounded-[18px] border border-brand-200 bg-brand-50 px-4 py-4 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-sm font-black text-ink">
+                    <KeyRound className="h-4 w-4 text-brand-700" aria-hidden="true" />
+                    Código de entrega
+                  </div>
+                  <p className="mt-1 text-sm leading-6 text-zinc-600">
+                    Mostráselo al repartidor al recibir el pedido.
+                  </p>
+                </div>
+                {tracking.otp_code ? (
+                  <p className="select-all rounded-[14px] border border-brand-200 bg-white px-5 py-3 text-center text-3xl font-black tracking-[0.22em] text-brand-700">
+                    {tracking.otp_code}
+                  </p>
+                ) : (
+                  <p className="rounded-[14px] border border-amber-200 bg-white px-4 py-3 text-sm font-bold text-amber-800">
+                    Aparecerá cuando el seguimiento esté activo.
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : null}
+
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div className="rounded-[18px] border border-[var(--color-border-default)] bg-white/88 px-4 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Estado</p>

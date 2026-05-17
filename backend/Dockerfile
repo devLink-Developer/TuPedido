@@ -14,4 +14,4 @@ COPY app ./app
 
 EXPOSE 8016
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8016"]
+CMD ["sh", "-c", "gunicorn app.main:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8016 --workers ${WEB_CONCURRENCY:-2} --timeout ${WEB_TIMEOUT:-60} --graceful-timeout ${WEB_GRACEFUL_TIMEOUT:-30} --keep-alive ${WEB_KEEP_ALIVE:-5} --forwarded-allow-ips='*' --access-logfile - --error-logfile -"]

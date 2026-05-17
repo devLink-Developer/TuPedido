@@ -1,6 +1,16 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+DEFAULT_CORS_ORIGINS = [
+    "https://kepedimos.com",
+    "capacitor://localhost",
+    "ionic://localhost",
+    "http://localhost",
+    "http://localhost:8015",
+    "http://localhost:5173",
+]
 
 
 class Settings(BaseSettings):
@@ -10,9 +20,12 @@ class Settings(BaseSettings):
     app_env: str = "development"
     api_prefix: str = "/api/v1"
     database_url: str = "postgresql+psycopg://postgres:postgres@db:5432/tupedido"
-    cors_origins: list[str] = [
-        "https://kepedimos.com",
-    ]
+    cors_origins_value: str | list[str] = Field(default=DEFAULT_CORS_ORIGINS, validation_alias="CORS_ORIGINS")
+    database_pool_size: int = 10
+    database_max_overflow: int = 20
+    database_pool_timeout_seconds: float = 30.0
+    database_pool_recycle_seconds: int = 1800
+    database_connect_timeout_seconds: int = 10
     frontend_base_url: str = "https://kepedimos.com"
     backend_base_url: str = "https://kepedimos.com"
     jwt_secret: str = "kepedimos-dev-secret"
@@ -60,6 +73,12 @@ class Settings(BaseSettings):
     web_push_vapid_public_key: str | None = None
     web_push_vapid_private_key: str | None = None
     web_push_vapid_subject: str = "mailto:admin@kepedimos.com"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        if isinstance(self.cors_origins_value, str):
+            return [item.strip() for item in self.cors_origins_value.split(",") if item.strip()]
+        return self.cors_origins_value
 
 
 @lru_cache

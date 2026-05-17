@@ -14,6 +14,13 @@ import { useAuthSession } from "../../../shared/hooks";
 import { usePlatformBranding } from "../../../shared/providers/PlatformBrandingProvider";
 import { Button } from "../../../shared/ui/Button";
 import { roleToHomePath } from "../../../shared/utils/routing";
+import {
+  hasAuthFieldErrors,
+  normalizeEmail,
+  validateLoginForm,
+  validateRegisterForm,
+  type AuthFieldErrors
+} from "../utils/authValidation";
 
 const TERMS_URL = "/legal/terms.html";
 const PRIVACY_URL = "/legal/privacy.html";
@@ -62,8 +69,11 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const content = authMarketingContent[mode];
@@ -72,13 +82,24 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   const fullNameId = `${mode}-full-name`;
   const emailId = `${mode}-email`;
   const passwordId = `${mode}-password`;
+  const confirmPasswordId = `${mode}-confirm-password`;
   const isBusy = submitting || loading;
   const passwordToggleLabel = showPassword ? "Ocultar clave" : "Mostrar clave";
+  const confirmPasswordToggleLabel = showConfirmPassword ? "Ocultar repeticion de clave" : "Mostrar repeticion de clave";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
+
+    const nextFieldErrors = isLogin
+      ? validateLoginForm({ email, password })
+      : validateRegisterForm({ fullName, email, password, confirmPassword });
+    setFieldErrors(nextFieldErrors);
+    if (hasAuthFieldErrors(nextFieldErrors)) {
+      setSubmitting(false);
+      return;
+    }
 
     if (!isLogin && !acceptedTerms) {
       setError("Para crear tu cuenta debes aceptar los terminos y la politica de privacidad.");
@@ -87,7 +108,10 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
     }
 
     try {
-      const profile = mode === "login" ? await login(email, password) : await register(fullName, email, password, acceptedTerms);
+      const normalizedEmail = normalizeEmail(email);
+      const profile = mode === "login"
+        ? await login(normalizedEmail, password)
+        : await register(fullName.trim(), normalizedEmail, password, acceptedTerms);
       if (profile.must_change_password) {
         const next = redirectTo ? `/cambiar-contrasena?redirectTo=${encodeURIComponent(redirectTo)}` : "/cambiar-contrasena";
         navigate(next, { replace: true });
@@ -108,17 +132,27 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
           <label className="auth-field-label" htmlFor={fullNameId}>
             Nombre completo
           </label>
-          <div className="auth-input-shell">
+          <div className={`auth-input-shell${fieldErrors.fullName ? " auth-input-shell-error" : ""}`}>
             <User aria-hidden="true" className="auth-input-icon" />
             <input
               id={fullNameId}
               value={fullName}
-              onChange={(event) => setFullName(event.target.value)}
+              onChange={(event) => {
+                setFullName(event.target.value);
+                setFieldErrors((current) => ({ ...current, fullName: undefined }));
+              }}
               required
               autoComplete="name"
               className="auth-input-control"
+              aria-invalid={Boolean(fieldErrors.fullName)}
+              aria-describedby={fieldErrors.fullName ? `${fullNameId}-error` : undefined}
             />
           </div>
+          {fieldErrors.fullName ? (
+            <p id={`${fullNameId}-error`} className="auth-field-error" role="alert">
+              {fieldErrors.fullName}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -126,36 +160,51 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
         <label className="auth-field-label" htmlFor={emailId}>
           Email
         </label>
-        <div className="auth-input-shell">
+        <div className={`auth-input-shell${fieldErrors.email ? " auth-input-shell-error" : ""}`}>
           <Mail aria-hidden="true" className="auth-input-icon" />
           <input
             id={emailId}
             type="email"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              setFieldErrors((current) => ({ ...current, email: undefined }));
+            }}
             required
             autoComplete="email"
             inputMode="email"
             className="auth-input-control"
+            aria-invalid={Boolean(fieldErrors.email)}
+            aria-describedby={fieldErrors.email ? `${emailId}-error` : undefined}
           />
         </div>
+        {fieldErrors.email ? (
+          <p id={`${emailId}-error`} className="auth-field-error" role="alert">
+            {fieldErrors.email}
+          </p>
+        ) : null}
       </div>
 
       <div className="auth-field">
         <label className="auth-field-label" htmlFor={passwordId}>
           Contrasena
         </label>
-        <div className="auth-input-shell">
+        <div className={`auth-input-shell${fieldErrors.password ? " auth-input-shell-error" : ""}`}>
           <LockKeyhole aria-hidden="true" className="auth-input-icon" />
           <input
             id={passwordId}
             type={showPassword ? "text" : "password"}
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={(event) => {
+              setPassword(event.target.value);
+              setFieldErrors((current) => ({ ...current, password: undefined, confirmPassword: undefined }));
+            }}
             required
             minLength={6}
             autoComplete={isLogin ? "current-password" : "new-password"}
             className="auth-input-control"
+            aria-invalid={Boolean(fieldErrors.password)}
+            aria-describedby={fieldErrors.password ? `${passwordId}-error` : undefined}
           />
           <button
             type="button"
@@ -172,7 +221,57 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
             )}
           </button>
         </div>
+        {fieldErrors.password ? (
+          <p id={`${passwordId}-error`} className="auth-field-error" role="alert">
+            {fieldErrors.password}
+          </p>
+        ) : null}
       </div>
+
+      {!isLogin ? (
+        <div className="auth-field">
+          <label className="auth-field-label" htmlFor={confirmPasswordId}>
+            Repetir contrasena
+          </label>
+          <div className={`auth-input-shell${fieldErrors.confirmPassword ? " auth-input-shell-error" : ""}`}>
+            <LockKeyhole aria-hidden="true" className="auth-input-icon" />
+            <input
+              id={confirmPasswordId}
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(event) => {
+                setConfirmPassword(event.target.value);
+                setFieldErrors((current) => ({ ...current, confirmPassword: undefined }));
+              }}
+              required
+              minLength={6}
+              autoComplete="new-password"
+              className="auth-input-control"
+              aria-invalid={Boolean(fieldErrors.confirmPassword)}
+              aria-describedby={fieldErrors.confirmPassword ? `${confirmPasswordId}-error` : undefined}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((current) => !current)}
+              className="auth-password-toggle"
+              aria-label={confirmPasswordToggleLabel}
+              aria-pressed={showConfirmPassword}
+              title={confirmPasswordToggleLabel}
+            >
+              {showConfirmPassword ? (
+                <EyeOff aria-hidden="true" className="h-5 w-5" />
+              ) : (
+                <Eye aria-hidden="true" className="h-5 w-5" />
+              )}
+            </button>
+          </div>
+          {fieldErrors.confirmPassword ? (
+            <p id={`${confirmPasswordId}-error`} className="auth-field-error" role="alert">
+              {fieldErrors.confirmPassword}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 
@@ -250,7 +349,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
           </div>
         </div>
 
-        <form onSubmit={(event) => void handleSubmit(event)} className="auth-form-body">
+        <form onSubmit={(event) => void handleSubmit(event)} className="auth-form-body" noValidate>
           {formFields}
           {formActions}
         </form>
@@ -260,7 +359,7 @@ export function AuthFormCard({ mode }: { mode: "login" | "register" }) {
 
   return (
     <div className="grid gap-5 lg:grid-cols-[0.96fr_1.04fr]">
-      <form onSubmit={(event) => void handleSubmit(event)} className="app-panel order-1 p-5 sm:p-6">
+      <form onSubmit={(event) => void handleSubmit(event)} className="app-panel order-1 p-5 sm:p-6" noValidate>
         <div className="relative min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{content.formEyebrow}</p>
           <h2 id={titleId} className="mt-2 font-display text-[1.85rem] font-bold leading-[1.04] tracking-tight text-ink sm:text-3xl">
