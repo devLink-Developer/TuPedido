@@ -13,6 +13,10 @@ vi.mock("../../../shared/hooks", () => ({
   useAuthSession: () => ({
     token: "token"
   }),
+  useCart: () => ({
+    addItem: vi.fn(),
+    setDeliveryMode: vi.fn()
+  }),
   useOrderLiveTracking: (options: unknown) => useOrderLiveTrackingMock(options)
 }));
 

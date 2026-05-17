@@ -9,6 +9,10 @@ const fetchOrdersMock = vi.fn();
 vi.mock("../../../shared/hooks", () => ({
   useAuthSession: () => ({
     token: "token"
+  }),
+  useCart: () => ({
+    addItem: vi.fn(),
+    setDeliveryMode: vi.fn()
   })
 }));
 

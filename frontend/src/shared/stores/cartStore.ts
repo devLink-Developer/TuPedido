@@ -26,7 +26,7 @@ type CartState = {
     note?: string | null;
     customerLatitude?: number | null;
     customerLongitude?: number | null;
-  }) => Promise<void>;
+  }) => Promise<Cart>;
   updateItem: (itemId: number, payload: { quantity: number; note?: string | null }) => Promise<void>;
   removeItem: (itemId: number) => Promise<void>;
   clear: () => Promise<void>;
@@ -157,6 +157,7 @@ export const useCartStore = create<CartState>((set) => ({
         customer_longitude: payload.customerLongitude ?? null
       });
       set({ cart, error: null });
+      return cart;
     } catch (error) {
       set({ error: getErrorMessage(error, "No se pudo agregar el producto al carrito") });
       throw error;

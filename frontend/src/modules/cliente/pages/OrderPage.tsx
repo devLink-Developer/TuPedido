@@ -1,8 +1,19 @@
+import {
+  CalendarDays,
+  ChevronRight,
+  CreditCard,
+  MapPin,
+  ReceiptText,
+  RotateCcw,
+  Store,
+  Truck
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
-import { EmptyState, LoadingCard, PageHeader, StatusPill } from "../../../shared/components";
-import { useAuthSession, useOrderLiveTracking } from "../../../shared/hooks";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { EmptyState, LoadingCard, StatusPill } from "../../../shared/components";
+import { useAuthSession, useCart, useOrderLiveTracking } from "../../../shared/hooks";
 import { fetchOrder, fetchOrderTracking } from "../../../shared/services/api";
+import { useUiStore } from "../../../shared/stores";
 import type { Order, OrderTracking as OrderTrackingType } from "../../../shared/types";
 import { dispatchOrderReviewPromptRefresh } from "../../../shared/utils/orderReviewPrompt";
 import { formatCurrency, formatDateTime } from "../../../shared/utils/format";
@@ -10,11 +21,16 @@ import { paymentMethodLabels, statusLabels } from "../../../shared/utils/labels"
 import { CheckoutSummary } from "../components/CheckoutSummary";
 import { OrderTracking } from "../components/OrderTracking";
 import { isActiveCustomerOrder } from "../orders";
+import { repeatOrderIntoCart, repeatOrderMessage } from "../repeatOrder";
 
 const LIVE_REFRESH_INTERVAL_MS = 15000;
 
 function formatDeliveryModeLabel(order: Order) {
   return order.delivery_mode === "delivery" ? "Envio" : "Retiro";
+}
+
+function getOrderItemCount(order: Order) {
+  return order.items.reduce((total, item) => total + item.quantity, 0);
 }
 
 function getStatusTone(status: string) {
@@ -123,11 +139,15 @@ async function loadOrderSnapshot(token: string, orderId: number) {
 
 export function OrderPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { token } = useAuthSession();
+  const { addItem, setDeliveryMode } = useCart();
+  const enqueueToast = useUiStore((state) => state.enqueueToast);
   const [order, setOrder] = useState<Order | null>(null);
   const [tracking, setTracking] = useState<OrderTrackingType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [repeating, setRepeating] = useState(false);
   const orderId = id ? Number(id) : null;
   const otpFetchRequestedRef = useRef<Set<number>>(new Set());
   const previousOrderStatusRef = useRef<string | null>(null);
@@ -301,18 +321,39 @@ export function OrderPage() {
       : "Pedido activo";
   const statusTone = getStatusTone(order.status);
   const deliverySummary = getDeliverySummary(order, deliveryStatusLabel, assignedRiderName, etaMinutes);
+  const itemCount = getOrderItemCount(order);
+
+  async function repeatCurrentOrder() {
+    if (!order) return;
+
+    setRepeating(true);
+    try {
+      const result = await repeatOrderIntoCart(order, { addItem, setDeliveryMode });
+      enqueueToast(repeatOrderMessage(result), { durationMs: result.addedItemCount > 0 ? 4200 : 5200 });
+      if (result.addedItemCount > 0) {
+        navigate("/c/carrito");
+      }
+    } finally {
+      setRepeating(false);
+    }
+  }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Pedido"
-        title={`Pedido #${order.id}`}
-        description={`${order.store_name} - ${formatDateTime(order.created_at)}`}
-      />
+    <div className="space-y-5 pb-24">
+      <section className={`overflow-hidden rounded border ${statusTone.border} ${statusTone.background} shadow-sm`}>
+        <div className="border-b border-white/70 bg-white/50 px-4 py-3 sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-sm font-extrabold text-[var(--kp-ink-strong)]">Pedido #{order.id}</h1>
+            <span className="inline-flex min-h-[32px] items-center gap-1.5 rounded-full bg-white px-3 text-xs font-bold text-[var(--kp-ink-soft)]">
+              <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+              {formatDateTime(order.created_at)}
+            </span>
+          </div>
+        </div>
 
-      <section className={`rounded border ${statusTone.border} ${statusTone.background} p-4 shadow-sm sm:p-5`}>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
+        <div className="p-4 sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
             <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${statusTone.eyebrow}`}>
               Estado del pedido
             </p>
@@ -329,95 +370,189 @@ export function OrderPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">Pedido #{order.id}</span>
-            <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
               {formatDeliveryModeLabel(order)}
-            </span>
-            <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
+              </span>
+              <span className="rounded bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
               {paymentStatusLabel}
-            </span>
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <div className="rounded bg-white/90 px-4 py-3 text-sm text-zinc-600">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Pago</p>
-            <p className="mt-2 font-semibold text-ink">{paymentMethodLabels[order.payment_method]}</p>
-            <p className="mt-1">{paymentStatusLabel}</p>
-          </div>
-          <div className="rounded bg-white/90 px-4 py-3 text-sm text-zinc-600">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Entrega</p>
-            <p className="mt-2 font-semibold text-ink">{deliverySummary.title}</p>
-            <p className="mt-1">{deliverySummary.description}</p>
-          </div>
-          <div className="rounded bg-white/90 px-4 py-3 text-sm text-zinc-600">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Seguimiento</p>
-            <p className="mt-2 font-semibold text-ink">{trackingAvailabilityLabel}</p>
-            <p className="mt-1">
-              {liveTracking?.tracking_enabled
-                ? "Seguimos mostrando la ubicacion del pedido en tiempo real."
-                : isActiveOrder
-                  ? "Veras aqui el estado del pedido mientras siga en curso."
-                  : "El seguimiento en vivo ya no esta disponible para este pedido."}
-            </p>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <div className="rounded bg-white/90 px-4 py-3 text-sm text-zinc-600">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Total</p>
+              <p className="mt-2 text-lg font-black text-ink">{formatCurrency(order.total)}</p>
+              <p className="mt-1">
+                {itemCount} {itemCount === 1 ? "producto" : "productos"}
+              </p>
+            </div>
+            <div className="rounded bg-white/90 px-4 py-3 text-sm text-zinc-600">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Entrega</p>
+              <p className="mt-2 font-semibold text-ink">{deliverySummary.title}</p>
+              <p className="mt-1">{deliverySummary.description}</p>
+            </div>
+            <div className="rounded bg-white/90 px-4 py-3 text-sm text-zinc-600">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Seguimiento</p>
+              <p className="mt-2 font-semibold text-ink">{trackingAvailabilityLabel}</p>
+              <p className="mt-1">
+                {liveTracking?.tracking_enabled
+                  ? "Seguimos mostrando la ubicacion del pedido en tiempo real."
+                  : isActiveOrder
+                    ? "Veras aqui el estado del pedido mientras siga en curso."
+                    : "El seguimiento en vivo ya no esta disponible para este pedido."}
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+      <section className="kp-client-panel overflow-hidden">
+        <div className="grid gap-0 md:grid-cols-[1fr_auto] md:items-center">
+          <div className="flex min-w-0 gap-4 p-4 sm:p-5">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded bg-[var(--kp-accent-soft)] text-[var(--kp-accent)]">
+              <Store className="h-6 w-6" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--kp-ink-muted)]">Tienda</p>
+              <h2 className="mt-1 truncate text-xl font-black tracking-tight text-[var(--kp-ink-strong)]">
+                {order.store_name}
+              </h2>
+              <p className="mt-1 text-sm font-semibold text-[var(--kp-ink-soft)]">
+                {formatDeliveryModeLabel(order)} · {paymentMethodLabels[order.payment_method]}
+              </p>
+            </div>
+          </div>
+          <div className="border-t border-[var(--kp-stroke)] p-4 md:border-l md:border-t-0 sm:p-5">
+            <button
+              type="button"
+              onClick={() => void repeatCurrentOrder()}
+              disabled={repeating}
+              className="app-button min-h-[48px] w-full px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
+            >
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
+              {repeating ? "Actualizando precios" : "Repetir pedido"}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(300px,0.9fr)]">
         <div className="space-y-4">
           {liveTracking?.tracking_enabled ? <OrderTracking order={order} tracking={liveTracking} /> : null}
 
-          <div className="rounded bg-white p-5 shadow-sm">
-            <h3 className="text-lg font-bold">Datos del pedido</h3>
-            <div className="flex flex-wrap gap-2">
-              <StatusPill value={order.status} />
-              <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
-                {paymentMethodLabels[order.payment_method]}
-              </span>
-              <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
-                {formatDeliveryModeLabel(order)}
-              </span>
-              <span className="rounded bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
-                {paymentStatusLabel}
+          <section className="kp-client-panel p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--kp-ink-muted)]">Productos</p>
+                <h2 className="mt-1 text-xl font-black tracking-tight text-[var(--kp-ink-strong)]">Tu pedido</h2>
+              </div>
+              <span className="inline-flex min-h-[32px] items-center rounded-full bg-[var(--kp-surface-muted)] px-3 text-xs font-bold text-[var(--kp-ink-soft)]">
+                {itemCount} {itemCount === 1 ? "item" : "items"}
               </span>
             </div>
-            <div className="mt-4 space-y-2 text-sm text-zinc-600">
-              <p><strong>Cliente:</strong> {order.customer_name}</p>
-              <p><strong>Direccion:</strong> {order.address_full ?? order.address_label ?? "Retiro en local"}</p>
-              {order.payment_reference ? <p><strong>Referencia:</strong> {order.payment_reference}</p> : null}
-            </div>
-          </div>
-
-          <div className="rounded bg-white p-5 shadow-sm">
-            <h3 className="text-lg font-bold">Items</h3>
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 divide-y divide-[var(--kp-stroke)]">
               {order.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between gap-4 rounded bg-zinc-50 px-4 py-3 text-sm">
-                  <div>
-                    <p className="font-semibold">{item.product_name}</p>
-                    <p className="text-zinc-500">{item.quantity} x {formatCurrency(item.unit_price)}</p>
-                    {item.note ? <p className="text-zinc-500">{item.note}</p> : null}
+                <div key={item.id} className="grid grid-cols-[1fr_auto] gap-4 py-4 text-sm first:pt-0 last:pb-0">
+                  <div className="min-w-0">
+                    <p className="font-extrabold text-[var(--kp-ink-strong)]">{item.product_name}</p>
+                    <p className="mt-1 text-[var(--kp-ink-soft)]">
+                      {item.quantity} x {formatCurrency(item.unit_price)}
+                    </p>
+                    {item.note ? <p className="mt-1 text-[var(--kp-ink-soft)]">{item.note}</p> : null}
                   </div>
-                  <p className="font-bold">{formatCurrency(item.unit_price * item.quantity)}</p>
+                  <p className="whitespace-nowrap font-black text-[var(--kp-ink-strong)]">
+                    {formatCurrency(item.unit_price * item.quantity)}
+                  </p>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
+
+          <section className="kp-client-panel p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded bg-[var(--kp-surface-muted)] text-[var(--kp-ink-soft)]">
+                <MapPin className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--kp-ink-muted)]">
+                  Detalles sobre la entrega
+                </p>
+                <h2 className="mt-1 text-lg font-black tracking-tight text-[var(--kp-ink-strong)]">
+                  {order.address_full ?? order.address_label ?? "Retiro en local"}
+                </h2>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <StatusPill value={order.status} />
+                  <span className="rounded bg-[var(--kp-surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--kp-ink-soft)]">
+                    {deliveryStatusLabel}
+                  </span>
+                </div>
+                {assignedRiderName ? (
+                  <p className="mt-3 text-sm text-[var(--kp-ink-soft)]">Repartidor: {assignedRiderName}</p>
+                ) : null}
+                {etaMinutes !== null ? (
+                  <p className="mt-1 text-sm text-[var(--kp-ink-soft)]">ETA: {etaMinutes} min</p>
+                ) : null}
+              </div>
+            </div>
+          </section>
         </div>
 
         <aside className="space-y-4">
           <CheckoutSummary pricing={order.pricing} title="Totales" />
-          <div className="rounded bg-white p-5 shadow-sm">
-            <h3 className="text-lg font-bold">Entrega y pago</h3>
-            <div className="mt-4 space-y-2 text-sm text-zinc-600">
-              <p>Pago: {paymentStatusLabel}</p>
-              <p>Entrega: {deliveryStatusLabel}</p>
-              {assignedRiderName ? <p>Repartidor: {assignedRiderName}</p> : null}
-              {etaMinutes !== null ? <p>ETA: {etaMinutes} min</p> : null}
+
+          <section className="kp-client-panel p-4 sm:p-5">
+            <h2 className="text-lg font-black tracking-tight text-[var(--kp-ink-strong)]">Entrega y pago</h2>
+            <div className="mt-4 space-y-4">
+              <div className="flex gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded bg-[var(--kp-accent-soft)] text-[var(--kp-accent)]">
+                  <ReceiptText className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--kp-ink-muted)]">Tu pago</p>
+                  <p className="mt-1 font-bold text-[var(--kp-ink-strong)]">{paymentStatusLabel}</p>
+                  {order.payment_reference ? (
+                    <p className="mt-1 break-words text-sm text-[var(--kp-ink-soft)]">Referencia: {order.payment_reference}</p>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded bg-[var(--kp-surface-muted)] text-[var(--kp-ink-soft)]">
+                  <CreditCard className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--kp-ink-muted)]">
+                    Medios de pago
+                  </p>
+                  <p className="mt-1 font-bold text-[var(--kp-ink-strong)]">
+                    {paymentMethodLabels[order.payment_method]}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded bg-[var(--kp-surface-muted)] text-[var(--kp-ink-soft)]">
+                  <Truck className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--kp-ink-muted)]">
+                    Detalles sobre la entrega
+                  </p>
+                  <p className="mt-1 font-bold text-[var(--kp-ink-strong)]">{deliverySummary.title}</p>
+                  <p className="mt-1 text-sm leading-6 text-[var(--kp-ink-soft)]">{deliverySummary.description}</p>
+                </div>
+              </div>
             </div>
-          </div>
+            <Link
+              to={`/c/tienda/${order.store_id}`}
+              className="mt-5 flex min-h-[48px] items-center justify-between rounded border border-[var(--kp-stroke)] bg-white px-4 text-sm font-extrabold text-[var(--kp-ink-strong)] transition hover:border-[rgba(255,106,26,0.28)] hover:bg-[#fffaf5]"
+            >
+              Ver tienda
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </section>
         </aside>
       </div>
     </div>
