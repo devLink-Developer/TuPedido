@@ -43,8 +43,22 @@ export function geocodeAddress(
 export function reverseGeocodeAddress(
   token: string,
   payload: { latitude: number; longitude: number }
-): Promise<{ street_name: string | null; street_number: string | null; display_name: string | null }> {
-  return apiRequest<{ street_name: string | null; street_number: string | null; display_name: string | null }>("/addresses/reverse-geocode", {
+): Promise<{
+  postal_code: string | null;
+  province: string | null;
+  locality: string | null;
+  street_name: string | null;
+  street_number: string | null;
+  display_name: string | null;
+}> {
+  return apiRequest<{
+    postal_code: string | null;
+    province: string | null;
+    locality: string | null;
+    street_name: string | null;
+    street_number: string | null;
+    display_name: string | null;
+  }>("/addresses/reverse-geocode", {
     method: "POST",
     token,
     body: JSON.stringify(payload)

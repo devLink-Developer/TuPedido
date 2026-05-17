@@ -97,6 +97,9 @@ def reverse_geocode_customer_address(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 
     return AddressReverseGeocodeRead(
+        postal_code=result.postal_code,
+        province=result.province,
+        locality=result.locality,
         street_name=result.street_name,
         street_number=result.street_number,
         display_name=result.display_name,

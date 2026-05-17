@@ -68,6 +68,9 @@ class AddressReverseGeocodeRequest(BaseModel):
 
 
 class AddressReverseGeocodeRead(BaseModel):
+    postal_code: str | None = None
+    province: str | None = None
+    locality: str | None = None
     street_name: str | None = None
     street_number: str | None = None
     display_name: str | None = None

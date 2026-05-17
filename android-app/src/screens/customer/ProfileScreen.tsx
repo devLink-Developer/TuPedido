@@ -37,6 +37,31 @@ import {
 type Props = BottomTabScreenProps<CustomerTabsParamList, "Profile">;
 type LookupLocality = PostalCodeLookup["localities"][number];
 
+function normalizeComparableText(value: string | null | undefined) {
+  return (value ?? "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es-AR");
+}
+
+function mergeLocalityOption(
+  current: LookupLocality[],
+  localityName: string,
+  latitude: number,
+  longitude: number
+) {
+  const name = localityName.trim();
+  if (!name) {
+    return current;
+  }
+  const key = normalizeComparableText(name);
+  if (current.some((item) => normalizeComparableText(item.name) === key)) {
+    return current;
+  }
+  return [{ name, latitude, longitude }, ...current];
+}
+
 function getGeocodeKey(form: AddressFormState) {
   const request = buildAddressGeocodeRequest(form);
   return request
@@ -62,6 +87,7 @@ export function ProfileScreen(_props: Props) {
   const [lookupLoading, setLookupLoading] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [mapFocusCenter, setMapFocusCenter] = useState<{ latitude: number; longitude: number } | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -105,6 +131,7 @@ export function ProfileScreen(_props: Props) {
     }));
     if (clearCoordinates) {
       lastGeocodeKeyRef.current = null;
+      setMapFocusCenter(null);
     }
   }
 
@@ -115,6 +142,7 @@ export function ProfileScreen(_props: Props) {
     setFeedback(null);
     setShowAddressForm(false);
     setEditingAddressId(null);
+    setMapFocusCenter(null);
     lastGeocodeKeyRef.current = null;
   }
 
@@ -128,6 +156,7 @@ export function ProfileScreen(_props: Props) {
     setFeedback(null);
     setEditingAddressId(null);
     setShowAddressForm(true);
+    setMapFocusCenter(null);
     lastGeocodeKeyRef.current = null;
   }
 
@@ -155,6 +184,7 @@ export function ProfileScreen(_props: Props) {
     setFeedback(null);
     setEditingAddressId(address.id);
     setShowAddressForm(true);
+    setMapFocusCenter(null);
     lastGeocodeKeyRef.current = getGeocodeKey(nextForm);
   }
 
@@ -214,18 +244,63 @@ export function ProfileScreen(_props: Props) {
 
   async function reverseFillAddress(latitude: number, longitude: number, source: "map" | "current_location") {
     if (!token) return;
+    setMapFocusCenter({ latitude, longitude });
     try {
       const result = await reverseGeocodeAddress(token, { latitude, longitude });
+      const reversePostalCode = extractArgentinePostalCode(result.postal_code ?? "");
+      const reverseLocality = result.locality?.trim() ?? "";
+      let nextPostalCode = reversePostalCode || form.postal_code;
+      let nextProvince = result.province?.trim() || form.province;
+      let nextLocality = reverseLocality || form.locality;
+
+      if (reversePostalCode) {
+        try {
+          const lookupResult = await lookupPostalCode(token, reversePostalCode);
+          const matchedLocality =
+            lookupResult.localities.find((item) => normalizeComparableText(item.name) === normalizeComparableText(reverseLocality)) ??
+            (!reverseLocality && lookupResult.localities.length === 1 ? lookupResult.localities[0] : null);
+
+          nextPostalCode = lookupResult.postal_code;
+          nextProvince = lookupResult.province || nextProvince;
+          nextLocality = matchedLocality?.name ?? nextLocality;
+          setLocalities(
+            reverseLocality && !matchedLocality
+              ? mergeLocalityOption(lookupResult.localities, reverseLocality, latitude, longitude)
+              : lookupResult.localities
+          );
+          setLocalityDropdownOpen(false);
+        } catch {
+          if (reverseLocality) {
+            setLocalities((current) => mergeLocalityOption(current, reverseLocality, latitude, longitude));
+            setLocalityDropdownOpen(false);
+          }
+        }
+      } else if (reverseLocality) {
+        setLocalities((current) => mergeLocalityOption(current, reverseLocality, latitude, longitude));
+        setLocalityDropdownOpen(false);
+      }
       updateForm({
+        postal_code: nextPostalCode,
+        province: nextProvince,
+        locality: nextLocality,
         street_name: result.street_name ?? form.street_name,
         street_number: result.street_number ?? form.street_number,
         latitude: formatCoordinate(latitude),
-        longitude: formatCoordinate(longitude),
-        details: form.details || result.display_name || ""
+        longitude: formatCoordinate(longitude)
+      });
+      lastGeocodeKeyRef.current = getGeocodeKey({
+        ...form,
+        postal_code: nextPostalCode,
+        province: nextProvince,
+        locality: nextLocality,
+        street_name: result.street_name ?? form.street_name,
+        street_number: result.street_number ?? form.street_number,
+        latitude: formatCoordinate(latitude),
+        longitude: formatCoordinate(longitude)
       });
       setFeedback({
         type: "success",
-        text: result.street_name || result.display_name
+        text: result.street_name || reverseLocality || nextPostalCode || result.display_name
           ? "Ubicación detectada. Revisá calle y altura antes de guardar."
           : "Pin actualizado en el mapa."
       });
@@ -257,11 +332,11 @@ export function ProfileScreen(_props: Props) {
     setFeedback(null);
     try {
       const result = await geocodeAddress(token, request);
+      setMapFocusCenter({ latitude: result.latitude, longitude: result.longitude });
       const nextForm = {
         ...form,
         latitude: formatCoordinate(result.latitude),
-        longitude: formatCoordinate(result.longitude),
-        details: form.details || result.display_name || ""
+        longitude: formatCoordinate(result.longitude)
       };
       setForm(nextForm);
       lastGeocodeKeyRef.current = key;
@@ -570,6 +645,8 @@ export function ProfileScreen(_props: Props) {
             height={260}
             interactive
             center={fallbackCenter}
+            focusCenter={mapFocusCenter}
+            focusZoom={16}
             markers={[
               {
                 id: "address",

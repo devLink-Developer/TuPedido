@@ -72,6 +72,9 @@ class GeocodedAddress:
 
 @dataclass(frozen=True)
 class ReverseGeocodedAddress:
+    postal_code: str | None
+    province: str | None
+    locality: str | None
     street_name: str | None
     street_number: str | None
     display_name: str | None
@@ -160,6 +163,26 @@ def _extract_street_number_from_display_name(display_name: object, street_name: 
         return _extract_street_number(compact_display_name)
 
     return ""
+
+
+def _optional_postal_code(*values: object) -> str | None:
+    for value in values:
+        compact = _compact_text(value)
+        if not compact:
+            continue
+        try:
+            return normalize_postal_code(compact)
+        except AddressLookupError:
+            continue
+    return None
+
+
+def _first_address_label(address: dict[str, object], *keys: str) -> str | None:
+    for key in keys:
+        label = _normalize_label(_compact_text(address.get(key)))
+        if label:
+            return label
+    return None
 
 
 def _headers() -> dict[str, str]:
@@ -318,11 +341,33 @@ def reverse_geocode_coordinates(*, latitude: float, longitude: float) -> Reverse
     street_number = _compact_text(address.get("house_number") or address.get("housenumber"))
     if not street_number:
         street_number = _extract_street_number_from_display_name(payload.get("display_name"), street_name)
+    postal_code = _optional_postal_code(address.get("postcode"), payload.get("display_name"))
+    province = _valid_argentine_province(
+        address.get("state"),
+        address.get("province"),
+        address.get("state_district"),
+    )
+    locality = _first_address_label(
+        address,
+        "city",
+        "town",
+        "village",
+        "municipality",
+        "locality",
+        "hamlet",
+        "suburb",
+        "city_district",
+        "county",
+        "state_district",
+    )
 
-    if not street_name and not street_number:
-        raise AddressLookupNotFound("No pudimos reconocer calle y altura en ese punto del mapa.")
+    if not any([postal_code, province, locality, street_name, street_number]):
+        raise AddressLookupNotFound("No pudimos reconocer datos de direccion en ese punto del mapa.")
 
     return ReverseGeocodedAddress(
+        postal_code=postal_code,
+        province=province or None,
+        locality=locality,
         street_name=street_name or None,
         street_number=street_number or None,
         display_name=payload.get("display_name"),

@@ -89,7 +89,7 @@ export function AddressLocationPicker({
 
     map.easeTo({
       center: [longitude, latitude],
-      zoom: Math.max(map.getZoom(), 15),
+      zoom: Math.max(map.getZoom(), 16),
       duration: 350,
       essential: true,
     });

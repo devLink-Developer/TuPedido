@@ -197,6 +197,17 @@ describe("ClienteLayout", () => {
         id: 50,
         status: "delivered",
         delivered_at: "2026-03-29T13:00:00Z"
+      }),
+      createOrder({
+        id: 51,
+        status: "out_for_delivery",
+        delivery_status: "delivered",
+        delivered_at: null
+      }),
+      createOrder({
+        id: 52,
+        status: "preparing",
+        delivery_status: "delivery_failed"
       })
     ]);
 

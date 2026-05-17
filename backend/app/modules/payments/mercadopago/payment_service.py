@@ -27,6 +27,7 @@ from app.services.mercadopago import (
 )
 from app.modules.payments.mercadopago.payment_concept import build_payment_concept
 from app.services.cart_ops import clear_cart_if_matches_order
+from app.services.delivery import create_notifications
 from app.services.order_visibility import payment_status_allows_fulfillment, payment_status_revealed_order_to_merchant
 from app.services.payment_transactions import (
     PaymentValidationError,
@@ -37,6 +38,7 @@ from app.services.payment_transactions import (
 logger = logging.getLogger(__name__)
 
 MONEY_QUANTIZER = Decimal("0.01")
+PAYMENT_CANCELLED_STATUSES = {"cancelled", "rejected", "refunded", "chargeback"}
 
 
 def _now_utc() -> datetime:
@@ -54,6 +56,27 @@ def _money_float(value: object) -> float:
 def _session_expiration() -> datetime:
     minutes = max(5, int(settings.mercadopago_payment_session_expire_minutes or 30))
     return _now_utc() + timedelta(minutes=minutes)
+
+
+def notify_customer_payment_cancelled_order(db: Session, order: StoreOrder, previous_order_status: str | None) -> None:
+    if previous_order_status == order.status or order.status != "cancelled":
+        return
+
+    store_name = order.store_name_snapshot or getattr(order.store, "name", None) or "el comercio"
+    create_notifications(
+        db,
+        user_ids=[order.user_id],
+        order_id=order.id,
+        event_type="order.cancelled",
+        title="Pedido cancelado",
+        body=f"No pudimos confirmar el pago de tu pedido en {store_name}.",
+        payload={
+            "order_id": order.id,
+            "status": order.status,
+            "payment_status": order.payment_status,
+            "delivery_status": order.delivery_status,
+        },
+    )
 
 
 def build_card_payment_session_token(transaction: PaymentTransaction) -> tuple[str, datetime]:
@@ -270,10 +293,12 @@ def create_card_payment(db: Session, payload: MercadoPagoCardPaymentRequest) -> 
         raise MercadoPagoAPIError(str(exc)) from exc
 
     previous_payment_status = order.payment_status
+    previous_order_status = order.status
     record_payment_result(transaction, payment=payment, status_value=status_value)
     order.payment_status = status_value
-    if status_value in {"cancelled", "rejected", "refunded", "chargeback"}:
+    if status_value in PAYMENT_CANCELLED_STATUSES:
         order.status = "cancelled"
+        notify_customer_payment_cancelled_order(db, order, previous_order_status)
     if payment_status_allows_fulfillment(order.payment_status):
         clear_cart_if_matches_order(db, order)
     return (
@@ -303,11 +328,13 @@ def sync_transaction_from_provider(db: Session, transaction: PaymentTransaction)
         payment=payment,
         status_value=status_value,
     )
+    previous_order_status = transaction.order.status
     record_payment_result(transaction, payment=payment, status_value=status_value)
     transaction.last_sync_at = _now_utc()
     transaction.order.payment_status = status_value
-    if status_value in {"cancelled", "rejected", "refunded", "chargeback"}:
+    if status_value in PAYMENT_CANCELLED_STATUSES:
         transaction.order.status = "cancelled"
+        notify_customer_payment_cancelled_order(db, transaction.order, previous_order_status)
     if payment_status_allows_fulfillment(transaction.order.payment_status):
         clear_cart_if_matches_order(db, transaction.order)
     return True

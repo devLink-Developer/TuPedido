@@ -172,6 +172,39 @@ def create_notifications(
     return notifications
 
 
+def _notify_customer_delivery_status(db: Session, *, order: StoreOrder, rider: User, previous_delivery_status: str | None) -> None:
+    if order.delivery_status == previous_delivery_status:
+        return
+
+    store_name = order.store_name_snapshot or getattr(order.store, "name", None) or "el comercio"
+    notifications_by_status = {
+        "heading_to_store": (
+            "delivery.heading_to_store",
+            "Cadete camino al comercio",
+            f"{rider.full_name} va camino a {store_name} para retirar tu pedido.",
+        ),
+        "near_customer": (
+            "delivery.near_customer",
+            "Cadete cerca del destino",
+            f"{rider.full_name} esta cerca de tu direccion.",
+        ),
+    }
+    notification = notifications_by_status.get(str(order.delivery_status or ""))
+    if notification is None:
+        return
+
+    event_type, title, body = notification
+    create_notifications(
+        db,
+        user_ids=[order.user_id],
+        order_id=order.id,
+        event_type=event_type,
+        title=title,
+        body=body,
+        payload={"order_id": order.id, "status": order.status, "delivery_status": order.delivery_status},
+    )
+
+
 def store_coordinates(store: Store) -> tuple[float | None, float | None]:
     return as_float(store.latitude), as_float(store.longitude)
 
@@ -610,6 +643,7 @@ def sync_delivery_location(
         raise ValueError("Delivery profile not found")
 
     now = datetime.now(UTC)
+    previous_delivery_status = order.delivery_status
     assignment.current_latitude = latitude
     assignment.current_longitude = longitude
     assignment.current_heading = heading
@@ -646,6 +680,7 @@ def sync_delivery_location(
     assignment.distance_km = distance_km
     assignment.last_eta_minutes = estimate_eta_minutes(distance_km, speed_kmh=speed_kmh or 22)
     order.eta_minutes = assignment.last_eta_minutes
+    _notify_customer_delivery_status(db, order=order, rider=rider, previous_delivery_status=previous_delivery_status)
 
     db.add(
         DeliveryLocationPoint(

@@ -46,6 +46,37 @@ function toCoordinate(value: string) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function normalizeComparableText(value: string | null | undefined) {
+  return (value ?? "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es-AR");
+}
+
+function mergeLocalityOption(
+  current: AddressLookupLocality[],
+  localityName: string,
+  coordinates?: { latitude: number; longitude: number }
+) {
+  const name = localityName.trim();
+  if (!name) {
+    return current;
+  }
+  const key = normalizeComparableText(name);
+  if (current.some((item) => normalizeComparableText(item.name) === key)) {
+    return current;
+  }
+  return [
+    {
+      name,
+      latitude: coordinates?.latitude ?? null,
+      longitude: coordinates?.longitude ?? null,
+    },
+    ...current,
+  ];
+}
+
 export function toAddressFormState(address?: Address | null): AddressFormState {
   if (!address) return emptyAddressForm;
 
@@ -278,25 +309,69 @@ export function AddressFormCard({
     setGeocodingError(null);
     setGeocodingSuccess(null);
 
-    if (!lookupToken || !formRef.current.locality.trim()) {
+    if (!lookupToken) {
       return;
     }
 
     try {
       const result = await reverseGeocodeAddress(lookupToken, coordinates);
+      const reversePostalCode = extractArgentinePostalCode(result.postal_code ?? "");
+      const reverseLocality = result.locality?.trim() ?? "";
+      let nextPostalCode = reversePostalCode || formRef.current.postal_code;
+      let nextProvince = result.province?.trim() || formRef.current.province;
+      let nextLocality = reverseLocality || formRef.current.locality;
+
+      if (reversePostalCode) {
+        try {
+          const lookupResult = await lookupPostalCode(lookupToken, reversePostalCode);
+          const matchedLocality =
+            lookupResult.localities.find((item) => normalizeComparableText(item.name) === normalizeComparableText(reverseLocality)) ??
+            (!reverseLocality && lookupResult.localities.length === 1 ? lookupResult.localities[0] : null);
+
+          nextPostalCode = lookupResult.postal_code;
+          nextProvince = lookupResult.province || nextProvince;
+          nextLocality = matchedLocality?.name ?? nextLocality;
+          setLocalities(
+            reverseLocality && !matchedLocality
+              ? mergeLocalityOption(lookupResult.localities, reverseLocality, coordinates)
+              : lookupResult.localities
+          );
+        } catch {
+          if (reverseLocality) {
+            setLocalities((current) => mergeLocalityOption(current, reverseLocality, coordinates));
+          }
+        }
+      } else if (reverseLocality) {
+        setLocalities((current) => mergeLocalityOption(current, reverseLocality, coordinates));
+      }
+
+      const currentForm = formRef.current;
       updateAddressFields({
-        street_name: result.street_name ?? "",
-        street_number: result.street_number ?? "",
+        postal_code: nextPostalCode,
+        province: nextProvince,
+        locality: nextLocality,
+        street_name: result.street_name ?? currentForm.street_name,
+        street_number: result.street_number ?? currentForm.street_number,
         latitude: nextLatitude,
         longitude: nextLongitude,
       });
+      const resolvedRequest = buildAddressGeocodeRequest(formRef.current);
+      lastResolvedGeocodeKeyRef.current = resolvedRequest
+        ? [
+            resolvedRequest.postal_code,
+            resolvedRequest.province,
+            resolvedRequest.locality,
+            resolvedRequest.street_name,
+            resolvedRequest.street_number,
+          ].join("|")
+        : null;
       setGeocodingSuccess(
         result.street_name && result.street_number
           ? `Direccion detectada desde el mapa: ${buildStreetLine(result.street_name, result.street_number)}`
           : result.street_name
             ? `Calle detectada desde el mapa: ${result.street_name}. Completa la altura si falta.`
-            : result.display_name
-              ? `Ubicacion detectada desde el mapa: ${result.display_name}`
+            : reverseLocality || nextPostalCode
+              ? "Ubicacion detectada. Revisa CP, localidad, calle y altura antes de guardar."
               : "Ubicacion tomada desde el mapa."
       );
     } catch (requestError) {

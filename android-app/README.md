@@ -18,6 +18,40 @@ npm run build:android:release
 
 `npm run android` usa el proyecto nativo generado en `android/`; requiere JDK (`JAVA_HOME`) y Android SDK/Android Studio configurados.
 
+## Generacion correcta de artefactos Android
+
+Regla del proyecto: los artefactos Android se generan siempre desde `android-app`. No entregar APKs de debug como build final.
+
+Para generar un APK instalable firmado fuera de Play Store:
+
+```powershell
+cd android-app
+npm run build:android:standalone
+```
+
+Salidas esperadas:
+
+```txt
+android-app/KePedimos-<version>-release-standalone.apk
+android-app/KePedimos-release-standalone.apk
+```
+
+Para generar el App Bundle firmado para Play Store:
+
+```powershell
+cd android-app
+npm run build:android:release
+```
+
+Salidas esperadas:
+
+```txt
+android-app/KePedimos-<version>-release.aab
+android-app/KePedimos-release.aab
+```
+
+Los dos comandos ejecutan `:app:validatePlayReleaseSigning` antes de compilar, por lo que fallan si la firma release no esta configurada. `npm run build:android:debug` solo sirve para diagnostico local y genera `android-app/android/app/build/outputs/apk/debug/app-debug.apk`; no usarlo como artefacto de entrega.
+
 `npm run build:android:release` genera el App Bundle para Play (`.aab`) y exige upload key configurada con:
 
 ```properties

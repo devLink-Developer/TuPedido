@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.models.order import StoreOrder
 from app.models.payment import PaymentWebhookEvent
 from app.models.store import MerchantPaymentAccount, Store
+from app.modules.payments.mercadopago.payment_service import notify_customer_payment_cancelled_order
 from app.services.delivery import publish_order_snapshot
 from app.services.mercadopago import (
     MercadoPagoAPIError,
@@ -139,8 +140,10 @@ async def process_mercadopago_webhook(request: Request, db: Session) -> dict[str
         if order is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
         previous_payment_status = order.payment_status
+        previous_order_status = order.status
         status_value = normalize_payment_status(str(simulated_status))
         apply_payment_status(order, status_value)
+        notify_customer_payment_cancelled_order(db, order, previous_order_status)
         transaction = find_transaction_by_reference(db, str(simulated_reference))
         if transaction is not None:
             transaction.status = status_value
@@ -276,10 +279,12 @@ async def process_mercadopago_webhook(request: Request, db: Session) -> dict[str
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
     previous_payment_status = order.payment_status
+    previous_order_status = order.status
     record_payment_result(transaction, payment=payment, status_value=status_value)
     event.external_reference = effective_reference
     event.processed_at = datetime.now(UTC)
     apply_payment_status(order, status_value)
+    notify_customer_payment_cancelled_order(db, order, previous_order_status)
     if payment_status_allows_fulfillment(order.payment_status):
         clear_cart_if_matches_order(db, order)
     db.commit()

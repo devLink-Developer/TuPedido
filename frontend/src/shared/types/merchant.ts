@@ -59,6 +59,9 @@ export type AddressReverseGeocodeRequest = {
 };
 
 export type AddressReverseGeocodeResult = {
+  postal_code: string | null;
+  province: string | null;
+  locality: string | null;
   street_name: string | null;
   street_number: string | null;
   display_name: string | null;

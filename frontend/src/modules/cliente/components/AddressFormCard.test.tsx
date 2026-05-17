@@ -6,11 +6,12 @@ import { AddressFormCard, type AddressFormState } from "./AddressFormCard";
 
 const geocodeAddressMock = vi.fn();
 const reverseGeocodeAddressMock = vi.fn();
+const lookupPostalCodeMock = vi.fn();
 
 vi.mock("../../../shared/services/api", () => ({
   geocodeAddress: (...args: unknown[]) => geocodeAddressMock(...args),
   reverseGeocodeAddress: (...args: unknown[]) => reverseGeocodeAddressMock(...args),
-  lookupPostalCode: vi.fn(),
+  lookupPostalCode: (...args: unknown[]) => lookupPostalCodeMock(...args),
 }));
 
 vi.mock("../../../shared/components/maps/AddressLocationPicker", () => ({
@@ -51,15 +52,24 @@ describe("AddressFormCard", () => {
   beforeEach(() => {
     geocodeAddressMock.mockReset();
     reverseGeocodeAddressMock.mockReset();
+    lookupPostalCodeMock.mockReset();
     geocodeAddressMock.mockResolvedValue({
       latitude: -31.6100,
       longitude: -60.6900,
       display_name: "San Martin 123, Santa Fe",
     });
     reverseGeocodeAddressMock.mockResolvedValue({
+      postal_code: "E3000",
+      province: "Santa Fe",
+      locality: "Santa Fe",
       street_name: "San Martin",
       street_number: "123",
       display_name: "San Martin 123, Santa Fe",
+    });
+    lookupPostalCodeMock.mockResolvedValue({
+      postal_code: "3000",
+      province: "Santa Fe",
+      localities: [{ name: "Santa Fe", latitude: -31.6333, longitude: -60.7000 }],
     });
   });
 
@@ -117,5 +127,43 @@ describe("AddressFormCard", () => {
     expect(reverseGeocodeAddressMock).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.getByPlaceholderText("Calle")).toHaveValue("San Martin"));
     await waitFor(() => expect(screen.getByPlaceholderText("Altura")).toHaveValue("123"));
+  });
+
+  it("completa CP, provincia y localidad desde mi ubicacion sin pisar indicaciones", async () => {
+    reverseGeocodeAddressMock.mockResolvedValueOnce({
+      postal_code: "E3100",
+      province: "Entre Rios",
+      locality: "Parana",
+      street_name: "Urquiza",
+      street_number: "456",
+      display_name: "Urquiza 456, Parana, Entre Rios",
+    });
+    lookupPostalCodeMock.mockResolvedValueOnce({
+      postal_code: "3100",
+      province: "Entre Rios",
+      localities: [{ name: "Parana", latitude: -31.7333, longitude: -60.5333 }],
+    });
+
+    renderAddressForm({
+      label: "Casa",
+      postal_code: "",
+      province: "",
+      locality: "",
+      street_name: "",
+      street_number: "",
+      details: "Timbre rojo",
+      latitude: "",
+      longitude: "",
+      is_default: true,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Seleccionar punto" }));
+
+    await waitFor(() => expect(screen.getByPlaceholderText("CP")).toHaveValue("3100"));
+    expect(screen.getByPlaceholderText("Provincia")).toHaveValue("Entre Rios");
+    expect(screen.getByDisplayValue("Parana")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Calle")).toHaveValue("Urquiza");
+    expect(screen.getByPlaceholderText("Altura")).toHaveValue("456");
+    expect(screen.getByPlaceholderText("Piso, depto, referencia, timbre (opcional)")).toHaveValue("Timbre rojo");
   });
 });
