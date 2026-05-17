@@ -12,6 +12,7 @@ class PromotionItemWrite(BaseModel):
 
 
 class PromotionWrite(BaseModel):
+    product_category_id: int | None = None
     name: str = Field(min_length=1, max_length=180)
     description: str | None = None
     sale_price: float = Field(ge=0)
@@ -41,6 +42,8 @@ class PromotionItemRead(BaseModel):
 class PromotionRead(BaseModel):
     id: int
     store_id: int
+    product_category_id: int | None = None
+    product_category_name: str | None = None
     name: str
     description: str | None = None
     sale_price: float

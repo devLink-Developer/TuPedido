@@ -15,6 +15,8 @@ export type PromotionItemWrite = {
 export type Promotion = {
   id: number;
   store_id: number;
+  product_category_id: number | null;
+  product_category_name: string | null;
   name: string;
   description: string | null;
   sale_price: number;
@@ -27,6 +29,7 @@ export type Promotion = {
 };
 
 export type PromotionWrite = {
+  product_category_id?: number | null;
   name: string;
   description?: string | null;
   sale_price: number;

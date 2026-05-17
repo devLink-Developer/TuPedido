@@ -240,6 +240,7 @@ class ProductCategory(Base):
         back_populates="product_category", cascade="all, delete-orphan", order_by="ProductSubcategory.sort_order"
     )
     products: Mapped[list["Product"]] = relationship(back_populates="product_category")
+    promotions: Mapped[list["StorePromotion"]] = relationship(back_populates="product_category")
 
 
 class ProductSubcategory(Base):
@@ -297,6 +298,9 @@ class StorePromotion(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     store_id: Mapped[int] = mapped_column(ForeignKey("stores.id", ondelete="CASCADE"), index=True)
+    product_category_id: Mapped[int | None] = mapped_column(
+        ForeignKey("product_categories.id", ondelete="SET NULL"), index=True, nullable=True
+    )
     name: Mapped[str] = mapped_column(String(180))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     sale_price: Mapped[float] = mapped_column(Numeric(10, 2))
@@ -309,6 +313,7 @@ class StorePromotion(Base):
     )
 
     store: Mapped["Store"] = relationship(back_populates="promotions")
+    product_category: Mapped["ProductCategory | None"] = relationship(back_populates="promotions")
     items: Mapped[list["StorePromotionItem"]] = relationship(
         back_populates="promotion", cascade="all, delete-orphan", order_by="StorePromotionItem.sort_order"
     )

@@ -4,7 +4,13 @@ import { MerchantPageBar } from "../components/MerchantPageBar";
 import { PromoManager, type PromoManagerSummary } from "../components/PromoManager";
 
 export function PromotionsPage() {
-  const [summary, setSummary] = useState<PromoManagerSummary>({ total: 0, active: 0, paused: 0, products: 0 });
+  const [summary, setSummary] = useState<PromoManagerSummary>({
+    total: 0,
+    active: 0,
+    paused: 0,
+    products: 0,
+    categories: 0
+  });
 
   return (
     <div className="space-y-3">
@@ -14,7 +20,7 @@ export function PromotionsPage() {
           <span className="inline-flex items-center gap-3">
             <span>Promociones</span>
             <HelpTooltip label="Ayuda sobre promociones">
-              Crea combos con productos existentes, precio final y límite por cliente.
+              Crea combos por categoria, define productos incluidos, precio final y limite por cliente.
             </HelpTooltip>
           </span>
         }
@@ -22,6 +28,7 @@ export function PromotionsPage() {
           { label: "Promos", value: summary.total },
           { label: "Activas", value: summary.active, tone: summary.active ? "success" : "neutral" },
           { label: "Pausadas", value: summary.paused, tone: summary.paused ? "warning" : "neutral" },
+          { label: "Categorias", value: summary.categories },
           { label: "Productos", value: summary.products }
         ]}
       />

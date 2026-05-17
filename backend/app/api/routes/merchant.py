@@ -223,6 +223,32 @@ def _products_for_promotion(db: Session, *, store_id: int, product_ids: list[int
     return {product.id: product for product in products}
 
 
+def _product_category_for_promotion(db: Session, *, store_id: int, category_id: int | None) -> ProductCategory | None:
+    if category_id is None:
+        return None
+    category = db.scalar(
+        select(ProductCategory).where(ProductCategory.id == category_id, ProductCategory.store_id == store_id)
+    )
+    if category is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid promotion category")
+    return category
+
+
+def _validate_promotion_category(category_id: int | None, products: dict[int, Product]) -> None:
+    if category_id is None:
+        return
+    invalid_products = [
+        product.name
+        for product in products.values()
+        if product.product_category_id != category_id
+    ]
+    if invalid_products:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Promotion products must belong to the selected category",
+        )
+
+
 def _store_enabled_products_count(db: Session, store_id: int) -> int:
     return int(
         db.scalar(
@@ -242,6 +268,7 @@ def _pause_store_if_without_enabled_products(db: Session, store: Store) -> bool:
 
 
 def _apply_promotion_payload(promotion: StorePromotion, payload: PromotionWrite) -> None:
+    promotion.product_category_id = payload.product_category_id
     promotion.name = payload.name.strip()
     promotion.description = (payload.description or "").strip() or None
     promotion.sale_price = payload.sale_price
@@ -576,7 +603,9 @@ def create_promotion(
     db: Session = Depends(get_db),
 ) -> PromotionRead:
     store = get_merchant_store(db, user.id)
-    _products_for_promotion(db, store_id=store.id, product_ids=[item.product_id for item in payload.items])
+    _product_category_for_promotion(db, store_id=store.id, category_id=payload.product_category_id)
+    products = _products_for_promotion(db, store_id=store.id, product_ids=[item.product_id for item in payload.items])
+    _validate_promotion_category(payload.product_category_id, products)
     promotion = StorePromotion(store_id=store.id)
     _apply_promotion_payload(promotion, payload)
     db.add(promotion)
@@ -598,7 +627,9 @@ def update_promotion(
     promotion = get_store_promotion(db, store.id, promotion_id)
     if promotion is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Promotion not found")
-    _products_for_promotion(db, store_id=store.id, product_ids=[item.product_id for item in payload.items])
+    _product_category_for_promotion(db, store_id=store.id, category_id=payload.product_category_id)
+    products = _products_for_promotion(db, store_id=store.id, product_ids=[item.product_id for item in payload.items])
+    _validate_promotion_category(payload.product_category_id, products)
     _apply_promotion_payload(promotion, payload)
     db.commit()
     refreshed = get_store_promotion(db, store.id, promotion_id)

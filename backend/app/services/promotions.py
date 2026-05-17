@@ -11,6 +11,7 @@ from app.models.order import OrderPromotionApplication, ShoppingCart, StoreOrder
 from app.models.store import StorePromotion, StorePromotionItem
 
 PROMOTION_OPTIONS = (
+    selectinload(StorePromotion.product_category),
     selectinload(StorePromotion.items).selectinload(StorePromotionItem.product),
 )
 

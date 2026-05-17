@@ -261,6 +261,12 @@ def serialize_promotion(promotion: object) -> PromotionRead:
     return PromotionRead(
         id=promotion.id,
         store_id=promotion.store_id,
+        product_category_id=getattr(promotion, "product_category_id", None),
+        product_category_name=(
+            promotion.product_category.name
+            if getattr(promotion, "product_category", None) is not None
+            else None
+        ),
         name=promotion.name,
         description=getattr(promotion, "description", None),
         sale_price=float(promotion.sale_price),
