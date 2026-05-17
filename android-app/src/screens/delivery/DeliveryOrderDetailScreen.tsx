@@ -158,8 +158,28 @@ export function DeliveryOrderDetailScreen({ route, navigation }: Props) {
 
       <Card style={styles.summaryCard}>
         <View style={styles.statusRow}>
-          <Text maxFontSizeMultiplier={1.1} style={styles.statusPill}>{labelForStatus(order.delivery_status)}</Text>
-          <Text maxFontSizeMultiplier={1.1} style={styles.metricPill}>ETA {directions?.duration_minutes ?? order.eta_minutes ?? "-"} min</Text>
+          <View style={styles.statusPill}>
+            <Text
+              maxFontSizeMultiplier={1.1}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+              style={styles.statusPillText}
+            >
+              {labelForStatus(order.delivery_status)}
+            </Text>
+          </View>
+          <View style={styles.metricPill}>
+            <Text
+              maxFontSizeMultiplier={1.1}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+              style={styles.metricPillText}
+            >
+              ETA {directions?.duration_minutes ?? order.eta_minutes ?? "-"} min
+            </Text>
+          </View>
         </View>
         <Text maxFontSizeMultiplier={1.15} style={styles.customerText}>Cliente: {getRiderCustomerName(order)}</Text>
         <View style={styles.moneyRow}>
@@ -283,30 +303,41 @@ const styles = StyleSheet.create({
   },
   statusRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: spacing.sm
   },
   statusPill: {
-    overflow: "hidden",
+    flex: 1,
+    minWidth: 0,
+    minHeight: 44,
     borderRadius: radii.pill,
     backgroundColor: colors.primarySoft,
-    color: colors.primaryDark,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  statusPillText: {
+    color: colors.primaryDark,
     fontSize: 12,
     lineHeight: 16,
-    fontWeight: "900"
+    fontWeight: "900",
+    textAlign: "center"
   },
   metricPill: {
-    overflow: "hidden",
+    flex: 1,
+    minWidth: 0,
+    minHeight: 44,
     borderRadius: radii.pill,
     backgroundColor: colors.surfaceAlt,
-    color: colors.text,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  metricPillText: {
+    color: colors.text,
     fontSize: 12,
     lineHeight: 16,
-    fontWeight: "900"
+    fontWeight: "900",
+    textAlign: "center"
   },
   customerText: {
     color: colors.text,

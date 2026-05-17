@@ -112,7 +112,7 @@ export function DeliveryRouteMapScreen({ route, navigation }: Props) {
   const destinationText = isDropoff
     ? (order ? getRiderDeliveryAddress(order) : "Direccion del cliente no disponible")
     : order?.store_name?.trim() || "Comercio";
-  const destinationMeta = isDropoff && order ? `Cliente: ${getRiderCustomerName(order)}` : "Retiro en comercio";
+  const customerName = order ? getRiderCustomerName(order) : "Sin nombre";
   const currentInstruction = instructions[0] ?? null;
   const canCompleteDelivery = isDropoff && !["delivered", "cancelled", "delivery_failed"].includes(order?.status ?? "");
   const showDeliveryCodePanel = canCompleteDelivery && Boolean(order?.otp_required);
@@ -182,9 +182,20 @@ export function DeliveryRouteMapScreen({ route, navigation }: Props) {
             <IconButton icon="chevron-back" label="Volver" tone="dark" onPress={() => navigation.goBack()} />
             <View style={styles.headerCard}>
               <Text maxFontSizeMultiplier={1.1} style={styles.eyebrow}>{destinationLabel} - {title}</Text>
-              <Text maxFontSizeMultiplier={1.15} style={styles.title} numberOfLines={isDropoff ? 3 : 2}>
-                {destinationText}
-              </Text>
+              {isDropoff ? (
+                <>
+                  <Text maxFontSizeMultiplier={1.15} style={styles.title} numberOfLines={1}>
+                    Cliente: {customerName}
+                  </Text>
+                  <Text maxFontSizeMultiplier={1.1} style={styles.headerAddress} numberOfLines={2}>
+                    {destinationText}
+                  </Text>
+                </>
+              ) : (
+                <Text maxFontSizeMultiplier={1.15} style={styles.title} numberOfLines={2}>
+                  {destinationText}
+                </Text>
+              )}
               <Text maxFontSizeMultiplier={1.1} style={styles.meta} numberOfLines={1}>
                 Pedido #{order.id} - {labelForStatus(order.delivery_status)}
               </Text>
@@ -249,20 +260,19 @@ export function DeliveryRouteMapScreen({ route, navigation }: Props) {
             {liveError || routeError ? <Text style={styles.warning}>{liveError ?? routeError}</Text> : null}
             {voice.speechError ? <Text style={styles.warning}>{voice.speechError}</Text> : null}
 
-            <View style={styles.destinationCard}>
-              <View style={styles.destinationIcon}>
-                <Ionicons name={isDropoff ? "home-outline" : "storefront-outline"} size={20} color={colors.primary} />
-              </View>
-              <View style={styles.destinationCopy}>
-                <Text maxFontSizeMultiplier={1.1} style={styles.destinationMeta}>{destinationMeta}</Text>
-                <Text maxFontSizeMultiplier={1.15} style={styles.destinationText} numberOfLines={sheetExpanded && isDropoff ? 4 : 2}>{destinationText}</Text>
-                {sheetExpanded && currentInstruction ? (
+            {sheetExpanded && currentInstruction ? (
+              <View style={styles.nextInstructionCard}>
+                <View style={styles.nextInstructionIcon}>
+                  <Ionicons name="navigate-outline" size={20} color={colors.primary} />
+                </View>
+                <View style={styles.nextInstructionCopy}>
+                  <Text maxFontSizeMultiplier={1.1} style={styles.nextInstructionLabel}>Proxima indicacion</Text>
                   <Text maxFontSizeMultiplier={1.15} style={styles.nextInstruction} numberOfLines={3}>
                     {currentInstruction.instruction}
                   </Text>
-                ) : null}
+                </View>
               </View>
-            </View>
+            ) : null}
 
             <View style={styles.voicePanel}>
               <View style={styles.voiceHeader}>
@@ -442,6 +452,13 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginTop: 2
   },
+  headerAddress: {
+    color: colors.text,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: "800",
+    marginTop: 2
+  },
   meta: {
     color: colors.mutedText,
     fontSize: 12,
@@ -521,7 +538,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: spacing.sm
   },
-  destinationCard: {
+  nextInstructionCard: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: spacing.sm,
@@ -532,7 +549,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     marginTop: spacing.sm
   },
-  destinationIcon: {
+  nextInstructionIcon: {
     width: 40,
     height: 40,
     borderRadius: radii.md,
@@ -540,21 +557,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center"
   },
-  destinationCopy: {
+  nextInstructionCopy: {
     flex: 1,
     minWidth: 0
   },
-  destinationMeta: {
+  nextInstructionLabel: {
     color: colors.primaryDark,
     fontSize: 12,
     fontWeight: "900"
-  },
-  destinationText: {
-    color: colors.text,
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: "900",
-    marginTop: 2
   },
   nextInstruction: {
     color: colors.mutedText,
