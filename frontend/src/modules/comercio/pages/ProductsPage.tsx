@@ -164,8 +164,9 @@ export function ProductsPage() {
         </section>
       ) : null}
 
-      <div className="grid gap-3 xl:grid-cols-[288px_minmax(0,1fr)_320px] xl:items-start 2xl:grid-cols-[310px_minmax(0,1fr)_360px]">
-        <CatalogTaxonomyManager categories={categories} onRefresh={() => load({ silent: true })} />
+      <CatalogTaxonomyManager categories={categories} onRefresh={() => load({ silent: true })} />
+
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start 2xl:grid-cols-[minmax(0,1fr)_360px]">
         <ProductList
           products={products}
           selectedProductId={selectedProductId}
