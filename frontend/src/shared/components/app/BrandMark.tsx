@@ -1,4 +1,4 @@
-import { KE_BRAND_NAME } from "../../config/brand";
+import { isBundledWordmarkPosterUrl, KE_BRAND_NAME } from "../../config/brand";
 import { usePlatformBranding } from "../../providers/PlatformBrandingProvider";
 import { resolveApiMediaUrl } from "../../services/api/client";
 
@@ -18,7 +18,8 @@ export function BrandMark({
 }: BrandMarkProps) {
   const branding = usePlatformBranding();
   const resolvedBrandName = brandName ?? branding.brandName ?? KE_BRAND_NAME;
-  const resolvedLogoUrl = (logoUrl ?? branding.wordmarkUrl ?? branding.logoUrl)?.trim();
+  const candidateLogoUrl = (logoUrl ?? branding.logoUrl ?? branding.wordmarkUrl)?.trim();
+  const resolvedLogoUrl = candidateLogoUrl && !isBundledWordmarkPosterUrl(candidateLogoUrl) ? candidateLogoUrl : null;
 
   return (
     <span className={["inline-flex items-center", className].filter(Boolean).join(" ")}>

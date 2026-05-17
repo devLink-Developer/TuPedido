@@ -84,7 +84,7 @@ function MerchantNav({ onNavigate }: { onNavigate?: () => void }) {
                   }
                 >
                   <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span className="truncate">{item.label}</span>
+                  <span className="min-w-0 leading-tight">{item.label}</span>
                 </NavLink>
               );
             })}
@@ -149,7 +149,7 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
         </div>
       </header>
       <div className="mx-auto flex min-h-screen max-w-[1480px] flex-col md:flex-row">
-        <aside className="app-sidebar hidden w-[232px] flex-col px-4 py-4 text-white md:flex">
+        <aside className="app-sidebar merchant-sidebar-shell hidden w-[232px] shrink-0 flex-col px-4 py-4 text-white md:sticky md:top-0 md:flex md:h-screen">
           <div className="relative">
             <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#ffcfb7]/70">Comercio</p>
             <h1 className="mt-2 font-display text-[1.45rem] font-bold leading-tight tracking-tight">Panel operativo</h1>
@@ -170,7 +170,7 @@ export function MerchantDashboardLayout({ children }: PropsWithChildren) {
           </div>
         </aside>
 
-        <main className="flex-1 px-4 pb-5 pt-0 md:px-4 md:py-4 lg:px-5">
+        <main className="min-w-0 flex-1 px-4 pb-5 pt-0 md:px-4 md:py-4 lg:px-5">
           <header
             className={[
               "app-toolbar -mx-4 mb-4 border border-x-0 border-[var(--color-border-default)] px-4 py-3.5 md:hidden",

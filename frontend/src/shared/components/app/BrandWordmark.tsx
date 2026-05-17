@@ -1,4 +1,4 @@
-import { KE_BRAND_NAME } from "../../config/brand";
+import { isBundledWordmarkPosterUrl, KE_BRAND_NAME } from "../../config/brand";
 import { resolveApiMediaUrl } from "../../services/api/client";
 
 type BrandWordmarkProps = {
@@ -35,7 +35,11 @@ export function BrandWordmark({
   frameClassName = "",
   imageClassName = "",
 }: BrandWordmarkProps) {
-  const resolvedWordmarkUrl = wordmarkUrl?.trim() ? resolveApiMediaUrl(wordmarkUrl) : null;
+  const candidateWordmarkUrl = wordmarkUrl?.trim();
+  const resolvedWordmarkUrl =
+    candidateWordmarkUrl && !isBundledWordmarkPosterUrl(candidateWordmarkUrl)
+      ? resolveApiMediaUrl(candidateWordmarkUrl)
+      : null;
 
   return (
     <span className={["inline-flex items-center", className].filter(Boolean).join(" ")}>

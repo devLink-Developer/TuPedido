@@ -567,6 +567,13 @@ a {
   padding: 0.35rem 0.62rem;
 }
 
+.merchant-density .merchant-sidebar-shell {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
 .merchant-density main {
   font-size: 0.95rem;
 }

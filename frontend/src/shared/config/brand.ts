@@ -3,3 +3,8 @@ export const KE_WORDMARK_POSTER_URL = "/brand/kepedimos/wordmark-poster.png";
 export const KE_LANDING_POSTER_URL = "/brand/kepedimos/landing-poster.png";
 export const KE_MAP_ORANGE_URL = "/brand/kepedimos/map-orange.png";
 export const KE_FAVICON_URL = "/favicon.svg";
+
+export function isBundledWordmarkPosterUrl(value?: string | null): boolean {
+  const normalized = value?.trim().replace(/\\/g, "/").toLowerCase();
+  return Boolean(normalized && normalized.endsWith(KE_WORDMARK_POSTER_URL.toLowerCase()));
+}

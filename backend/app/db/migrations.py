@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.db.session import engine
 
 INITIAL_REVISION = "d9ba94f281ec"
+MIGRATION_LOCK_ID = 90216016
 logger = logging.getLogger(__name__)
 MANAGED_TABLES = {
     "addresses",
@@ -146,7 +147,7 @@ def _is_revision_resolution_error(exc: Exception) -> bool:
     )
 
 
-def run_schema_migrations() -> None:
+def _run_schema_migrations_unlocked() -> None:
     config = _alembic_config()
     if _needs_legacy_stamp():
         command.stamp(config, INITIAL_REVISION)
@@ -158,3 +159,16 @@ def run_schema_migrations() -> None:
             return
         logger.exception("Schema migration failed during startup.")
         raise
+
+
+def run_schema_migrations() -> None:
+    if engine.dialect.name != "postgresql":
+        _run_schema_migrations_unlocked()
+        return
+
+    with engine.connect() as connection:
+        connection.execute(text("SELECT pg_advisory_lock(:lock_id)"), {"lock_id": MIGRATION_LOCK_ID})
+        try:
+            _run_schema_migrations_unlocked()
+        finally:
+            connection.execute(text("SELECT pg_advisory_unlock(:lock_id)"), {"lock_id": MIGRATION_LOCK_ID})
