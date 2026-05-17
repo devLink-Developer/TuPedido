@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.api.deps import require_merchant
 from app.api.presenters import (
@@ -15,6 +15,7 @@ from app.api.presenters import (
     serialize_product,
     serialize_product_category,
     serialize_rider_settlement_payment,
+    serialize_settlement_overview,
     serialize_store_detail,
 )
 from app.core.security import hash_password
@@ -76,6 +77,7 @@ from app.services.mercadopago import (
 from app.services.media import normalize_media_url
 from app.services.order_runtime import build_order_options
 from app.services.order_visibility import order_visible_to_merchant
+from app.services.platform import get_service_fee_amount
 from app.services.promotions import get_store_promotion, get_store_promotions
 from app.services.settlements import create_cash_service_fee_charge
 from app.services.settlements import (
@@ -84,6 +86,16 @@ from app.services.settlements import (
     get_store_notices,
     get_store_payments,
     get_store_rider_payments,
+)
+from app.services.merchant_stats import (
+    MerchantStatsPeriod,
+    build_stats_customers,
+    build_stats_delivery,
+    build_stats_financial,
+    build_stats_overview,
+    build_stats_products,
+    build_stats_sales,
+    resolve_stats_period,
 )
 from app.services.store_address import (
     store_active_delivery_riders_count,
@@ -177,6 +189,20 @@ def get_merchant_rider(db: Session, *, store_id: int, rider_user_id: int) -> Del
     if profile is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rider not found")
     return profile
+
+
+def _stats_period_or_400(
+    start_date: date | None,
+    end_date: date | None,
+    comparison: str,
+) -> MerchantStatsPeriod:
+    today = datetime.now(UTC).date()
+    resolved_end = end_date or today
+    resolved_start = start_date or (resolved_end - timedelta(days=29))
+    try:
+        return resolve_stats_period(resolved_start, resolved_end, comparison)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 def _admin_user_ids(db: Session) -> list[int]:
@@ -793,6 +819,94 @@ def list_settlement_history(
         payments=get_store_payments(db, store.id),
         rider_payments=get_store_rider_payments(db, store.id),
     )
+
+
+@router.get("/stats/overview")
+def get_stats_overview(
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
+    comparison: str = Query(default="previous_period"),
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    store = get_merchant_store(db, user.id)
+    period = _stats_period_or_400(start_date, end_date, comparison)
+    return build_stats_overview(db, store.id, period)
+
+
+@router.get("/stats/sales")
+def get_stats_sales(
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
+    comparison: str = Query(default="previous_period"),
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    store = get_merchant_store(db, user.id)
+    period = _stats_period_or_400(start_date, end_date, comparison)
+    return build_stats_sales(db, store.id, period)
+
+
+@router.get("/stats/products")
+def get_stats_products(
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
+    comparison: str = Query(default="previous_period"),
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    store = get_merchant_store(db, user.id)
+    period = _stats_period_or_400(start_date, end_date, comparison)
+    return build_stats_products(db, store.id, period)
+
+
+@router.get("/stats/customers")
+def get_stats_customers(
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
+    comparison: str = Query(default="previous_period"),
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    store = get_merchant_store(db, user.id)
+    period = _stats_period_or_400(start_date, end_date, comparison)
+    return build_stats_customers(db, store.id, period)
+
+
+@router.get("/stats/delivery")
+def get_stats_delivery(
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
+    comparison: str = Query(default="previous_period"),
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    store = get_merchant_store(db, user.id)
+    period = _stats_period_or_400(start_date, end_date, comparison)
+    return build_stats_delivery(db, store.id, period)
+
+
+@router.get("/stats/financial")
+def get_stats_financial(
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
+    comparison: str = Query(default="previous_period"),
+    user: User = Depends(require_merchant),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    store = get_merchant_store(db, user.id)
+    period = _stats_period_or_400(start_date, end_date, comparison)
+    charges = get_store_charges(db, store.id)
+    notices = get_store_notices(db, store.id)
+    payments = get_store_payments(db, store.id)
+    settlement_overview = serialize_settlement_overview(
+        store=store,
+        service_fee_amount=get_service_fee_amount(db),
+        charges=charges,
+        notices=notices,
+        payments=payments,
+    ).model_dump()
+    return build_stats_financial(db, store.id, period, settlement_overview=settlement_overview)
 
 
 @router.put("/riders/{rider_user_id}")

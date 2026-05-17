@@ -4,6 +4,7 @@ export * from "./catalog";
 export * from "./common";
 export * from "./delivery";
 export * from "./merchant";
+export * from "./merchantStats";
 export * from "./order";
 export * from "./promotion";
 export * from "./pricing";

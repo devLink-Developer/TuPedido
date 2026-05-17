@@ -5,6 +5,13 @@ import type {
   MerchantRiderSettlementPaymentCreate,
   MerchantPromotion,
   MerchantRiderUpdate,
+  MerchantStatsCustomers,
+  MerchantStatsDelivery,
+  MerchantStatsFinancial,
+  MerchantStatsOverview,
+  MerchantStatsProducts,
+  MerchantStatsQuery,
+  MerchantStatsSales,
   MercadoPagoConnectResponse,
   MercadoPagoDisconnectResponse,
   MerchantStore,
@@ -43,6 +50,32 @@ function mapOrder(raw: RawOrder): Order {
     ...raw,
     pricing: buildPricingSummary(raw)
   };
+}
+
+const STATS_CACHE_TTL_MS = 60_000;
+const statsCache = new Map<string, { expiresAt: number; value: unknown }>();
+
+function buildStatsPath(section: string, query: MerchantStatsQuery) {
+  const params = new URLSearchParams({
+    start_date: query.startDate,
+    end_date: query.endDate,
+    comparison: query.comparison
+  });
+  return `/merchant/stats/${section}?${params.toString()}`;
+}
+
+async function cachedStatsRequest<T>(token: string, section: string, query: MerchantStatsQuery): Promise<T> {
+  const path = buildStatsPath(section, query);
+  const cacheKey = `${token.slice(0, 12)}:${path}`;
+  const cached = statsCache.get(cacheKey);
+  const now = Date.now();
+  if (cached && cached.expiresAt > now) {
+    return cached.value as T;
+  }
+
+  const value = await apiRequest<T>(path, { token });
+  statsCache.set(cacheKey, { value, expiresAt: now + STATS_CACHE_TTL_MS });
+  return value;
 }
 
 export async function fetchMerchantStore(token: string): Promise<MerchantStore> {
@@ -118,6 +151,45 @@ export async function disconnectMerchantMercadoPago(token: string): Promise<Merc
 
 export async function fetchMerchantSettlementOverview(token: string): Promise<SettlementOverview> {
   return apiRequest<SettlementOverview>("/merchant/settlements/overview", { token });
+}
+
+export async function fetchMerchantStatsOverview(
+  token: string,
+  query: MerchantStatsQuery
+): Promise<MerchantStatsOverview> {
+  return cachedStatsRequest<MerchantStatsOverview>(token, "overview", query);
+}
+
+export async function fetchMerchantStatsSales(token: string, query: MerchantStatsQuery): Promise<MerchantStatsSales> {
+  return cachedStatsRequest<MerchantStatsSales>(token, "sales", query);
+}
+
+export async function fetchMerchantStatsProducts(
+  token: string,
+  query: MerchantStatsQuery
+): Promise<MerchantStatsProducts> {
+  return cachedStatsRequest<MerchantStatsProducts>(token, "products", query);
+}
+
+export async function fetchMerchantStatsCustomers(
+  token: string,
+  query: MerchantStatsQuery
+): Promise<MerchantStatsCustomers> {
+  return cachedStatsRequest<MerchantStatsCustomers>(token, "customers", query);
+}
+
+export async function fetchMerchantStatsDelivery(
+  token: string,
+  query: MerchantStatsQuery
+): Promise<MerchantStatsDelivery> {
+  return cachedStatsRequest<MerchantStatsDelivery>(token, "delivery", query);
+}
+
+export async function fetchMerchantStatsFinancial(
+  token: string,
+  query: MerchantStatsQuery
+): Promise<MerchantStatsFinancial> {
+  return cachedStatsRequest<MerchantStatsFinancial>(token, "financial", query);
 }
 
 export async function fetchMerchantSettlementCharges(token: string): Promise<SettlementCharge[]> {
