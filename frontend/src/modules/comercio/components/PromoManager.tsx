@@ -87,6 +87,7 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
   const [activeCategoryId, setActiveCategoryId] = useState("");
   const [form, setForm] = useState<PromotionFormState>(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -195,6 +196,31 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
     setFormError(null);
   }
 
+  function defaultCreateCategoryId() {
+    if (activeCategoryId && activeCategoryId !== UNCATEGORIZED_CATEGORY_ID) {
+      return activeCategoryId;
+    }
+    const preferred = categories.find((category) => (categoryProductCounts.get(category.id) ?? 0) > 0) ?? categories[0];
+    return preferred ? String(preferred.id) : "";
+  }
+
+  function openCreateForm() {
+    const categoryId = defaultCreateCategoryId();
+    setEditingId(null);
+    setForm(emptyForm(categoryId));
+    setFormError(null);
+    if (categoryId) {
+      setActiveCategoryId(categoryId);
+    }
+    setFormOpen(true);
+  }
+
+  function closeForm() {
+    if (saving) return;
+    setFormOpen(false);
+    resetForm();
+  }
+
   function selectCategory(categoryId: string) {
     setActiveCategoryId(categoryId);
     if (editingId === null) {
@@ -230,6 +256,7 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
     setEditingId(promotion.id);
     setForm(toForm(promotion, categoryId === UNCATEGORIZED_CATEGORY_ID ? "" : categoryId));
     setFormError(null);
+    setFormOpen(true);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -309,6 +336,7 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
       }
       resetForm(String(selectedCategoryId));
       setActiveCategoryId(String(selectedCategoryId));
+      setFormOpen(false);
       await load();
     } catch (requestError) {
       setFormError(requestError instanceof Error ? requestError.message : "No se pudo guardar la promocion");
@@ -323,12 +351,224 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
       await deleteMerchantPromotion(token, promotionId);
       if (editingId === promotionId) {
         resetForm();
+        setFormOpen(false);
       }
       await load();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudo eliminar la promocion");
     }
   }
+
+  useEffect(() => {
+    if (!formOpen) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeForm();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [formOpen, saving]);
+
+  const promotionForm = (
+    <form onSubmit={(event) => void handleSubmit(event)} className="space-y-3 rounded bg-white p-3 shadow-sm md:p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Combo</p>
+          <div className="mt-2 flex items-center gap-2">
+            <h2 id="promotion-form-title" className="text-lg font-bold text-ink">
+              {editingId === null ? "Nueva promocion" : "Editar promocion"}
+            </h2>
+            <HelpTooltip label="Ayuda sobre promocion">
+              La categoria limita los productos disponibles y mantiene ordenado el catalogo promocional.
+            </HelpTooltip>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={closeForm}
+          className="kp-soft-action inline-flex min-h-10 items-center gap-2 px-4 py-2 text-sm"
+          aria-label="Cerrar formulario de promocion"
+        >
+          <X className="h-4 w-4" aria-hidden="true" />
+          Cerrar
+        </button>
+      </div>
+
+      <label className="block text-xs font-bold uppercase tracking-[0.14em] text-zinc-500">
+        Categoria
+        <select
+          value={form.product_category_id}
+          onChange={(event) => setFormCategory(event.target.value)}
+          className="mt-1 min-h-11 w-full rounded border border-black/10 bg-zinc-50 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-ink"
+        >
+          <option value="">Selecciona una categoria</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <input
+          value={form.name}
+          onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+          placeholder="Ej. Combo desayuno"
+          className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
+        />
+        <input
+          type="number"
+          min={0}
+          step="0.01"
+          value={form.sale_price}
+          onChange={(event) => setForm((current) => ({ ...current, sale_price: event.target.value }))}
+          placeholder="Precio final del combo"
+          className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
+        />
+        <input
+          type="number"
+          min={1}
+          value={form.max_per_customer_per_day}
+          onChange={(event) => setForm((current) => ({ ...current, max_per_customer_per_day: event.target.value }))}
+          placeholder="Maximo por cliente por dia"
+          className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
+        />
+        <input
+          type="number"
+          min={0}
+          value={form.sort_order}
+          onChange={(event) => setForm((current) => ({ ...current, sort_order: event.target.value }))}
+          placeholder="Orden"
+          className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
+        />
+        <textarea
+          value={form.description}
+          onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+          rows={3}
+          placeholder="Explica que incluye el combo."
+          className="rounded border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
+        />
+      </div>
+
+      <label className="inline-flex min-h-10 items-center gap-2 rounded bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700">
+        <input
+          type="checkbox"
+          checked={form.is_active}
+          onChange={(event) => setForm((current) => ({ ...current, is_active: event.target.checked }))}
+        />
+        Promocion activa
+      </label>
+
+      <div className="space-y-3 rounded bg-zinc-50 p-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Productos</p>
+            <div className="mt-2 flex items-center gap-2">
+              <h3 className="text-base font-bold text-ink">{formCategory?.name ?? "Selecciona categoria"}</h3>
+              <HelpTooltip label="Ayuda sobre productos del combo">
+                Solo se muestran productos de la categoria elegida.
+              </HelpTooltip>
+            </div>
+          </div>
+          <Button
+            type="button"
+            className="shadow-none"
+            disabled={!form.product_category_id || !availableProducts.length}
+            onClick={() =>
+              setForm((current) => ({
+                ...current,
+                items: [...current.items, { product_id: "", quantity: "1", sort_order: String(current.items.length) }]
+              }))
+            }
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Agregar
+          </Button>
+        </div>
+
+        {!availableProducts.length ? (
+          <p className="rounded bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            Esta categoria todavia no tiene productos cargados.
+          </p>
+        ) : null}
+
+        <div className="space-y-3">
+          {form.items.map((item, index) => (
+            <div key={`${index}-${item.product_id}`} className="grid gap-2 rounded bg-white p-2.5 md:grid-cols-[minmax(0,1fr)_96px_86px_auto]">
+              <select
+                value={item.product_id}
+                onChange={(event) => updateItem(index, "product_id", event.target.value)}
+                disabled={!form.product_category_id}
+                className="min-w-0 rounded border border-black/10 bg-zinc-50 px-4 py-3"
+              >
+                <option value="">Selecciona un producto</option>
+                {availableProducts.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name} | {formatCurrency(product.final_price)}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min={1}
+                value={item.quantity}
+                onChange={(event) => updateItem(index, "quantity", event.target.value)}
+                placeholder="Cant."
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
+              />
+              <input
+                type="number"
+                min={0}
+                value={item.sort_order}
+                onChange={(event) => updateItem(index, "sort_order", event.target.value)}
+                placeholder="Orden"
+                className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
+              />
+              <button
+                type="button"
+                onClick={() => removeItem(index)}
+                disabled={form.items.length === 1}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-rose-50 px-3 py-3 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                Quitar
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-2 md:grid-cols-3">
+        <div className="rounded bg-[#fff6ef] p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Base</p>
+          <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(baseComboTotal)}</p>
+        </div>
+        <div className="rounded bg-[#f6fbf7] p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Final</p>
+          <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(Number(form.sale_price || 0))}</p>
+        </div>
+        <div className="rounded bg-[#f5f7fb] p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Ahorro</p>
+          <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(totalSavings)}</p>
+        </div>
+      </div>
+
+      {formError ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{formError}</p> : null}
+
+      <Button type="submit" disabled={saving} className="w-full justify-center">
+        {saving ? (
+          "Guardando..."
+        ) : (
+          <>
+            {editingId === null ? <PackagePlus className="h-4 w-4" aria-hidden="true" /> : <BadgePercent className="h-4 w-4" aria-hidden="true" />}
+            {editingId === null ? "Crear promocion" : "Guardar cambios"}
+          </>
+        )}
+      </Button>
+    </form>
+  );
 
   if (loading) {
     return <div className="rounded bg-white p-4 shadow-sm">Cargando promociones...</div>;
@@ -353,8 +593,9 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
   }
 
   return (
-    <div className="grid gap-3 xl:grid-cols-[260px_minmax(0,1fr)] 2xl:grid-cols-[260px_minmax(0,1fr)_420px] 2xl:items-start">
-      {error ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700 xl:col-span-2 2xl:col-span-3">{error}</p> : null}
+    <>
+      <div className="grid gap-3 xl:grid-cols-[260px_minmax(0,1fr)] xl:items-start">
+        {error ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700 xl:col-span-2">{error}</p> : null}
 
       <aside className="app-panel p-3 xl:sticky xl:top-3">
         <div className="flex items-center gap-2">
@@ -414,9 +655,15 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Categoria activa</p>
             <h2 className="mt-1.5 truncate text-lg font-bold text-ink">{activeCategoryLabel}</h2>
           </div>
-          <span className="app-chip text-xs text-zinc-600">
-            {activePromotions.length} promociones / {activeProducts.length} productos
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="app-chip text-xs text-zinc-600">
+              {activePromotions.length} promociones / {activeProducts.length} productos
+            </span>
+            <Button type="button" className="min-h-10 px-4 py-2 text-sm shadow-none" onClick={openCreateForm}>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Nueva promocion
+            </Button>
+          </div>
         </div>
 
         {activePromotions.length ? (
@@ -482,205 +729,27 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
         )}
       </section>
 
-      <form
-        onSubmit={(event) => void handleSubmit(event)}
-        className="space-y-3 rounded bg-white p-3 shadow-sm xl:col-span-2 xl:max-h-[calc(100vh-130px)] xl:overflow-y-auto 2xl:col-span-1"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Combo</p>
-            <div className="mt-2 flex items-center gap-2">
-              <h2 className="text-lg font-bold text-ink">{editingId === null ? "Nueva promocion" : "Editar promocion"}</h2>
-              <HelpTooltip label="Ayuda sobre promocion">
-                La categoria limita los productos disponibles y mantiene ordenado el catalogo promocional.
-              </HelpTooltip>
-            </div>
-          </div>
-          {editingId !== null ? (
-            <button
-              type="button"
-              onClick={() => resetForm()}
-              className="inline-flex min-h-10 items-center gap-2 rounded bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-              Cancelar
-            </button>
-          ) : null}
-        </div>
+      </div>
 
-        <label className="block text-xs font-bold uppercase tracking-[0.14em] text-zinc-500">
-          Categoria
-          <select
-            value={form.product_category_id}
-            onChange={(event) => setFormCategory(event.target.value)}
-            className="mt-1 min-h-11 w-full rounded border border-black/10 bg-zinc-50 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-ink"
+      {formOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(92,52,24,0.24)] p-4 backdrop-blur-[2px] md:items-center"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeForm();
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="promotion-form-title"
+            className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded bg-[linear-gradient(180deg,#fcf6ef_0%,#fffdfa_100%)] p-3 shadow-[0_32px_80px_rgba(24,19,18,0.28)] md:p-4"
           >
-            <option value="">Selecciona una categoria</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <input
-            value={form.name}
-            onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-            placeholder="Ej. Combo desayuno"
-            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
-          />
-          <input
-            type="number"
-            min={0}
-            step="0.01"
-            value={form.sale_price}
-            onChange={(event) => setForm((current) => ({ ...current, sale_price: event.target.value }))}
-            placeholder="Precio final del combo"
-            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
-          />
-          <input
-            type="number"
-            min={1}
-            value={form.max_per_customer_per_day}
-            onChange={(event) => setForm((current) => ({ ...current, max_per_customer_per_day: event.target.value }))}
-            placeholder="Maximo por cliente por dia"
-            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
-          />
-          <input
-            type="number"
-            min={0}
-            value={form.sort_order}
-            onChange={(event) => setForm((current) => ({ ...current, sort_order: event.target.value }))}
-            placeholder="Orden"
-            className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
-          />
-          <textarea
-            value={form.description}
-            onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-            rows={3}
-            placeholder="Explica que incluye el combo."
-            className="rounded border border-black/10 bg-zinc-50 px-4 py-3 md:col-span-2"
-          />
-        </div>
-
-        <label className="inline-flex min-h-10 items-center gap-2 rounded bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700">
-          <input
-            type="checkbox"
-            checked={form.is_active}
-            onChange={(event) => setForm((current) => ({ ...current, is_active: event.target.checked }))}
-          />
-          Promocion activa
-        </label>
-
-        <div className="space-y-3 rounded bg-zinc-50 p-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Productos</p>
-              <div className="mt-2 flex items-center gap-2">
-                <h3 className="text-base font-bold text-ink">{formCategory?.name ?? "Selecciona categoria"}</h3>
-                <HelpTooltip label="Ayuda sobre productos del combo">
-                  Solo se muestran productos de la categoria elegida.
-                </HelpTooltip>
-              </div>
-            </div>
-            <Button
-              type="button"
-              className="shadow-none"
-              disabled={!form.product_category_id || !availableProducts.length}
-              onClick={() =>
-                setForm((current) => ({
-                  ...current,
-                  items: [...current.items, { product_id: "", quantity: "1", sort_order: String(current.items.length) }]
-                }))
-              }
-            >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Agregar
-            </Button>
-          </div>
-
-          {!availableProducts.length ? (
-            <p className="rounded bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              Esta categoria todavia no tiene productos cargados.
-            </p>
-          ) : null}
-
-          <div className="space-y-3">
-            {form.items.map((item, index) => (
-              <div key={`${index}-${item.product_id}`} className="grid gap-2 rounded bg-white p-2.5 md:grid-cols-[minmax(0,1fr)_96px_86px_auto]">
-                <select
-                  value={item.product_id}
-                  onChange={(event) => updateItem(index, "product_id", event.target.value)}
-                  disabled={!form.product_category_id}
-                  className="min-w-0 rounded border border-black/10 bg-zinc-50 px-4 py-3"
-                >
-                  <option value="">Selecciona un producto</option>
-                  {availableProducts.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name} | {formatCurrency(product.final_price)}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  min={1}
-                  value={item.quantity}
-                  onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                  placeholder="Cant."
-                  className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
-                />
-                <input
-                  type="number"
-                  min={0}
-                  value={item.sort_order}
-                  onChange={(event) => updateItem(index, "sort_order", event.target.value)}
-                  placeholder="Orden"
-                  className="rounded border border-black/10 bg-zinc-50 px-4 py-3"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeItem(index)}
-                  disabled={form.items.length === 1}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-rose-50 px-3 py-3 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  Quitar
-                </button>
-              </div>
-            ))}
+            {promotionForm}
           </div>
         </div>
-
-        <div className="grid gap-2 md:grid-cols-3">
-          <div className="rounded bg-[#fff6ef] p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Base</p>
-            <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(baseComboTotal)}</p>
-          </div>
-          <div className="rounded bg-[#f6fbf7] p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Final</p>
-            <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(Number(form.sale_price || 0))}</p>
-          </div>
-          <div className="rounded bg-[#f5f7fb] p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Ahorro</p>
-            <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(totalSavings)}</p>
-          </div>
-        </div>
-
-        {formError ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700">{formError}</p> : null}
-
-        <Button type="submit" disabled={saving} className="w-full justify-center">
-          {saving ? (
-            "Guardando..."
-          ) : (
-            <>
-              {editingId === null ? <PackagePlus className="h-4 w-4" aria-hidden="true" /> : <BadgePercent className="h-4 w-4" aria-hidden="true" />}
-              {editingId === null ? "Crear promocion" : "Guardar cambios"}
-            </>
-          )}
-        </Button>
-      </form>
-    </div>
+      ) : null}
+    </>
   );
 }
