@@ -22,6 +22,8 @@ import {
   LazyClienteProfileRoute,
   LazyClienteStoreDetailRoute,
   LazyComercioDashboardRoute,
+  LazyComercioGuidedSetupRoute,
+  LazyComercioIndexRoute,
   LazyComercioLiquidationsRoute,
   LazyComercioMercadoPagoRoute,
   LazyComercioModuleLayoutRoute,
@@ -113,7 +115,8 @@ export const router = createBrowserRouter([
           {
             element: <LazyComercioModuleLayoutRoute />,
             children: [
-              { index: true, element: <Navigate to="pedidos" replace /> },
+              { index: true, element: <LazyComercioIndexRoute /> },
+              { path: "configuracion-guiada", element: <LazyComercioGuidedSetupRoute /> },
               { path: "dashboard", element: <LazyComercioDashboardRoute /> },
               { path: "liquidaciones", element: <LazyComercioLiquidationsRoute /> },
               { path: "mercadopago", element: <LazyComercioMercadoPagoRoute /> },

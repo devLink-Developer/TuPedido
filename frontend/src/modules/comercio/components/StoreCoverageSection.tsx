@@ -310,9 +310,19 @@ export function StoreCoverageSection({
         </p>
       </div>
 
+      <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
+        <p className="font-semibold">Como marcar los poligonos</p>
+        <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          <p>Haz clic sobre el mapa para agregar vertices alrededor de tu zona.</p>
+          <p>Marca al menos 3 puntos; el area se cierra sola entre el ultimo y el primero.</p>
+          <p>Arrastra cualquier punto numerado para corregir el borde del alcance.</p>
+          <p>Usa deshacer o limpiar si necesitas volver a dibujar, y luego guarda los cambios.</p>
+        </div>
+      </div>
+
       <CoveragePolygonEditor
         title="Zona de envio"
-        description="Click en el mapa para agregar vertices; arrastra un punto para corregirlo."
+        description="Haz clic en el mapa para agregar vertices; arrastra un punto para corregirlo."
         points={settings.delivery_area_polygon}
         fallbackCenter={fallbackCenter}
         onChange={(points) => updateSettings({ delivery_area_polygon: normalizePoints(points) })}

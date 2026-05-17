@@ -12,6 +12,7 @@ import { roleToHomePath } from "../../../shared/utils/routing";
 type MerchantRegistrationState = MerchantApplicationRegister;
 const TERMS_URL = "/legal/terms.html";
 const PRIVACY_URL = "/legal/privacy.html";
+const MERCHANT_GUIDED_SETUP_PATH = "/m/configuracion-guiada";
 
 const businessModelItems = [
   {
@@ -129,7 +130,7 @@ export function MerchantRegistrationForm() {
         await createMerchantApplication(token, toApplicationDraft(form));
         const profile = await refresh();
         if (profile?.role === "merchant") {
-          navigate(roleToHomePath[profile.role], { replace: true });
+          navigate(MERCHANT_GUIDED_SETUP_PATH, { replace: true });
           return;
         }
         setError("La solicitud se guardo, pero tu acceso comercial aun no se actualizo. Cierra sesion e ingresa nuevamente.");
@@ -138,7 +139,7 @@ export function MerchantRegistrationForm() {
 
       const auth = await registerMerchantApplication(form);
       setSession(auth);
-      navigate(roleToHomePath[auth.user.role], { replace: true });
+      navigate(auth.user.role === "merchant" ? MERCHANT_GUIDED_SETUP_PATH : roleToHomePath[auth.user.role], { replace: true });
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "No se pudo completar el alta");
     } finally {

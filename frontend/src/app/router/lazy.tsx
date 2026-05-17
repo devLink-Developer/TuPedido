@@ -64,6 +64,14 @@ export const LazyComercioModuleLayoutRoute = createLazyRoute(
   () => import("../../modules/comercio/routes"),
   "ComercioModuleLayoutRoute"
 );
+export const LazyComercioIndexRoute = createLazyRoute(
+  () => import("../../modules/comercio/routes"),
+  "ComercioIndexRoute"
+);
+export const LazyComercioGuidedSetupRoute = createLazyRoute(
+  () => import("../../modules/comercio/routes"),
+  "ComercioGuidedSetupRoute"
+);
 export const LazyComercioDashboardRoute = createLazyRoute(
   () => import("../../modules/comercio/routes"),
   "ComercioDashboardRoute"

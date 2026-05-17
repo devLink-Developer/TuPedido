@@ -3,7 +3,9 @@ import { MerchantDashboardLayout } from "../../app/layouts/MerchantDashboardLayo
 import { MerchantMobileHeaderProvider } from "./MerchantMobileHeaderContext";
 import { CoveragePage } from "./pages/CoveragePage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { GuidedSetupPage } from "./pages/GuidedSetupPage";
 import { LiquidationsPage } from "./pages/LiquidationsPage";
+import { MerchantHomeRedirectPage } from "./pages/MerchantHomeRedirectPage";
 import { MercadoPagoPage } from "./pages/MercadoPagoPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { ProductsPage } from "./pages/ProductsPage";
@@ -19,6 +21,14 @@ export function ComercioModuleLayoutRoute() {
       </MerchantDashboardLayout>
     </MerchantMobileHeaderProvider>
   );
+}
+
+export function ComercioIndexRoute() {
+  return <MerchantHomeRedirectPage />;
+}
+
+export function ComercioGuidedSetupRoute() {
+  return <GuidedSetupPage />;
 }
 
 export function ComercioDashboardRoute() {
