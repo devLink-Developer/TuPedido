@@ -9,6 +9,7 @@ import { brandAssets } from "../../assets/brand";
 import { BACKEND_ROOT_URL } from "../../config/env";
 import { colors, opacity, radii, shadow, spacing, touchTarget } from "../../theme";
 import type { AuthStackParamList, RootStackParamList } from "../../navigation/types";
+import { appVersionLabel } from "../../utils/appDiagnostics";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Landing">;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
@@ -152,6 +153,8 @@ export function LandingScreen({ navigation }: Props) {
           </View>
         </View>
       </View>
+
+      <Text style={styles.versionText}>{appVersionLabel()}</Text>
     </Screen>
   );
 }
@@ -428,6 +431,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: "600"
+  },
+  versionText: {
+    color: colors.subtleText,
+    fontSize: 11,
+    lineHeight: 15,
+    textAlign: "center"
   },
   pressed: {
     opacity: opacity.pressed

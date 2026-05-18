@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  API_NETWORK_ERROR_MESSAGE,
   apiRequest,
   apiRootFromBaseUrl,
   buildCatalogSocketUrl,
@@ -58,9 +59,35 @@ describe("api client URL helpers", () => {
 
     const request = expect(apiRequest("/slow", { timeoutMs: 25 })).rejects.toMatchObject({
       status: 0,
-      message: "La conexion tardo mas de lo esperado. Intenta nuevamente."
+      message: "La conexion tardo mas de lo esperado. Intenta nuevamente.",
+      diagnostics: {
+        path: "/slow",
+        method: "GET",
+        timeoutMs: 25,
+        appVersion: "1.0.40",
+        appBuildNumber: "41"
+      }
     });
     await vi.advanceTimersByTimeAsync(25);
     await request;
+  });
+
+  it("adds endpoint diagnostics to network errors", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject(new Error("Network request failed")))
+    );
+
+    await expect(apiRequest("/catalog/categories")).rejects.toMatchObject({
+      status: 0,
+      message: API_NETWORK_ERROR_MESSAGE,
+      diagnostics: {
+        path: "/catalog/categories",
+        method: "GET",
+        nativeError: "Network request failed",
+        appVersion: "1.0.40",
+        appBuildNumber: "41"
+      }
+    });
   });
 });

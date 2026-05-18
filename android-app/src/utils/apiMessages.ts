@@ -1,3 +1,5 @@
+import type { ApiDiagnostic } from "../services/api/client";
+
 const KNOWN_MESSAGES: Array<[RegExp, string]> = [
   [
     /cart already contains products from another store/i,
@@ -24,6 +26,8 @@ export function friendlyErrorMessage(error: unknown, fallback = "Intentá nuevam
   if (known) return known[1];
 
   const status = typeof error === "object" && error && "status" in error ? Number((error as { status?: unknown }).status) : null;
+  if (status === 0 && /tardo|timeout|timed out/i.test(normalized)) return "La conexión tardó más de lo esperado. Intentá nuevamente.";
+  if (status === 0) return "No pudimos conectar con KePedimos. Revisá tu conexión e intentá de nuevo.";
   if (status === 400 || status === 409 || status === 422) return normalized;
   if (status === 401) return "Tu sesión venció. Iniciá sesión nuevamente para continuar.";
   if (status === 403) return "No tenés permiso para realizar esta acción.";
@@ -32,4 +36,29 @@ export function friendlyErrorMessage(error: unknown, fallback = "Intentá nuevam
   if (/^request failed \(\d+\)$/i.test(normalized)) return fallback;
 
   return normalized;
+}
+
+function pickDiagnostics(error: unknown): Partial<ApiDiagnostic> | null {
+  if (!error || typeof error !== "object" || !("diagnostics" in error)) return null;
+  const diagnostics = (error as { diagnostics?: Partial<ApiDiagnostic> }).diagnostics;
+  return diagnostics && typeof diagnostics === "object" ? diagnostics : null;
+}
+
+export function formatApiDiagnostic(error: unknown): string | null {
+  const diagnostics = pickDiagnostics(error);
+  if (!diagnostics) return null;
+
+  const parts = [
+    diagnostics.method && diagnostics.path ? `${diagnostics.method} ${diagnostics.path}` : diagnostics.path ?? diagnostics.url,
+    typeof diagnostics.status === "number" ? `HTTP ${diagnostics.status}` : null,
+    typeof diagnostics.elapsedMs === "number" ? `${Math.round(diagnostics.elapsedMs)}ms` : null,
+    diagnostics.nativeError ? `error: ${diagnostics.nativeError}` : null,
+    diagnostics.appVersion ? `app ${diagnostics.appVersion} (${diagnostics.appBuildNumber ?? "?"})` : null
+  ].filter(Boolean);
+
+  return parts.length ? `Diagnostico: ${parts.join(" | ")}` : null;
+}
+
+export function withApiDiagnostic(message: string, error: unknown, runtimeLabel?: string): string {
+  return [message, formatApiDiagnostic(error), runtimeLabel].filter(Boolean).join("\n\n");
 }

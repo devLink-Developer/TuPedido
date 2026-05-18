@@ -18,7 +18,21 @@ type ExpoExtra = {
   };
 };
 
+type ExpoConfigWithAndroid = {
+  android?: {
+    versionCode?: number;
+  };
+  version?: string;
+};
+
+type NativeAppConstants = {
+  nativeAppVersion?: string | null;
+  nativeBuildVersion?: string | null;
+};
+
 const extra = (Constants.expoConfig?.extra ?? {}) as ExpoExtra;
+const expoConfig = Constants.expoConfig as ExpoConfigWithAndroid | null;
+const nativeConstants = Constants as NativeAppConstants;
 
 export const API_BASE_URL = DEFAULT_API_BASE_URL;
 
@@ -33,6 +47,13 @@ export const EXPO_PROJECT_ID =
   cleanText(process.env.EXPO_PUBLIC_EXPO_PROJECT_ID) ??
   cleanText(extra.expoProjectId) ??
   cleanText(extra.eas?.projectId);
+
+export const APP_VERSION = cleanText(nativeConstants.nativeAppVersion) ?? cleanText(expoConfig?.version) ?? "dev";
+export const APP_BUILD_NUMBER =
+  cleanText(nativeConstants.nativeBuildVersion) ??
+  cleanText(expoConfig?.android?.versionCode === undefined ? null : String(expoConfig.android.versionCode)) ??
+  "dev";
+export const APP_VERSION_LABEL = `${APP_VERSION} (${APP_BUILD_NUMBER})`;
 
 export const MAP_INITIAL_REGION = extra.mapInitialRegion ?? {
   latitude: -31.4201,

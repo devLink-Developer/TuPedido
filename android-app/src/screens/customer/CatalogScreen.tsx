@@ -23,7 +23,8 @@ import { useNotificationsState } from "../../state/NotificationsContext";
 import { colors, radii, shadow, spacing } from "../../theme";
 import type { Address, CatalogBanner, Category, Order, PlatformBranding, StoreSummary } from "../../types/api";
 import type { CustomerTabsParamList, RootStackParamList } from "../../navigation/types";
-import { friendlyErrorMessage } from "../../utils/apiMessages";
+import { friendlyErrorMessage, withApiDiagnostic } from "../../utils/apiMessages";
+import { runtimeDiagnosticLabel } from "../../utils/appDiagnostics";
 import { hasAddressPin, locationFromAddress, pickPinnedCustomerAddress } from "../../utils/customerAddressSelection";
 import { readStoredSelectedDeliveryAddressId, writeStoredSelectedDeliveryAddressId } from "../../utils/customerAddressStorage";
 import { formatCurrency } from "../../utils/format";
@@ -153,7 +154,8 @@ export function CatalogScreen(_props: Props) {
       }
       if (token) await refreshCart({ silent: true }).catch(() => null);
     } catch (loadError) {
-      setError(friendlyErrorMessage(loadError, "No pudimos cargar el catálogo"));
+      const message = friendlyErrorMessage(loadError, "No pudimos cargar el catálogo");
+      setError(withApiDiagnostic(message, loadError, runtimeDiagnosticLabel()));
     } finally {
       setLoading(false);
     }

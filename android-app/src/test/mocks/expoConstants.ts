@@ -1,5 +1,11 @@
 export default {
+  nativeAppVersion: "1.0.40",
+  nativeBuildVersion: "41",
   expoConfig: {
+    version: "1.0.40",
+    android: {
+      versionCode: 41
+    },
     extra: {
       apiBaseUrl: "https://kepedimos.com/api/v1",
       backendRootUrl: "https://kepedimos.com",

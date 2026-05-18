@@ -1,24 +1,71 @@
-import { API_BASE_URL, DEFAULT_API_BASE_URL } from "../../config/env";
+import { API_BASE_URL, APP_BUILD_NUMBER, APP_VERSION, DEFAULT_API_BASE_URL } from "../../config/env";
 
 export type RequestOptions = RequestInit & {
   token?: string | null;
   timeoutMs?: number;
 };
 
+export type ApiDiagnostic = {
+  url: string;
+  path: string;
+  method: string;
+  timeoutMs: number;
+  elapsedMs: number;
+  appVersion: string;
+  appBuildNumber: string;
+  requestedAt: string;
+  status?: number;
+  statusText?: string;
+  contentType?: string | null;
+  nativeError?: string | null;
+};
+
 export const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
 export const API_TIMEOUT_ERROR_MESSAGE = "La conexion tardo mas de lo esperado. Intenta nuevamente.";
-export const API_NETWORK_ERROR_MESSAGE = "No pudimos conectar con KePedimos. Revisa tu conexion e intenta de nuevo.";
+export const API_NETWORK_ERROR_MESSAGE = "No pudimos conectar con KePedimos. Revisa la conexion e intenta de nuevo.";
 
 export class ApiError extends Error {
   status: number;
   detail: unknown;
+  diagnostics?: ApiDiagnostic;
 
-  constructor(message: string, status: number, detail: unknown) {
+  constructor(message: string, status: number, detail: unknown, diagnostics?: ApiDiagnostic) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.detail = detail;
+    this.diagnostics = diagnostics;
   }
+}
+
+function requestMethod(options: RequestInit): string {
+  return String(options.method ?? "GET").toUpperCase();
+}
+
+function createDiagnostic(
+  path: string,
+  url: string,
+  method: string,
+  timeoutMs: number,
+  startedAt: number,
+  overrides: Partial<ApiDiagnostic> = {}
+): ApiDiagnostic {
+  return {
+    url,
+    path,
+    method,
+    timeoutMs,
+    elapsedMs: Date.now() - startedAt,
+    appVersion: APP_VERSION,
+    appBuildNumber: APP_BUILD_NUMBER,
+    requestedAt: new Date(startedAt).toISOString(),
+    ...overrides
+  };
+}
+
+function logNetworkDiagnostic(diagnostic: ApiDiagnostic) {
+  if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") return;
+  console.warn("[KePedimos API]", diagnostic);
 }
 
 export function normalizeApiBaseUrl(value: string | null | undefined): string {
@@ -64,6 +111,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     headers.set("Authorization", `Bearer ${token}`);
   }
 
+  const requestUrl = `${API_BASE_URL}${path}`;
+  const method = requestMethod(fetchOptions);
+  const startedAt = Date.now();
   const controller = new AbortController();
   let timedOut = false;
   const timeoutId = setTimeout(() => {
@@ -81,19 +131,22 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetch(requestUrl, {
       ...fetchOptions,
       headers,
       signal: controller.signal
     });
   } catch (error) {
+    const nativeError = error instanceof Error ? error.message : String(error ?? "");
+    const diagnostic = createDiagnostic(path, requestUrl, method, timeoutMs, startedAt, { nativeError });
+    logNetworkDiagnostic(diagnostic);
     if (timedOut) {
-      throw new ApiError(API_TIMEOUT_ERROR_MESSAGE, 0, null);
+      throw new ApiError(API_TIMEOUT_ERROR_MESSAGE, 0, null, diagnostic);
     }
     if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError")) {
-      throw new ApiError("Request aborted", 0, null);
+      throw new ApiError("Request aborted", 0, null, diagnostic);
     }
-    throw new ApiError(API_NETWORK_ERROR_MESSAGE, 0, error instanceof Error ? error.message : null);
+    throw new ApiError(API_NETWORK_ERROR_MESSAGE, 0, nativeError || null, diagnostic);
   } finally {
     clearTimeout(timeoutId);
     requestSignal?.removeEventListener("abort", abortFromRequestSignal);
@@ -104,7 +157,16 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (!response.ok) {
     const message = payload?.detail ?? payload?.message ?? `Request failed (${response.status})`;
-    throw new ApiError(String(message), response.status, payload);
+    throw new ApiError(
+      String(message),
+      response.status,
+      payload,
+      createDiagnostic(path, requestUrl, method, timeoutMs, startedAt, {
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get("content-type")
+      })
+    );
   }
 
   return normalizeApiPayload(payload as T);

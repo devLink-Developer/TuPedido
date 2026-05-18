@@ -12,7 +12,8 @@ import { colors, radii, shadow, spacing } from "../../theme";
 import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useAuth } from "../../state/AuthContext";
 import type { AuthStackParamList } from "../../navigation/types";
-import { friendlyErrorMessage } from "../../utils/apiMessages";
+import { friendlyErrorMessage, withApiDiagnostic } from "../../utils/apiMessages";
+import { runtimeDiagnosticLabel } from "../../utils/appDiagnostics";
 import { hasAuthFieldErrors, normalizeEmail, validateLoginForm, type AuthFieldErrors } from "../../utils/authValidation";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
@@ -34,7 +35,8 @@ export function LoginScreen({ navigation }: Props) {
     try {
       await login(normalizeEmail(email), password);
     } catch (error) {
-      showError("No se pudo iniciar sesión", friendlyErrorMessage(error, "Revisá tus datos e intentá nuevamente."));
+      const message = friendlyErrorMessage(error, "Revisá tus datos e intentá nuevamente.");
+      showError("No se pudo iniciar sesión", withApiDiagnostic(message, error, runtimeDiagnosticLabel()));
     }
   }
 
