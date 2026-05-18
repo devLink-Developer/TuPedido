@@ -13,7 +13,7 @@ export function PromotionsPage() {
   });
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       <MerchantPageBar
         eyebrow="Comercial"
         title={
@@ -27,9 +27,7 @@ export function PromotionsPage() {
         stats={[
           { label: "Promos", value: summary.total },
           { label: "Activas", value: summary.active, tone: summary.active ? "success" : "neutral" },
-          { label: "Pausadas", value: summary.paused, tone: summary.paused ? "warning" : "neutral" },
-          { label: "Categorias", value: summary.categories },
-          { label: "Productos", value: summary.products }
+          { label: "Categorias", value: summary.categories }
         ]}
       />
       <PromoManager onSummaryChange={setSummary} />

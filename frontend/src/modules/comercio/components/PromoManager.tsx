@@ -142,19 +142,14 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
 
   const activeCategory = categories.find((category) => String(category.id) === activeCategoryId) ?? null;
   const uncategorizedPromotions = promotionsByCategory.get(UNCATEGORIZED_CATEGORY_ID) ?? [];
-  const uncategorizedProductCount = products.filter((product) => product.product_category_id === null).length;
   const activePromotions = promotionsByCategory.get(activeCategoryId) ?? [];
-  const activeProducts =
-    activeCategoryId === UNCATEGORIZED_CATEGORY_ID
-      ? products.filter((product) => product.product_category_id === null)
-      : products.filter((product) => String(product.product_category_id ?? "") === activeCategoryId);
   const activeCategoryLabel =
     activeCategory?.name ??
     (activeCategoryId === UNCATEGORIZED_CATEGORY_ID && uncategorizedPromotions.length
       ? "Sin categoria asignada"
       : "Selecciona una categoria");
   const formCategory = categories.find((category) => String(category.id) === form.product_category_id) ?? null;
-  const availableProducts = products.filter((product) => String(product.product_category_id ?? "") === form.product_category_id);
+  const availableProducts = products;
 
   const baseComboTotal = useMemo(
     () =>
@@ -292,11 +287,6 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
       setSaving(false);
       return;
     }
-    if (validItems.some((item) => productMap.get(Number(item.product_id))?.product_category_id !== selectedCategoryId)) {
-      setFormError("Todos los productos de la promocion deben pertenecer a la categoria seleccionada.");
-      setSaving(false);
-      return;
-    }
     if (repeatedProducts.size > 0) {
       setFormError("Cada producto solo puede aparecer una vez dentro del combo.");
       setSaving(false);
@@ -380,7 +370,7 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
               {editingId === null ? "Nueva promocion" : "Editar promocion"}
             </h2>
             <HelpTooltip label="Ayuda sobre promocion">
-              La categoria limita los productos disponibles y mantiene ordenado el catalogo promocional.
+              La categoria indica donde se publica la promocion. El combo puede incluir productos de cualquier categoria.
             </HelpTooltip>
           </div>
         </div>
@@ -466,9 +456,11 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Productos</p>
             <div className="mt-2 flex items-center gap-2">
-              <h3 className="text-base font-bold text-ink">{formCategory?.name ?? "Selecciona categoria"}</h3>
+              <h3 className="text-base font-bold text-ink">
+                {formCategory ? `Publicada en ${formCategory.name}` : "Selecciona categoria"}
+              </h3>
               <HelpTooltip label="Ayuda sobre productos del combo">
-                Solo se muestran productos de la categoria elegida.
+                Puedes combinar productos de cualquier categoria del catalogo.
               </HelpTooltip>
             </div>
           </div>
@@ -490,7 +482,7 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
 
         {!availableProducts.length ? (
           <p className="rounded bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            Esta categoria todavia no tiene productos cargados.
+              Todavia no hay productos cargados en el catalogo.
           </p>
         ) : null}
 
@@ -594,72 +586,72 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
 
   return (
     <>
-      <div className="grid gap-3 xl:grid-cols-[260px_minmax(0,1fr)] xl:items-start">
+      <div className="grid gap-2.5 xl:grid-cols-[220px_minmax(0,1fr)] xl:items-start">
         {error ? <p className="rounded bg-rose-50 px-4 py-3 text-sm text-rose-700 xl:col-span-2">{error}</p> : null}
 
-      <aside className="app-panel p-3 xl:sticky xl:top-3">
-        <div className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded border border-[rgba(255,106,26,0.2)] bg-[var(--kp-accent-soft)] text-[var(--kp-accent)]">
-            <Layers3 className="h-4 w-4" aria-hidden="true" />
-          </span>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Categorias</p>
-            <h2 className="text-base font-bold text-ink">Promos por rubro</h2>
+        <aside className="app-panel p-2.5 xl:sticky xl:top-3">
+          <div className="flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded border border-[rgba(255,106,26,0.2)] bg-[var(--kp-accent-soft)] text-[var(--kp-accent)]">
+              <Layers3 className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Categorias</p>
+              <h2 className="text-sm font-bold text-ink">Promos por rubro</h2>
+            </div>
           </div>
-        </div>
-        <div className="mt-3 grid gap-2">
-          {categories.map((category) => {
-            const categoryId = String(category.id);
-            const selected = categoryId === activeCategoryId;
-            const categoryPromotions = promotionsByCategory.get(categoryId) ?? [];
-            return (
+          <div className="mt-2 grid gap-1.5">
+            {categories.map((category) => {
+              const categoryId = String(category.id);
+              const selected = categoryId === activeCategoryId;
+              const categoryPromotions = promotionsByCategory.get(categoryId) ?? [];
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => selectCategory(categoryId)}
+                  className={`flex min-h-11 items-center justify-between gap-2 rounded border px-2.5 py-2 text-left transition ${
+                    selected
+                      ? "border-[var(--kp-accent)] bg-[#fff6ef] shadow-sm"
+                      : "border-[var(--kp-stroke)] bg-white hover:border-[rgba(255,106,26,0.35)]"
+                  }`}
+                >
+                  <span className="min-w-0 truncate text-sm font-bold text-ink">{category.name}</span>
+                  <span className="shrink-0 rounded bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600">
+                    {categoryPromotions.length}
+                  </span>
+                </button>
+              );
+            })}
+            {uncategorizedPromotions.length ? (
               <button
-                key={category.id}
                 type="button"
-                onClick={() => selectCategory(categoryId)}
-                className={`rounded border p-3 text-left transition ${
-                  selected
-                    ? "border-[var(--kp-accent)] bg-[#fff6ef] shadow-sm"
-                    : "border-[var(--kp-stroke)] bg-white hover:border-[rgba(255,106,26,0.35)]"
+                onClick={() => selectCategory(UNCATEGORIZED_CATEGORY_ID)}
+                className={`flex min-h-11 items-center justify-between gap-2 rounded border px-2.5 py-2 text-left transition ${
+                  activeCategoryId === UNCATEGORIZED_CATEGORY_ID
+                    ? "border-amber-500 bg-amber-50 shadow-sm"
+                    : "border-[var(--kp-stroke)] bg-white hover:border-amber-300"
                 }`}
               >
-                <span className="block text-sm font-bold text-ink">{category.name}</span>
-                <span className="mt-1 block text-xs text-zinc-500">
-                  {categoryPromotions.length} promos / {categoryProductCounts.get(category.id) ?? 0} productos
+                <span className="min-w-0 truncate text-sm font-bold text-ink">Sin categoria</span>
+                <span className="shrink-0 rounded bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                  {uncategorizedPromotions.length}
                 </span>
               </button>
-            );
-          })}
-          {uncategorizedPromotions.length ? (
-            <button
-              type="button"
-              onClick={() => selectCategory(UNCATEGORIZED_CATEGORY_ID)}
-              className={`rounded border p-3 text-left transition ${
-                activeCategoryId === UNCATEGORIZED_CATEGORY_ID
-                  ? "border-amber-500 bg-amber-50 shadow-sm"
-                  : "border-[var(--kp-stroke)] bg-white hover:border-amber-300"
-              }`}
-            >
-              <span className="block text-sm font-bold text-ink">Sin categoria</span>
-              <span className="mt-1 block text-xs text-zinc-500">
-                {uncategorizedPromotions.length} promos / {uncategorizedProductCount} productos
-              </span>
-            </button>
-          ) : null}
-        </div>
-      </aside>
+            ) : null}
+          </div>
+        </aside>
 
-      <section className="app-panel min-w-0 p-3">
-        <div className="flex flex-col gap-2 border-b border-[var(--color-border-default)] pb-2 md:flex-row md:items-end md:justify-between">
+      <section className="app-panel min-w-0 p-2.5">
+        <div className="flex flex-col gap-2 border-b border-[var(--color-border-default)] pb-2 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Categoria activa</p>
-            <h2 className="mt-1.5 truncate text-lg font-bold text-ink">{activeCategoryLabel}</h2>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Categoria activa</p>
+            <h2 className="mt-1 truncate text-base font-bold text-ink">{activeCategoryLabel}</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="app-chip text-xs text-zinc-600">
-              {activePromotions.length} promociones / {activeProducts.length} productos
+              {activePromotions.length} promociones
             </span>
-            <Button type="button" className="min-h-10 px-4 py-2 text-sm shadow-none" onClick={openCreateForm}>
+            <Button type="button" className="min-h-9 px-3 py-1.5 text-xs shadow-none" onClick={openCreateForm}>
               <Plus className="h-4 w-4" aria-hidden="true" />
               Nueva promocion
             </Button>
@@ -667,57 +659,53 @@ export function PromoManager({ onSummaryChange }: { onSummaryChange?: (summary: 
         </div>
 
         {activePromotions.length ? (
-          <div className="mt-3 grid gap-2">
+          <div className="mt-2 grid gap-1.5">
             {activePromotions.map((promotion) => (
-              <article key={promotion.id} className="rounded border border-black/5 bg-white p-3 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
+              <article key={promotion.id} className="rounded border border-black/5 bg-white px-3 py-2 shadow-sm">
+                <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-base font-bold text-ink">{promotion.name}</h3>
-                      <span className="rounded bg-[#fff6ef] px-2 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--kp-accent)]">
+                    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                      <h3 className="min-w-0 truncate text-sm font-bold text-ink">{promotion.name}</h3>
+                      <span className="rounded bg-[#fff6ef] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--kp-accent)]">
                         {promotion.product_category_name ?? activeCategoryLabel}
                       </span>
+                      <span
+                        className={`rounded px-2 py-0.5 text-[11px] font-semibold ${
+                          promotion.is_active ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-600"
+                        }`}
+                      >
+                        {promotion.is_active ? "Activa" : "Pausada"}
+                      </span>
                     </div>
-                    {promotion.description ? <p className="mt-1 text-sm text-zinc-600">{promotion.description}</p> : null}
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+                      <span className="font-bold text-ink">{formatCurrency(promotion.sale_price)}</span>
+                      <span>Max. {promotion.max_per_customer_per_day}/cliente</span>
+                      <span>{formatDateTime(promotion.updated_at)}</span>
+                      {promotion.description ? <span className="max-w-full truncate text-zinc-600">{promotion.description}</span> : null}
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {promotion.items.slice(0, 3).map((item) => (
+                        <span key={item.id} className="rounded bg-zinc-50 px-2 py-1 text-[11px] text-zinc-600">
+                          {item.quantity} x {item.product_name}
+                        </span>
+                      ))}
+                      {promotion.items.length > 3 ? (
+                        <span className="rounded bg-zinc-100 px-2 py-1 text-[11px] font-semibold text-zinc-600">
+                          +{promotion.items.length - 3}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                  <span
-                    className={`rounded px-3 py-1 text-xs font-semibold ${
-                      promotion.is_active ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-600"
-                    }`}
-                  >
-                    {promotion.is_active ? "Activa" : "Pausada"}
-                  </span>
-                </div>
-                <div className="mt-2 grid gap-2 md:grid-cols-3">
-                  <div className="rounded bg-zinc-50 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Precio combo</p>
-                    <p className="mt-2 text-lg font-bold text-ink">{formatCurrency(promotion.sale_price)}</p>
+                  <div className="flex flex-wrap gap-1.5 lg:justify-end">
+                    <Button type="button" className="min-h-9 px-3 py-1.5 text-xs shadow-none" onClick={() => startEditing(promotion)}>
+                      <Pencil className="h-4 w-4" aria-hidden="true" />
+                      Editar
+                    </Button>
+                    <Button type="button" className="min-h-9 bg-rose-600 px-3 py-1.5 text-xs shadow-none" onClick={() => void handleDelete(promotion.id)}>
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      Eliminar
+                    </Button>
                   </div>
-                  <div className="rounded bg-zinc-50 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Maximo diario</p>
-                    <p className="mt-2 text-lg font-bold text-ink">{promotion.max_per_customer_per_day}</p>
-                  </div>
-                  <div className="rounded bg-zinc-50 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Actualizada</p>
-                    <p className="mt-2 text-sm font-semibold text-ink">{formatDateTime(promotion.updated_at)}</p>
-                  </div>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {promotion.items.map((item) => (
-                    <span key={item.id} className="rounded bg-[#fff6ef] px-3 py-2 text-sm text-zinc-700">
-                      {item.quantity} x {item.product_name}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button type="button" className="shadow-none" onClick={() => startEditing(promotion)}>
-                    <Pencil className="h-4 w-4" aria-hidden="true" />
-                    Editar
-                  </Button>
-                  <Button type="button" className="bg-rose-600 shadow-none" onClick={() => void handleDelete(promotion.id)}>
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    Eliminar
-                  </Button>
                 </div>
               </article>
             ))}
