@@ -141,7 +141,7 @@ export function RegisterScreen({ navigation }: Props) {
             </View>
             <Text style={styles.legalText}>Acepto los terminos y condiciones y la politica de privacidad.</Text>
           </Pressable>
-          <AppButton title="Registrarme" icon="person-add-outline" onPress={handleRegister} loading={loading} disabled={!acceptedTerms} fullWidth />
+          <AppButton title="Registrarme" icon="person-add-outline" onPress={handleRegister} loading={loading} fullWidth />
           <AppButton title="Terminos y condiciones" icon="document-text-outline" onPress={() => void Linking.openURL(TERMS_URL)} variant="ghost" fullWidth />
           <AppButton title="Politica de privacidad" icon="shield-checkmark-outline" onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)} variant="ghost" fullWidth />
           <AppButton title="Ya tengo cuenta" icon="arrow-back-outline" onPress={() => navigation.goBack()} variant="ghost" fullWidth />

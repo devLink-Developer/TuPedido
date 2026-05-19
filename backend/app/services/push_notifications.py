@@ -228,6 +228,7 @@ def process_queued_push_notifications(db: Session, *, limit: int = 50) -> int:
         .where(NotificationEvent.push_status == "queued")
         .order_by(NotificationEvent.created_at.asc(), NotificationEvent.id.asc())
         .limit(limit)
+        .with_for_update(skip_locked=True, of=NotificationEvent)
     ).all()
     processed = 0
     for notification in notifications:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session, object_session, selectinload
 
 from fastapi import HTTPException, status
@@ -38,6 +38,17 @@ CART_OPTIONS = (
     selectinload(ShoppingCart.items).selectinload(ShoppingCartItem.product),
 )
 
+CART_ADVISORY_LOCK_NAMESPACE = 90216017
+
+
+def _lock_user_cart(db: Session, user_id: int) -> None:
+    if db.get_bind().dialect.name != "postgresql":
+        return
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(CAST(:namespace AS integer), CAST(:user_id AS integer))"),
+        {"namespace": CART_ADVISORY_LOCK_NAMESPACE, "user_id": int(user_id)},
+    )
+
 
 def load_store(db: Session, store_id: int) -> Store | None:
     return db.scalar(select(Store).options(*STORE_OPTIONS).where(Store.id == store_id))
@@ -47,24 +58,36 @@ def load_product(db: Session, product_id: int) -> Product | None:
     return db.scalar(select(Product).where(Product.id == product_id))
 
 
-def get_or_create_cart(db: Session, user_id: int) -> ShoppingCart:
-    cart = db.scalar(
+def load_cart_for_user(db: Session, user_id: int, *, for_update: bool = False) -> ShoppingCart | None:
+    query = (
         select(ShoppingCart)
         .options(*CART_OPTIONS)
         .execution_options(populate_existing=True)
         .where(ShoppingCart.user_id == user_id)
     )
+    if for_update:
+        query = query.with_for_update(of=ShoppingCart)
+    return db.scalar(query)
+
+
+def get_or_create_cart(db: Session, user_id: int, *, for_update: bool = False) -> ShoppingCart:
+    if for_update:
+        _lock_user_cart(db, user_id)
+    cart = load_cart_for_user(db, user_id, for_update=for_update)
     if cart is None:
         cart = ShoppingCart(user_id=user_id, subtotal=0, delivery_fee=0, total=0)
         db.add(cart)
         db.flush()
         db.refresh(cart)
-        cart = db.scalar(
+        query = (
             select(ShoppingCart)
             .options(*CART_OPTIONS)
             .execution_options(populate_existing=True)
             .where(ShoppingCart.id == cart.id)
         )
+        if for_update:
+            query = query.with_for_update(of=ShoppingCart)
+        cart = db.scalar(query)
     return cart
 
 
@@ -128,6 +151,7 @@ def clear_cart_if_matches_order(db: Session, order: StoreOrder) -> bool:
         select(ShoppingCart)
         .options(selectinload(ShoppingCart.items))
         .where(ShoppingCart.user_id == order.user_id)
+        .with_for_update(of=ShoppingCart)
     )
     if cart is None or cart.store_id != order.store_id or cart.delivery_mode != order.delivery_mode:
         return False

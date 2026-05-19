@@ -35,6 +35,7 @@ def sync_mercadopago_payments_once(db: Session, *, limit: int = 100) -> int:
         )
         .order_by(PaymentTransaction.updated_at.asc())
         .limit(limit)
+        .with_for_update(skip_locked=True, of=PaymentTransaction)
     ).all()
 
     synced = 0

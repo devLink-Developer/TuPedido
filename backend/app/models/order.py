@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -38,6 +38,7 @@ class ShoppingCart(Base):
 
 class ShoppingCartItem(Base):
     __tablename__ = "shopping_cart_items"
+    __table_args__ = (UniqueConstraint("cart_id", "product_id", name="uq_shopping_cart_items_cart_product"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     cart_id: Mapped[int] = mapped_column(

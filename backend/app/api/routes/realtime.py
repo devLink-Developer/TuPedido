@@ -40,6 +40,14 @@ def _latest_notifications(db: Session, user_id: int, *, limit: int = 20) -> list
     return [serialize_notification(item).model_dump(mode="json") for item in notifications]
 
 
+def _latest_notifications_snapshot(user_id: int, *, limit: int = 20) -> list[dict[str, object]]:
+    db = SessionLocal()
+    try:
+        return _latest_notifications(db, user_id, limit=limit)
+    finally:
+        db.close()
+
+
 def _can_access_order(user: User, order: StoreOrder) -> bool:
     if user.role == "admin":
         return True
@@ -74,6 +82,22 @@ def _get_user_from_token(token: str | None) -> User | None:
         db.close()
 
 
+def _order_snapshot_for_user(user: User, order_id: int) -> tuple[dict[str, object], dict[str, object]] | None:
+    db = SessionLocal()
+    try:
+        order = db.scalar(select(StoreOrder).options(*_order_options(db)).where(StoreOrder.id == order_id))
+        if order is None or not _can_access_order(user, order):
+            return None
+        if user.role == "customer" and not _customer_can_track_order(order):
+            return None
+        tracking = serialize_tracking(order)
+        if user.role not in {"customer", "delivery"}:
+            tracking.otp_code = None
+        return serialize_order(order).model_dump(mode="json"), tracking.model_dump(mode="json")
+    finally:
+        db.close()
+
+
 @router.websocket("/ws/notifications/me")
 async def notifications_me_socket(websocket: WebSocket) -> None:
     user = _get_user_from_token(websocket.query_params.get("token"))
@@ -81,22 +105,20 @@ async def notifications_me_socket(websocket: WebSocket) -> None:
         await websocket.close(code=4401)
         return
 
-    db = SessionLocal()
+    notifications = _latest_notifications_snapshot(user.id)
     try:
         await realtime_hub.connect_user(user.id, websocket)
         await websocket.send_json(
             {
                 "type": "notifications.snapshot",
                 "role": user.role,
-                "notifications": _latest_notifications(db, user.id),
+                "notifications": notifications,
             }
         )
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
         await realtime_hub.disconnect(websocket)
-    finally:
-        db.close()
 
 
 @router.websocket("/ws/catalog/stores")
@@ -117,32 +139,24 @@ async def order_tracking_socket(websocket: WebSocket, order_id: int) -> None:
         await websocket.close(code=4401)
         return
 
-    db = SessionLocal()
+    snapshot = _order_snapshot_for_user(user, order_id)
+    if snapshot is None:
+        await websocket.close(code=4404)
+        return
+    order_payload, tracking_payload = snapshot
     try:
-        order = db.scalar(select(StoreOrder).options(*_order_options(db)).where(StoreOrder.id == order_id))
-        if order is None or not _can_access_order(user, order):
-            await websocket.close(code=4404)
-            return
-        if user.role == "customer" and not _customer_can_track_order(order):
-            await websocket.close(code=4404)
-            return
         await realtime_hub.connect_order(order_id, websocket)
-        tracking = serialize_tracking(order)
-        if user.role not in {"customer", "delivery"}:
-            tracking.otp_code = None
         await websocket.send_json(
             {
                 "type": "order.snapshot",
-                "order": serialize_order(order).model_dump(mode="json"),
-                "tracking": tracking.model_dump(mode="json"),
+                "order": order_payload,
+                "tracking": tracking_payload,
             }
         )
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
         await realtime_hub.disconnect(websocket)
-    finally:
-        db.close()
 
 
 @router.websocket("/ws/delivery/me")
@@ -152,21 +166,19 @@ async def delivery_me_socket(websocket: WebSocket) -> None:
         await websocket.close(code=4401)
         return
 
-    db = SessionLocal()
+    notifications = _latest_notifications_snapshot(user.id, limit=10)
     try:
         await realtime_hub.connect_user(user.id, websocket)
         await websocket.send_json(
             {
                 "type": "delivery.snapshot",
-                "notifications": _latest_notifications(db, user.id, limit=10),
+                "notifications": notifications,
             }
         )
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
         await realtime_hub.disconnect(websocket)
-    finally:
-        db.close()
 
 
 @router.websocket("/ws/merchant/me")
@@ -176,18 +188,16 @@ async def merchant_me_socket(websocket: WebSocket) -> None:
         await websocket.close(code=4401)
         return
 
-    db = SessionLocal()
+    notifications = _latest_notifications_snapshot(user.id, limit=10)
     try:
         await realtime_hub.connect_user(user.id, websocket)
         await websocket.send_json(
             {
                 "type": "merchant.connected",
-                "notifications": _latest_notifications(db, user.id, limit=10),
+                "notifications": notifications,
             }
         )
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
         await realtime_hub.disconnect(websocket)
-    finally:
-        db.close()

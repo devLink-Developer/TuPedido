@@ -154,10 +154,14 @@ def is_mercadopago_redirect_uri_allowed(value: str | None) -> bool:
     return not is_public_http_url(value)
 
 
-def get_or_create_mercadopago_provider(db: Session) -> PaymentProvider:
-    provider = db.scalar(
+def get_mercadopago_provider(db: Session) -> PaymentProvider | None:
+    return db.scalar(
         select(PaymentProvider).where(PaymentProvider.provider == MERCADOPAGO_PROVIDER)
     )
+
+
+def get_or_create_mercadopago_provider(db: Session) -> PaymentProvider:
+    provider = get_mercadopago_provider(db)
     if provider is not None:
         if not getattr(provider, "public_key", None) and settings.mercadopago_public_key:
             provider.public_key = settings.mercadopago_public_key

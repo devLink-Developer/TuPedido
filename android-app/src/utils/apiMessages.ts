@@ -5,6 +5,7 @@ const KNOWN_MESSAGES: Array<[RegExp, string]> = [
     /cart already contains products from another store/i,
     "Tu carrito tiene productos de otro comercio. Vacialo o finalizá ese pedido antes de agregar productos de este local."
   ],
+  [/email.*not.*registered|not.*registered|user.*not.*found/i, "No encontramos una cuenta con ese email."],
   [/invalid credentials|incorrect email|wrong password|credenciales/i, "Email o contraseña incorrectos."],
   [/already registered|already exists|email.*exists|duplicate/i, "Ya existe una cuenta con ese email."],
   [/invalid delivery otp|invalid otp|otp/i, "El código de entrega no es correcto. Revisalo con el cliente e intentá nuevamente."],

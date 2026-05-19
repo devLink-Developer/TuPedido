@@ -27,6 +27,7 @@ def refresh_expiring_tokens_once(db: Session, *, threshold_minutes: int = 30, li
         )
         .order_by(MerchantPaymentAccount.token_expires_at.asc())
         .limit(limit)
+        .with_for_update(skip_locked=True, of=MerchantPaymentAccount)
     ).all()
 
     refreshed = 0

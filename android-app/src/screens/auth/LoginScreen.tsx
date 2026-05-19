@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Image, KeyboardAvoidingView, Linking, Platform, StyleSheet, Text, View } from "react-native";
+import { Image, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { brandAssets } from "../../assets/brand";
 import { AppButton } from "../../components/AppButton";
@@ -8,19 +8,24 @@ import { Card } from "../../components/Card";
 import { Screen } from "../../components/Screen";
 import { TextField } from "../../components/TextField";
 import { PRIVACY_POLICY_URL } from "../../config/legal";
-import { colors, radii, shadow, spacing } from "../../theme";
+import { colors, opacity, radii, shadow, spacing, touchTarget } from "../../theme";
 import { useAppFeedback } from "../../state/AppFeedbackContext";
 import { useAuth } from "../../state/AuthContext";
 import type { AuthStackParamList } from "../../navigation/types";
-import { friendlyErrorMessage, withApiDiagnostic } from "../../utils/apiMessages";
-import { runtimeDiagnosticLabel } from "../../utils/appDiagnostics";
+import { friendlyErrorMessage } from "../../utils/apiMessages";
 import { hasAuthFieldErrors, normalizeEmail, validateLoginForm, type AuthFieldErrors } from "../../utils/authValidation";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
+function isEmailNotRegisteredError(error: unknown) {
+  const status = typeof error === "object" && error && "status" in error ? Number((error as { status?: unknown }).status) : null;
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return status === 404 && /email|registered|not found|not registered/i.test(message);
+}
+
 export function LoginScreen({ navigation }: Props) {
   const { login, loading } = useAuth();
-  const { showError } = useAppFeedback();
+  const { showDialog, showError } = useAppFeedback();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -35,8 +40,21 @@ export function LoginScreen({ navigation }: Props) {
     try {
       await login(normalizeEmail(email), password);
     } catch (error) {
+      if (isEmailNotRegisteredError(error)) {
+        setFieldErrors((current) => ({ ...current, email: "No encontramos una cuenta con ese email." }));
+        showDialog({
+          title: "Email no registrado",
+          message: "No encontramos una cuenta con ese email. Registrate para crear tu cuenta y empezar a pedir.",
+          variant: "info",
+          actions: [
+            { label: "Cancelar", variant: "ghost" },
+            { label: "Registrarme", onPress: () => navigation.navigate("Register") }
+          ]
+        });
+        return;
+      }
       const message = friendlyErrorMessage(error, "Revisá tus datos e intentá nuevamente.");
-      showError("No se pudo iniciar sesión", withApiDiagnostic(message, error, runtimeDiagnosticLabel()));
+      showError("No se pudo iniciar sesión", message);
     }
   }
 
@@ -88,8 +106,20 @@ export function LoginScreen({ navigation }: Props) {
             rightActionSelected={showPassword}
             onRightActionPress={() => setShowPassword((current) => !current)}
           />
+          <View style={styles.accountPrompt}>
+            <Text style={styles.accountPromptText}>¿Tenés cuenta? Iniciá sesión.</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Registrarme"
+              hitSlop={6}
+              android_ripple={{ color: colors.borderStrong }}
+              style={({ pressed }) => [styles.accountPromptLink, pressed && styles.pressed]}
+              onPress={() => navigation.navigate("Register")}
+            >
+              <Text style={styles.accountPromptLinkText}>¿Aún no tenés cuenta? Registrate</Text>
+            </Pressable>
+          </View>
           <AppButton title="Iniciar sesión" icon="log-in-outline" onPress={handleLogin} loading={loading} fullWidth />
-          <AppButton title="Crear cuenta cliente" icon="person-add-outline" onPress={() => navigation.navigate("Register")} variant="ghost" fullWidth />
           <AppButton title="Politica de privacidad" icon="shield-checkmark-outline" onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)} variant="ghost" fullWidth />
         </Card>
       </Screen>
@@ -144,5 +174,36 @@ const styles = StyleSheet.create({
   form: {
     gap: spacing.md,
     borderRadius: radii.lg
+  },
+  accountPrompt: {
+    gap: spacing.xs,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
+    padding: spacing.md
+  },
+  accountPromptText: {
+    color: colors.text,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: "800"
+  },
+  accountPromptLink: {
+    minHeight: touchTarget.min,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radii.md,
+    backgroundColor: colors.primarySoft,
+    paddingHorizontal: spacing.md
+  },
+  accountPromptLinkText: {
+    color: colors.primaryDark,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: "900"
+  },
+  pressed: {
+    opacity: opacity.pressed
   }
 });

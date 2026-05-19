@@ -32,4 +32,5 @@ describe("auth validation", () => {
 
     expect(hasAuthFieldErrors(errors)).toBe(false);
   });
+
 });

@@ -102,6 +102,7 @@ def get_rider_order(db: Session, rider_id: int, order_id: int) -> StoreOrder:
         select(StoreOrder)
         .options(*_order_options(db))
         .where(StoreOrder.id == order_id, StoreOrder.delivery_provider == "platform", StoreOrder.delivery_mode == "delivery")
+        .with_for_update(of=StoreOrder)
     )
     if order is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")

@@ -113,14 +113,6 @@ export function LandingScreen({ navigation }: Props) {
           <View style={styles.actions}>
             <AppButton title="Buscar comercios" icon="storefront-outline" fullWidth onPress={openCatalog} />
             <AppButton title="Crear cuenta" icon="person-add-outline" variant="ghost" fullWidth onPress={() => navigation.navigate("Register")} />
-            <AppButton
-              title="Alta de comercio"
-              icon="business-outline"
-              variant="ghost"
-              fullWidth
-              accessibilityHint="Abre el registro de comercios en la web"
-              onPress={openMerchantRegistration}
-            />
           </View>
         </View>
       </View>
@@ -129,6 +121,24 @@ export function LandingScreen({ navigation }: Props) {
         {valueItems.map((item) => (
           <ValueItem key={item.title} icon={item.icon} title={item.title} text={item.text} />
         ))}
+      </View>
+
+      <View style={styles.merchantPanel}>
+        <View style={styles.merchantIcon}>
+          <Ionicons name="business-outline" size={24} color="#FFFFFF" />
+        </View>
+        <View style={styles.merchantCopy}>
+          <Text style={styles.merchantEyebrow}>PARA COMERCIOS</Text>
+          <Text style={styles.merchantTitle}>Sumá tu local a KePedimos</Text>
+          <Text style={styles.merchantText}>Recibí pedidos cercanos y ofrecé envío o retiro desde una gestión simple.</Text>
+        </View>
+        <AppButton
+          title="Alta de comercio"
+          icon="arrow-forward-outline"
+          fullWidth
+          accessibilityHint="Abre el registro de comercios en la web"
+          onPress={openMerchantRegistration}
+        />
       </View>
 
       <View style={styles.posterPanel}>
@@ -378,6 +388,45 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: "600"
+  },
+  merchantPanel: {
+    gap: spacing.md,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: "rgba(249, 115, 22, 0.36)",
+    backgroundColor: colors.text,
+    padding: spacing.md,
+    ...shadow.medium
+  },
+  merchantIcon: {
+    width: 52,
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radii.lg,
+    backgroundColor: colors.primary
+  },
+  merchantCopy: {
+    gap: spacing.xs
+  },
+  merchantEyebrow: {
+    color: "#FDBA74",
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "900",
+    letterSpacing: 0
+  },
+  merchantTitle: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: "900"
+  },
+  merchantText: {
+    color: "#E2E8F0",
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "700"
   },
   posterPanel: {
     height: 172,

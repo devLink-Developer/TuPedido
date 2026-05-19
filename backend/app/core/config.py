@@ -25,7 +25,11 @@ class Settings(BaseSettings):
     database_max_overflow: int = 20
     database_pool_timeout_seconds: float = 30.0
     database_pool_recycle_seconds: int = 1800
+    database_pool_use_lifo: bool = True
     database_connect_timeout_seconds: int = 10
+    database_statement_timeout_ms: int = 30000
+    database_lock_timeout_ms: int = 5000
+    database_idle_in_transaction_session_timeout_ms: int = 30000
     frontend_base_url: str = "https://kepedimos.com"
     backend_base_url: str = "https://kepedimos.com"
     jwt_secret: str = "kepedimos-dev-secret"

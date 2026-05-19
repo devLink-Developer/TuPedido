@@ -64,8 +64,8 @@ describe("api client URL helpers", () => {
         path: "/slow",
         method: "GET",
         timeoutMs: 25,
-        appVersion: "1.0.40",
-        appBuildNumber: "41"
+        appVersion: "1.0.41",
+        appBuildNumber: "42"
       }
     });
     await vi.advanceTimersByTimeAsync(25);
@@ -85,8 +85,8 @@ describe("api client URL helpers", () => {
         path: "/catalog/categories",
         method: "GET",
         nativeError: "Network request failed",
-        appVersion: "1.0.40",
-        appBuildNumber: "41"
+        appVersion: "1.0.41",
+        appBuildNumber: "42"
       }
     });
   });

@@ -19,13 +19,14 @@ import type { RootStackParamList } from "../../navigation/types";
 import { friendlyErrorMessage } from "../../utils/apiMessages";
 import { hasAddressPin, locationFromAddress, pickPinnedCustomerAddress } from "../../utils/customerAddressSelection";
 import { readStoredSelectedDeliveryAddressId, writeStoredSelectedDeliveryAddressId } from "../../utils/customerAddressStorage";
+import { readStoredCustomerLocation, writeStoredCustomerLocation } from "../../utils/customerLocationStorage";
 import { formatCurrency, makeIdempotencyKey } from "../../utils/format";
 import { paymentMethodLabels } from "../../utils/labels";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Checkout">;
 type DeliveryMode = "delivery" | "pickup";
 type PaymentMethod = "cash" | "mercadopago";
-type CustomerLocation = { latitude: number; longitude: number; source: "address" | "gps"; addressId?: number };
+type CustomerLocation = { latitude: number; longitude: number; source: "address" | "gps" | "route"; addressId?: number };
 type IconName = ComponentProps<typeof Ionicons>["name"];
 const MERCADOPAGO_RETURN_URL = "kepedimos://checkout/mercadopago-return";
 
@@ -172,23 +173,35 @@ export function CheckoutScreen({ navigation }: Props) {
     if (!token) return;
     setLoading(true);
     try {
-      const [nextCart, nextAddresses, storedAddressId] = await Promise.all([
+      const [nextCart, nextAddresses, storedAddressId, storedLocation] = await Promise.all([
         refreshCart({ silent: true }),
         fetchAddresses(token),
-        readStoredSelectedDeliveryAddressId(user?.id).catch(() => null)
+        readStoredSelectedDeliveryAddressId(user?.id).catch(() => null),
+        readStoredCustomerLocation(user?.id).catch(() => null)
       ]);
       setAddresses(nextAddresses);
 
       const preferredAddress = pickPinnedCustomerAddress(nextAddresses, addressId ?? storedAddressId);
-      const nextMode = (nextCart?.delivery_mode ?? "delivery") as DeliveryMode;
+      const cartMode = (nextCart?.delivery_mode ?? "delivery") as DeliveryMode;
+      const canUsePickupFallback = nextCart?.delivery_settings?.pickup_enabled ?? true;
+      const nextMode = cartMode === "delivery" && !preferredAddress && canUsePickupFallback ? "pickup" : cartMode;
       const preferredAddressLocation = preferredAddress ? locationFromAddress(preferredAddress) : null;
-      const nextLocation = nextMode === "delivery" ? preferredAddressLocation : customerLocation ?? preferredAddressLocation;
+      const fallbackLocation = storedLocation ?? (nextMode === "pickup" ? await readLastKnownCustomerLocation() : null);
+      const nextLocation = nextMode === "delivery" ? preferredAddressLocation : customerLocation ?? preferredAddressLocation ?? fallbackLocation;
+      let cartForSettings = nextCart;
 
       setAddressId((current) => {
         const currentStillUsable = nextAddresses.some((item) => item.id === current && hasAddressPin(item));
         return currentStillUsable ? current : preferredAddress?.id ?? null;
       });
       setDeliveryMode(nextMode);
+      if (cartMode !== nextMode && nextLocation) {
+        cartForSettings = await updateCart(token, nextMode, {
+          customer_latitude: nextLocation.latitude,
+          customer_longitude: nextLocation.longitude
+        }).catch(() => nextCart);
+        setCart(cartForSettings);
+      }
       if (
         nextLocation &&
         (
@@ -200,12 +213,13 @@ export function CheckoutScreen({ navigation }: Props) {
         )
       ) {
         setCustomerLocation(nextLocation);
+        void writeStoredCustomerLocation(user?.id, nextLocation);
       }
       if (!nextLocation && customerLocation) setCustomerLocation(null);
-      setPaymentSettings(nextCart?.payment_settings ?? null);
+      setPaymentSettings(cartForSettings?.payment_settings ?? null);
 
-      if (nextCart?.store_slug && nextLocation) {
-        const store = await fetchStore(nextCart.store_slug, {
+      if (cartForSettings?.store_slug && nextLocation) {
+        const store = await fetchStore(cartForSettings.store_slug, {
           latitude: nextLocation.latitude,
           longitude: nextLocation.longitude,
           deliveryMode: nextMode
@@ -215,7 +229,7 @@ export function CheckoutScreen({ navigation }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [addressId, customerLocation, refreshCart, token, user?.id]);
+  }, [addressId, customerLocation, refreshCart, setCart, token, user?.id]);
 
   useEffect(() => {
     void load();
@@ -271,6 +285,28 @@ export function CheckoutScreen({ navigation }: Props) {
     if (store?.payment_settings) setPaymentSettings(store.payment_settings);
   }
 
+  async function readLastKnownCustomerLocation(): Promise<CustomerLocation | null> {
+    const permission = await Location.getForegroundPermissionsAsync().catch(() => null);
+    if (permission?.status !== "granted") return null;
+    const position = await Location.getLastKnownPositionAsync({ maxAge: 24 * 60 * 60 * 1000 }).catch(() => null);
+    if (!position) return null;
+    return {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      source: "gps"
+    };
+  }
+
+  async function resolveReusableCustomerLocation(): Promise<CustomerLocation | null> {
+    if (customerLocation) return customerLocation;
+    const storedLocation = await readStoredCustomerLocation(user?.id).catch(() => null);
+    const nextLocation = storedLocation ?? (await readLastKnownCustomerLocation());
+    if (!nextLocation) return null;
+    setCustomerLocation(nextLocation);
+    void writeStoredCustomerLocation(user?.id, nextLocation);
+    return nextLocation;
+  }
+
   async function selectDeliveryMode(nextMode: DeliveryMode) {
     if (!token) return;
     if (nextMode === "delivery" && !deliveryEnabled) return;
@@ -280,7 +316,7 @@ export function CheckoutScreen({ navigation }: Props) {
     if (nextMode === "delivery" && !hasAddressPin(selectedAddress)) {
       showDialog({
         title: "Direccion requerida",
-        message: "Agrega una direccion con pin desde Perfil para pedir con envio.",
+        message: "Para pedir con envio, agrega una direccion nueva con pin desde Perfil.",
         variant: "warning",
         actions: [
           { label: "Cancelar", variant: "ghost" },
@@ -295,7 +331,7 @@ export function CheckoutScreen({ navigation }: Props) {
     const nextLocation =
       nextMode === "delivery" && hasAddressPin(selectedAddress)
         ? { latitude: selectedAddress.latitude, longitude: selectedAddress.longitude, source: "address" as const }
-        : customerLocation;
+        : await resolveReusableCustomerLocation();
 
     if (!nextLocation) return;
 
@@ -307,6 +343,9 @@ export function CheckoutScreen({ navigation }: Props) {
         setAddressId(selectedAddress.id);
         setCustomerLocation(selectedLocation);
         void writeStoredSelectedDeliveryAddressId(user?.id, selectedAddress.id);
+        void writeStoredCustomerLocation(user?.id, selectedLocation);
+      } else {
+        void writeStoredCustomerLocation(user?.id, nextLocation);
       }
       await refreshPaymentSettingsForLocation(nextCart, nextMode, nextLocation);
     } catch (error) {
@@ -328,34 +367,10 @@ export function CheckoutScreen({ navigation }: Props) {
       setCustomerLocation(nextLocation);
       setAddressSelectorOpen(false);
       void writeStoredSelectedDeliveryAddressId(user?.id, address.id);
+      void writeStoredCustomerLocation(user?.id, nextLocation);
       await refreshPaymentSettingsForLocation(nextCart, deliveryMode, nextLocation);
     } catch (error) {
       showError("Direccion fuera de cobertura", friendlyErrorMessage(error, "El comercio no llega a esa direccion."));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function requestGpsLocation() {
-    setLoading(true);
-    try {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (permission.status !== "granted") {
-        showDialog({
-          title: "Permiso requerido",
-          message: "Necesitamos permiso de ubicacion para validar la zona del comercio.",
-          variant: "warning"
-        });
-        return;
-      }
-      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const nextLocation = { latitude: position.coords.latitude, longitude: position.coords.longitude, source: "gps" as const };
-      setCustomerLocation(nextLocation);
-      if (deliveryMode === "pickup" && token) {
-        await persistDeliveryMode("pickup", nextLocation);
-      }
-    } catch (error) {
-      showError("Ubicacion no disponible", friendlyErrorMessage(error, "No pudimos obtener tu ubicacion."));
     } finally {
       setLoading(false);
     }
@@ -405,12 +420,12 @@ export function CheckoutScreen({ navigation }: Props) {
       }
     }
 
-    if (deliveryMode === "pickup" && !customerLocation) {
-      showDialog({
-        title: "Ubicacion requerida",
-        message: "Usa GPS o una direccion con pin para validar la zona de retiro.",
-        variant: "warning"
-      });
+    const pickupCheckoutLocation = deliveryMode === "pickup" ? await resolveReusableCustomerLocation() : null;
+    if (deliveryMode === "pickup" && !pickupCheckoutLocation) {
+      showError(
+        "Ubicacion no disponible",
+        "No pudimos recuperar la ubicacion usada para validar este comercio. Volve al catalogo e intentalo nuevamente."
+      );
       return;
     }
 
@@ -439,7 +454,7 @@ export function CheckoutScreen({ navigation }: Props) {
       const coverageLocation =
         deliveryMode === "delivery" && hasAddressPin(selectedAddressForCheckout)
           ? { latitude: selectedAddressForCheckout.latitude, longitude: selectedAddressForCheckout.longitude }
-          : customerLocation;
+          : pickupCheckoutLocation;
       const result = await checkout(token, {
         store_id: cart.store_id,
         address_id: deliveryMode === "delivery" ? addressId : null,
@@ -494,6 +509,7 @@ export function CheckoutScreen({ navigation }: Props) {
   const selectedPaymentOption = paymentOptions.find((option) => option.method === paymentMethod);
   const canSubmit = availablePaymentMethods.length > 0;
   const checkoutActionTitle = paymentMethod === "mercadopago" ? "Ir a pagar" : "Confirmar pedido";
+  const deliveryNeedsAddress = !pinnedAddresses.length;
 
   return (
     <Screen refreshing={loading} onRefresh={() => void load()}>
@@ -507,7 +523,7 @@ export function CheckoutScreen({ navigation }: Props) {
           <ChoiceButton
             icon="bicycle-outline"
             title="Envio"
-            description={deliveryEnabled ? formatCurrency(cart.pricing.delivery_fee) : "No disponible"}
+            description={!deliveryEnabled ? "No disponible" : deliveryNeedsAddress ? "Agrega una direccion" : formatCurrency(cart.pricing.delivery_fee)}
             active={deliveryMode === "delivery"}
             disabled={!deliveryEnabled || loading}
             onPress={() => void selectDeliveryMode("delivery")}
@@ -574,29 +590,27 @@ export function CheckoutScreen({ navigation }: Props) {
                 </View>
               ) : null}
               {!pinnedAddresses.length ? (
-                <StateMessage title="Ubicacion pendiente" description="Para pedir con envio, agrega el pin en el mapa desde Perfil." actionLabel="Ir a perfil" onAction={() => navigation.navigate("CustomerTabs", { screen: "Profile" })} />
+                <StateMessage title="Direccion pendiente" description="Para pedir con envio, agrega una direccion nueva con pin desde Perfil." actionLabel="Ir a perfil" onAction={() => navigation.navigate("CustomerTabs", { screen: "Profile" })} />
               ) : null}
             </View>
           ) : (
-            <StateMessage title="Sin direcciones" description="Carga una direccion desde Perfil antes de continuar." actionLabel="Ir a perfil" onAction={() => navigation.navigate("CustomerTabs", { screen: "Profile" })} />
+            <StateMessage title="Sin direcciones" description="Carga una direccion nueva desde Perfil para habilitar envio." actionLabel="Ir a perfil" onAction={() => navigation.navigate("CustomerTabs", { screen: "Profile" })} />
           )}
         </Card>
       ) : (
         <Card style={styles.panel}>
           <View style={styles.panelHeader}>
             <Text style={styles.title}>Retiro</Text>
-            <Ionicons name={customerLocation ? "checkmark-circle" : "navigate-outline"} size={22} color={customerLocation ? colors.success : colors.primary} />
+            <Ionicons name="checkmark-circle" size={22} color={colors.success} />
           </View>
-          {customerLocation ? (
-            <Text style={styles.hint}>{cart.store_name ?? "Comercio"}</Text>
-          ) : (
-            <StateMessage
-              title="Ubicacion requerida"
-              description="Usa GPS para validar si podes retirar en este comercio."
-              actionLabel="Usar mi ubicacion"
-              onAction={() => void requestGpsLocation()}
-            />
-          )}
+          <View style={styles.pickupInfo}>
+            <Text style={styles.pickupTitle}>{cart.store_name ?? "Comercio"}</Text>
+            <Text style={styles.hint}>
+              {customerLocation
+                ? "Usamos la ubicacion que ya validaste para este pedido."
+                : "Retiro habilitado. Vamos a reutilizar la ubicacion validada al confirmar."}
+            </Text>
+          </View>
         </Card>
       )}
 
@@ -800,6 +814,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     fontWeight: "700"
+  },
+  pickupInfo: {
+    gap: spacing.xs,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.primarySoft,
+    padding: spacing.md
+  },
+  pickupTitle: {
+    color: colors.text,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: "900"
   },
   summaryRow: {
     minHeight: 28,

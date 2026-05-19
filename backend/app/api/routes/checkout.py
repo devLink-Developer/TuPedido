@@ -254,7 +254,7 @@ def checkout(
                 )
             return _checkout_response_from_transaction(existing_transaction)
 
-    cart = get_or_create_cart(db, user.id)
+    cart = get_or_create_cart(db, user.id, for_update=True)
     if not cart.items or cart.store_id is None or cart.store is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cart is empty")
     if cart.store_id != payload.store_id:

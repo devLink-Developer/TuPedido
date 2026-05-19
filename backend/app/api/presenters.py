@@ -44,7 +44,7 @@ from app.services.category_colors import resolve_category_palette
 from app.services.mercadopago import (
     build_oauth_callback_url,
     build_webhook_url,
-    get_or_create_mercadopago_provider,
+    get_mercadopago_provider,
     get_store_payment_account,
     is_internal_http_url,
     is_provider_operable,
@@ -379,7 +379,7 @@ def serialize_application(application: object) -> MerchantApplicationRead:
 
 def serialize_cart(cart: object) -> CartRead:
     session = object_session(cart)
-    mercadopago_provider = get_or_create_mercadopago_provider(session) if cart.store and session is not None else None
+    mercadopago_provider = get_mercadopago_provider(session) if cart.store and session is not None else None
     return CartRead(
         id=cart.id,
         store_id=cart.store_id,

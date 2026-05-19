@@ -21,7 +21,9 @@ router = APIRouter()
 @router.post("/login", response_model=AuthResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> AuthResponse:
     user = find_user_by_email(db, payload.email)
-    if user is None or not verify_password(payload.password, user.hashed_password):
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not registered")
+    if not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     return AuthResponse(access_token=create_access_token(user.email), user=UserRead.model_validate(user))

@@ -27,6 +27,7 @@ import { friendlyErrorMessage, withApiDiagnostic } from "../../utils/apiMessages
 import { runtimeDiagnosticLabel } from "../../utils/appDiagnostics";
 import { hasAddressPin, locationFromAddress, pickPinnedCustomerAddress } from "../../utils/customerAddressSelection";
 import { readStoredSelectedDeliveryAddressId, writeStoredSelectedDeliveryAddressId } from "../../utils/customerAddressStorage";
+import { writeStoredCustomerLocation } from "../../utils/customerLocationStorage";
 import { formatCurrency } from "../../utils/format";
 import { labelForStatus } from "../../utils/labels";
 import { CUSTOMER_ORDER_STATUS_NOTIFICATION_EVENTS, pickActiveCustomerOrder } from "../../utils/orders";
@@ -171,13 +172,15 @@ export function CatalogScreen(_props: Props) {
         return;
       }
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setSelectedAddressId(null);
-      setAddressSelectorOpen(false);
-      setCustomerLocation({
+      const nextLocation = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
-        source: "gps"
-      });
+        source: "gps" as const
+      };
+      setSelectedAddressId(null);
+      setAddressSelectorOpen(false);
+      setCustomerLocation(nextLocation);
+      void writeStoredCustomerLocation(user?.id, nextLocation);
     } catch (gpsError) {
       setLocationError(friendlyErrorMessage(gpsError, "No pudimos obtener tu ubicacion."));
     } finally {
@@ -187,11 +190,13 @@ export function CatalogScreen(_props: Props) {
 
   const selectAddress = useCallback((address: Address) => {
     if (!hasAddressPin(address)) return;
+    const nextLocation = locationFromAddress(address);
     setSelectedAddressId(address.id);
-    setCustomerLocation(locationFromAddress(address));
+    setCustomerLocation(nextLocation);
     setLocationError(null);
     setAddressSelectorOpen(false);
     void writeStoredSelectedDeliveryAddressId(user?.id, address.id);
+    void writeStoredCustomerLocation(user?.id, nextLocation);
   }, [user?.id]);
 
   useEffect(() => {

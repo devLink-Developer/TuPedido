@@ -712,6 +712,7 @@ def expire_pending_offers(db: Session) -> int:
             DeliveryAssignment.offer_expires_at.is_not(None),
             DeliveryAssignment.offer_expires_at <= now,
         )
+        .with_for_update(skip_locked=True, of=DeliveryAssignment)
     ).all()
     processed = 0
     for assignment in assignments:
@@ -751,6 +752,7 @@ def mark_stale_tracking(db: Session) -> int:
             DeliveryAssignment.status.in_(("assigned", "heading_to_store", "picked_up", "near_customer")),
             DeliveryAssignment.tracking_stale.is_(False),
         )
+        .with_for_update(skip_locked=True, of=DeliveryAssignment)
     ).all()
     processed = 0
     for assignment in assignments:

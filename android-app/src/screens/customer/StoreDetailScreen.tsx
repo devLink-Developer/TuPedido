@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -18,12 +18,13 @@ import { colors, radii, spacing } from "../../theme";
 import type { Product } from "../../types/api";
 import type { RootStackParamList } from "../../navigation/types";
 import { friendlyErrorMessage } from "../../utils/apiMessages";
-import { hasAddressPin, pickPinnedCustomerAddress } from "../../utils/customerAddressSelection";
+import { hasAddressPin, locationFromAddress, pickPinnedCustomerAddress } from "../../utils/customerAddressSelection";
 import { readStoredSelectedDeliveryAddressId } from "../../utils/customerAddressStorage";
+import { readStoredCustomerLocation, writeStoredCustomerLocation } from "../../utils/customerLocationStorage";
 import { formatCurrency } from "../../utils/format";
 
 type Props = NativeStackScreenProps<RootStackParamList, "StoreDetail">;
-type CustomerLocation = { latitude: number; longitude: number; source: "address" | "gps" | "route" };
+type CustomerLocation = { latitude: number; longitude: number; source: "address" | "gps" | "route"; addressId?: number };
 
 export function StoreDetailScreen({ route, navigation }: Props) {
   const { slug, latitude, longitude } = route.params;
@@ -36,6 +37,8 @@ export function StoreDetailScreen({ route, navigation }: Props) {
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [addingProductIds, setAddingProductIds] = useState<ReadonlySet<number>>(() => new Set());
+  const addingProductIdsRef = useRef(new Set<number>());
   const { data: store, loading, error, reload } = useAsyncLoad(
     () =>
       customerLocation
@@ -52,12 +55,22 @@ export function StoreDetailScreen({ route, navigation }: Props) {
     let cancelled = false;
     const shouldResolveLocation = !customerLocation;
     if (shouldResolveLocation) setLocationLoading(true);
-    Promise.all([fetchAddresses(token), readStoredSelectedDeliveryAddressId(user?.id).catch(() => null)])
-      .then(([addresses, storedAddressId]) => {
+    Promise.all([
+      fetchAddresses(token),
+      readStoredSelectedDeliveryAddressId(user?.id).catch(() => null),
+      readStoredCustomerLocation(user?.id).catch(() => null)
+    ])
+      .then(([addresses, storedAddressId, storedLocation]) => {
         if (cancelled) return;
         const selected = pickPinnedCustomerAddress(addresses, storedAddressId);
         if (shouldResolveLocation && selected && hasAddressPin(selected)) {
-          setCustomerLocation({ latitude: selected.latitude, longitude: selected.longitude, source: "address" });
+          const nextLocation = locationFromAddress(selected);
+          setCustomerLocation(nextLocation);
+          void writeStoredCustomerLocation(user?.id, nextLocation);
+          return;
+        }
+        if (shouldResolveLocation && storedLocation) {
+          setCustomerLocation(storedLocation);
         }
       })
       .catch((loadError) => {
@@ -91,6 +104,7 @@ export function StoreDetailScreen({ route, navigation }: Props) {
   const addProduct = useCallback(
     async (product: Product) => {
       if (!store) return;
+      if (addingProductIdsRef.current.has(product.id)) return;
       if (!token) {
         showDialog({
           title: "Iniciá sesión",
@@ -103,6 +117,8 @@ export function StoreDetailScreen({ route, navigation }: Props) {
         });
         return;
       }
+      addingProductIdsRef.current.add(product.id);
+      setAddingProductIds(new Set(addingProductIdsRef.current));
       try {
         const nextCart = await addCartItem(token, {
           store_id: store.id,
@@ -111,13 +127,19 @@ export function StoreDetailScreen({ route, navigation }: Props) {
           customer_latitude: customerLocation?.latitude ?? null,
           customer_longitude: customerLocation?.longitude ?? null
         });
+        if (customerLocation) {
+          void writeStoredCustomerLocation(user?.id, customerLocation);
+        }
         setCart(nextCart);
         showToast("Articulo agregado", { durationMs: 1500 });
       } catch (addError) {
         showError("No se pudo agregar", friendlyErrorMessage(addError));
+      } finally {
+        addingProductIdsRef.current.delete(product.id);
+        setAddingProductIds(new Set(addingProductIdsRef.current));
       }
     },
-    [customerLocation, navigation, setCart, showDialog, showError, showToast, store, token]
+    [customerLocation, navigation, setCart, showDialog, showError, showToast, store, token, user?.id]
   );
 
   const requestGpsLocation = useCallback(async () => {
@@ -130,13 +152,15 @@ export function StoreDetailScreen({ route, navigation }: Props) {
         return;
       }
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setCustomerLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude, source: "gps" });
+      const nextLocation = { latitude: position.coords.latitude, longitude: position.coords.longitude, source: "gps" as const };
+      setCustomerLocation(nextLocation);
+      void writeStoredCustomerLocation(user?.id, nextLocation);
     } catch (gpsError) {
       setLocationError(friendlyErrorMessage(gpsError, "No pudimos obtener tu ubicacion."));
     } finally {
       setLocationLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
   if (!customerLocation) {
     return (
@@ -193,37 +217,42 @@ export function StoreDetailScreen({ route, navigation }: Props) {
           </View>
         }
         ListEmptyComponent={<StateMessage title="Sin productos" description="No hay productos disponibles para esta categoría." />}
-        renderItem={({ item }) => (
-          <Card style={styles.productCard}>
-            <View style={styles.productTop}>
-              {item.image_url ? (
-                <Image source={{ uri: item.image_url }} style={styles.productImage} accessibilityLabel={`Imagen de ${item.name}`} resizeMode="contain" />
-              ) : (
-                <View style={styles.productImageFallback}>
-                  <Ionicons name="fast-food-outline" size={24} color={colors.primary} />
+        renderItem={({ item }) => {
+          const isAdding = addingProductIds.has(item.id);
+          return (
+            <Card style={styles.productCard}>
+              <View style={styles.productTop}>
+                {item.image_url ? (
+                  <Image source={{ uri: item.image_url }} style={styles.productImage} accessibilityLabel={`Imagen de ${item.name}`} resizeMode="contain" />
+                ) : (
+                  <View style={styles.productImageFallback}>
+                    <Ionicons name="fast-food-outline" size={24} color={colors.primary} />
+                  </View>
+                )}
+                <View style={styles.productInfo}>
+                  <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+                  <Text style={styles.productDescription} numberOfLines={2}>{item.description || item.unit_label || "Producto disponible"}</Text>
+                  {item.has_commercial_discount ? <Text style={styles.discount}>Promo aplicada</Text> : null}
                 </View>
-              )}
-              <View style={styles.productInfo}>
-                <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-                <Text style={styles.productDescription} numberOfLines={2}>{item.description || item.unit_label || "Producto disponible"}</Text>
-                {item.has_commercial_discount ? <Text style={styles.discount}>Promo aplicada</Text> : null}
               </View>
-            </View>
-            <View style={styles.productFooter}>
-              <Text style={styles.price} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{formatCurrency(item.final_price)}</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Agregar ${item.name}`}
-                android_ripple={{ color: "rgba(255,255,255,0.22)" }}
-                onPress={() => void addProduct(item)}
-                style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}
-              >
-                <Ionicons name="add-circle-outline" size={17} color="#FFFFFF" />
-                <Text style={styles.addButtonText}>Agregar</Text>
-              </Pressable>
-            </View>
-          </Card>
-        )}
+              <View style={styles.productFooter}>
+                <Text style={styles.price} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{formatCurrency(item.final_price)}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${isAdding ? "Agregando" : "Agregar"} ${item.name}`}
+                  accessibilityState={{ disabled: isAdding }}
+                  android_ripple={{ color: "rgba(255,255,255,0.22)" }}
+                  disabled={isAdding}
+                  onPress={() => void addProduct(item)}
+                  style={({ pressed }) => [styles.addButton, isAdding && styles.addButtonDisabled, pressed && styles.pressed]}
+                >
+                  <Ionicons name={isAdding ? "time-outline" : "add-circle-outline"} size={17} color="#FFFFFF" />
+                  <Text style={styles.addButtonText}>{isAdding ? "Agregando" : "Agregar"}</Text>
+                </Pressable>
+              </View>
+            </Card>
+          );
+        }}
       />
       <FloatingCartButton itemCount={token ? itemCount : 0} onPress={() => navigation.navigate("Cart")} />
     </Screen>
@@ -335,7 +364,7 @@ const styles = StyleSheet.create({
   },
   addButton: {
     minHeight: 42,
-    minWidth: 108,
+    minWidth: 116,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
     backgroundColor: colors.primary,
@@ -343,6 +372,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.xs
+  },
+  addButtonDisabled: {
+    opacity: 0.72
   },
   addButtonText: {
     color: "#FFFFFF",

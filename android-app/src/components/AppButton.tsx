@@ -38,7 +38,7 @@ export function AppButton({ title, variant = "primary", loading, disabled, fullW
       ) : (
         <View style={styles.content}>
           {icon ? <Ionicons name={icon} size={18} color={labelColor} /> : null}
-          <Text style={[styles.label, styles[`${variant}Label`]]}>{title}</Text>
+          <Text style={[styles.label, styles[`${variant}Label`], isDisabled && styles.disabledLabel]}>{title}</Text>
         </View>
       )}
     </Pressable>
@@ -100,5 +100,8 @@ const styles = StyleSheet.create({
   },
   dangerLabel: {
     color: "#FFFFFF"
+  },
+  disabledLabel: {
+    color: colors.mutedText
   }
 });
